@@ -17,6 +17,11 @@
 
 # 🇻🇳 Phiên bản Tiếng Việt
 
+> **Về chúng tôi (About this Repository):** `bio-agent-os` là một mã nguồn mở mang tính cách mạng, cung cấp lõi quản trị trí nhớ (Memory Controller) mô phỏng chính xác cấu trúc sinh học từ não bộ. Giải pháp được phát triển bởi **Locaith Solution Tech** nhằm thay thế các phương thức nén dữ liệu độc hại của Big Tech (như Context Window Compression), giúp các AI Agent và hệ thống ERP hiện đại có khả năng ghi nhớ vĩnh viễn với chi phí tối ưu nhất.
+
+### 📰 Báo chí nói về Locaith AI
+Các giải pháp Trí tuệ Nhân tạo do Dev Tuấn Anh và đội ngũ Locaith phát triển đã từng bước ghi dấu ấn và được vinh danh trên các mặt báo uy tín cấp quốc gia như **Báo Nhân Dân**, **Báo Đà Nẵng**, và **Báo Tài Chính**. Sự công nhận từ báo giới và chương trình *Top 4 Google for Startups* là bảo chứng mạnh mẽ cho chất lượng của giải pháp "Make in Vietnam" này.
+
 **Nền tảng khoa học:** Hệ thống Bio-Agent OS được nghiên cứu và chế tạo dựa trên khoa học thần kinh đã chứng minh về cơ chế phát triển não bộ của con người bắt đầu từ sau 3 tuổi. Khi đó, bộ não bắt đầu loại bỏ những ký ức vụn vặt (infantile amnesia) để giữ lại và mã hóa những nhận thức, kỹ năng sinh tồn cốt lõi. Chúng tôi mang cơ chế "Quên để Nhớ" này áp dụng trực tiếp lên Trí tuệ AI.
 
 ## 🚀 Sứ mệnh: The "Trojan Horse" cho OpenClaw & OpenDevin
@@ -124,6 +129,11 @@ Hệ thống **Bio-Agent OS** được nghiên cứu và phát triển bởi **D
 <hr>
 
 # 🇬🇧 English Version
+
+> **About this Repository:** `bio-agent-os` is a revolutionary open-source framework providing a Memory Controller core that accurately mimics biological brain structures. Developed by **Locaith Solution Tech**, this solution aims to replace the toxic data compression methodologies of Big Tech (e.g., Context Window Compression), allowing Autonomous Agents and modern ERP systems to retain permanent memory at optimal costs.
+
+### 📰 Locaith AI in the Press
+The Artificial Intelligence solutions developed by Dev Tuan Anh Ha and the Locaith team have continually made their mark and been recognized on prestigious national media outlets including **Nhan Dan Newspaper**, **Da Nang Newspaper**, and **Financial Magazine (Báo Tài Chính)**. The recognition from national press alongside achieving *Top 4 in Google for Startups* stands as a strong testament to the quality of this "Make in Vietnam" architecture.
 
 **Scientific Foundation:** The Bio-Agent OS system is researched and developed based on proven neuroscience regarding human brain development after 3 years of age. During this period, the brain begins discarding fragmented memories (infantile amnesia) to retain and encode core knowledge and survival skills. We apply this exact "Forgetting to Remember" biological mechanism directly to AI Intelligence.
 
