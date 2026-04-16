@@ -91,11 +91,13 @@ class L2SemanticMemory:
         if self._fallback:
             return [{"content": e.content, "score": 1.0, "importance": e.importance} for e in self._entries[:top_k]]
             
-        points = self.client.search(
+        points_data = self.client.query_points(
             collection_name=self.collection_name,
-            query_vector=self._mock_embed(query),
+            query=self._mock_embed(query),
             limit=top_k * 2 # get more to decay
         )
+        points = points_data.points
+
         
         results = []
         now = time.time()
