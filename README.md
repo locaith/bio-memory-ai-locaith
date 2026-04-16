@@ -17,7 +17,7 @@ Bạn đang dùng Agent mã nguồn mở như **OpenClaw, OpenDevin, hay SWE-age
 
 Vấn đề của các Autonomous Agent hiện tại là chúng xài bộ nhớ như một bãi rác (Vector DB nhồi nhét mọi log terminal dài ngoằng). Chúng tốn hàng triệu token để duy trì ngữ cảnh nhưng KHÔNG BAO GIỜ học được một **Quy luật** nào cho dự án cụ thể. 
 
-Lắp **Bio-Agent OS** vào làm backend Memory là bạn đang trang bị một bộ não sinh học vượt trội cho OpenClaw. Chuyển đổi Agent của bạn từ một cỗ máy "bạo lực Token" thành một 엔티티 (Thực thể) biết tự tiến hoá.
+Lắp **Bio-Agent OS** vào làm backend Memory là bạn đang trang bị một bộ nhớ sinh học vượt trội cho OpenClaw cũng như bất kỳ hệ thống ERP AI nào. Chuyển đổi Agent của bạn từ một cỗ máy "bạo lực Token" thành một thực thể thông minh biết tự tiến hoá.
 
 ### Lợi ích "Độc Tôn" khi cắm Bio-Memory vào OpenClaw:
 1. **Chống Tràn RAM tuyệt đối (Garbage Collection)**: Cắt tỉa các terminal log vô nghĩa, xóa bỏ các bước "thử và sai" rùng rợn, giữ lại output cốt lõi nhất.
@@ -96,7 +96,7 @@ asyncio.run(main())
 ## 🌏 Tầm Nhìn & Open-source Commitment
 
 **Bio-Agent OS** không phải là LLM model. Chúng tôi là **"Memory Controller"** — bộ phận quyết định trí thông minh lâu dài của các mô hình. 
-Chúng tôi mong muốn hỗ trợ toàn diện các nền tảng Agent hiện tại. Hãy đồng hành cùng Locaith Solution Tech định hình tương lai của Sovereign AI.
+Chúng tôi mong muốn hỗ trợ toàn diện các nền tảng Agent hiện tại (như OpenClaw, SWE-agent) và **đặc biệt là tích hợp vào các hệ thống ERP Doanh Nghiệp (ERP AI)** để tối ưu hoá quy trình quản trị, tự động lưu trữ và chắt lọc kinh nghiệm vận hành. Hãy đồng hành cùng Locaith Solution Tech định hình tương lai của Sovereign AI.
 
 ---
 
