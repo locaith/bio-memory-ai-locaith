@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bio-agent-os"
-version = "0.1.1"
+version = "0.2.0"
 description = "Open-source Bio-Inspired Memory Framework for AI Agents — Biết nhớ, Biết quên, Biết tư duy."
 readme = "README.md"
 license = {text = "MIT"}

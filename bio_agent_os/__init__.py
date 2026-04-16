@@ -11,7 +11,7 @@ Designed by Locaith Solution Tech | "Make in Vietnam"
 License: MIT
 """
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 __author__ = "Locaith Solution Tech"
 
 from bio_agent_os.core.llm_engine import LLMEngine
