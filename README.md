@@ -4,12 +4,20 @@
 
 <p align="center">
   <h1 align="center">🧠 Bio-Agent OS v0.2.0</h1>
-  <p align="center"><strong>The Biological Memory Upgrade for OpenClaw & Autonomous Agents</strong></p>
+  <p align="center"><strong>The Biological Memory Upgrade for OpenClaw, ERP AI & Autonomous Agents</strong></p>
   <p align="center"><em>"Biết nhớ · Biết quên · Biết tư duy"</em></p>
-  <p align="center">Designed by <a href="https://locaith.com">Locaith Solution Tech</a> | 🇻🇳 Make in Vietnam</p>
+  <p align="center">Researched & Developed by <strong>Dev Tuan Anh Ha</strong> (<a href="https://locaith.com">Locaith Solution Tech</a>) | 🇻🇳 Make in Vietnam</p>
+</p>
+
+<p align="center">
+  <a href="#-phiên-bản-tiếng-việt">🇻🇳 Đọc bằng Tiếng Việt</a> | <a href="#-english-version">🇬🇧 Read in English</a>
 </p>
 
 ---
+
+# 🇻🇳 Phiên bản Tiếng Việt
+
+**Nền tảng khoa học:** Hệ thống Bio-Agent OS được nghiên cứu và chế tạo dựa trên khoa học thần kinh đã chứng minh về cơ chế phát triển não bộ của con người bắt đầu từ sau 3 tuổi. Khi đó, bộ não bắt đầu loại bỏ những ký ức vụn vặt (infantile amnesia) để giữ lại và mã hóa những nhận thức, kỹ năng sinh tồn cốt lõi. Chúng tôi mang cơ chế "Quên để Nhớ" này áp dụng trực tiếp lên Trí tuệ AI.
 
 ## 🚀 Sứ mệnh: The "Trojan Horse" cho OpenClaw & OpenDevin
 
@@ -19,16 +27,16 @@ Vấn đề của các Autonomous Agent hiện tại là chúng xài bộ nhớ 
 
 Lắp **Bio-Agent OS** vào làm backend Memory là bạn đang trang bị một bộ nhớ sinh học vượt trội cho OpenClaw cũng như bất kỳ hệ thống ERP AI nào. Chuyển đổi Agent của bạn từ một cỗ máy "bạo lực Token" thành một thực thể thông minh biết tự tiến hoá.
 
-### Lợi ích "Độc Tôn" khi cắm Bio-Memory vào OpenClaw:
+### Lợi ích "Độc Tôn" khi cắm Bio-Memory vào Hệ thống của bạn:
 1. **Chống Tràn RAM tuyệt đối (Garbage Collection)**: Cắt tỉa các terminal log vô nghĩa, xóa bỏ các bước "thử và sai" rùng rợn, giữ lại output cốt lõi nhất.
 2. **Học "Luật Bất Biến" (Encoding Shift)**: Tự động đúc kết lại lỗi đã gặp thành một Luật vĩnh viễn (Persona): *"Luật 04: Cấm dùng git push -f trong dự án frontend"*. OpenClaw sẽ lập tức code chuẩn trong task tiếp theo mà không cần chèn thêm context.
-3. **Cơ chế Ngủ (Micro-Sleep cycles)**: Sau mỗi 10 lệnh command, OpenClaw sẽ "đi ngủ" để Hồi Hải Mã (Hippocampus) nén tri thức.
+3. **Cơ chế Ngủ (Micro-Sleep cycles)**: Sau mỗi 10 lệnh command, AI sẽ "đi ngủ" để Hồi Hải Mã (Hippocampus) nén tri thức.
 
 ---
 
 ## 📊 So Sánh: Compact (Big Tech) vs Bio-Memory (Coding Sessions)
 
-Dưới đây là biểu đồ mô phỏng hiệu suất và lượng Token sụp đổ rùng rợn của phương pháp "Compact" (nén rác thành rác) so với sự ổn định tuyệt đối của Bio-Memory khi code liên tục 100 tác vụ trong OpenClaw.
+Dưới đây là biểu đồ mô phỏng hiệu suất và lượng Token sụp đổ rùng rợn của phương pháp "Compact" (nén rác thành rác) so với sự ổn định tuyệt đối của Bio-Memory khi code liên tục 100 tác vụ.
 
 <p align="center">
   <img src="docs/images/coding_performance.png" alt="Coding Performance Over Time" width="100%"/>
@@ -41,7 +49,7 @@ Dưới đây là biểu đồ mô phỏng hiệu suất và lượng Token sụ
 
 ## 🏗️ Kiến trúc Framework cốt lõi (Core Architecture)
 
-| Thành phần | Chức năng (Ứng dụng cho OpenClaw) | Cơ quan tương ứng |
+| Thành phần | Chức năng (Ứng dụng cho OpenClaw/ERP) | Cơ quan tương ứng |
 |:---:|:---|:---:|
 | 🟢 **L1 Buffer** | Bộ đệm Terminal Logs & Code diffs ngắn hạn. | **Prefrontal Cortex** |
 | 🔵 **L2 Semantic** | Semantic Search Vector Codebases + Ebbinghaus Decay. | **Neocortex** |
@@ -85,7 +93,7 @@ async def main():
     # Kích hoạt Sleep Mode bằng tay hoặc chờ đủ limit
     await adapter.trigger_micro_sleep()
     
-    # 4. Trích xuất rules bơm ngược lại vào System Prompt OpenClaw
+    # 4. Trích xuất rules bơm ngược lại vào System Prompt
     print(adapter.inject_persona_to_openclaw())
 
 asyncio.run(main())
@@ -96,25 +104,132 @@ asyncio.run(main())
 ## 🌏 Tầm Nhìn & Open-source Commitment
 
 **Bio-Agent OS** không phải là LLM model. Chúng tôi là **"Memory Controller"** — bộ phận quyết định trí thông minh lâu dài của các mô hình. 
-Chúng tôi mong muốn hỗ trợ toàn diện các nền tảng Agent hiện tại (như OpenClaw, SWE-agent) và **đặc biệt là tích hợp vào các hệ thống ERP Doanh Nghiệp (ERP AI)** để tối ưu hoá quy trình quản trị, tự động lưu trữ và chắt lọc kinh nghiệm vận hành. Hãy đồng hành cùng Locaith Solution Tech định hình tương lai của Sovereign AI.
+Chúng tôi mong muốn hỗ trợ toàn diện các nền tảng Agent hiện tại (như OpenClaw, SWE-agent) và **đặc biệt là tích hợp vào các hệ thống ERP Doanh Nghiệp (ERP AI)** để tối ưu hoá quy trình quản trị, tự động lưu trữ và chắt lọc kinh nghiệm vận hành. 
 
 ---
 
 ## 📬 Liên hệ & Triển khai doanh nghiệp
 
-Hệ thống **Bio-Agent OS** được nghiên cứu và phát triển bởi Đội ngũ **Locaith Solution Tech**, đứng đầu bởi **Dev Tuấn Anh** (Top 4 Google for Startups Accelerator). Nếu bạn cần triển khai kiến trúc Bio-Memory tinh chỉnh cho dữ liệu khép kín của tổ chức, hãy liên hệ:
+Hệ thống **Bio-Agent OS** được nghiên cứu và phát triển bởi **Dev Tuan Anh Ha** (Top 4 Google for Startups Accelerator) cùng đội ngũ **Locaith Solution Tech**. Nếu bạn cần triển khai kiến trúc Bio-Memory tinh chỉnh cho dữ liệu khép kín của tổ chức, hãy liên hệ:
 
 - 🏢 **Công ty**: Locaith Solution Tech 
-- 📍 **Địa chỉ**: Số 5 Mạc Thị Bưởi, Vĩnh Tuy, Hai Bà Trưng, Hà Nội, Việt Nam
+- 📍 **Địa chỉ**: Số 6 Ngõ 7 Phố Tôn Thất Thuyết, Thành phố Hà Nội
 - ✉️ **Email Tổ chức**: locaithsolution@locaith.com
-- ✉️ **Email Cá nhân (Dev Tuấn Anh)**: tuananhnangluong@gmail.com
+- ✉️ **Email Cá nhân (Dev Tuan Anh Ha)**: tuananhnangluong@gmail.com
 - 📞 **Hotline**: 0966 872 591
 - 🌐 **Website**: [https://locaith.com](https://locaith.com)
 - ▶️ **YouTube**: [@locaithSolution](https://youtube.com/@locaithSolution)
 - 🔵 **Facebook**: [Locaith Fanpage](https://www.facebook.com/profile.php?id=61560965389617)
 
+<hr>
+
+# 🇬🇧 English Version
+
+**Scientific Foundation:** The Bio-Agent OS system is researched and developed based on proven neuroscience regarding human brain development after 3 years of age. During this period, the brain begins discarding fragmented memories (infantile amnesia) to retain and encode core knowledge and survival skills. We apply this exact "Forgetting to Remember" biological mechanism directly to AI Intelligence.
+
+## 🚀 The Mission: A "Trojan Horse" for OpenClaw & OpenDevin
+
+Are you using open-source Agents like **OpenClaw, OpenDevin, or SWE-agent**? Your Agent executes tasks exceptionally well, but... **does it get progressively dumber and more expensive on Tokens over time?**
+
+The fatal flaw of current Autonomous Agents is treating their memory like a landfill (Vector DBs stuffed with endlessly long terminal logs). They burn millions of tokens trying to maintain context, but they NEVER actually learn a single **Rule** for the specific project.
+
+By plugging in **Bio-Agent OS** as the backend Memory, you are equipping OpenClaw (or any ERP AI system) with a superior biological brain. It transforms your Agent from a "Token-brute-forcing" machine into an intelligent, self-evolving entity.
+
+### The "Unrivaled" Benefits of Integrating Bio-Memory:
+1. **Absolute OOM Prevention (Garbage Collection)**: Prunes meaningless terminal logs, permanently deletes gruesome "trial and error" steps, and only retains the most core outputs.
+2. **Learning "Immutable Rules" (Encoding Shift)**: Automatically condenses past errors into permanent Rules (Persona): *"Rule #04: Never use git push -f in the frontend project"*. OpenClaw will instantly write correct code in the next task without needing additional manual context.
+3. **Sleep Mechanism (Micro-Sleep cycles)**: Every 10 commands, the AI will naturally "go to sleep" allowing the Hippocampus to consolidate and compress knowledge.
+
+---
+
+## 📊 Comparison: Compact (Big Tech) vs Bio-Memory
+
+Below is a simulated graph representing the horrific token bloat and performance collapse of the "Compact" method (compressing garbage into smaller garbage) compared to the absolute stability of Bio-Memory when performing 100 continuous coding tasks.
+
 <p align="center">
-  <strong>Bio-Agent OS v0.2.0</strong> — Nghệ thuật kiểm soát Siêu Trí Tuệ<br>
-  <em>Designed with 🧠 by Locaith Solution Tech | 🇻🇳 Make in Vietnam</em>
+  <img src="docs/images/coding_performance.png" alt="Coding Performance Over Time" width="100%"/>
 </p>
 
+* **Compact (Red Line)**: Rapid token bloat → Context Loss (Hallucination) → Total crash at Task #50 due to overwhelming garbage accumulation.
+* **Bio-Memory (Cyan Line)**: Microsecond delays running Background Sleep Cycles, but maintains strictly optimized VRAM and 100% precision accuracy even at Task #1000.
+
+---
+
+## 🏗️ Core Architecture Framework
+
+| Component | Function (Applied to OpenClaw/ERP) | Biological Organ |
+|:---:|:---|:---:|
+| 🟢 **L1 Buffer** | Short-term buffer for Terminal Logs & Code diffs. | **Prefrontal Cortex** |
+| 🔵 **L2 Semantic** | Semantic Search Vector Codebases + Ebbinghaus Decay. | **Neocortex** |
+| 🟡 **Persona** | Permanent Identity Rules & Logic system. | **Core Identity** |
+| 🔴 **Knowledge Graph** | Data/Code Dependencies structural mapping. | **Association Areas** |
+| ⚙️ **Hippocampus** | Shrinks "1MB terminal errors" into "1 sentence Rules". | **Sleep Cycle** |
+| ✂️ **Pruner** | Destroys discarded code and obsolete log files. | **Synaptic Pruning** |
+
+---
+
+## 🚀 Quick Start & Installation
+
+```bash
+# Install the latest framework (adapter included)
+pip install bio-agent-os[gemini]
+```
+
+### Using the OpenClaw Adapter (Preview)
+
+We provide an `OpenClawBioAdapter` Blueprint natively inside the `bio_agent_os.adapters` directory for seamless integration into your task loops.
+
+```python
+import asyncio
+from bio_agent_os import LLMEngine, L1WorkingMemory, Persona, Hippocampus, GarbageCollector
+from bio_agent_os.adapters.openclaw_adapter import OpenClawBioAdapter
+
+async def main():
+    # 1. Initialize the Brain
+    engine = LLMEngine(backend="gemini", model_id="gemini-3-flash-preview")
+    l1 = L1WorkingMemory(agent_name="openclaw-brain")
+    persona = Persona(name="openclaw-brain")
+    hippo = Hippocampus(engine=engine, l1=l1, persona=persona)
+    gc = GarbageCollector(l1=l1)
+
+    # 2. Init Adapter
+    adapter = OpenClawBioAdapter(hippocampus=hippo, garbage_collector=gc, persona=persona)
+
+    # 3. Simulate OpenClaw Pipeline throwing a terminal log
+    await adapter.ingest_observation("run_command", "npm ERR! cb() never called!")
+    
+    # Trigger Sleep Mode manually or let it hit the limit naturally
+    await adapter.trigger_micro_sleep()
+    
+    # 4. Extract persona rules and inject them directly back into System Prompt
+    print(adapter.inject_persona_to_openclaw())
+
+asyncio.run(main())
+```
+
+---
+
+## 🌏 Mission & Open-source Commitment
+
+**Bio-Agent OS** is NOT an LLM model. We are a **"Memory Controller"** — the decisive module that governs an AI agent's long-term intelligence. 
+We aim to comprehensively support current Agent platforms (such as OpenClaw, SWE-agent), and **especially integrate into Enterprise ERP systems (ERP AI)** to govern management procedures, automate retention, and filter operational experiences. 
+
+---
+
+## 📬 Contact & Enterprise Deployment
+
+The **Bio-Agent OS** system is researched and developed by **Dev Tuan Anh Ha** (Top 4 Google for Startups Accelerator) and the **Locaith Solution Tech** team. If you need to deploy customized Bio-Memory structures internally for isolated corporate data, please get in touch:
+
+- 🏢 **Company**: Locaith Solution Tech 
+- 📍 **Address**: No 6, Alley 7, Ton That Thuyet Street, Hanoi, Vietnam
+- ✉️ **Corporate Email**: locaithsolution@locaith.com
+- ✉️ **Personal Email (Dev Tuan Anh Ha)**: tuananhnangluong@gmail.com
+- 📞 **Hotline**: +84 966 872 591
+- 🌐 **Website**: [https://locaith.com](https://locaith.com)
+- ▶️ **YouTube**: [@locaithSolution](https://youtube.com/@locaithSolution)
+- 🔵 **Facebook**: [Locaith Fanpage](https://www.facebook.com/profile.php?id=61560965389617)
+
+<p align="center">
+  <strong>Bio-Agent OS v0.2.0</strong> — The Art of Governing Superintelligence<br>
+  <em>Designed with 🧠 by Locaith Solution Tech | 🇻🇳 Make in Vietnam</em>
+</p>
