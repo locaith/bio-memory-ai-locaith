@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bio-agent-os"
-version = "0.2.0"
+version = "0.3.0"
 description = "Open-source Bio-Inspired Memory Framework for AI Agents — Biết nhớ, Biết quên, Biết tư duy."
 readme = "README.md"
 license = {text = "MIT"}
@@ -29,6 +29,8 @@ dependencies = [
     "uvicorn>=0.20.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
+    "qdrant-client>=1.6.0",
+    "cryptography>=41.0.0"
 ]
 
 [project.optional-dependencies]
