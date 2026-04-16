@@ -98,7 +98,23 @@ asyncio.run(main())
 **Bio-Agent OS** không phải là LLM model. Chúng tôi là **"Memory Controller"** — bộ phận quyết định trí thông minh lâu dài của các mô hình. 
 Chúng tôi mong muốn hỗ trợ toàn diện các nền tảng Agent hiện tại. Hãy đồng hành cùng Locaith Solution Tech định hình tương lai của Sovereign AI.
 
+---
+
+## 📬 Liên hệ & Triển khai doanh nghiệp
+
+Hệ thống **Bio-Agent OS** được nghiên cứu và phát triển bởi Đội ngũ **Locaith Solution Tech**, đứng đầu bởi **Dev Tuấn Anh** (Top 4 Google for Startups Accelerator). Nếu bạn cần triển khai kiến trúc Bio-Memory tinh chỉnh cho dữ liệu khép kín của tổ chức, hãy liên hệ:
+
+- 🏢 **Công ty**: Locaith Solution Tech 
+- 📍 **Địa chỉ**: Số 5 Mạc Thị Bưởi, Vĩnh Tuy, Hai Bà Trưng, Hà Nội, Việt Nam
+- ✉️ **Email Tổ chức**: locaithsolution@locaith.com
+- ✉️ **Email Cá nhân (Dev Tuấn Anh)**: tuananhnangluong@gmail.com
+- 📞 **Hotline**: 0966 872 591
+- 🌐 **Website**: [https://locaith.com](https://locaith.com)
+- ▶️ **YouTube**: [@locaithSolution](https://youtube.com/@locaithSolution)
+- 🔵 **Facebook**: [Locaith Fanpage](https://www.facebook.com/profile.php?id=61560965389617)
+
 <p align="center">
   <strong>Bio-Agent OS v0.2.0</strong> — Nghệ thuật kiểm soát Siêu Trí Tuệ<br>
-  <em>Designed with 🧠 by Locaith Solution Tech</em>
+  <em>Designed with 🧠 by Locaith Solution Tech | 🇻🇳 Make in Vietnam</em>
 </p>
+
