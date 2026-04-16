@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bio-agent-os"
+version = "0.1.1"
+description = "Open-source Bio-Inspired Memory Framework for AI Agents — Biết nhớ, Biết quên, Biết tư duy."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Locaith Solution Tech", email = "contact@locaith.com"},
+]
+keywords = ["ai", "memory", "bio-inspired", "agent", "llm", "knowledge-graph"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+gemini = ["google-genai>=1.0.0"]
+ollama = ["aiohttp>=3.9.0"]
+openai = ["openai>=1.0.0"]
+all = [
+    "google-genai>=1.0.0",
+    "aiohttp>=3.9.0",
+    "openai>=1.0.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/locaith/bio-agent-os"
+Documentation = "https://github.com/locaith/bio-agent-os#readme"
+Repository = "https://github.com/locaith/bio-agent-os"
+Issues = "https://github.com/locaith/bio-agent-os/issues"
+
+[tool.setuptools.packages.find]
+include = ["bio_agent_os*"]
