@@ -200,8 +200,17 @@ async def trigger_dream():
 
 
 @app.get("/api/reflect")
-def reflect():
-    return health_monitor.reflect()
+async def reflect():
+    deterministic = health_monitor.reflect()
+    try:
+        reflection_text = await engine.generate(health_monitor.reflection_prompt(), temperature=0.2)
+    except Exception:
+        reflection_text = deterministic["agent_reflection"]
+    return {
+        **deterministic,
+        "llm_reflection": reflection_text,
+        "reflection_mode": "llm" if reflection_text != deterministic["agent_reflection"] else "deterministic",
+    }
 
 
 @app.get("/api/state")
@@ -256,6 +265,23 @@ def get_beliefs(active_only: bool = False):
 @app.get("/api/beliefs/{rule_id}")
 def get_belief(rule_id: str):
     return kg.belief_query(rule_id=rule_id)
+
+
+@app.get("/api/beliefs/timeline")
+def get_belief_timeline(active_only: bool = False):
+    result = kg.belief_query(active_only=active_only)
+    rules = sorted(
+        result.get("rules", []),
+        key=lambda item: item["properties"].get("valid_from") or 0,
+    )
+    edges = sorted(
+        [
+            edge for edge in kg._edges
+            if edge["relation"] in {"supports", "conflicts_with", "supersedes"}
+        ],
+        key=lambda item: item["properties"].get("valid_from") or item.get("created_at") or 0,
+    )
+    return {"rules": rules, "edges": edges}
 
 
 @app.get("/api/dreams")

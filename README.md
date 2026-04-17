@@ -114,14 +114,16 @@ Bio-Agent OS giờ hỗ trợ nhiều đường chạy khác nhau cho phần "H�
 1. **Gemini**
 ```env
 LLM_BACKEND=gemini
-MODEL_ID=gemini-3-pro-preview
+MODEL_ID=gemini-3-flash-preview
 GEMINI_API_KEY=your_key_here
 ```
+
+Gemini Pro public docs currently list `gemini-3-pro-preview`. If your Google account or gateway exposes a newer private alias such as `gemini-3.1-pro-preview`, you can swap it in directly.
 
 2. **Claude / Anthropic**
 ```env
 LLM_BACKEND=anthropic
-MODEL_ID=claude-opus-4-1-20250805
+MODEL_ID=claude-opus-4-6
 ANTHROPIC_API_KEY=your_key_here
 ```
 
@@ -132,6 +134,8 @@ MODEL_ID=gpt-5.2
 OPENAI_API_KEY=your_key_here
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
+
+OpenAI public API docs currently list `gpt-5.2` as the latest documented GPT-5 API model in the docs I verified. If your account already exposes a newer private alias such as `gpt-5.4`, you can substitute it directly.
 
 4. **Grok / xAI**
 ```env
@@ -144,7 +148,7 @@ XAI_BASE_URL=https://api.x.ai/v1
 5. **Ollama**
 ```env
 LLM_BACKEND=ollama
-MODEL_ID=gemma3:12b
+MODEL_ID=gemma4:e2b
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
@@ -186,6 +190,7 @@ API hiện có:
 - `GET /api/state`
 - `GET /api/graph`
 - `GET /api/beliefs`
+- `GET /api/beliefs/timeline`
 - `GET /api/beliefs/{rule_id}`
 - `GET /api/dreams`
 
@@ -324,14 +329,16 @@ Bio-Agent OS now supports multiple inference paths for the hippocampus and memor
 1. **Gemini**
 ```env
 LLM_BACKEND=gemini
-MODEL_ID=gemini-3-pro-preview
+MODEL_ID=gemini-3-flash-preview
 GEMINI_API_KEY=your_key_here
 ```
+
+Google's public Gemini API docs currently list `gemini-3-pro-preview` for Pro. If your Google account or gateway exposes a newer private alias such as `gemini-3.1-pro-preview`, you can switch to it directly.
 
 2. **Claude / Anthropic**
 ```env
 LLM_BACKEND=anthropic
-MODEL_ID=claude-opus-4-1-20250805
+MODEL_ID=claude-opus-4-6
 ANTHROPIC_API_KEY=your_key_here
 ```
 
@@ -342,6 +349,8 @@ MODEL_ID=gpt-5.2
 OPENAI_API_KEY=your_key_here
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
+
+OpenAI's public API docs currently list `gpt-5.2` as the latest documented GPT-5 API model that I could verify. If your account already exposes a newer private alias such as `gpt-5.4`, you can substitute it directly.
 
 4. **Grok / xAI**
 ```env
@@ -354,7 +363,7 @@ XAI_BASE_URL=https://api.x.ai/v1
 5. **Ollama**
 ```env
 LLM_BACKEND=ollama
-MODEL_ID=gemma3:12b
+MODEL_ID=gemma4:e2b
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
@@ -396,6 +405,7 @@ Current API:
 - `GET /api/state`
 - `GET /api/graph`
 - `GET /api/beliefs`
+- `GET /api/beliefs/timeline`
 - `GET /api/beliefs/{rule_id}`
 - `GET /api/dreams`
 

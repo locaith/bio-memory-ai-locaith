@@ -1,0 +1,38 @@
+name: Bio-Agent OS Benchmark
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  openclaw-mini-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-asyncio
+        pip install -e "."
+
+    - name: Run OpenClaw benchmark test
+      run: |
+        pytest tests/test_openclaw_benchmark.py
+
+    - name: Generate benchmark reports
+      run: |
+        python scripts/generate_benchmark_report.py
+
+    - name: Upload benchmark artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: openclaw-mini-benchmark-report
+        path: benchmark_reports/

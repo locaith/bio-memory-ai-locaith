@@ -109,3 +109,12 @@ class MemoryHealthMonitor:
             "snapshot": snapshot,
             "top_risks": top_risks,
         }
+
+    def reflection_prompt(self) -> str:
+        snapshot = self.snapshot()
+        return (
+            "You are the metacognitive reflection layer for Bio-Agent OS.\n"
+            "Summarize the current memory state for an engineering user.\n"
+            "Be concrete and concise.\n\n"
+            f"Snapshot: {snapshot}\n"
+        )
