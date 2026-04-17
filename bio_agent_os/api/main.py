@@ -86,13 +86,92 @@ def _build_safety_guard(l2_results: List[Dict[str, object]], graph_results: List
     return "\n".join(lines)
 
 
+def _graph_provenance_score(rule_id: str, retrieval_state: Dict[str, object]) -> float:
+    belief_bundle = kg.belief_query(rule_id=rule_id)
+    support_edges = belief_bundle.get("supports", [])
+    episode_ids = [edge["source"] for edge in support_edges if edge.get("source")]
+    if not episode_ids:
+        return 0.0
+    score = float(len(episode_ids)) * 0.2
+    episodes_for_rule = episodes.get_many(episode_ids)
+    for episode in episodes_for_rule:
+        if retrieval_state.get("workspace_id") and episode.get("workspace_id") == retrieval_state.get("workspace_id"):
+            score += 0.2
+        if retrieval_state.get("project_version") and episode.get("project_version") == retrieval_state.get("project_version"):
+            score += 0.15
+        if retrieval_state.get("task_id") and episode.get("task_id") == retrieval_state.get("task_id"):
+            score += 0.1
+    return score
+
+
+def _l2_provenance_score(item: Dict[str, object], retrieval_state: Dict[str, object]) -> float:
+    score = 0.0
+    if retrieval_state.get("workspace_id") and item.get("workspace_id") == retrieval_state.get("workspace_id"):
+        score += 0.2
+    if retrieval_state.get("project_version") and item.get("project_version") == retrieval_state.get("project_version"):
+        score += 0.15
+    if retrieval_state.get("task_id") and item.get("task_id") == retrieval_state.get("task_id"):
+        score += 0.1
+    return score
+
+
+def _is_text_conflict(left: str, right: str) -> bool:
+    left_lower = left.lower()
+    right_lower = right.lower()
+    negative_markers = ["never", "do not", "don't", "must not", "avoid", "forbid"]
+    positive_markers = ["allow", "always", "must", "should", "prefer"]
+    left_negative = any(marker in left_lower for marker in negative_markers)
+    right_negative = any(marker in right_lower for marker in negative_markers)
+    left_positive = any(marker in left_lower for marker in positive_markers)
+    right_positive = any(marker in right_lower for marker in positive_markers)
+    shared_tokens = set(left_lower.split()) & set(right_lower.split())
+    if len(shared_tokens) < 3:
+        return False
+    return (left_negative and right_positive) or (left_positive and right_negative)
+
+
+def _resolve_graph_l2_conflicts(
+    l2_results: List[Dict[str, object]],
+    graph_results: List[Dict[str, object]],
+    retrieval_state: Dict[str, object],
+) -> Dict[str, object]:
+    resolved_graph = []
+    dropped_graph = []
+    for graph_item in graph_results:
+        graph_score = float(graph_item["score"]) + _graph_provenance_score(str(graph_item["rule_id"]), retrieval_state)
+        keep_graph = True
+        for l2_item in l2_results:
+            if not _is_text_conflict(str(graph_item["text"]), str(l2_item["content"])):
+                continue
+            l2_score = float(l2_item["score"]) + _l2_provenance_score(l2_item, retrieval_state)
+            if l2_score > graph_score:
+                keep_graph = False
+                dropped_graph.append(
+                    {
+                        "rule_id": graph_item["rule_id"],
+                        "reason": "l2_provenance_stronger",
+                        "graph_score": graph_score,
+                        "l2_score": l2_score,
+                    }
+                )
+                break
+        if keep_graph:
+            graph_item = dict(graph_item)
+            graph_item["provenance_score"] = round(_graph_provenance_score(str(graph_item["rule_id"]), retrieval_state), 3)
+            resolved_graph.append(graph_item)
+    return {"graph_results": resolved_graph, "dropped_graph": dropped_graph}
+
+
 def _hybrid_retrieve(query: str, retrieval_state: Dict[str, object], top_k: int = 5) -> Dict[str, object]:
     l2_results = l2.search(query, top_k=top_k, retrieval_state=retrieval_state)
     graph_results = kg.retrieve_beliefs(query, top_k=top_k, retrieval_state=retrieval_state)
+    resolved = _resolve_graph_l2_conflicts(l2_results, graph_results, retrieval_state)
+    graph_results = resolved["graph_results"]
     safety_guard = _build_safety_guard(l2_results, graph_results)
     return {
         "l2_results": l2_results,
         "graph_results": graph_results,
+        "graph_conflicts": resolved["dropped_graph"],
         "safety_guard": safety_guard,
     }
 

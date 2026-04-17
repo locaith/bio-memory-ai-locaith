@@ -96,6 +96,10 @@ class EpisodeStore:
                 return episode
         return None
 
+    def get_many(self, episode_ids: List[str]) -> List[Dict[str, Any]]:
+        episode_id_set = set(episode_ids)
+        return [episode for episode in self._episodes if episode["episode_id"] in episode_id_set]
+
     def query(
         self,
         task_id: Optional[str] = None,

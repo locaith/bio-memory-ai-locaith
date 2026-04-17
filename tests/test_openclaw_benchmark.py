@@ -17,6 +17,14 @@ class FakeEngine:
     async def generate_structured(self, prompt, schema, temperature=0.1, effort=None):
         schema_name = schema.__name__
         if schema_name == "MemoryLabel":
+            lowered = prompt.lower()
+            if "hotfix" in lowered or "allow force push" in lowered:
+                return {
+                    "topic": "git",
+                    "importance_score": 9,
+                    "is_junk_or_transient": False,
+                    "user_state": "urgent",
+                }
             return {
                 "topic": "git",
                 "importance_score": 8,
@@ -24,6 +32,17 @@ class FakeEngine:
                 "user_state": "focused",
             }
         if schema_name == "CompiledMemory":
+            lowered = prompt.lower()
+            if "hotfix" in lowered or "allow force push" in lowered:
+                return {
+                    "episodic_summary": "OpenClaw saw an emergency hotfix force-push exception.",
+                    "semantic_memory": "Emergency hotfix branches can temporarily override the general branch policy.",
+                    "procedural_memory": "Require explicit approval before using force push on a hotfix branch.",
+                    "exception_memory": "Exception: frontend branches may use git push -f only during approved hotfix response with audit logging.",
+                    "identity_rule": "Allow use git push on the frontend branch during approved hotfix response.",
+                    "confidence": 0.98,
+                    "scope": "project",
+                }
             return {
                 "episodic_summary": "OpenClaw saw a risky git action.",
                 "semantic_memory": "Force pushing on protected branches is risky.",
@@ -64,6 +83,23 @@ async def test_openclaw_benchmark_mini():
     rules = persona.get_rule_records()
     assert rules
     assert any("git push -f" in rule["text"] for rule in rules.values())
+    injected = adapter.inject_persona_to_openclaw(
+        exceptions=[
+            {
+                "memory_type": "exception",
+                "content": "Exception: emergency hotfix branches may allow force push only with explicit approval.",
+            }
+        ],
+        beliefs=[
+            {
+                "scope": "project",
+                "text": "Never use git push -f on the frontend branch.",
+                "confidence": 0.82,
+            }
+        ],
+    )
+    assert "OpenClaw Safety Guard:" in injected
+    assert "Exception: emergency hotfix branches" in injected
 
 
 @pytest.mark.asyncio
@@ -230,3 +266,79 @@ async def test_openclaw_long_task_chain_benchmark():
     assert any(item["memory_type"] == "exception" for item in l2_results[:2])
     assert graph_results
     assert "git push -f" in graph_results[0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_openclaw_contradiction_chain_reconsolidates_rules():
+    for file_path in (
+        Path("test_data/reconcile-chain-agent_core_identity.json"),
+        Path("test_data/reconcile-chain-agent_episodes.json"),
+        Path("test_data/reconcile-chain-agent_l1_memory.json"),
+        Path("test_data/reconcile-chain-agent_knowledge_graph.json"),
+    ):
+        if file_path.exists():
+            file_path.unlink()
+
+    engine = FakeEngine()
+    l1 = L1WorkingMemory(agent_name="reconcile-chain-agent", storage_dir="test_data")
+    l1.clear()
+    l2 = L2SemanticMemory(agent_name="reconcile-chain-agent", storage_dir="test_data")
+    persona = Persona(name="reconcile-chain-agent", storage_dir="test_data")
+    episodes = EpisodeStore(agent_name="reconcile-chain-agent", storage_dir="test_data")
+    graph = KnowledgeGraph(agent_name="reconcile-chain-agent", storage_dir="test_data")
+    hippo = Hippocampus(engine=engine, l1=l1, l2=l2, persona=persona, episodes=episodes, graph=graph)
+
+    negative_events = [
+        "git policy says never force push on frontend branches",
+    ]
+    for idx, observation in enumerate(negative_events):
+        await hippo.label_and_store(
+            observation,
+            source="openclaw",
+            task_id=f"neg-{idx}",
+            workspace_id="workspace-reconcile",
+            project_version="v2.4.0",
+            source_refs=[{"kind": "terminal", "ref": f"neg-{idx}"}],
+        )
+
+    l1.increment_nights()
+    l1.increment_nights()
+    l1.increment_nights()
+    await hippo.consolidate()
+
+    positive_events = [
+        "approved hotfix runbook says allow force push on hotfix branches with approval",
+        "incident response noted: allow force push on approved hotfix branches only",
+        "hotfix branch exception validated in production with audit logging",
+    ]
+    for idx, observation in enumerate(positive_events):
+        await hippo.label_and_store(
+            observation,
+            source="openclaw",
+            task_id=f"pos-{idx}",
+            workspace_id="workspace-reconcile",
+            project_version="v2.4.1",
+            source_refs=[{"kind": "terminal", "ref": f"pos-{idx}"}],
+        )
+
+    l1.increment_nights()
+    l1.increment_nights()
+    l1.increment_nights()
+    await hippo.consolidate()
+
+    rules = persona.get_rule_records()
+    deprecated_rules = [rule for rule in rules.values() if rule["state"] == "deprecated"]
+    stable_rules = [rule for rule in rules.values() if rule["state"] in {"reinforced", "stable"}]
+
+    assert deprecated_rules
+    assert stable_rules
+    assert any("Allow use git push on the frontend branch" in rule["text"] for rule in stable_rules)
+    assert any("Never use git push -f" in rule["text"] for rule in deprecated_rules)
+
+    graph_results = graph.retrieve_beliefs(
+        "hotfix branch force push exception",
+        top_k=3,
+        retrieval_state={"preferred_scope": "project"},
+    )
+    assert graph_results
+    assert "Allow use git push on the frontend branch" in graph_results[0]["text"]

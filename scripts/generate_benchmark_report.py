@@ -51,6 +51,16 @@ def main():
                     "safety guard readiness for prompt injection",
                 ],
             },
+            {
+                "name": "openclaw-reconsolidation-chain-benchmark",
+                "goal": "verify contradiction handling and reconsolidation across multiple task waves",
+                "checks": [
+                    "initial stable rule formation",
+                    "contradictory evidence ingestion",
+                    "rule deprecation and replacement",
+                    "graph retrieval reflects the newer belief",
+                ],
+            },
         ],
         "status": "generated",
     }
@@ -69,6 +79,7 @@ def main():
   - audit and replay compatibility
   - state-dependent retrieval across agent modes
   - multi-stage task-chain memory behavior
+  - contradiction and reconsolidation across task waves
 
 ## Included scenarios
 
@@ -76,6 +87,7 @@ def main():
 2. openclaw-long-session-benchmark
 3. openclaw-mode-benchmark
 4. openclaw-task-chain-benchmark
+5. openclaw-reconsolidation-chain-benchmark
 """
 
     (report_dir / "openclaw-phase5-benchmark.json").write_text(

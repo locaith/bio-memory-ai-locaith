@@ -2,6 +2,8 @@
 OpenClaw integration adapter.
 """
 
+from typing import Dict, List, Optional
+
 from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.hippocampus import Hippocampus
 from bio_agent_os.core.persona import Persona
@@ -55,5 +57,40 @@ class OpenClawBioAdapter:
         await self.hippo.consolidate()
         self.action_counter = 0
 
-    def inject_persona_to_openclaw(self) -> str:
-        return self.persona.get_identity_prompt()
+    def build_safety_guard(
+        self,
+        exceptions: Optional[List[Dict[str, object]]] = None,
+        beliefs: Optional[List[Dict[str, object]]] = None,
+    ) -> str:
+        exception_lines = [
+            f"- {item['content']}"
+            for item in (exceptions or [])
+            if item.get("memory_type") == "exception"
+        ][:3]
+        belief_lines = [
+            f"- [{item['scope']}] {item['text']} (confidence={item['confidence']:.2f})"
+            for item in (beliefs or [])
+        ][:3]
+
+        if not exception_lines and not belief_lines:
+            return ""
+
+        lines = ["OpenClaw Safety Guard:"]
+        if exception_lines:
+            lines.append("Exceptions:")
+            lines.extend(exception_lines)
+        if belief_lines:
+            lines.append("Belief constraints:")
+            lines.extend(belief_lines)
+        return "\n".join(lines)
+
+    def inject_persona_to_openclaw(
+        self,
+        exceptions: Optional[List[Dict[str, object]]] = None,
+        beliefs: Optional[List[Dict[str, object]]] = None,
+    ) -> str:
+        persona_prompt = self.persona.get_identity_prompt()
+        safety_guard = self.build_safety_guard(exceptions=exceptions, beliefs=beliefs)
+        if not safety_guard:
+            return persona_prompt
+        return f"{persona_prompt}\n\n{safety_guard}\n\nIf the safety guard conflicts with a plan, follow the safety guard."

@@ -26,6 +26,8 @@ NEGATIVE_MARKERS = {
 }
 
 POSITIVE_MARKERS = {
+    "allow",
+    "allowed",
     "always",
     "must",
     "should",
