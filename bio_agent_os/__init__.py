@@ -9,12 +9,14 @@ __version__ = "0.4.0"
 __author__ = "Locaith Solution Tech"
 
 from bio_agent_os.core.audit_log import AuditLog
+from bio_agent_os.core.approval_queue import ApprovalQueue
 from bio_agent_os.core.compaction import MemoryCompactor
 from bio_agent_os.core.dream_journal import DreamJournal
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
 from bio_agent_os.core.reconciliation import ContradictionResolver
+from bio_agent_os.core.retrieval_service import RetrievalService
 from bio_agent_os.core.router import IntentRouter
 from bio_agent_os.memory.l1_working import L1WorkingMemory
 from bio_agent_os.memory.l2_semantic import L2SemanticMemory
@@ -26,6 +28,7 @@ from bio_agent_os.background_jobs.graph_builder import GraphBuilder
 
 __all__ = [
     "AuditLog",
+    "ApprovalQueue",
     "DreamJournal",
     "EpisodeStore",
     "GarbageCollector",
@@ -40,4 +43,5 @@ __all__ = [
     "MemoryHealthMonitor",
     "Persona",
     "ContradictionResolver",
+    "RetrievalService",
 ]

@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from bio_agent_os.core.audit_log import AuditLog
+from bio_agent_os.core.approval_queue import ApprovalQueue
 from bio_agent_os.core.compaction import MemoryCompactor
 from bio_agent_os.core.dream_journal import DreamJournal
 from bio_agent_os.core.llm_engine import LLMEngine
@@ -47,6 +48,7 @@ class Hippocampus:
         graph: Optional[KnowledgeGraph] = None,
         dream_journal: Optional[DreamJournal] = None,
         audit_log: Optional[AuditLog] = None,
+        approval_queue: Optional[ApprovalQueue] = None,
     ):
         self.engine = engine
         self.l1 = l1
@@ -56,8 +58,9 @@ class Hippocampus:
         self.graph = graph
         self.dream_journal = dream_journal
         self.audit_log = audit_log
+        self.approval_queue = approval_queue
         self.compactor = MemoryCompactor()
-        self.reconciler = ContradictionResolver(persona=persona)
+        self.reconciler = ContradictionResolver(persona=persona, approval_queue=approval_queue)
         self._log: List[str] = []
 
     @property
@@ -203,7 +206,7 @@ class Hippocampus:
     async def consolidate(self) -> Dict[str, int]:
         self._log.append("----- sleep consolidation started -----")
         survivors = self.l1.get_survivors()
-        stats = {"encoded": 0, "failed": 0, "challenged": 0}
+        stats = {"encoded": 0, "failed": 0, "challenged": 0, "pending_approval": 0}
 
         if not survivors:
             self._log.append("No survivors to consolidate.")
@@ -221,6 +224,27 @@ class Hippocampus:
                 identity_rule = compiled["identity_rule"].strip()
                 confidence = float(compiled.get("confidence", 0.55))
                 scope = compiled.get("scope", "project").strip().lower() or "project"
+                if self.approval_queue and self.approval_queue.requires_approval(identity_rule, scope=scope, confidence=confidence):
+                    request = self.approval_queue.submit(
+                        "promote_sensitive_rule",
+                        identity_rule,
+                        scope=scope,
+                        confidence=confidence,
+                        metadata={
+                            "evidence_episode_ids": [episode_id] if episode_id else [],
+                            "source": "hippocampus",
+                        },
+                    )
+                    self.l1.mark_encoded(entry["timestamp"])
+                    self._log.append(f"Queued human approval for sensitive rule: {identity_rule[:120]}")
+                    if self.audit_log:
+                        self.audit_log.append(
+                            "approval_required",
+                            "Sensitive rule promotion queued for human approval",
+                            {"request_id": request["request_id"], "rule_text": identity_rule, "scope": scope},
+                        )
+                    stats["pending_approval"] += 1
+                    continue
 
                 rule_id = self.persona.add_rule(
                     identity_rule,
@@ -318,10 +342,12 @@ class Hippocampus:
                     self._log.append(
                         "Reconciled rule "
                         f"(deprecated={reconcile_stats['deprecated']}, "
-                        f"challenged={reconcile_stats['challenged']})."
+                        f"challenged={reconcile_stats['challenged']}, "
+                        f"pending_approval={reconcile_stats.get('pending_approval', 0)})."
                     )
                 stats["encoded"] += 1
                 stats["challenged"] += reconcile_stats["challenged"]
+                stats["pending_approval"] += int(reconcile_stats.get("pending_approval", 0))
             except Exception as exc:
                 self._log.append(f"Compile failed: {exc}")
                 stats["failed"] += 1

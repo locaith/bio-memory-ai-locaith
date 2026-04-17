@@ -3,8 +3,9 @@ Rule contradiction detection and reconciliation.
 """
 
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 
+from bio_agent_os.core.approval_queue import ApprovalQueue
 from bio_agent_os.core.persona import Persona
 
 
@@ -39,8 +40,9 @@ POSITIVE_MARKERS = {
 
 
 class ContradictionResolver:
-    def __init__(self, persona: Persona):
+    def __init__(self, persona: Persona, approval_queue: Optional[ApprovalQueue] = None):
         self.persona = persona
+        self.approval_queue = approval_queue
 
     def _normalize_text(self, text: str) -> str:
         lowered = text.lower().strip()
@@ -102,10 +104,10 @@ class ContradictionResolver:
         rules = self.persona.get_rule_records()
         target = rules.get(rule_id)
         if not target:
-            return {"challenged": 0, "deprecated": 0, "challenged_ids": [], "deprecated_ids": []}
+            return {"challenged": 0, "deprecated": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "approval_request_ids": []}
 
         conflicts = self.find_conflicts(rule_id)
-        stats = {"challenged": 0, "deprecated": 0, "challenged_ids": [], "deprecated_ids": []}
+        stats = {"challenged": 0, "deprecated": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "approval_request_ids": []}
 
         for other_id in conflicts:
             other = self.persona.get_rule_records()[other_id]
@@ -113,6 +115,22 @@ class ContradictionResolver:
             other_score = other["confidence"] + (other["support_count"] * 0.1)
 
             if target_score >= other_score:
+                if self.approval_queue and self.approval_queue.requires_approval(
+                    other["text"],
+                    scope=other["scope"],
+                    confidence=float(other["confidence"]),
+                ):
+                    request = self.approval_queue.submit(
+                        "deprecate_sensitive_rule",
+                        other["text"],
+                        scope=other["scope"],
+                        confidence=float(other["confidence"]),
+                        target_rule_id=other_id,
+                        metadata={"superseded_by": rule_id},
+                    )
+                    stats["pending_approval"] += 1
+                    stats["approval_request_ids"].append(request["request_id"])
+                    continue
                 if self.persona.deprecate_rule(other_id, superseded_by=rule_id):
                     stats["deprecated"] += 1
                     stats["deprecated_ids"].append(other_id)

@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.hippocampus import Hippocampus
 from bio_agent_os.core.persona import Persona
+from bio_agent_os.core.retrieval_service import RetrievalService
 
 
 class OpenClawBioAdapter:
@@ -24,10 +25,12 @@ class OpenClawBioAdapter:
         hippocampus: Hippocampus,
         garbage_collector: GarbageCollector,
         persona: Persona,
+        retrieval_service: Optional[RetrievalService] = None,
     ):
         self.hippo = hippocampus
         self.gc = garbage_collector
         self.persona = persona
+        self.retrieval_service = retrieval_service
         self.action_counter = 0
 
     async def ingest_observation(self, action_type: str, observation_output: str) -> bool:
@@ -94,3 +97,17 @@ class OpenClawBioAdapter:
         if not safety_guard:
             return persona_prompt
         return f"{persona_prompt}\n\n{safety_guard}\n\nIf the safety guard conflicts with a plan, follow the safety guard."
+
+    def inject_contextual_memory_to_openclaw(
+        self,
+        query: str,
+        retrieval_state: Optional[Dict[str, object]] = None,
+    ) -> str:
+        if not self.retrieval_service:
+            return self.inject_persona_to_openclaw()
+        retrieval_state = retrieval_state or {}
+        bundle = self.retrieval_service.hybrid_retrieve(query, retrieval_state, top_k=5)
+        return self.inject_persona_to_openclaw(
+            exceptions=bundle["l2_results"],
+            beliefs=bundle["graph_results"],
+        )

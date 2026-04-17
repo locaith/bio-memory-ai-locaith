@@ -4,7 +4,7 @@ FastAPI entry point for Bio-Agent OS.
 
 import os
 from contextlib import asynccontextmanager
-from typing import Dict, List, Optional
+from typing import Optional
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,10 +14,12 @@ from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.graph_builder import GraphBuilder
 from bio_agent_os.background_jobs.hippocampus import Hippocampus
 from bio_agent_os.core.audit_log import AuditLog
+from bio_agent_os.core.approval_queue import ApprovalQueue
 from bio_agent_os.core.dream_journal import DreamJournal
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
+from bio_agent_os.core.retrieval_service import RetrievalService
 from bio_agent_os.core.router import IntentRouter
 from bio_agent_os.memory.episodes import EpisodeStore
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
@@ -41,143 +43,12 @@ graph_builder: Optional[GraphBuilder] = None
 health_monitor: Optional[MemoryHealthMonitor] = None
 dream_journal: Optional[DreamJournal] = None
 audit_log: Optional[AuditLog] = None
-
-
-def _build_retrieval_state(data: Dict[str, object]) -> Dict[str, object]:
-    mode = str(data.get("mode", "implement"))
-    stress_state = str(data.get("stress_state", "normal"))
-    risk_level = str(data.get("risk_level", "medium"))
-    workspace_id = data.get("workspace_id")
-    preferred_scope = "organization" if risk_level == "high" else "project"
-    return {
-        "mode": mode,
-        "stress_state": stress_state,
-        "risk_level": risk_level,
-        "task_id": data.get("task_id"),
-        "workspace_id": workspace_id,
-        "project_version": data.get("project_version"),
-        "prefer_exception": mode in {"debug", "deploy"} or stress_state == "failure" or risk_level == "high",
-        "preferred_scope": preferred_scope,
-    }
-
-
-def _build_safety_guard(l2_results: List[Dict[str, object]], graph_results: List[Dict[str, object]]) -> str:
-    exception_lines = [
-        f"- {item['content']}"
-        for item in l2_results
-        if item.get("memory_type") == "exception"
-    ][:3]
-    belief_lines = [
-        f"- [{item['scope']}] {item['text']} (confidence={item['confidence']:.2f})"
-        for item in graph_results
-        if item.get("state") in {"stable", "reinforced"}
-    ][:3]
-
-    if not exception_lines and not belief_lines:
-        return ""
-
-    lines = ["Safety guardrails for this request:"]
-    if exception_lines:
-        lines.append("Critical exceptions:")
-        lines.extend(exception_lines)
-    if belief_lines:
-        lines.append("Belief constraints:")
-        lines.extend(belief_lines)
-    return "\n".join(lines)
-
-
-def _graph_provenance_score(rule_id: str, retrieval_state: Dict[str, object]) -> float:
-    belief_bundle = kg.belief_query(rule_id=rule_id)
-    support_edges = belief_bundle.get("supports", [])
-    episode_ids = [edge["source"] for edge in support_edges if edge.get("source")]
-    if not episode_ids:
-        return 0.0
-    score = float(len(episode_ids)) * 0.2
-    episodes_for_rule = episodes.get_many(episode_ids)
-    for episode in episodes_for_rule:
-        if retrieval_state.get("workspace_id") and episode.get("workspace_id") == retrieval_state.get("workspace_id"):
-            score += 0.2
-        if retrieval_state.get("project_version") and episode.get("project_version") == retrieval_state.get("project_version"):
-            score += 0.15
-        if retrieval_state.get("task_id") and episode.get("task_id") == retrieval_state.get("task_id"):
-            score += 0.1
-    return score
-
-
-def _l2_provenance_score(item: Dict[str, object], retrieval_state: Dict[str, object]) -> float:
-    score = 0.0
-    if retrieval_state.get("workspace_id") and item.get("workspace_id") == retrieval_state.get("workspace_id"):
-        score += 0.2
-    if retrieval_state.get("project_version") and item.get("project_version") == retrieval_state.get("project_version"):
-        score += 0.15
-    if retrieval_state.get("task_id") and item.get("task_id") == retrieval_state.get("task_id"):
-        score += 0.1
-    return score
-
-
-def _is_text_conflict(left: str, right: str) -> bool:
-    left_lower = left.lower()
-    right_lower = right.lower()
-    negative_markers = ["never", "do not", "don't", "must not", "avoid", "forbid"]
-    positive_markers = ["allow", "always", "must", "should", "prefer"]
-    left_negative = any(marker in left_lower for marker in negative_markers)
-    right_negative = any(marker in right_lower for marker in negative_markers)
-    left_positive = any(marker in left_lower for marker in positive_markers)
-    right_positive = any(marker in right_lower for marker in positive_markers)
-    shared_tokens = set(left_lower.split()) & set(right_lower.split())
-    if len(shared_tokens) < 3:
-        return False
-    return (left_negative and right_positive) or (left_positive and right_negative)
-
-
-def _resolve_graph_l2_conflicts(
-    l2_results: List[Dict[str, object]],
-    graph_results: List[Dict[str, object]],
-    retrieval_state: Dict[str, object],
-) -> Dict[str, object]:
-    resolved_graph = []
-    dropped_graph = []
-    for graph_item in graph_results:
-        graph_score = float(graph_item["score"]) + _graph_provenance_score(str(graph_item["rule_id"]), retrieval_state)
-        keep_graph = True
-        for l2_item in l2_results:
-            if not _is_text_conflict(str(graph_item["text"]), str(l2_item["content"])):
-                continue
-            l2_score = float(l2_item["score"]) + _l2_provenance_score(l2_item, retrieval_state)
-            if l2_score > graph_score:
-                keep_graph = False
-                dropped_graph.append(
-                    {
-                        "rule_id": graph_item["rule_id"],
-                        "reason": "l2_provenance_stronger",
-                        "graph_score": graph_score,
-                        "l2_score": l2_score,
-                    }
-                )
-                break
-        if keep_graph:
-            graph_item = dict(graph_item)
-            graph_item["provenance_score"] = round(_graph_provenance_score(str(graph_item["rule_id"]), retrieval_state), 3)
-            resolved_graph.append(graph_item)
-    return {"graph_results": resolved_graph, "dropped_graph": dropped_graph}
-
-
-def _hybrid_retrieve(query: str, retrieval_state: Dict[str, object], top_k: int = 5) -> Dict[str, object]:
-    l2_results = l2.search(query, top_k=top_k, retrieval_state=retrieval_state)
-    graph_results = kg.retrieve_beliefs(query, top_k=top_k, retrieval_state=retrieval_state)
-    resolved = _resolve_graph_l2_conflicts(l2_results, graph_results, retrieval_state)
-    graph_results = resolved["graph_results"]
-    safety_guard = _build_safety_guard(l2_results, graph_results)
-    return {
-        "l2_results": l2_results,
-        "graph_results": graph_results,
-        "graph_conflicts": resolved["dropped_graph"],
-        "safety_guard": safety_guard,
-    }
+approval_queue: Optional[ApprovalQueue] = None
+retrieval_service: Optional[RetrievalService] = None
 
 
 def init_components():
-    global engine, persona, router_ai, l1, l2, kg, episodes, hippo, gc, graph_builder, health_monitor, dream_journal, audit_log
+    global engine, persona, router_ai, l1, l2, kg, episodes, hippo, gc, graph_builder, health_monitor, dream_journal, audit_log, approval_queue, retrieval_service
 
     from dotenv import load_dotenv
 
@@ -192,6 +63,8 @@ def init_components():
     episodes = EpisodeStore(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     dream_journal = DreamJournal(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     audit_log = AuditLog(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
+    approval_queue = ApprovalQueue(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
+    retrieval_service = RetrievalService(l2=l2, graph=kg, episodes=episodes, persona=persona)
     hippo = Hippocampus(
         engine=engine,
         l1=l1,
@@ -201,6 +74,7 @@ def init_components():
         graph=kg,
         dream_journal=dream_journal,
         audit_log=audit_log,
+        approval_queue=approval_queue,
     )
     gc = GarbageCollector(l1=l1, l2=l2)
     graph_builder = GraphBuilder(engine=engine, graph=kg)
@@ -263,13 +137,13 @@ async def chat(request: Request):
     intent = router_ai.quick_classify(message)
     l1_context = l1.build_context_string(n=5)
     identity_prompt = persona.get_identity_prompt()
-    retrieval_state = _build_retrieval_state(data)
+    retrieval_state = retrieval_service.build_retrieval_state(data)
 
     l2_context = ""
     safety_guard = ""
     graph_context = ""
     if intent.value in ("knowledge", "recall", "task"):
-        retrieval_bundle = _hybrid_retrieve(message, retrieval_state, top_k=5)
+        retrieval_bundle = retrieval_service.hybrid_retrieve(message, retrieval_state, top_k=5)
         l2_results = retrieval_bundle["l2_results"]
         graph_results = retrieval_bundle["graph_results"]
         safety_guard = retrieval_bundle["safety_guard"]
@@ -438,6 +312,7 @@ def get_state():
         "episodes": {"count": episodes.count, "recent": episodes.get_recent(10)},
         "knowledge_graph": {"nodes": kg.node_count, "edges": kg.edge_count},
         "belief_graph": kg.belief_summary(),
+        "approvals": {"pending": approval_queue.pending_count, "recent": approval_queue.list(limit=10)},
         "persona": {
             "rule_count": persona.rule_count,
             "rules": list(persona.get_rule_records().values()),
@@ -520,11 +395,63 @@ async def retrieve(request: Request):
     query = data.get("query", "").strip()
     if not query:
         return {"error": "Empty query"}
-    retrieval_state = _build_retrieval_state(data)
+    retrieval_state = retrieval_service.build_retrieval_state(data)
     if "prefer_exception" in data:
         retrieval_state["prefer_exception"] = bool(data.get("prefer_exception"))
-    bundle = _hybrid_retrieve(query, retrieval_state, top_k=int(data.get("top_k", 5)))
+    bundle = retrieval_service.hybrid_retrieve(query, retrieval_state, top_k=int(data.get("top_k", 5)))
     return {"query": query, "retrieval_state": retrieval_state, **bundle}
+
+
+@app.post("/api/lineage")
+async def lineage(request: Request):
+    data = await request.json()
+    query = data.get("query", "").strip()
+    if not query:
+        return {"error": "Empty query"}
+    retrieval_state = retrieval_service.build_retrieval_state(data)
+    return {"query": query, "retrieval_state": retrieval_state, **retrieval_service.build_lineage(query, retrieval_state, top_k=int(data.get("top_k", 5)))}
+
+
+@app.get("/api/approvals")
+def get_approvals(status: Optional[str] = None):
+    return {"pending": approval_queue.pending_count, "requests": approval_queue.list(status=status, limit=200)}
+
+
+@app.post("/api/approvals/{request_id}/approve")
+async def approve_request(request_id: str, request: Request):
+    payload = await request.json()
+    reviewer = payload.get("reviewer", "human")
+    resolved = approval_queue.resolve(request_id, "approved", reviewer=reviewer)
+    if not resolved:
+        return {"error": "Approval request not found"}
+
+    if resolved["action_type"] == "promote_sensitive_rule":
+        metadata = resolved.get("metadata", {})
+        rule_id = persona.add_rule(
+            resolved["rule_text"],
+            scope=resolved.get("scope", "project"),
+            confidence=float(resolved.get("confidence", 0.7)),
+            evidence_episode_ids=metadata.get("evidence_episode_ids", []),
+            source="human-approved",
+        )
+        return {"status": "approved", "request": resolved, "rule_id": rule_id}
+
+    if resolved["action_type"] == "deprecate_sensitive_rule":
+        metadata = resolved.get("metadata", {})
+        persona.deprecate_rule(resolved["target_rule_id"], superseded_by=metadata.get("superseded_by"))
+        return {"status": "approved", "request": resolved, "deprecated_rule_id": resolved["target_rule_id"]}
+
+    return {"status": "approved", "request": resolved}
+
+
+@app.post("/api/approvals/{request_id}/reject")
+async def reject_request(request_id: str, request: Request):
+    payload = await request.json()
+    reviewer = payload.get("reviewer", "human")
+    resolved = approval_queue.resolve(request_id, "rejected", reviewer=reviewer)
+    if not resolved:
+        return {"error": "Approval request not found"}
+    return {"status": "rejected", "request": resolved}
 
 
 @app.post("/api/reset")

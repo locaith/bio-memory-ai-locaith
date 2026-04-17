@@ -1,250 +1,757 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trí Nhớ Sinh Học (Bio-Memory) vs Standard AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        :root {
-            --bg-color: #f4f6f9;
-            --panel-bg: rgba(255, 255, 255, 0.85);
-            --border-glow: rgba(0, 173, 181, 0.3);
-            --bio-color: #00adb5;
-            --std-color: #e84545;
-            --sys-color: #fca311;
-            --text-main: #393e46;
-            --text-heading: #222831;
-            --glass-border: rgba(0, 0, 0, 0.08);
-            --chat-std-bg: rgba(232, 69, 69, 0.03);
-            --chat-bio-bg: rgba(0, 173, 181, 0.03);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bio-Agent OS Lineage Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #eef1ea;
+      --paper: rgba(255, 255, 255, 0.82);
+      --paper-strong: rgba(255, 255, 255, 0.94);
+      --ink: #1e2721;
+      --muted: #5e6a61;
+      --line: rgba(30, 39, 33, 0.12);
+      --accent: #0e8b6f;
+      --accent-soft: rgba(14, 139, 111, 0.14);
+      --warn: #cf5c36;
+      --warn-soft: rgba(207, 92, 54, 0.14);
+      --gold: #cb9b2a;
+      --shadow: 0 18px 50px rgba(33, 48, 40, 0.08);
+      --radius: 24px;
+    }
 
-        * { box-sizing: border-box; }
-        body {
-            margin: 0; padding: 20px;
-            background: #f4f6f9 radial-gradient(circle at center, #ffffff 0%, #eef2f5 100%);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            height: 100vh;
-            display: flex; gap: 20px;
-            overflow: hidden;
-        }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Outfit", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(14, 139, 111, 0.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(203, 155, 42, 0.18), transparent 22%),
+        var(--bg);
+    }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+    .shell {
+      min-height: 100vh;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 20px;
+    }
 
-        h1, h2, h3, h4 { color: var(--text-heading); margin-top: 0; font-weight: 600; }
+    .panel {
+      background: var(--paper);
+      backdrop-filter: blur(18px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
 
-        .glass-panel {
-            background: var(--panel-bg);
-            backdrop-filter: blur(12px); border: 1px solid var(--glass-border);
-            border-radius: 16px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
-            padding: 20px; display: flex; flex-direction: column; position: relative;
-        }
+    .sidebar {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      background:
+        linear-gradient(180deg, rgba(14, 139, 111, 0.09), rgba(255,255,255,0) 40%),
+        var(--paper-strong);
+    }
 
-        .left-panel { flex: 3; display: flex; flex-direction: column; }
-        .right-panel { flex: 2; display: flex; flex-direction: column; gap: 20px; }
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-        .header-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
+    .eyebrow,
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
 
-        .title-wrapper { display: flex; align-items: center; gap: 15px; }
-        .pulse-dot {
-            width: 12px; height: 12px; border-radius: 50%; background: var(--bio-color);
-            box-shadow: 0 0 10px var(--border-glow); animation: pulse 2s infinite; display: inline-block;
-        }
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 173, 181, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 173, 181, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 173, 181, 0); }
-        }
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 0.98;
+      max-width: 8ch;
+    }
 
-        .btn-group { display: flex; gap: 10px; }
-        .btn {
-            background: #ffffff;
-            border: 1px solid var(--bio-color); color: var(--bio-color); padding: 10px 24px; border-radius: 8px;
-            cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 600;
-            transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; font-size: 13px;
-        }
-        .btn:hover { background: var(--bio-color); color: #fff; box-shadow: 0 4px 15px rgba(0, 173, 181, 0.3); border-color: transparent;}
-        .btn.stop { background: #ffffff; color: var(--std-color); border-color: var(--std-color); }
-        .btn.stop:hover { background: var(--std-color); color: #fff; box-shadow: 0 4px 15px rgba(232, 69, 69, 0.3); border-color: transparent;}
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
 
-        .chat-container { flex: 1; overflow-y: auto; padding-right: 15px; display: flex; flex-direction: column; gap: 15px; }
+    .sidebar-section {
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-        .msg-bubble {
-            padding: 15px 20px; border-radius: 14px; max-width: 85%; line-height: 1.6; position: relative; font-size: 15px;
-            animation: fadeIn 0.4s ease forwards; box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-            border: 1px solid rgba(0,0,0,0.03);
-        }
-        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+    .metric {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: baseline;
+    }
 
-        .msg-bubble.std { align-self: flex-start; background: var(--chat-std-bg); border-left: 3px solid var(--std-color); border-bottom-left-radius: 0; }
-        .msg-bubble.bio { align-self: flex-end; background: var(--chat-bio-bg); border-right: 3px solid var(--bio-color); text-align: left; border-bottom-right-radius: 0; }
-        .msg-bubble.sys { align-self: center; background: rgba(252, 163, 17, 0.05); border: 1px dashed var(--sys-color); color: #d98000; font-size: 13px; max-width: 90%; text-align: center; border-radius: 8px; font-weight:500;}
+    .metric strong {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 18px;
+      color: var(--accent);
+    }
 
-        .msg-name { font-weight: 800; margin-bottom: 5px; opacity: 0.9; display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        .std .msg-name { color: var(--std-color); }
-        .bio .msg-name { color: var(--bio-color); }
+    .health-badge,
+    .approval-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
 
-        /* Khối xử lý cho markdown đẹp */
-        .msg-content p { margin: 0 0 10px 0; }
-        .msg-content p:last-child { margin-bottom: 0; }
-        .msg-content ul, .msg-content ol { margin: 5px 0; padding-left: 20px;}
-        .msg-content strong { font-weight: 700; color: #111; }
-        .msg-content code { background: rgba(0,0,0,0.06); padding: 2px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.9em; color: #d6336c; }
-        .msg-content pre { background: #f8f9fa; padding: 12px; border-radius: 6px; overflow-x: auto; border: 1px solid #e9ecef; }
-        .msg-content pre code { background: transparent; padding: 0; color: #222; }
+    .health-badge.warning,
+    .approval-badge.warning {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
 
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px; }
-        .stat-card { background: rgba(255,255,255,0.8); padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.04); box-shadow: 0 2px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 5px; }
-        .stat-card span.label { font-size: 12px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;}
-        .stat-card span.value { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
-        .value.std { color: var(--std-color); }
-        .value.bio { color: var(--bio-color); }
+    .main {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 20px;
+    }
 
-        .console-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .console-header { color: var(--text-heading); font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;}
-        .log-box { background: #ffffff; border-radius: 8px; border: 1px solid rgba(0,0,0,0.08); flex: 1; overflow-y: auto; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #555; line-height: 1.5; box-shadow: inset 0 2px 10px rgba(0,0,0,0.02); }
-        .log-box div { margin-bottom: 4px; }
-        .log-box div::before { content: '>'; margin-right: 8px; opacity: 0.5; color: #888; }
-        
-        .rule-item { border-bottom: 1px solid rgba(0, 173, 181, 0.1); padding: 10px 0; color: #222; font-weight: 500; line-height: 1.5; display: flex; gap: 10px; font-size: 14px; }
-        .rule-item:last-child { border-bottom: none; }
-        .rule-item i { color: var(--bio-color); font-style: normal; opacity: 0.8; }
-    </style>
+    .hero {
+      padding: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 20px;
+      align-items: end;
+    }
+
+    .hero-copy h2 {
+      margin: 0 0 8px;
+      font-size: clamp(30px, 4vw, 52px);
+      line-height: 0.95;
+      max-width: 12ch;
+    }
+
+    .hero-copy p {
+      margin: 0;
+      max-width: 54ch;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .hero-aside {
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid var(--line);
+      display: grid;
+      gap: 12px;
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .toolbar {
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) repeat(4, minmax(110px, 1fr)) auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    input, select, button, textarea {
+      font: inherit;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.78);
+      padding: 13px 14px;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(14, 139, 111, 0.55);
+      transform: translateY(-1px);
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .primary {
+      background: var(--accent);
+      color: #f7fffc;
+    }
+
+    .secondary {
+      background: rgba(30, 39, 33, 0.06);
+      color: var(--ink);
+    }
+
+    .danger {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      gap: 20px;
+    }
+
+    .stack {
+      min-height: 0;
+      display: grid;
+      gap: 20px;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .section {
+      padding: 20px 22px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .safety {
+      border: 1px solid rgba(207, 92, 54, 0.16);
+      background: linear-gradient(135deg, rgba(207, 92, 54, 0.12), rgba(255,255,255,0.9));
+    }
+
+    .safety pre {
+      margin: 0;
+      white-space: pre-wrap;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .lineage-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .lane {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-left: 1px solid var(--line);
+      padding-left: 14px;
+    }
+
+    .lane:first-child {
+      border-left: 0;
+      padding-left: 0;
+    }
+
+    .lane h4 {
+      margin: 0;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .scroll {
+      min-height: 0;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .item {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.68);
+      border: 1px solid var(--line);
+      display: grid;
+      gap: 8px;
+    }
+
+    .item strong {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: rgba(30, 39, 33, 0.06);
+    }
+
+    .approval-list,
+    .log-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .approval-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .approval-actions button {
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 14px;
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+    }
+
+    @media (max-width: 1180px) {
+      .shell,
+      .workspace,
+      .hero,
+      .toolbar,
+      .lineage-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .main {
+        grid-template-rows: auto auto auto;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body { font-size: 15px; }
+      .shell { padding: 16px; }
+      .sidebar, .hero, .toolbar, .section { padding: 18px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="glass-panel left-panel">
-        <div class="header-bar">
-            <div class="title-wrapper">
-                <span class="pulse-dot"></span>
-                <h2>MÔ PHỎNG: Trí Nhớ Sinh Học (Bio) vs Lưu Trữ Toàn Bộ (Std)</h2>
+  <div class="shell">
+    <aside class="panel sidebar">
+      <div class="brand">
+        <span class="eyebrow">Bio-Agent OS</span>
+        <h1>Memory Lineage Console</h1>
+        <p>Inspect how episodes become beliefs, exceptions, and safety guardrails before they reach the agent prompt.</p>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="label">System Status</span>
+        <div id="healthBadge" class="health-badge">Loading</div>
+        <div class="metric"><span>L1 working entries</span><strong id="l1Count">0</strong></div>
+        <div class="metric"><span>L2 long-term entries</span><strong id="l2Count">0</strong></div>
+        <div class="metric"><span>Episodes</span><strong id="episodeCount">0</strong></div>
+        <div class="metric"><span>Stable rules</span><strong id="ruleCount">0</strong></div>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="label">Approvals</span>
+        <div id="approvalBadge" class="approval-badge">0 pending</div>
+        <p class="muted" id="approvalSummary">Sensitive rule promotions and deprecations wait here for human review.</p>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="label">Prompt Safety</span>
+        <p class="muted">The safety guard below is built from exception memory plus belief constraints, then injected ahead of the action plan.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel hero">
+        <div class="hero-copy">
+          <span class="eyebrow">Operational Surface</span>
+          <h2>From episode evidence to safe action.</h2>
+          <p>The retrieval layer now resolves graph and long-term memory conflicts using episode provenance, then turns the result into a concrete safety guard for OpenClaw and API responses.</p>
+        </div>
+        <div class="hero-aside">
+          <span class="label">Current Retrieval State</span>
+          <div class="mono" id="currentState">mode=implement</div>
+          <div class="mono" id="currentWorkspace">workspace=none</div>
+          <div class="mono" id="currentVersion">version=none</div>
+        </div>
+      </section>
+
+      <section class="panel toolbar">
+        <label class="field">
+          <span class="label">Query</span>
+          <input id="queryInput" type="text" value="frontend force push deploy policy" placeholder="Search lineage and safety context">
+        </label>
+        <label class="field">
+          <span class="label">Mode</span>
+          <select id="modeInput">
+            <option value="debug">debug</option>
+            <option value="implement" selected>implement</option>
+            <option value="refactor">refactor</option>
+            <option value="deploy">deploy</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Risk</span>
+          <select id="riskInput">
+            <option value="low">low</option>
+            <option value="medium" selected>medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Workspace</span>
+          <input id="workspaceInput" type="text" value="workspace-chain" placeholder="workspace-id">
+        </label>
+        <label class="field">
+          <span class="label">Version</span>
+          <input id="versionInput" type="text" value="v2.3.0" placeholder="project-version">
+        </label>
+        <button class="primary" id="refreshButton">Refresh lineage</button>
+      </section>
+
+      <section class="workspace">
+        <div class="stack">
+          <section class="panel section safety">
+            <div class="section-head">
+              <h3>Safety Guard</h3>
+              <span class="pill" id="guardMeta">hybrid retrieval</span>
             </div>
-            <div class="btn-group">
-                <button class="btn" onclick="startSim()">► Tự Động (Demo)</button>
-                <button class="btn stop" onclick="stopSim()">■ Dừng</button>
+            <pre id="safetyGuard">Run a lineage query to generate the active safety guard.</pre>
+          </section>
+
+          <section class="panel section">
+            <div class="section-head">
+              <h3>Lineage</h3>
+              <span class="muted">episode → belief → exception → guard</span>
             </div>
-        </div>
-        
-        <div class="user-input-box" style="display:flex; gap:10px; margin-bottom: 15px;">
-            <input type="text" id="userInput" placeholder="Chủ nhân (Master) giao việc hoặc câu hỏi vào đây..." style="flex:1; padding:15px; background: #ffffff; border:1px solid rgba(0,0,0,0.1); box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-radius: 8px; color:#222; font-family:'Outfit',sans-serif; outline:none; font-size:15px;" onkeydown="if(event.key === 'Enter') sendTask()">
-            <button class="btn" style="background:var(--bio-color); color:#fff; border:none; padding: 15px 30px; font-size: 14px;" onclick="sendTask()">🚀 Giao Việc</button>
-        </div>
-
-        <div class="chat-container" id="chatList"></div>
-    </div>
-
-    <div class="right-panel">
-        <div class="glass-panel" style="flex: 0">
-            <div class="console-header"><span style="color: var(--text-heading)">📊 BĂNG THÔNG CỬA SỔ NGỮ CẢNH (CONTEXT)</span></div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="label">Token Standard AI (Rác)</span>
-                    <span class="value std" id="std_size">0 <small style="font-size:10px; opacity:0.5; font-family: Outfit;">TĂNG LIÊN TỤC</small></span>
-                </div>
-                <div class="stat-card">
-                    <span class="label">Token Bio AI (Cắt Tỉa)</span>
-                    <span class="value bio" id="bio_size">0 <small style="font-size:10px; opacity:0.5; font-family: Outfit;">TỐI ƯU</small></span>
-                </div>
-                <div class="stat-card">
-                    <span class="label">Episodic Memory Queue</span>
-                    <span class="value bio" id="epi_count">0</span>
-                </div>
-                <div class="stat-card">
-                    <span class="label">Core Logic Rules</span>
-                    <span class="value bio" id="core_count">0</span>
-                </div>
+            <div class="lineage-grid">
+              <div class="lane">
+                <h4>Episodes</h4>
+                <div class="scroll" id="episodeLane"></div>
+              </div>
+              <div class="lane">
+                <h4>Beliefs</h4>
+                <div class="scroll" id="beliefLane"></div>
+              </div>
+              <div class="lane">
+                <h4>Exceptions</h4>
+                <div class="scroll" id="exceptionLane"></div>
+              </div>
+              <div class="lane">
+                <h4>Conflicts</h4>
+                <div class="scroll" id="conflictLane"></div>
+              </div>
             </div>
+          </section>
         </div>
 
-        <div class="glass-panel console-panel">
-            <div class="console-header" style="color: var(--sys-color)">⚙️ HOẠT ĐỘNG THANH TRỪNG (Hippocampus/Pruner)</div>
-            <div class="log-box" id="bioLogs"></div>
+        <div class="stack">
+          <section class="panel section">
+            <div class="section-head">
+              <h3>Approval Queue</h3>
+              <span class="muted">human gate for sensitive rules</span>
+            </div>
+            <div class="scroll approval-list" id="approvalList"></div>
+          </section>
+
+          <section class="panel section">
+            <div class="section-head">
+              <h3>Recent Memory Logs</h3>
+              <span class="muted">hippocampus and pruning activity</span>
+            </div>
+            <div class="scroll log-list" id="logList"></div>
+          </section>
         </div>
+      </section>
+    </main>
+  </div>
 
-        <div class="glass-panel console-panel">
-            <div class="console-header" style="color: var(--bio-color)">HỘP ĐEN CỐT LÕI (Không Thể Phá Hủy)</div>
-            <div class="log-box" id="coreList" style="background:#f8f9fa; border-color:rgba(0,173,181,0.2);"></div>
-        </div>
-    </div>
+  <script>
+    const API = "";
+    const dom = {
+      healthBadge: document.getElementById("healthBadge"),
+      approvalBadge: document.getElementById("approvalBadge"),
+      approvalSummary: document.getElementById("approvalSummary"),
+      l1Count: document.getElementById("l1Count"),
+      l2Count: document.getElementById("l2Count"),
+      episodeCount: document.getElementById("episodeCount"),
+      ruleCount: document.getElementById("ruleCount"),
+      currentState: document.getElementById("currentState"),
+      currentWorkspace: document.getElementById("currentWorkspace"),
+      currentVersion: document.getElementById("currentVersion"),
+      queryInput: document.getElementById("queryInput"),
+      modeInput: document.getElementById("modeInput"),
+      riskInput: document.getElementById("riskInput"),
+      workspaceInput: document.getElementById("workspaceInput"),
+      versionInput: document.getElementById("versionInput"),
+      refreshButton: document.getElementById("refreshButton"),
+      safetyGuard: document.getElementById("safetyGuard"),
+      guardMeta: document.getElementById("guardMeta"),
+      episodeLane: document.getElementById("episodeLane"),
+      beliefLane: document.getElementById("beliefLane"),
+      exceptionLane: document.getElementById("exceptionLane"),
+      conflictLane: document.getElementById("conflictLane"),
+      approvalList: document.getElementById("approvalList"),
+      logList: document.getElementById("logList"),
+    };
 
-    <script>
-        const BACKEND_URL = 'http://localhost:8055';
-        let lastLogCount = 0;
-        
-        async function fetchState() {
-            try {
-                const res = await fetch(`${BACKEND_URL}/api/state`);
-                const data = await res.json();
-                
-                document.getElementById('std_size').innerHTML = `${data.std_size.split(' ')[0]} <small style="font-size:10px; opacity:0.5; font-family: Outfit;">TĂNG MÃI MÃI</small>`;
-                document.getElementById('bio_size').innerHTML = `${data.bio_size.split(' ')[0]} <small style="font-size:10px; opacity:0.5; font-family: Outfit;">TỐI ƯU</small>`;
-                document.getElementById('epi_count').innerText = data.episodic_count;
-                document.getElementById('core_count').innerText = data.core_count;
-                
-                const bioLogDiv = document.getElementById('bioLogs');
-                bioLogDiv.innerHTML = data.bio_logs.map(l => `<div>${l}</div>`).join('');
-                bioLogDiv.scrollTop = bioLogDiv.scrollHeight;
+    function emptyCard(message) {
+      return `<div class="empty">${message}</div>`;
+    }
 
-                const coreDiv = document.getElementById('coreList');
-                coreDiv.innerHTML = data.core_rules.map(r => `<div class="rule-item"><i>◈</i><div>${r}</div></div>`).join('');
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
 
-                const chatList = document.getElementById('chatList');
-                if(data.logs.length > lastLogCount) {
-                    for(let i = lastLogCount; i < data.logs.length; i++) {
-                        const l = data.logs[i];
-                        const cls = l.is_system ? 'sys' : (l.sender === 'Standard-AI' ? 'std' : 'bio');
-                        const div = document.createElement('div');
-                        div.className = `msg-bubble ${cls}`;
-                        // Sử dụng marded để render markdown ra HTML thay vì replace \n thô
-                        const formattedText = marked.parse(l.message);
-                        div.innerHTML = `<span class="msg-name">${l.sender}</span><div class="msg-content">${formattedText}</div>`;
-                        chatList.appendChild(div);
-                    }
-                    lastLogCount = data.logs.length;
-                    chatList.scrollTop = chatList.scrollHeight;
-                }
-            } catch (e) {
-                console.error("Connection failed. CORS or server down?");
-            }
-        }
+    function statePayload() {
+      return {
+        query: dom.queryInput.value.trim(),
+        mode: dom.modeInput.value,
+        risk_level: dom.riskInput.value,
+        workspace_id: dom.workspaceInput.value.trim() || null,
+        project_version: dom.versionInput.value.trim() || null,
+      };
+    }
 
-        async function startSim() {
-            await fetch(`${BACKEND_URL}/api/start`, {method: 'POST'});
-        }
-        
-        async function stopSim() {
-            await fetch(`${BACKEND_URL}/api/stop`, {method: 'POST'});
-        }
+    async function fetchJson(path, options = {}) {
+      const response = await fetch(`${API}${path}`, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+      return response.json();
+    }
 
-        async function sendTask() {
-            const el = document.getElementById('userInput');
-            const task = el.value.trim();
-            if(!task) return;
-            
-            // Hiện ngay local
-            const chatList = document.getElementById('chatList');
-            divHtml = marked.parse(task);
-            chatList.innerHTML += `<div class="msg-bubble" style="background:#f1f3f5; border:1px dashed #adb5bd; align-self:center; max-width:90%; color:#495057"><span class="msg-name" style="color:#212529">▶ LỆNH MASTER</span><div class="msg-content">${divHtml}</div></div>`;
-            chatList.scrollTop = chatList.scrollHeight;
-            
-            el.value = '';
-            lastLogCount = 0; // Để nó clear và render lại từ đầu
-            await fetch(`${BACKEND_URL}/api/task`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({task: task})
-            });
-        }
+    function renderItems(target, items, renderer, emptyMessage) {
+      if (!items || !items.length) {
+        target.innerHTML = emptyCard(emptyMessage);
+        return;
+      }
+      target.innerHTML = items.map(renderer).join("");
+    }
 
-        setInterval(fetchState, 1500);
-    </script>
+    function renderState(state) {
+      const health = state.health?.health || "unknown";
+      dom.healthBadge.className = `health-badge${health === "healthy" ? "" : " warning"}`;
+      dom.healthBadge.textContent = health;
+      dom.l1Count.textContent = state.l1?.count ?? 0;
+      dom.l2Count.textContent = state.l2?.count ?? 0;
+      dom.episodeCount.textContent = state.episodes?.count ?? 0;
+      dom.ruleCount.textContent = state.persona?.rule_count ?? 0;
+      dom.currentState.textContent = `mode=${dom.modeInput.value} · risk=${dom.riskInput.value}`;
+      dom.currentWorkspace.textContent = `workspace=${dom.workspaceInput.value || "none"}`;
+      dom.currentVersion.textContent = `version=${dom.versionInput.value || "none"}`;
+
+      renderItems(
+        dom.logList,
+        [...(state.hippo_logs || []), ...(state.gc_logs || [])].slice(-12),
+        (item) => `<div class="item"><strong>${escapeHtml(item)}</strong></div>`,
+        "No recent logs."
+      );
+    }
+
+    function renderApprovals(payload) {
+      const pending = payload.pending ?? 0;
+      dom.approvalBadge.className = `approval-badge${pending > 0 ? " warning" : ""}`;
+      dom.approvalBadge.textContent = `${pending} pending`;
+      dom.approvalSummary.textContent = pending > 0
+        ? "Sensitive changes are waiting for explicit human approval."
+        : "No sensitive changes are waiting for review.";
+
+      renderItems(
+        dom.approvalList,
+        payload.requests || [],
+        (item) => `
+          <div class="item">
+            <span class="pill">${escapeHtml(item.action_type)}</span>
+            <strong>${escapeHtml(item.rule_text)}</strong>
+            <p>scope=${escapeHtml(item.scope)} · confidence=${Number(item.confidence || 0).toFixed(2)} · status=${escapeHtml(item.status)}</p>
+            ${item.status === "pending" ? `
+              <div class="approval-actions">
+                <button class="primary" onclick="resolveApproval('${item.request_id}','approve')">Approve</button>
+                <button class="danger" onclick="resolveApproval('${item.request_id}','reject')">Reject</button>
+              </div>
+            ` : ""}
+          </div>
+        `,
+        "No approval requests."
+      );
+    }
+
+    function renderLineage(payload) {
+      dom.safetyGuard.textContent = payload.safety_guard || "No safety guard generated for this query.";
+      dom.guardMeta.textContent = `${(payload.graph_results || []).length} beliefs · ${(payload.exceptions || []).length} exceptions`;
+
+      renderItems(
+        dom.episodeLane,
+        payload.episodes || [],
+        (item) => `
+          <div class="item">
+            <span class="pill">${escapeHtml(item.observation_type || "episode")}</span>
+            <strong>${escapeHtml(item.raw_payload)}</strong>
+            <p>${escapeHtml(item.workspace_id || "no-workspace")} · ${escapeHtml(item.project_version || "no-version")}</p>
+          </div>
+        `,
+        "No evidence episodes matched this lineage query."
+      );
+
+      renderItems(
+        dom.beliefLane,
+        payload.beliefs || [],
+        (item) => `
+          <div class="item">
+            <span class="pill">${escapeHtml(item.state)}</span>
+            <strong>${escapeHtml(item.text)}</strong>
+            <p>scope=${escapeHtml(item.scope)} · confidence=${Number(item.confidence || 0).toFixed(2)} · provenance=${Number(item.provenance_score || 0).toFixed(2)}</p>
+          </div>
+        `,
+        "No belief graph results."
+      );
+
+      renderItems(
+        dom.exceptionLane,
+        payload.exceptions || [],
+        (item) => `
+          <div class="item">
+            <span class="pill">${escapeHtml(item.exception_for || "exception")}</span>
+            <strong>${escapeHtml(item.content)}</strong>
+            <p>mode=${escapeHtml((item.mode_hints || []).join(", ") || "none")} · score=${Number(item.score || 0).toFixed(2)}</p>
+          </div>
+        `,
+        "No exception memories matched this query."
+      );
+
+      renderItems(
+        dom.conflictLane,
+        payload.graph_conflicts || [],
+        (item) => `
+          <div class="item">
+            <span class="pill">${escapeHtml(item.reason || "conflict")}</span>
+            <strong>${escapeHtml(item.rule_id)}</strong>
+            <p>graph=${Number(item.graph_score || 0).toFixed(2)} · l2=${Number(item.l2_score || 0).toFixed(2)}</p>
+          </div>
+        `,
+        "No graph/L2 conflicts were dropped for this query."
+      );
+    }
+
+    async function refreshState() {
+      const state = await fetchJson("/api/state");
+      const health = await fetchJson("/api/health");
+      renderState({ ...state, health });
+    }
+
+    async function refreshApprovals() {
+      const approvals = await fetchJson("/api/approvals");
+      renderApprovals(approvals);
+    }
+
+    async function refreshLineage() {
+      const payload = statePayload();
+      const query = payload.query;
+      if (!query) {
+        dom.safetyGuard.textContent = "Enter a query to inspect lineage.";
+        return;
+      }
+      const lineage = await fetchJson("/api/lineage", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      renderLineage(lineage);
+    }
+
+    async function resolveApproval(requestId, action) {
+      await fetchJson(`/api/approvals/${requestId}/${action}`, {
+        method: "POST",
+        body: JSON.stringify({ reviewer: "dashboard" }),
+      });
+      await Promise.all([refreshState(), refreshApprovals(), refreshLineage()]);
+    }
+
+    async function bootstrap() {
+      await Promise.all([refreshState(), refreshApprovals(), refreshLineage()]);
+    }
+
+    dom.refreshButton.addEventListener("click", bootstrap);
+    [dom.queryInput, dom.modeInput, dom.riskInput, dom.workspaceInput, dom.versionInput].forEach((node) => {
+      node.addEventListener("change", refreshLineage);
+    });
+
+    window.resolveApproval = resolveApproval;
+    bootstrap();
+    setInterval(refreshState, 6000);
+    setInterval(refreshApprovals, 8000);
+  </script>
 </body>
 </html>

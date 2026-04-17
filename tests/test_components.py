@@ -2,12 +2,14 @@ import os
 from pathlib import Path
 
 from bio_agent_os import (
+    ApprovalQueue,
     ContradictionResolver,
     EpisodeStore,
     L1WorkingMemory,
     L2SemanticMemory,
     MemoryHealthMonitor,
     Persona,
+    RetrievalService,
 )
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 
@@ -268,3 +270,70 @@ def test_persona_layers_group_core_project_and_adaptive_rules():
     assert "CORE RULES:" in prompt
     assert "PROJECT RULES:" in prompt
     assert "ADAPTIVE RULES:" in prompt
+
+
+def test_approval_queue_for_sensitive_rules():
+    queue = ApprovalQueue(agent_name="approval_agent", storage_dir="test_data")
+    request = queue.submit(
+        "promote_sensitive_rule",
+        "Never use git push -f on the frontend branch.",
+        scope="project",
+        confidence=0.92,
+    )
+    assert queue.requires_approval("Never use git push -f on the frontend branch.", scope="project", confidence=0.92)
+    assert queue.pending_count >= 1
+    resolved = queue.resolve(request["request_id"], "approved", reviewer="qa")
+    assert resolved["status"] == "approved"
+
+
+def test_retrieval_service_builds_lineage_and_safety_guard():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    storage_dir = "test_data"
+    identity_file = Path(storage_dir) / "test_agent_lineage_core_identity.json"
+    episode_file = Path(storage_dir) / "test_agent_lineage_episodes.json"
+    graph_file = Path(storage_dir) / "test_agent_lineage_knowledge_graph.json"
+    for file_path in (identity_file, episode_file, graph_file):
+        if file_path.exists():
+            file_path.unlink()
+
+    persona = Persona(name="test_agent_lineage", storage_dir=storage_dir)
+    episodes = EpisodeStore(agent_name="test_agent_lineage", storage_dir=storage_dir)
+    l2 = L2SemanticMemory(agent_name="test_agent_lineage", storage_dir=storage_dir)
+    graph = KnowledgeGraph(agent_name="test_agent_lineage", storage_dir=storage_dir)
+
+    episode = episodes.add(
+        raw_payload="Frontend deploy failed because force push bypassed review.",
+        actor="agent",
+        source="terminal",
+        topic="git",
+        confidence=0.95,
+        workspace_id="frontend",
+        project_version="v3.0.0",
+    )
+    rule_id = persona.add_rule(
+        "Never use git push -f on the frontend branch.",
+        scope="project",
+        confidence=0.85,
+        evidence_episode_ids=[episode["episode_id"]],
+    )
+    rule = persona.get_rule_records()[rule_id]
+    graph.add_belief_rule(rule)
+    graph.add_episode_evidence(rule_id, episode["episode_id"], confidence=0.9)
+    l2.store_exception(
+        "Exception: emergency hotfix branches may force push only with explicit approval.",
+        exception_for="git",
+        workspace_id="frontend",
+        project_version="v3.0.0",
+        mode_hints=["deploy"],
+    )
+
+    service = RetrievalService(l2=l2, graph=graph, episodes=episodes, persona=persona)
+    retrieval_state = service.build_retrieval_state(
+        {"mode": "deploy", "risk_level": "high", "workspace_id": "frontend", "project_version": "v3.0.0"}
+    )
+    lineage = service.build_lineage("frontend force push deploy policy", retrieval_state, top_k=3)
+
+    assert lineage["safety_guard"]
+    assert lineage["beliefs"]
+    assert lineage["episodes"]
+    assert lineage["exceptions"]
