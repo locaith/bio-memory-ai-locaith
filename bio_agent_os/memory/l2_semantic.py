@@ -1,5 +1,5 @@
 """
-Long-term semantic memory with time decay and state-dependent retrieval.
+Long-term semantic memory with real embedding support and state-dependent retrieval.
 """
 
 import math
@@ -7,6 +7,8 @@ import os
 import time
 import uuid
 from typing import Any, Dict, List, Optional
+
+from bio_agent_os.core.embedder import Embedder
 
 try:
     from qdrant_client import QdrantClient
@@ -18,19 +20,11 @@ except ImportError:
 
 
 class L2SemanticMemory:
-    """
-    Long-term memory store with support for:
-    - semantic memory
-    - procedural memory
-    - episodic summaries
-    - exception memory
-    - state-dependent retrieval for different agent modes
-    """
-
     def __init__(self, agent_name: str = "Bio-AI", storage_dir: str = "data"):
         self.agent_name = agent_name
         self.collection_name = f"{agent_name}_l2"
         self.decay_lambda = 0.05
+        self.embedder = Embedder()
 
         url = os.getenv("QDRANT_URL", None)
         api_key = os.getenv("QDRANT_API_KEY", None)
@@ -50,14 +44,17 @@ class L2SemanticMemory:
         if not self.client.collection_exists(self.collection_name):
             self.client.create_collection(
                 collection_name=self.collection_name,
-                vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+                vectors_config=VectorParams(size=self.embedder.dimensions, distance=Distance.COSINE),
             )
-
-    def _mock_embed(self, text: str) -> List[float]:
-        import random
-
-        random.seed(len(text))
-        return [random.uniform(-1, 1) for _ in range(384)]
+            return
+        config = self.client.get_collection(self.collection_name).config.params.vectors
+        existing_size = getattr(config, "size", None)
+        if existing_size and int(existing_size) != int(self.embedder.dimensions):
+            self.client.delete_collection(self.collection_name)
+            self.client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config=VectorParams(size=self.embedder.dimensions, distance=Distance.COSINE),
+            )
 
     def _normalize_mode_hints(self, mode_hints: Optional[List[str]]) -> List[str]:
         return sorted({str(mode).strip().lower() for mode in (mode_hints or []) if str(mode).strip()})
@@ -94,6 +91,8 @@ class L2SemanticMemory:
             "task_id": task_id,
             "workspace_id": workspace_id,
             "project_version": project_version,
+            "embedding_backend": self.embedder.backend,
+            "embedding_model": self.embedder.model_id,
         }
 
     def store(
@@ -129,12 +128,13 @@ class L2SemanticMemory:
         )
 
         if self._fallback:
+            payload["vector"] = self.embedder.embed(content)
             self._entries.append(payload)
             return
 
         point = PointStruct(
             id=payload["entry_id"],
-            vector=self._mock_embed(content),
+            vector=self.embedder.embed(content),
             payload=payload,
         )
         self.client.upsert(collection_name=self.collection_name, points=[point])
@@ -217,31 +217,40 @@ class L2SemanticMemory:
 
         return boost
 
+    def _cosine_similarity(self, left: List[float], right: List[float]) -> float:
+        return sum(a * b for a, b in zip(left, right))
+
     def _rank_entries(
         self,
         entries: List[Dict[str, Any]],
         query: str,
         top_k: int,
         retrieval_state: Optional[Dict[str, Any]] = None,
+        query_vector: Optional[List[float]] = None,
     ) -> List[Dict[str, Any]]:
         results = []
         now = time.time()
         query_terms = {term for term in query.lower().split() if term}
+        query_vector = query_vector or self.embedder.embed(query)
         for payload in entries:
             importance = float(payload["importance"])
             timestamp = float(payload["timestamp"])
             days_elapsed = (now - timestamp) / 86400
             decay = math.exp(-self.decay_lambda * days_elapsed)
 
-            lexical_score = 0.6
+            semantic_score = 0.6
+            if "vector" in payload:
+                semantic_score = max(0.0, self._cosine_similarity(query_vector, payload["vector"]))
+
+            lexical_bonus = 0.0
             content_terms = set(str(payload["content"]).lower().split())
             tag_terms = {str(tag).lower() for tag in payload.get("tags", [])}
             overlap = len(query_terms & (content_terms | tag_terms))
             if query_terms:
-                lexical_score += min(0.4, overlap / max(len(query_terms), 1))
+                lexical_bonus = min(0.2, overlap / max(len(query_terms), 1) * 0.2)
 
             state_boost = self._state_boost(payload, retrieval_state)
-            final_score = lexical_score * importance * decay * state_boost
+            final_score = (semantic_score + lexical_bonus) * importance * decay * state_boost
 
             results.append(
                 {
@@ -258,6 +267,8 @@ class L2SemanticMemory:
                     "task_id": payload.get("task_id"),
                     "workspace_id": payload.get("workspace_id"),
                     "project_version": payload.get("project_version"),
+                    "embedding_backend": payload.get("embedding_backend", self.embedder.backend),
+                    "embedding_model": payload.get("embedding_model", self.embedder.model_id),
                 }
             )
 
@@ -270,16 +281,29 @@ class L2SemanticMemory:
         top_k: int = 5,
         retrieval_state: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
+        query_vector = self.embedder.embed(query)
         if self._fallback:
-            return self._rank_entries(self._entries, query=query, top_k=top_k, retrieval_state=retrieval_state)
+            return self._rank_entries(
+                self._entries,
+                query=query,
+                top_k=top_k,
+                retrieval_state=retrieval_state,
+                query_vector=query_vector,
+            )
 
         points_data = self.client.query_points(
             collection_name=self.collection_name,
-            query=self._mock_embed(query),
+            query=query_vector,
             limit=top_k * 3,
         )
         entries = [dict(hit.payload) for hit in points_data.points]
-        return self._rank_entries(entries, query=query, top_k=top_k, retrieval_state=retrieval_state)
+        return self._rank_entries(
+            entries,
+            query=query,
+            top_k=top_k,
+            retrieval_state=retrieval_state,
+            query_vector=query_vector,
+        )
 
     def prune_decayed(self, threshold: float = 1.0) -> int:
         if self._fallback:

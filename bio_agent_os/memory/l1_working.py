@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from bio_agent_os.core.sqlite_store import SQLiteStore
+
 
 class MemoryEntry(BaseModel):
     entry_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -55,8 +57,89 @@ class L1WorkingMemory:
         self.storage_dir = storage_dir
         self.max_entries = max_entries
         self._entries: List[Dict[str, Any]] = []
-        self._filepath = os.path.join(storage_dir, f"{agent_name}_l1_memory.json")
+        self._legacy_filepath = os.path.join(storage_dir, f"{agent_name}_l1_memory.json")
+        self._store = SQLiteStore(storage_dir=storage_dir)
+        self._table = f"{self._store.sanitize_identifier(agent_name)}_l1_memory"
+        self._ensure_table()
+        self._migrate_legacy_json()
         self.load()
+
+    def _ensure_table(self):
+        self._store.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {self._table} (
+                entry_id TEXT PRIMARY KEY,
+                content TEXT NOT NULL,
+                source TEXT NOT NULL,
+                metadata_json TEXT NOT NULL,
+                timestamp REAL NOT NULL,
+                status TEXT NOT NULL,
+                nights_passed INTEGER NOT NULL,
+                ttl INTEGER NOT NULL,
+                episode_id TEXT,
+                task_id TEXT,
+                workspace_id TEXT,
+                project_version TEXT,
+                salience REAL NOT NULL,
+                recency_score REAL NOT NULL,
+                novelty REAL NOT NULL,
+                severity REAL NOT NULL,
+                task_relevance REAL NOT NULL,
+                unresolved_status REAL NOT NULL,
+                attention_score REAL NOT NULL
+            )
+            """
+        )
+
+    def _migrate_legacy_json(self):
+        if not os.path.exists(self._legacy_filepath):
+            return
+        existing = self._store.fetchone(f"SELECT entry_id FROM {self._table} LIMIT 1")
+        if existing:
+            return
+        try:
+            with open(self._legacy_filepath, "r", encoding="utf-8") as handle:
+                entries = json.load(handle)
+        except (json.JSONDecodeError, OSError):
+            return
+
+        rows = []
+        for entry in entries:
+            rows.append(
+                (
+                    entry.get("entry_id", str(uuid.uuid4())),
+                    entry.get("content", ""),
+                    entry.get("source", "unknown"),
+                    self._store.dumps_json(entry.get("metadata", {})),
+                    float(entry.get("timestamp", time.time())),
+                    entry.get("status", "raw"),
+                    int(entry.get("nights_passed", 0)),
+                    int(entry.get("ttl", 2)),
+                    entry.get("episode_id"),
+                    entry.get("task_id"),
+                    entry.get("workspace_id"),
+                    entry.get("project_version"),
+                    float(entry.get("salience", 0.5)),
+                    float(entry.get("recency_score", 1.0)),
+                    float(entry.get("novelty", 0.5)),
+                    float(entry.get("severity", 0.5)),
+                    float(entry.get("task_relevance", 0.5)),
+                    float(entry.get("unresolved_status", 0.0)),
+                    float(entry.get("attention_score", 0.5)),
+                )
+            )
+        if rows:
+            self._store.executemany(
+                f"""
+                INSERT OR REPLACE INTO {self._table} (
+                    entry_id, content, source, metadata_json, timestamp, status,
+                    nights_passed, ttl, episode_id, task_id, workspace_id, project_version,
+                    salience, recency_score, novelty, severity, task_relevance,
+                    unresolved_status, attention_score
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                rows,
+            )
 
     def _clamp(self, value: float) -> float:
         return max(0.0, min(float(value), 1.0))
@@ -138,6 +221,29 @@ class L1WorkingMemory:
         self._entries = self._entries[-self.max_entries:]
         self._entries.sort(key=lambda item: item.get("timestamp", 0.0))
 
+    def _row_to_entry(self, row) -> Dict[str, Any]:
+        return {
+            "entry_id": row["entry_id"],
+            "content": row["content"],
+            "source": row["source"],
+            "metadata": self._store.loads_json(row["metadata_json"], {}),
+            "timestamp": row["timestamp"],
+            "status": row["status"],
+            "nights_passed": row["nights_passed"],
+            "ttl": row["ttl"],
+            "episode_id": row["episode_id"],
+            "task_id": row["task_id"],
+            "workspace_id": row["workspace_id"],
+            "project_version": row["project_version"],
+            "salience": row["salience"],
+            "recency_score": row["recency_score"],
+            "novelty": row["novelty"],
+            "severity": row["severity"],
+            "task_relevance": row["task_relevance"],
+            "unresolved_status": row["unresolved_status"],
+            "attention_score": row["attention_score"],
+        }
+
     def add(
         self,
         content: str,
@@ -150,6 +256,7 @@ class L1WorkingMemory:
         project_version: Optional[str] = None,
     ) -> Dict[str, Any]:
         metadata = metadata or {}
+        self.load()
         entry = MemoryEntry(
             content=content,
             source=source,
@@ -177,9 +284,11 @@ class L1WorkingMemory:
         return entry
 
     def get_recent(self, n: int = 5) -> List[Dict[str, Any]]:
+        self.load()
         return self._entries[-n:]
 
     def get_focus_set(self, limit: int = 5, include_encoded: bool = False) -> List[Dict[str, Any]]:
+        self.load()
         self._refresh_attention()
         entries = self._entries
         if not include_encoded:
@@ -192,14 +301,17 @@ class L1WorkingMemory:
         return ranked[:limit]
 
     def get_all(self) -> List[Dict[str, Any]]:
+        self.load()
         self._refresh_attention()
         return list(self._entries)
 
     def get_raw(self) -> List[Dict[str, Any]]:
+        self.load()
         self._refresh_attention()
         return [entry for entry in self._entries if entry["status"] == "raw"]
 
     def get_survivors(self) -> List[Dict[str, Any]]:
+        self.load()
         self._refresh_attention()
         survivors = [
             entry for entry in self._entries
@@ -212,25 +324,29 @@ class L1WorkingMemory:
         )
 
     def mark_encoded(self, timestamp: float):
+        self.load()
         for entry in self._entries:
             if entry["timestamp"] == timestamp:
                 entry["status"] = "encoded"
         self.save()
 
     def remove_by_timestamps(self, timestamps: List[float]):
+        self.load()
         ts_set = set(timestamps)
         self._entries = [entry for entry in self._entries if entry["timestamp"] not in ts_set]
         self.save()
 
     def clear(self):
         self._entries.clear()
-        self.save()
+        self._store.execute(f"DELETE FROM {self._table}")
 
     @property
     def count(self) -> int:
-        return len(self._entries)
+        row = self._store.fetchone(f"SELECT COUNT(*) AS total FROM {self._table}")
+        return int(row["total"]) if row else 0
 
     def increment_nights(self):
+        self.load()
         for entry in self._entries:
             entry["nights_passed"] = entry.get("nights_passed", 0) + 1
         self._refresh_attention()
@@ -247,17 +363,47 @@ class L1WorkingMemory:
         )
 
     def save(self):
-        os.makedirs(self.storage_dir, exist_ok=True)
-        with open(self._filepath, "w", encoding="utf-8") as handle:
-            json.dump(self._entries, handle, ensure_ascii=False, indent=2)
+        rows = [
+            (
+                entry["entry_id"],
+                entry["content"],
+                entry["source"],
+                self._store.dumps_json(entry.get("metadata", {})),
+                float(entry["timestamp"]),
+                entry.get("status", "raw"),
+                int(entry.get("nights_passed", 0)),
+                int(entry.get("ttl", 2)),
+                entry.get("episode_id"),
+                entry.get("task_id"),
+                entry.get("workspace_id"),
+                entry.get("project_version"),
+                float(entry.get("salience", 0.5)),
+                float(entry.get("recency_score", 1.0)),
+                float(entry.get("novelty", 0.5)),
+                float(entry.get("severity", 0.5)),
+                float(entry.get("task_relevance", 0.5)),
+                float(entry.get("unresolved_status", 0.0)),
+                float(entry.get("attention_score", 0.5)),
+            )
+            for entry in self._entries
+        ]
+        self._store.execute(f"DELETE FROM {self._table}")
+        if rows:
+            self._store.executemany(
+                f"""
+                INSERT OR REPLACE INTO {self._table} (
+                    entry_id, content, source, metadata_json, timestamp, status,
+                    nights_passed, ttl, episode_id, task_id, workspace_id, project_version,
+                    salience, recency_score, novelty, severity, task_relevance,
+                    unresolved_status, attention_score
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                rows,
+            )
 
     def load(self):
-        if os.path.exists(self._filepath):
-            try:
-                with open(self._filepath, "r", encoding="utf-8") as handle:
-                    self._entries = json.load(handle)
-            except (json.JSONDecodeError, OSError):
-                self._entries = []
+        rows = self._store.fetchall(f"SELECT * FROM {self._table} ORDER BY timestamp ASC")
+        self._entries = [self._row_to_entry(row) for row in rows]
         self._refresh_attention()
 
     def __repr__(self) -> str:
