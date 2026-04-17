@@ -23,6 +23,12 @@ RULE_STATES = {
     "archived",
 }
 
+PERSONA_LAYERS = {
+    "core",
+    "project",
+    "adaptive",
+}
+
 
 class Persona:
     """
@@ -73,6 +79,16 @@ class Persona:
                 return rule_id
         return None
 
+    def _infer_layer(self, scope: str, confidence: float, source: str) -> str:
+        normalized_scope = (scope or "project").strip().lower()
+        if normalized_scope == "core":
+            return "core"
+        if normalized_scope in {"project", "organization"}:
+            return "project"
+        if source == "human-approved" and confidence >= 0.9:
+            return "core"
+        return "adaptive"
+
     def add_rule(
         self,
         rule_text: str,
@@ -81,9 +97,11 @@ class Persona:
         evidence_episode_ids: Optional[List[str]] = None,
         source: str = "hippocampus",
         promotion_threshold: int = 3,
+        layer: Optional[str] = None,
     ) -> str:
         existing_rule_id = self._find_rule_id(rule_text, scope)
         now = time.time()
+        resolved_layer = layer or self._infer_layer(scope, confidence, source)
 
         if existing_rule_id:
             rule = self._rules[existing_rule_id]
@@ -98,6 +116,10 @@ class Persona:
                 rule["state"] = "stable"
             elif rule["support_count"] >= 2:
                 rule["state"] = "reinforced"
+            if rule["layer"] != "core" and resolved_layer == "core" and rule["confidence"] >= 0.9:
+                rule["layer"] = "core"
+            elif rule["layer"] == "adaptive" and rule["state"] in {"reinforced", "stable"}:
+                rule["layer"] = "project" if rule["scope"] in {"project", "organization"} else "adaptive"
             self.save()
             return existing_rule_id
 
@@ -105,12 +127,13 @@ class Persona:
         self._rules[rule_id] = {
             "id": rule_id,
             "text": rule_text,
+            "layer": resolved_layer if resolved_layer in PERSONA_LAYERS else "adaptive",
             "scope": scope,
             "source": source,
             "confidence": max(0.0, min(confidence, 0.99)),
             "support_count": 1,
             "contradiction_count": 0,
-            "state": "proposed",
+            "state": "stable" if resolved_layer == "core" and source == "human-approved" else "proposed",
             "created_at": now,
             "updated_at": now,
             "last_validated_at": now,
@@ -153,38 +176,56 @@ class Persona:
     def get_rule_records(self) -> Dict[str, Dict[str, Any]]:
         return {rule_id: dict(rule) for rule_id, rule in self._rules.items()}
 
+    def get_layer_records(self) -> Dict[str, List[Dict[str, Any]]]:
+        grouped = {"core": [], "project": [], "adaptive": []}
+        for rule in self._rules.values():
+            layer = rule.get("layer", "adaptive")
+            grouped.setdefault(layer, []).append(dict(rule))
+        for layer in grouped:
+            grouped[layer].sort(
+                key=lambda item: (-item.get("confidence", 0.0), -item.get("support_count", 0))
+            )
+        return grouped
+
     @property
     def rule_count(self) -> int:
         return len(self._rules)
 
     def get_identity_prompt(self, include_scopes: Optional[List[str]] = None) -> str:
         include_scopes = include_scopes or ["core", "project", "agent", "organization"]
-        selected: List[Dict[str, Any]] = []
+        selected_by_layer = {"core": [], "project": [], "adaptive": []}
         for rule in self._rules.values():
             if rule["scope"] not in include_scopes:
                 continue
             if rule["state"] not in {"reinforced", "stable"}:
                 continue
-            if rule["confidence"] < 0.6:
+            threshold = 0.8 if rule.get("layer") == "core" else 0.6
+            if rule["confidence"] < threshold:
                 continue
-            selected.append(rule)
+            selected_by_layer.setdefault(rule.get("layer", "adaptive"), []).append(rule)
 
-        selected.sort(
-            key=lambda item: (item["scope"] != "core", -item["confidence"], -item["support_count"])
-        )
-
-        if not selected:
+        if not any(selected_by_layer.values()):
             return (
                 f"You are {self.name}. "
                 "No stable self-model rules have been consolidated yet."
             )
 
         lines = []
-        for idx, rule in enumerate(selected[:12], start=1):
-            lines.append(
-                f"{idx}. [{rule['scope']}] {rule['text']} "
-                f"(confidence={rule['confidence']:.2f}, support={rule['support_count']})"
+        index = 1
+        for layer_name in ("core", "project", "adaptive"):
+            layer_rules = sorted(
+                selected_by_layer[layer_name],
+                key=lambda item: (-item["confidence"], -item["support_count"]),
             )
+            if not layer_rules:
+                continue
+            lines.append(f"{layer_name.upper()} RULES:")
+            for rule in layer_rules[:4]:
+                lines.append(
+                    f"{index}. [{rule['scope']}/{layer_name}] {rule['text']} "
+                    f"(confidence={rule['confidence']:.2f}, support={rule['support_count']})"
+                )
+                index += 1
 
         return (
             f"You are {self.name}. Apply the following stable self-model rules "
@@ -207,7 +248,7 @@ class Persona:
                     "rules": encrypted_rules,
                     "updated_at": time.time(),
                     "encrypted": True,
-                    "schema_version": 2,
+                    "schema_version": 3,
                 },
                 handle,
                 ensure_ascii=False,
@@ -229,6 +270,7 @@ class Persona:
                 loaded_rules[rule_id] = {
                     "id": rule_id,
                     "text": self._decrypt(raw_rule) if is_encrypted else raw_rule,
+                    "layer": "project",
                     "scope": "project",
                     "source": "legacy",
                     "confidence": 0.7,
@@ -250,6 +292,14 @@ class Persona:
             if is_encrypted:
                 rule["text"] = self._decrypt(rule["text"])
             rule.setdefault("id", rule_id)
+            rule.setdefault(
+                "layer",
+                self._infer_layer(
+                    rule.get("scope", "project"),
+                    float(rule.get("confidence", 0.7)),
+                    rule.get("source", "legacy"),
+                ),
+            )
             rule.setdefault("scope", "project")
             rule.setdefault("source", "legacy")
             rule.setdefault("confidence", 0.7)
@@ -264,6 +314,8 @@ class Persona:
             rule.setdefault("evidence_episode_ids", [])
             rule.setdefault("superseded_by", None)
             rule.setdefault("expires_at", None)
+            if rule["layer"] not in PERSONA_LAYERS:
+                rule["layer"] = "adaptive"
             if rule["state"] not in RULE_STATES:
                 rule["state"] = "proposed"
             loaded_rules[rule_id] = rule

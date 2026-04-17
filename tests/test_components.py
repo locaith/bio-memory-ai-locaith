@@ -22,6 +22,7 @@ def test_l1_memory():
 
     assert l1.count == 1
     assert "Login endpoint" in l1.build_context_string()
+    assert l1.get_focus_set(1)[0]["attention_score"] > 0.0
 
 
 def test_l2_semantic_memory():
@@ -69,9 +70,17 @@ def test_episode_store():
         source="terminal",
         topic="dependency",
         confidence=0.8,
+        task_id="task-142",
+        workspace_id="workspace-main",
+        project_version="v2.1.0",
+        source_refs=["terminal://1", {"kind": "git", "ref": "commit:abc123"}],
     )
     assert record["episode_id"]
     assert episodes.get(record["episode_id"]) is not None
+    assert record["task_id"] == "task-142"
+    assert record["workspace_id"] == "workspace-main"
+    assert record["project_version"] == "v2.1.0"
+    assert len(record["source_refs"]) == 2
 
 
 def test_contradiction_resolver_deprecates_weaker_rule():
@@ -144,3 +153,74 @@ def test_belief_graph_and_health_snapshot():
     assert snapshot["belief_graph"]["belief_rules"] == 1
     assert snapshot["belief_graph"]["support_edges"] == 1
     assert snapshot["rules_total"] == 1
+
+
+def test_l1_attention_scheduler_prioritizes_unresolved_errors():
+    l1 = L1WorkingMemory(agent_name="attention_agent", storage_dir="test_data")
+    l1.clear()
+    l1.add(
+        "Background lint note",
+        source="worker",
+        metadata={"importance_score": 3, "topic": "lint", "unresolved": False},
+    )
+    l1.add(
+        "Critical build failed on frontend main due to dependency mismatch",
+        source="terminal",
+        metadata={"importance_score": 9, "topic": "build", "unresolved": True},
+    )
+
+    focus = l1.get_focus_set(limit=1)
+    assert focus[0]["source"] == "terminal"
+    assert focus[0]["unresolved_status"] == 1.0
+
+
+def test_persona_layers_group_core_project_and_adaptive_rules():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    storage_dir = "test_data"
+    identity_file = Path(storage_dir) / "test_agent_layers_core_identity.json"
+    if identity_file.exists():
+        identity_file.unlink()
+
+    persona = Persona(name="test_agent_layers", storage_dir=storage_dir)
+    core_rule_id = persona.add_rule(
+        "Security-first. Never bypass authentication checks.",
+        scope="core",
+        confidence=0.95,
+        source="human-approved",
+        layer="core",
+    )
+    project_rule_id = persona.add_rule(
+        "Never force push to the frontend branch.",
+        scope="project",
+        confidence=0.82,
+        evidence_episode_ids=["ep-project"],
+    )
+    adaptive_rule_id = persona.add_rule(
+        "This workspace appears to dislike wildcard imports.",
+        scope="agent",
+        confidence=0.58,
+        evidence_episode_ids=["ep-adaptive"],
+    )
+    persona.add_rule(
+        "Never force push to the frontend branch.",
+        scope="project",
+        confidence=0.82,
+        evidence_episode_ids=["ep-project-2"],
+    )
+    persona.add_rule(
+        "This workspace appears to dislike wildcard imports.",
+        scope="agent",
+        confidence=0.58,
+        evidence_episode_ids=["ep-adaptive-2"],
+    )
+
+    layers = persona.get_layer_records()
+
+    assert layers["core"][0]["id"] == core_rule_id
+    assert layers["project"][0]["id"] == project_rule_id
+    assert layers["adaptive"][0]["id"] == adaptive_rule_id
+
+    prompt = persona.get_identity_prompt(include_scopes=["core", "project", "agent"])
+    assert "CORE RULES:" in prompt
+    assert "PROJECT RULES:" in prompt
+    assert "ADAPTIVE RULES:" in prompt

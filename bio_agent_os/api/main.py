@@ -117,6 +117,10 @@ def serve_dashboard():
 async def chat(request: Request):
     data = await request.json()
     message = data.get("message", "").strip()
+    task_id = data.get("task_id")
+    workspace_id = data.get("workspace_id")
+    project_version = data.get("project_version")
+    source_refs = data.get("source_refs")
     if not message:
         return {"error": "Empty message"}
 
@@ -142,9 +146,35 @@ async def chat(request: Request):
     )
 
     response = await engine.generate(full_prompt)
-    await hippo.label_and_store(message, source="user")
-    await hippo.label_and_store(response, source=AGENT_NAME)
-    audit_log.append("chat_turn", "Processed chat turn", {"intent": intent.value, "message_length": len(message)})
+    await hippo.label_and_store(
+        message,
+        source="user",
+        task_id=task_id,
+        workspace_id=workspace_id,
+        project_version=project_version,
+        source_refs=source_refs,
+        observation_type="chat_input",
+    )
+    await hippo.label_and_store(
+        response,
+        source=AGENT_NAME,
+        task_id=task_id,
+        workspace_id=workspace_id,
+        project_version=project_version,
+        source_refs=source_refs,
+        observation_type="chat_output",
+    )
+    audit_log.append(
+        "chat_turn",
+        "Processed chat turn",
+        {
+            "intent": intent.value,
+            "message_length": len(message),
+            "task_id": task_id,
+            "workspace_id": workspace_id,
+            "project_version": project_version,
+        },
+    )
 
     return {
         "response": response,
@@ -160,6 +190,11 @@ async def ingest(request: Request):
     text = data.get("text", "")
     chunk_size = data.get("chunk_size", 2000)
     source = data.get("source", "ingest")
+    task_id = data.get("task_id")
+    workspace_id = data.get("workspace_id")
+    project_version = data.get("project_version")
+    source_refs = data.get("source_refs")
+    observation_type = data.get("observation_type", "ingest")
 
     if not text:
         return {"error": "Empty text"}
@@ -168,12 +203,29 @@ async def ingest(request: Request):
     stats = {"chunks": len(chunks), "labeled": 0, "graph_entities": 0, "graph_relations": 0}
 
     for chunk in chunks:
-        await hippo.label_and_store(chunk, source=source)
+        await hippo.label_and_store(
+            chunk,
+            source=source,
+            task_id=task_id,
+            workspace_id=workspace_id,
+            project_version=project_version,
+            source_refs=source_refs,
+            observation_type=observation_type,
+        )
         stats["labeled"] += 1
         graph_stats = await graph_builder.process(chunk)
         stats["graph_entities"] += graph_stats["entities_added"]
         stats["graph_relations"] += graph_stats["relations_added"]
-    audit_log.append("bulk_ingest", "Processed ingest request", stats)
+    audit_log.append(
+        "bulk_ingest",
+        "Processed ingest request",
+        {
+            **stats,
+            "task_id": task_id,
+            "workspace_id": workspace_id,
+            "project_version": project_version,
+        },
+    )
 
     return {"status": "ok", "stats": stats}
 
@@ -227,7 +279,7 @@ def get_state():
         "agent_name": AGENT_NAME,
         "backend": engine.backend,
         "model": engine.model_id,
-        "l1": {"count": l1.count, "entries": l1.get_recent(10)},
+        "l1": {"count": l1.count, "entries": l1.get_recent(10), "focus_set": l1.get_focus_set(10)},
         "l2": {"count": l2.count},
         "episodes": {"count": episodes.count, "recent": episodes.get_recent(10)},
         "knowledge_graph": {"nodes": kg.node_count, "edges": kg.edge_count},
@@ -235,6 +287,7 @@ def get_state():
         "persona": {
             "rule_count": persona.rule_count,
             "rules": list(persona.get_rule_records().values()),
+            "layers": persona.get_layer_records(),
         },
         "hippo_logs": hippo.logs[-10:],
         "gc_logs": gc.logs[-10:],

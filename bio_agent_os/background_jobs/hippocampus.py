@@ -94,7 +94,16 @@ class Hippocampus:
                 "user_state": "unknown",
             }
 
-    async def label_and_store(self, raw_data: str, source: str = "unknown") -> Dict[str, Any]:
+    async def label_and_store(
+        self,
+        raw_data: str,
+        source: str = "unknown",
+        task_id: Optional[str] = None,
+        workspace_id: Optional[str] = None,
+        project_version: Optional[str] = None,
+        source_refs: Optional[List[Dict[str, Any]]] = None,
+        observation_type: str = "event",
+    ) -> Dict[str, Any]:
         compaction = self.compactor.compact(raw_data)
         metadata = await self.label(compaction["content"], source)
         metadata.update(
@@ -102,24 +111,39 @@ class Hippocampus:
                 "was_compacted": compaction["was_compacted"],
                 "original_length": compaction["original_length"],
                 "compacted_length": compaction["compacted_length"],
+                "task_id": task_id,
+                "workspace_id": workspace_id,
+                "project_version": project_version,
             }
         )
-        entry = self.l1.add(content=compaction["content"], source=source, metadata=metadata)
+        episode = None
 
         if self.episodes:
             episode = self.episodes.add(
                 raw_payload=raw_data,
                 actor=source,
                 source=source,
-                observation_type="event",
+                observation_type=observation_type,
                 inferred_intent=metadata.get("topic"),
                 topic=metadata.get("topic"),
                 outcome="captured",
                 confidence=max(0.1, min(metadata.get("importance_score", 5) / 10.0, 0.95)),
                 tags=[metadata.get("topic", "general")],
                 metadata=metadata,
+                task_id=task_id,
+                workspace_id=workspace_id,
+                project_version=project_version,
+                source_refs=source_refs,
             )
-            entry["episode_id"] = episode["episode_id"]
+        entry = self.l1.add(
+            content=compaction["content"],
+            source=source,
+            metadata=metadata,
+            episode_id=episode["episode_id"] if episode else None,
+            task_id=task_id,
+            workspace_id=workspace_id,
+            project_version=project_version,
+        )
         if self.audit_log:
             self.audit_log.append(
                 "memory_ingest",
@@ -130,6 +154,9 @@ class Hippocampus:
                     "was_compacted": compaction["was_compacted"],
                     "original_length": compaction["original_length"],
                     "compacted_length": compaction["compacted_length"],
+                    "task_id": task_id,
+                    "workspace_id": workspace_id,
+                    "project_version": project_version,
                 },
             )
         return entry

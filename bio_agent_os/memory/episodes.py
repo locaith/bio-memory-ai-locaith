@@ -19,6 +19,7 @@ class EpisodeRecord(BaseModel):
     timestamp: float = Field(default_factory=time.time)
     task_id: Optional[str] = None
     workspace_id: Optional[str] = None
+    project_version: Optional[str] = None
     actor: str = "unknown"
     source: str = "unknown"
     observation_type: str = "observation"
@@ -28,7 +29,7 @@ class EpisodeRecord(BaseModel):
     outcome: Optional[str] = None
     confidence: float = 0.5
     tags: List[str] = Field(default_factory=list)
-    source_refs: List[str] = Field(default_factory=list)
+    source_refs: List[Dict[str, Any]] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -39,6 +40,15 @@ class EpisodeStore:
         self._filepath = os.path.join(storage_dir, f"{agent_name}_episodes.json")
         self._episodes: List[Dict[str, Any]] = []
         self.load()
+
+    def _normalize_source_refs(self, source_refs: Optional[List[Any]]) -> List[Dict[str, Any]]:
+        normalized: List[Dict[str, Any]] = []
+        for ref in source_refs or []:
+            if isinstance(ref, dict):
+                normalized.append(ref)
+            else:
+                normalized.append({"ref": str(ref)})
+        return normalized
 
     def add(
         self,
@@ -51,10 +61,11 @@ class EpisodeStore:
         outcome: Optional[str] = None,
         confidence: float = 0.5,
         tags: Optional[List[str]] = None,
-        source_refs: Optional[List[str]] = None,
+        source_refs: Optional[List[Any]] = None,
         metadata: Optional[Dict[str, Any]] = None,
         task_id: Optional[str] = None,
         workspace_id: Optional[str] = None,
+        project_version: Optional[str] = None,
     ) -> Dict[str, Any]:
         record = EpisodeRecord(
             raw_payload=raw_payload,
@@ -66,10 +77,11 @@ class EpisodeStore:
             outcome=outcome,
             confidence=confidence,
             tags=tags or [],
-            source_refs=source_refs or [],
+            source_refs=self._normalize_source_refs(source_refs),
             metadata=metadata or {},
             task_id=task_id,
             workspace_id=workspace_id,
+            project_version=project_version,
         ).model_dump()
         self._episodes.append(record)
         self.save()
@@ -83,6 +95,25 @@ class EpisodeStore:
             if episode["episode_id"] == episode_id:
                 return episode
         return None
+
+    def query(
+        self,
+        task_id: Optional[str] = None,
+        workspace_id: Optional[str] = None,
+        project_version: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        results = self._episodes
+        if task_id is not None:
+            results = [episode for episode in results if episode.get("task_id") == task_id]
+        if workspace_id is not None:
+            results = [episode for episode in results if episode.get("workspace_id") == workspace_id]
+        if project_version is not None:
+            results = [
+                episode for episode in results
+                if episode.get("project_version") == project_version
+            ]
+        return results[-limit:]
 
     @property
     def count(self) -> int:
