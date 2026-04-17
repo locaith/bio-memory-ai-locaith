@@ -4,7 +4,7 @@ FastAPI entry point for Bio-Agent OS.
 
 import os
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Dict, List, Optional
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,6 +41,60 @@ graph_builder: Optional[GraphBuilder] = None
 health_monitor: Optional[MemoryHealthMonitor] = None
 dream_journal: Optional[DreamJournal] = None
 audit_log: Optional[AuditLog] = None
+
+
+def _build_retrieval_state(data: Dict[str, object]) -> Dict[str, object]:
+    mode = str(data.get("mode", "implement"))
+    stress_state = str(data.get("stress_state", "normal"))
+    risk_level = str(data.get("risk_level", "medium"))
+    workspace_id = data.get("workspace_id")
+    preferred_scope = "organization" if risk_level == "high" else "project"
+    return {
+        "mode": mode,
+        "stress_state": stress_state,
+        "risk_level": risk_level,
+        "task_id": data.get("task_id"),
+        "workspace_id": workspace_id,
+        "project_version": data.get("project_version"),
+        "prefer_exception": mode in {"debug", "deploy"} or stress_state == "failure" or risk_level == "high",
+        "preferred_scope": preferred_scope,
+    }
+
+
+def _build_safety_guard(l2_results: List[Dict[str, object]], graph_results: List[Dict[str, object]]) -> str:
+    exception_lines = [
+        f"- {item['content']}"
+        for item in l2_results
+        if item.get("memory_type") == "exception"
+    ][:3]
+    belief_lines = [
+        f"- [{item['scope']}] {item['text']} (confidence={item['confidence']:.2f})"
+        for item in graph_results
+        if item.get("state") in {"stable", "reinforced"}
+    ][:3]
+
+    if not exception_lines and not belief_lines:
+        return ""
+
+    lines = ["Safety guardrails for this request:"]
+    if exception_lines:
+        lines.append("Critical exceptions:")
+        lines.extend(exception_lines)
+    if belief_lines:
+        lines.append("Belief constraints:")
+        lines.extend(belief_lines)
+    return "\n".join(lines)
+
+
+def _hybrid_retrieve(query: str, retrieval_state: Dict[str, object], top_k: int = 5) -> Dict[str, object]:
+    l2_results = l2.search(query, top_k=top_k, retrieval_state=retrieval_state)
+    graph_results = kg.retrieve_beliefs(query, top_k=top_k, retrieval_state=retrieval_state)
+    safety_guard = _build_safety_guard(l2_results, graph_results)
+    return {
+        "l2_results": l2_results,
+        "graph_results": graph_results,
+        "safety_guard": safety_guard,
+    }
 
 
 def init_components():
@@ -130,31 +184,35 @@ async def chat(request: Request):
     intent = router_ai.quick_classify(message)
     l1_context = l1.build_context_string(n=5)
     identity_prompt = persona.get_identity_prompt()
-
-    retrieval_state = {
-        "mode": mode,
-        "stress_state": stress_state,
-        "risk_level": risk_level,
-        "task_id": task_id,
-        "workspace_id": workspace_id,
-        "project_version": project_version,
-        "prefer_exception": mode in {"debug", "deploy"} or stress_state == "failure" or risk_level == "high",
-    }
+    retrieval_state = _build_retrieval_state(data)
 
     l2_context = ""
+    safety_guard = ""
+    graph_context = ""
     if intent.value in ("knowledge", "recall", "task"):
-        l2_results = l2.search(message, top_k=5, retrieval_state=retrieval_state)
+        retrieval_bundle = _hybrid_retrieve(message, retrieval_state, top_k=5)
+        l2_results = retrieval_bundle["l2_results"]
+        graph_results = retrieval_bundle["graph_results"]
+        safety_guard = retrieval_bundle["safety_guard"]
         if l2_results:
             l2_context = "\nRelevant long-term memory:\n" + "\n".join(
                 f"- [{item['memory_type']}/{item['scope']}] {item['content']} (score={item['score']:.3f})"
                 for item in l2_results
             )
+        if graph_results:
+            graph_context = "\nRelevant belief graph:\n" + "\n".join(
+                f"- [{item['scope']}/{item['state']}] {item['text']} (score={item['score']:.3f})"
+                for item in graph_results
+            )
 
     full_prompt = (
         f"{identity_prompt}\n\n"
+        f"{safety_guard}\n\n"
         f"Recent working memory:\n{l1_context}\n"
         f"{l2_context}\n\n"
+        f"{graph_context}\n\n"
         f"User message: {message}\n\n"
+        "If a safety guard conflicts with a general plan, follow the safety guard. "
         "Reply concisely and practically."
     )
 
@@ -197,6 +255,7 @@ async def chat(request: Request):
         "intent": intent.value,
         "l1_count": l1.count,
         "core_rules": persona.rule_count,
+        "safety_guard": safety_guard,
     }
 
 
@@ -382,17 +441,11 @@ async def retrieve(request: Request):
     query = data.get("query", "").strip()
     if not query:
         return {"error": "Empty query"}
-    retrieval_state = {
-        "mode": data.get("mode", "implement"),
-        "stress_state": data.get("stress_state", "normal"),
-        "risk_level": data.get("risk_level", "medium"),
-        "task_id": data.get("task_id"),
-        "workspace_id": data.get("workspace_id"),
-        "project_version": data.get("project_version"),
-        "prefer_exception": bool(data.get("prefer_exception", False)),
-    }
-    results = l2.search(query, top_k=int(data.get("top_k", 5)), retrieval_state=retrieval_state)
-    return {"query": query, "retrieval_state": retrieval_state, "results": results}
+    retrieval_state = _build_retrieval_state(data)
+    if "prefer_exception" in data:
+        retrieval_state["prefer_exception"] = bool(data.get("prefer_exception"))
+    bundle = _hybrid_retrieve(query, retrieval_state, top_k=int(data.get("top_k", 5)))
+    return {"query": query, "retrieval_state": retrieval_state, **bundle}
 
 
 @app.post("/api/reset")

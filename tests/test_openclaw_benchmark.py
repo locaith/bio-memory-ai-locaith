@@ -4,6 +4,7 @@ import pytest
 
 from bio_agent_os import EpisodeStore, GarbageCollector, Hippocampus, L1WorkingMemory, L2SemanticMemory, Persona
 from bio_agent_os.adapters.openclaw_adapter import OpenClawBioAdapter
+from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 
 
 class FakeEngine:
@@ -159,3 +160,73 @@ async def test_openclaw_stateful_retrieval_modes(mode, query, expected_memory_ty
 
     assert results
     assert results[0]["memory_type"] == expected_memory_type
+
+
+@pytest.mark.asyncio
+async def test_openclaw_long_task_chain_benchmark():
+    for file_path in (
+        Path("test_data/chain-benchmark-agent_core_identity.json"),
+        Path("test_data/chain-benchmark-agent_episodes.json"),
+        Path("test_data/chain-benchmark-agent_l1_memory.json"),
+        Path("test_data/chain-benchmark-agent_knowledge_graph.json"),
+    ):
+        if file_path.exists():
+            file_path.unlink()
+
+    engine = FakeEngine()
+    l1 = L1WorkingMemory(agent_name="chain-benchmark-agent", storage_dir="test_data")
+    l1.clear()
+    l2 = L2SemanticMemory(agent_name="chain-benchmark-agent", storage_dir="test_data")
+    persona = Persona(name="chain-benchmark-agent", storage_dir="test_data")
+    episodes = EpisodeStore(agent_name="chain-benchmark-agent", storage_dir="test_data")
+    graph = KnowledgeGraph(agent_name="chain-benchmark-agent", storage_dir="test_data")
+    hippo = Hippocampus(engine=engine, l1=l1, l2=l2, persona=persona, episodes=episodes, graph=graph)
+    gc = GarbageCollector(l1=l1)
+    adapter = OpenClawBioAdapter(hippocampus=hippo, garbage_collector=gc, persona=persona)
+
+    chain = [
+        ("debug", "build failed with dependency mismatch after emergency patch"),
+        ("implement", "implement a safer branch policy for contributors"),
+        ("refactor", "refactor deployment helpers without breaking branch protections"),
+        ("deploy", "deploy release candidate and avoid risky branch operations in production"),
+    ]
+
+    for mode, observation in chain:
+        await hippo.label_and_store(
+            observation,
+            source="openclaw",
+            task_id=f"chain-{mode}",
+            workspace_id="workspace-chain",
+            project_version="v2.3.0",
+            source_refs=[{"kind": "terminal", "ref": mode}],
+        )
+        await adapter.trigger_micro_sleep()
+
+    l1.increment_nights()
+    l1.increment_nights()
+    l1.increment_nights()
+    await hippo.consolidate()
+
+    l2_results = l2.search(
+        "release branch safety and force push risk",
+        top_k=5,
+        retrieval_state={
+            "mode": "deploy",
+            "stress_state": "failure",
+            "risk_level": "high",
+            "task_id": "chain-deploy",
+            "workspace_id": "workspace-chain",
+            "project_version": "v2.3.0",
+            "prefer_exception": True,
+        },
+    )
+    graph_results = graph.retrieve_beliefs(
+        "force push policy on frontend branch",
+        top_k=3,
+        retrieval_state={"preferred_scope": "project"},
+    )
+
+    assert l2_results
+    assert any(item["memory_type"] == "exception" for item in l2_results[:2])
+    assert graph_results
+    assert "git push -f" in graph_results[0]["text"]

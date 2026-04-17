@@ -190,6 +190,14 @@ def test_belief_graph_and_health_snapshot():
     assert snapshot["belief_graph"]["support_edges"] == 1
     assert snapshot["rules_total"] == 1
 
+    belief_results = graph.retrieve_beliefs(
+        "frontend force push policy",
+        top_k=1,
+        retrieval_state={"preferred_scope": "project"},
+    )
+    assert belief_results
+    assert belief_results[0]["rule_id"] == rule_id
+
 
 def test_l1_attention_scheduler_prioritizes_unresolved_errors():
     l1 = L1WorkingMemory(agent_name="attention_agent", storage_dir="test_data")

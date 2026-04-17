@@ -41,6 +41,16 @@ def main():
                     "exception memory preference in deploy",
                 ],
             },
+            {
+                "name": "openclaw-task-chain-benchmark",
+                "goal": "verify hybrid retrieval and safety guards across a long multi-stage task chain",
+                "checks": [
+                    "multi-step memory accumulation",
+                    "belief graph retrieval",
+                    "exception memory retrieval in release risk states",
+                    "safety guard readiness for prompt injection",
+                ],
+            },
         ],
         "status": "generated",
     }
@@ -58,12 +68,14 @@ def main():
   - belief graph linkage
   - audit and replay compatibility
   - state-dependent retrieval across agent modes
+  - multi-stage task-chain memory behavior
 
 ## Included scenarios
 
 1. openclaw-mini-benchmark
 2. openclaw-long-session-benchmark
 3. openclaw-mode-benchmark
+4. openclaw-task-chain-benchmark
 """
 
     (report_dir / "openclaw-phase5-benchmark.json").write_text(

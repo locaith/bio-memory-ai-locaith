@@ -217,6 +217,67 @@ class KnowledgeGraph:
             "superseded_by": superseded_by,
         }
 
+    def retrieve_beliefs(
+        self,
+        query: str,
+        top_k: int = 5,
+        retrieval_state: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        query_terms = {term for term in query.lower().split() if term}
+        preferred_scope = str((retrieval_state or {}).get("preferred_scope", "")).strip().lower()
+        results: List[Dict[str, Any]] = []
+
+        for node in self.query_by_type("belief_rule"):
+            props = node.get("properties", {})
+            if props.get("state") in {"deprecated", "archived"}:
+                continue
+
+            text = str(props.get("text", ""))
+            text_terms = set(text.lower().split())
+            overlap = len(query_terms & text_terms)
+            lexical = 0.6 + min(0.4, overlap / max(len(query_terms), 1)) if query_terms else 0.6
+
+            confidence = float(props.get("confidence", 0.5))
+            support_count = int(props.get("support_count", 1))
+            contradiction_count = int(props.get("contradiction_count", 0))
+            scope = str(props.get("scope", "project")).lower()
+            state = str(props.get("state", "proposed")).lower()
+
+            score = lexical * (0.5 + confidence) * (1.0 + min(0.5, support_count * 0.08))
+            score *= max(0.45, 1.0 - (contradiction_count * 0.1))
+
+            if state in {"stable", "reinforced"}:
+                score += 0.2
+            if preferred_scope and scope == preferred_scope:
+                score += 0.15
+
+            evidence_edges = [
+                edge for edge in self._edges
+                if edge["relation"] == "supports" and edge["target"] == node["name"]
+            ]
+            conflict_edges = [
+                edge for edge in self._edges
+                if edge["relation"] == "conflicts_with" and (edge["source"] == node["name"] or edge["target"] == node["name"])
+            ]
+
+            results.append(
+                {
+                    "rule_id": node["name"],
+                    "text": text,
+                    "scope": scope,
+                    "state": state,
+                    "confidence": confidence,
+                    "support_count": support_count,
+                    "contradiction_count": contradiction_count,
+                    "score": score,
+                    "evidence_count": len(evidence_edges),
+                    "conflict_count": len(conflict_edges),
+                }
+            )
+
+        results.sort(key=lambda item: item["score"], reverse=True)
+        return results[:top_k]
+
     def find_path(self, source: str, target: str, max_depth: int = 4) -> List[str]:
         src = self._node_key(source)
         tgt = self._node_key(target)
