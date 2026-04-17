@@ -96,14 +96,14 @@ class ContradictionResolver:
                 conflicts.append(other_id)
         return conflicts
 
-    def reconcile(self, rule_id: str) -> Dict[str, int]:
+    def reconcile(self, rule_id: str) -> Dict[str, object]:
         rules = self.persona.get_rule_records()
         target = rules.get(rule_id)
         if not target:
-            return {"challenged": 0, "deprecated": 0}
+            return {"challenged": 0, "deprecated": 0, "challenged_ids": [], "deprecated_ids": []}
 
         conflicts = self.find_conflicts(rule_id)
-        stats = {"challenged": 0, "deprecated": 0}
+        stats = {"challenged": 0, "deprecated": 0, "challenged_ids": [], "deprecated_ids": []}
 
         for other_id in conflicts:
             other = self.persona.get_rule_records()[other_id]
@@ -113,10 +113,12 @@ class ContradictionResolver:
             if target_score >= other_score:
                 if self.persona.deprecate_rule(other_id, superseded_by=rule_id):
                     stats["deprecated"] += 1
+                    stats["deprecated_ids"].append(other_id)
                 target = self.persona.get_rule_records()[rule_id]
             else:
                 if self.persona.challenge_rule(rule_id, reason=f"conflicts_with:{other_id}"):
                     stats["challenged"] += 1
+                    stats["challenged_ids"].append(rule_id)
                     target = self.persona.get_rule_records()[rule_id]
 
         return stats

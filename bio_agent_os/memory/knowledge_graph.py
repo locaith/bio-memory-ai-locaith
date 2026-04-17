@@ -1,31 +1,18 @@
 """
-memory/knowledge_graph.py — Knowledge Graph (Đồ thị tri thức).
-
-Mapping các thực thể (Entities) và mối quan hệ (Relationships).
-Biến AI từ "máy nén text" thành "Cơ sở dữ liệu tư duy" (Reasoning Database).
-
-Storage backends: NetworkX (default, in-memory), Neo4j (production).
+Knowledge graph and belief graph storage.
 """
 
-import os
 import json
+import os
 import time
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 
 class KnowledgeGraph:
     """
-    In-memory Knowledge Graph using adjacency list.
-    
-    Nodes = Entities (người, công nghệ, dự án, khái niệm)
-    Edges = Relationships (sử_dụng, quản_lý, liên_quan, tạo_ra)
-    
-    Usage:
-        kg = KnowledgeGraph(agent_name="my-agent")
-        kg.add_entity("FastAPI", type="technology")
-        kg.add_entity("Tuấn Anh", type="person")
-        kg.add_relation("Tuấn Anh", "sử_dụng", "FastAPI")
-        results = kg.query_relations("Tuấn Anh")
+    In-memory graph with two practical uses:
+    - world/code graph for entities and relations
+    - belief graph for rules, evidence episodes, contradictions, and supersession
     """
 
     def __init__(self, agent_name: str = "Bio-AI", storage_dir: str = "data"):
@@ -36,7 +23,8 @@ class KnowledgeGraph:
         self._filepath = os.path.join(storage_dir, f"{agent_name}_knowledge_graph.json")
         self.load()
 
-    # ─── Entity Management ────────────────────────────────────
+    def _node_key(self, name: str) -> str:
+        return name.lower().strip()
 
     def add_entity(
         self,
@@ -44,16 +32,14 @@ class KnowledgeGraph:
         entity_type: str = "concept",
         properties: Optional[Dict[str, Any]] = None,
     ) -> bool:
-        """Add or update an entity node."""
-        key = name.lower().strip()
+        key = self._node_key(name)
         if key in self._nodes:
-            # Update properties
             if properties:
                 self._nodes[key]["properties"].update(properties)
             self._nodes[key]["updated_at"] = time.time()
             self.save()
-            return False  # Already existed
-        
+            return False
+
         self._nodes[key] = {
             "name": name,
             "type": entity_type,
@@ -62,26 +48,23 @@ class KnowledgeGraph:
             "updated_at": time.time(),
         }
         self.save()
-        return True  # Newly created
+        return True
 
     def get_entity(self, name: str) -> Optional[Dict[str, Any]]:
-        """Get an entity by name."""
-        return self._nodes.get(name.lower().strip())
+        return self._nodes.get(self._node_key(name))
 
     def remove_entity(self, name: str) -> bool:
-        """Remove an entity and all its edges."""
-        key = name.lower().strip()
+        key = self._node_key(name)
         if key not in self._nodes:
             return False
         del self._nodes[key]
         self._edges = [
-            e for e in self._edges
-            if e["source"].lower() != key and e["target"].lower() != key
+            edge
+            for edge in self._edges
+            if self._node_key(edge["source"]) != key and self._node_key(edge["target"]) != key
         ]
         self.save()
         return True
-
-    # ─── Relationship Management ──────────────────────────────
 
     def add_relation(
         self,
@@ -91,66 +74,129 @@ class KnowledgeGraph:
         weight: float = 1.0,
         properties: Optional[Dict[str, Any]] = None,
     ) -> bool:
-        """Add a directed relationship between two entities."""
-        src_key = source.lower().strip()
-        tgt_key = target.lower().strip()
+        src_key = self._node_key(source)
+        tgt_key = self._node_key(target)
 
-        # Auto-create entities if missing
         if src_key not in self._nodes:
             self.add_entity(source)
         if tgt_key not in self._nodes:
             self.add_entity(target)
 
-        # Check for duplicate
-        for e in self._edges:
-            if (e["source"].lower() == src_key and 
-                e["target"].lower() == tgt_key and
-                e["relation"] == relation):
-                e["weight"] = weight  # Update weight
+        for edge in self._edges:
+            if (
+                self._node_key(edge["source"]) == src_key
+                and self._node_key(edge["target"]) == tgt_key
+                and edge["relation"] == relation
+            ):
+                edge["weight"] = weight
+                if properties:
+                    edge["properties"].update(properties)
+                edge["updated_at"] = time.time()
                 self.save()
                 return False
 
-        self._edges.append({
-            "source": source,
-            "relation": relation,
-            "target": target,
-            "weight": weight,
-            "properties": properties or {},
-            "created_at": time.time(),
-        })
+        self._edges.append(
+            {
+                "source": source,
+                "relation": relation,
+                "target": target,
+                "weight": weight,
+                "properties": properties or {},
+                "created_at": time.time(),
+                "updated_at": time.time(),
+            }
+        )
         self.save()
         return True
 
-    # ─── Queries ──────────────────────────────────────────────
+    def add_belief_rule(self, rule: Dict[str, Any]) -> bool:
+        return self.add_entity(
+            rule["id"],
+            entity_type="belief_rule",
+            properties={
+                "text": rule["text"],
+                "scope": rule["scope"],
+                "confidence": rule["confidence"],
+                "state": rule["state"],
+                "support_count": rule["support_count"],
+                "contradiction_count": rule["contradiction_count"],
+                "valid_from": rule["valid_from"],
+                "valid_to": rule["valid_to"],
+                "superseded_by": rule["superseded_by"],
+            },
+        )
+
+    def add_episode_evidence(self, rule_id: str, episode_id: str, confidence: float = 0.5) -> bool:
+        self.add_entity(episode_id, entity_type="episode")
+        return self.add_relation(
+            episode_id,
+            "supports",
+            rule_id,
+            weight=confidence,
+            properties={"valid_from": time.time(), "valid_to": None},
+        )
+
+    def add_conflict(self, challenger_rule_id: str, target_rule_id: str) -> bool:
+        return self.add_relation(
+            challenger_rule_id,
+            "conflicts_with",
+            target_rule_id,
+            weight=1.0,
+            properties={"valid_from": time.time(), "valid_to": None},
+        )
+
+    def add_supersedes(self, newer_rule_id: str, older_rule_id: str) -> bool:
+        return self.add_relation(
+            newer_rule_id,
+            "supersedes",
+            older_rule_id,
+            weight=1.0,
+            properties={"valid_from": time.time(), "valid_to": None},
+        )
 
     def query_relations(self, entity_name: str) -> List[Dict[str, Any]]:
-        """Get all relationships linked to an entity (both directions)."""
-        key = entity_name.lower().strip()
-        results = []
-        for e in self._edges:
-            if e["source"].lower() == key or e["target"].lower() == key:
-                results.append(e)
-        return results
-
-    def query_by_type(self, entity_type: str) -> List[Dict[str, Any]]:
-        """Get all entities of a specific type."""
+        key = self._node_key(entity_name)
         return [
-            node for node in self._nodes.values()
-            if node["type"] == entity_type
+            edge
+            for edge in self._edges
+            if self._node_key(edge["source"]) == key or self._node_key(edge["target"]) == key
         ]
 
+    def query_by_type(self, entity_type: str) -> List[Dict[str, Any]]:
+        return [node for node in self._nodes.values() if node["type"] == entity_type]
+
+    def belief_summary(self) -> Dict[str, Any]:
+        rules = self.query_by_type("belief_rule")
+        active_rules = [
+            node for node in rules if node["properties"].get("state") not in {"deprecated", "archived"}
+        ]
+        challenged_rules = [
+            node for node in rules if node["properties"].get("state") == "challenged"
+        ]
+        supersedes_edges = [edge for edge in self._edges if edge["relation"] == "supersedes"]
+        conflict_edges = [edge for edge in self._edges if edge["relation"] == "conflicts_with"]
+        support_edges = [edge for edge in self._edges if edge["relation"] == "supports"]
+        return {
+            "belief_rules": len(rules),
+            "active_beliefs": len(active_rules),
+            "challenged_beliefs": len(challenged_rules),
+            "support_edges": len(support_edges),
+            "conflict_edges": len(conflict_edges),
+            "supersedes_edges": len(supersedes_edges),
+        }
+
     def find_path(self, source: str, target: str, max_depth: int = 4) -> List[str]:
-        """BFS shortest path between two entities."""
-        src = source.lower().strip()
-        tgt = target.lower().strip()
+        src = self._node_key(source)
+        tgt = self._node_key(target)
         if src not in self._nodes or tgt not in self._nodes:
             return []
 
         adjacency: Dict[str, List[str]] = {}
-        for e in self._edges:
-            s, t = e["source"].lower(), e["target"].lower()
-            adjacency.setdefault(s, []).append(t)
-            adjacency.setdefault(t, []).append(s)
+        for edge in self._edges:
+            src_key = self._node_key(edge["source"])
+            tgt_key = self._node_key(edge["target"])
+            adjacency.setdefault(src_key, []).append(tgt_key)
+            adjacency.setdefault(tgt_key, []).append(src_key)
 
         visited = {src}
         queue = [(src, [src])]
@@ -167,16 +213,11 @@ class KnowledgeGraph:
         return []
 
     def build_context_string(self, entity_name: str) -> str:
-        """Build a context string for LLM injection from an entity's relations."""
         relations = self.query_relations(entity_name)
         if not relations:
-            return f"(Không tìm thấy thông tin về '{entity_name}' trong Đồ thị Tri thức.)"
-        lines = []
-        for r in relations:
-            lines.append(f"  {r['source']} --[{r['relation']}]--> {r['target']}")
-        return f"Đồ thị tri thức liên quan đến '{entity_name}':\n" + "\n".join(lines)
-
-    # ─── Stats ────────────────────────────────────────────────
+            return f"(No graph data found for '{entity_name}')"
+        lines = [f"  {item['source']} --[{item['relation']}]--> {item['target']}" for item in relations]
+        return f"Knowledge graph related to '{entity_name}':\n" + "\n".join(lines)
 
     @property
     def node_count(self) -> int:
@@ -186,24 +227,19 @@ class KnowledgeGraph:
     def edge_count(self) -> int:
         return len(self._edges)
 
-    # ─── Persistence ──────────────────────────────────────────
-
     def save(self):
         os.makedirs(self.storage_dir, exist_ok=True)
-        with open(self._filepath, "w", encoding="utf-8") as f:
-            json.dump({
-                "nodes": self._nodes,
-                "edges": self._edges,
-            }, f, ensure_ascii=False, indent=2)
+        with open(self._filepath, "w", encoding="utf-8") as handle:
+            json.dump({"nodes": self._nodes, "edges": self._edges}, handle, ensure_ascii=False, indent=2)
 
     def load(self):
         if os.path.exists(self._filepath):
             try:
-                with open(self._filepath, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    self._nodes = data.get("nodes", {})
-                    self._edges = data.get("edges", [])
-            except (json.JSONDecodeError, IOError):
+                with open(self._filepath, "r", encoding="utf-8") as handle:
+                    data = json.load(handle)
+                self._nodes = data.get("nodes", {})
+                self._edges = data.get("edges", [])
+            except (json.JSONDecodeError, OSError):
                 self._nodes = {}
                 self._edges = []
 

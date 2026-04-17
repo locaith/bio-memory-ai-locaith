@@ -14,6 +14,7 @@ from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.graph_builder import GraphBuilder
 from bio_agent_os.background_jobs.hippocampus import Hippocampus
 from bio_agent_os.core.llm_engine import LLMEngine
+from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
 from bio_agent_os.core.router import IntentRouter
 from bio_agent_os.memory.episodes import EpisodeStore
@@ -35,10 +36,11 @@ episodes: Optional[EpisodeStore] = None
 hippo: Optional[Hippocampus] = None
 gc: Optional[GarbageCollector] = None
 graph_builder: Optional[GraphBuilder] = None
+health_monitor: Optional[MemoryHealthMonitor] = None
 
 
 def init_components():
-    global engine, persona, router_ai, l1, l2, kg, episodes, hippo, gc, graph_builder
+    global engine, persona, router_ai, l1, l2, kg, episodes, hippo, gc, graph_builder, health_monitor
 
     from dotenv import load_dotenv
 
@@ -51,9 +53,10 @@ def init_components():
     l2 = L2SemanticMemory(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     kg = KnowledgeGraph(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     episodes = EpisodeStore(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
-    hippo = Hippocampus(engine=engine, l1=l1, persona=persona, l2=l2, episodes=episodes)
+    hippo = Hippocampus(engine=engine, l1=l1, persona=persona, l2=l2, episodes=episodes, graph=kg)
     gc = GarbageCollector(l1=l1, l2=l2)
     graph_builder = GraphBuilder(engine=engine, graph=kg)
+    health_monitor = MemoryHealthMonitor(l1=l1, l2=l2, persona=persona, episodes=episodes, graph=kg)
 
     print(
         "[Bio-Agent OS] Initialized "
@@ -195,12 +198,28 @@ def get_state():
         "l2": {"count": l2.count},
         "episodes": {"count": episodes.count, "recent": episodes.get_recent(10)},
         "knowledge_graph": {"nodes": kg.node_count, "edges": kg.edge_count},
+        "belief_graph": kg.belief_summary(),
         "persona": {
             "rule_count": persona.rule_count,
             "rules": list(persona.get_rule_records().values()),
         },
         "hippo_logs": hippo.logs[-10:],
         "gc_logs": gc.logs[-10:],
+    }
+
+
+@app.get("/api/health")
+def get_health():
+    return health_monitor.status()
+
+
+@app.get("/api/status")
+def get_status():
+    return {
+        "agent_name": AGENT_NAME,
+        "backend": engine.backend,
+        "model": engine.model_id,
+        "health": health_monitor.status(),
     }
 
 

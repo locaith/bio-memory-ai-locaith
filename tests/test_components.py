@@ -1,7 +1,15 @@
 import os
 from pathlib import Path
 
-from bio_agent_os import ContradictionResolver, EpisodeStore, L1WorkingMemory, L2SemanticMemory, Persona
+from bio_agent_os import (
+    ContradictionResolver,
+    EpisodeStore,
+    L1WorkingMemory,
+    L2SemanticMemory,
+    MemoryHealthMonitor,
+    Persona,
+)
+from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 
 
 def test_l1_memory():
@@ -95,3 +103,44 @@ def test_contradiction_resolver_deprecates_weaker_rule():
     assert stats["deprecated"] == 1
     assert rules[old_rule_id]["state"] == "deprecated"
     assert rules[old_rule_id]["superseded_by"] == new_rule_id
+
+
+def test_belief_graph_and_health_snapshot():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    storage_dir = "test_data"
+    identity_file = Path(storage_dir) / "test_agent_health_core_identity.json"
+    episode_file = Path(storage_dir) / "test_agent_health_episodes.json"
+    graph_file = Path(storage_dir) / "test_agent_health_knowledge_graph.json"
+    for file_path in (identity_file, episode_file, graph_file):
+        if file_path.exists():
+            file_path.unlink()
+
+    persona = Persona(name="test_agent_health", storage_dir=storage_dir)
+    episodes = EpisodeStore(agent_name="test_agent_health", storage_dir=storage_dir)
+    l1 = L1WorkingMemory(agent_name="test_agent_health", storage_dir=storage_dir)
+    l2 = L2SemanticMemory(agent_name="test_agent_health", storage_dir=storage_dir)
+    graph = KnowledgeGraph(agent_name="test_agent_health", storage_dir=storage_dir)
+
+    episode = episodes.add(
+        raw_payload="Do not force push to frontend main.",
+        actor="agent",
+        source="terminal",
+        topic="git",
+        confidence=0.9,
+    )
+    rule_id = persona.add_rule(
+        "Never use git push -f on the frontend branch.",
+        scope="project",
+        confidence=0.8,
+        evidence_episode_ids=[episode["episode_id"]],
+    )
+    rule = persona.get_rule_records()[rule_id]
+    graph.add_belief_rule(rule)
+    graph.add_episode_evidence(rule_id, episode["episode_id"], confidence=0.8)
+
+    monitor = MemoryHealthMonitor(l1=l1, l2=l2, persona=persona, episodes=episodes, graph=graph)
+    snapshot = monitor.snapshot()
+
+    assert snapshot["belief_graph"]["belief_rules"] == 1
+    assert snapshot["belief_graph"]["support_edges"] == 1
+    assert snapshot["rules_total"] == 1

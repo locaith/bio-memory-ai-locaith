@@ -7,9 +7,11 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from bio_agent_os.core.llm_engine import LLMEngine
+from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
 from bio_agent_os.core.reconciliation import ContradictionResolver
 from bio_agent_os.memory.episodes import EpisodeStore
+from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 from bio_agent_os.memory.l1_working import L1WorkingMemory
 from bio_agent_os.memory.l2_semantic import L2SemanticMemory
 
@@ -38,12 +40,14 @@ class Hippocampus:
         persona: Persona,
         l2: Optional[L2SemanticMemory] = None,
         episodes: Optional[EpisodeStore] = None,
+        graph: Optional[KnowledgeGraph] = None,
     ):
         self.engine = engine
         self.l1 = l1
         self.persona = persona
         self.l2 = l2
         self.episodes = episodes
+        self.graph = graph
         self.reconciler = ContradictionResolver(persona=persona)
         self._log: List[str] = []
 
@@ -149,6 +153,21 @@ class Hippocampus:
                     evidence_episode_ids=[episode_id] if episode_id else [],
                 )
                 reconcile_stats = self.reconciler.reconcile(rule_id)
+                rule_record = self.persona.get_rule_records()[rule_id]
+
+                if self.graph:
+                    self.graph.add_belief_rule(rule_record)
+                    if episode_id:
+                        self.graph.add_episode_evidence(
+                            rule_id,
+                            episode_id,
+                            confidence=confidence,
+                        )
+                    for deprecated_id in reconcile_stats["deprecated_ids"]:
+                        self.graph.add_conflict(rule_id, deprecated_id)
+                        self.graph.add_supersedes(rule_id, deprecated_id)
+                    for challenged_id in reconcile_stats["challenged_ids"]:
+                        self.graph.add_conflict(challenged_id, rule_id)
 
                 if self.l2:
                     topic = metadata.get("topic", "general")
@@ -191,6 +210,16 @@ class Hippocampus:
     async def dream(self) -> Dict[str, int]:
         self._log.append("----- dream cycle started -----")
         result = await self.consolidate()
+        if self.graph and self.episodes and self.l2:
+            monitor = MemoryHealthMonitor(
+                l1=self.l1,
+                l2=self.l2,
+                persona=self.persona,
+                episodes=self.episodes,
+                graph=self.graph,
+            )
+            report = monitor.dream_report(result, self.logs)
+            result["report"] = report
         self._log.append("----- dream cycle finished -----")
         return result
 

@@ -9,6 +9,7 @@ __version__ = "0.4.0"
 __author__ = "Locaith Solution Tech"
 
 from bio_agent_os.core.llm_engine import LLMEngine
+from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
 from bio_agent_os.core.reconciliation import ContradictionResolver
 from bio_agent_os.core.router import IntentRouter
@@ -30,6 +31,7 @@ __all__ = [
     "L1WorkingMemory",
     "L2SemanticMemory",
     "LLMEngine",
+    "MemoryHealthMonitor",
     "Persona",
     "ContradictionResolver",
 ]

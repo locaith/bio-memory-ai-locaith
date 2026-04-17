@@ -117,21 +117,21 @@ Bio-Agent OS giờ hỗ trợ nhiều đường chạy khác nhau cho phần "H�
 1. **Gemini**
 ```env
 LLM_BACKEND=gemini
-MODEL_ID=gemini-2.5-flash
+MODEL_ID=gemini-3-pro-preview
 GEMINI_API_KEY=your_key_here
 ```
 
 2. **Claude / Anthropic**
 ```env
 LLM_BACKEND=anthropic
-MODEL_ID=claude-3-7-sonnet-latest
+MODEL_ID=claude-opus-4-1-20250805
 ANTHROPIC_API_KEY=your_key_here
 ```
 
 3. **OpenAI / GPT**
 ```env
 LLM_BACKEND=openai
-MODEL_ID=gpt-4.1-mini
+MODEL_ID=gpt-5.2
 OPENAI_API_KEY=your_key_here
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
@@ -139,7 +139,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 4. **Grok / xAI**
 ```env
 LLM_BACKEND=grok
-MODEL_ID=grok-3-mini
+MODEL_ID=grok-4.20-reasoning
 XAI_API_KEY=your_key_here
 XAI_BASE_URL=https://api.x.ai/v1
 ```
@@ -183,6 +183,8 @@ API hiện có:
 - `POST /api/ingest`
 - `POST /api/sleep`
 - `POST /api/dream`
+- `GET /api/health`
+- `GET /api/status`
 - `GET /api/state`
 - `GET /api/graph`
 
@@ -324,21 +326,21 @@ Bio-Agent OS now supports multiple inference paths for the hippocampus and memor
 1. **Gemini**
 ```env
 LLM_BACKEND=gemini
-MODEL_ID=gemini-2.5-flash
+MODEL_ID=gemini-3-pro-preview
 GEMINI_API_KEY=your_key_here
 ```
 
 2. **Claude / Anthropic**
 ```env
 LLM_BACKEND=anthropic
-MODEL_ID=claude-3-7-sonnet-latest
+MODEL_ID=claude-opus-4-1-20250805
 ANTHROPIC_API_KEY=your_key_here
 ```
 
 3. **OpenAI / GPT**
 ```env
 LLM_BACKEND=openai
-MODEL_ID=gpt-4.1-mini
+MODEL_ID=gpt-5.2
 OPENAI_API_KEY=your_key_here
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
@@ -346,7 +348,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 4. **Grok / xAI**
 ```env
 LLM_BACKEND=grok
-MODEL_ID=grok-3-mini
+MODEL_ID=grok-4.20-reasoning
 XAI_API_KEY=your_key_here
 XAI_BASE_URL=https://api.x.ai/v1
 ```
@@ -390,6 +392,8 @@ Current API:
 - `POST /api/ingest`
 - `POST /api/sleep`
 - `POST /api/dream`
+- `GET /api/health`
+- `GET /api/status`
 - `GET /api/state`
 - `GET /api/graph`
 
