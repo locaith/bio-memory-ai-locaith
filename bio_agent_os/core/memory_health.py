@@ -118,3 +118,23 @@ class MemoryHealthMonitor:
             "Be concrete and concise.\n\n"
             f"Snapshot: {snapshot}\n"
         )
+
+    def adaptive_effort(self, importance_score: int = 5, content_length: int = 0) -> str:
+        snapshot = self.snapshot()
+        pressure_score = 0
+        if snapshot["l1_raw"] > 20:
+            pressure_score += 1
+        if snapshot["rules_challenged"] > 0:
+            pressure_score += 1
+        if content_length > 4000:
+            pressure_score += 1
+        if importance_score >= 8:
+            pressure_score += 1
+
+        if pressure_score >= 4:
+            return "xhigh"
+        if pressure_score >= 3:
+            return "high"
+        if pressure_score >= 2:
+            return "medium"
+        return "low"

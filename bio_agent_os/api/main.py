@@ -13,6 +13,7 @@ from fastapi.responses import HTMLResponse
 from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.graph_builder import GraphBuilder
 from bio_agent_os.background_jobs.hippocampus import Hippocampus
+from bio_agent_os.core.audit_log import AuditLog
 from bio_agent_os.core.dream_journal import DreamJournal
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
@@ -39,10 +40,11 @@ gc: Optional[GarbageCollector] = None
 graph_builder: Optional[GraphBuilder] = None
 health_monitor: Optional[MemoryHealthMonitor] = None
 dream_journal: Optional[DreamJournal] = None
+audit_log: Optional[AuditLog] = None
 
 
 def init_components():
-    global engine, persona, router_ai, l1, l2, kg, episodes, hippo, gc, graph_builder, health_monitor, dream_journal
+    global engine, persona, router_ai, l1, l2, kg, episodes, hippo, gc, graph_builder, health_monitor, dream_journal, audit_log
 
     from dotenv import load_dotenv
 
@@ -56,6 +58,7 @@ def init_components():
     kg = KnowledgeGraph(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     episodes = EpisodeStore(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     dream_journal = DreamJournal(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
+    audit_log = AuditLog(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     hippo = Hippocampus(
         engine=engine,
         l1=l1,
@@ -64,6 +67,7 @@ def init_components():
         episodes=episodes,
         graph=kg,
         dream_journal=dream_journal,
+        audit_log=audit_log,
     )
     gc = GarbageCollector(l1=l1, l2=l2)
     graph_builder = GraphBuilder(engine=engine, graph=kg)
@@ -140,6 +144,7 @@ async def chat(request: Request):
     response = await engine.generate(full_prompt)
     await hippo.label_and_store(message, source="user")
     await hippo.label_and_store(response, source=AGENT_NAME)
+    audit_log.append("chat_turn", "Processed chat turn", {"intent": intent.value, "message_length": len(message)})
 
     return {
         "response": response,
@@ -168,6 +173,7 @@ async def ingest(request: Request):
         graph_stats = await graph_builder.process(chunk)
         stats["graph_entities"] += graph_stats["entities_added"]
         stats["graph_relations"] += graph_stats["relations_added"]
+    audit_log.append("bulk_ingest", "Processed ingest request", stats)
 
     return {"status": "ok", "stats": stats}
 
@@ -206,11 +212,13 @@ async def reflect():
         reflection_text = await engine.generate(health_monitor.reflection_prompt(), temperature=0.2)
     except Exception:
         reflection_text = deterministic["agent_reflection"]
-    return {
+    result = {
         **deterministic,
         "llm_reflection": reflection_text,
         "reflection_mode": "llm" if reflection_text != deterministic["agent_reflection"] else "deterministic",
     }
+    audit_log.append("reflect", "Generated reflection", {"mode": result["reflection_mode"]})
+    return result
 
 
 @app.get("/api/state")
@@ -287,6 +295,16 @@ def get_belief_timeline(active_only: bool = False):
 @app.get("/api/dreams")
 def get_dream_reports(limit: int = 10):
     return {"count": dream_journal.count, "reports": dream_journal.recent(limit)}
+
+
+@app.get("/api/audit")
+def get_audit(limit: int = 50, event_type: Optional[str] = None):
+    return {"count": audit_log.count, "events": audit_log.recent(limit=limit, event_type=event_type)}
+
+
+@app.get("/api/replay")
+def replay_memory(since: float = 0.0, until: Optional[float] = None):
+    return {"events": audit_log.replay(since=since, until=until)}
 
 
 @app.post("/api/reset")

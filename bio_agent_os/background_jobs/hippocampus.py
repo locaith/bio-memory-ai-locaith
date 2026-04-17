@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from bio_agent_os.core.audit_log import AuditLog
+from bio_agent_os.core.compaction import MemoryCompactor
 from bio_agent_os.core.dream_journal import DreamJournal
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
@@ -43,6 +45,7 @@ class Hippocampus:
         episodes: Optional[EpisodeStore] = None,
         graph: Optional[KnowledgeGraph] = None,
         dream_journal: Optional[DreamJournal] = None,
+        audit_log: Optional[AuditLog] = None,
     ):
         self.engine = engine
         self.l1 = l1
@@ -51,6 +54,8 @@ class Hippocampus:
         self.episodes = episodes
         self.graph = graph
         self.dream_journal = dream_journal
+        self.audit_log = audit_log
+        self.compactor = MemoryCompactor()
         self.reconciler = ContradictionResolver(persona=persona)
         self._log: List[str] = []
 
@@ -90,8 +95,16 @@ class Hippocampus:
             }
 
     async def label_and_store(self, raw_data: str, source: str = "unknown") -> Dict[str, Any]:
-        metadata = await self.label(raw_data, source)
-        entry = self.l1.add(content=raw_data, source=source, metadata=metadata)
+        compaction = self.compactor.compact(raw_data)
+        metadata = await self.label(compaction["content"], source)
+        metadata.update(
+            {
+                "was_compacted": compaction["was_compacted"],
+                "original_length": compaction["original_length"],
+                "compacted_length": compaction["compacted_length"],
+            }
+        )
+        entry = self.l1.add(content=compaction["content"], source=source, metadata=metadata)
 
         if self.episodes:
             episode = self.episodes.add(
@@ -107,9 +120,22 @@ class Hippocampus:
                 metadata=metadata,
             )
             entry["episode_id"] = episode["episode_id"]
+        if self.audit_log:
+            self.audit_log.append(
+                "memory_ingest",
+                f"Ingested memory from {source}",
+                {
+                    "source": source,
+                    "topic": metadata.get("topic"),
+                    "was_compacted": compaction["was_compacted"],
+                    "original_length": compaction["original_length"],
+                    "compacted_length": compaction["compacted_length"],
+                },
+            )
         return entry
 
     async def _compile_entry(self, content: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        effort = self._adaptive_effort(metadata, content)
         prompt = (
             "You are a memory compiler for a coding agent.\n"
             "Transform one event into four outputs:\n"
@@ -125,7 +151,25 @@ class Hippocampus:
             prompt,
             schema=CompiledMemory,
             temperature=0.2,
+            effort=effort,
         )
+
+    def _adaptive_effort(self, metadata: Dict[str, Any], content: str) -> str:
+        if self.graph and self.episodes and self.l2:
+            monitor = MemoryHealthMonitor(
+                l1=self.l1,
+                l2=self.l2,
+                persona=self.persona,
+                episodes=self.episodes,
+                graph=self.graph,
+            )
+            effort = monitor.adaptive_effort(
+                importance_score=int(metadata.get("importance_score", 5)),
+                content_length=len(content),
+            )
+            self._log.append(f"Adaptive effort selected: {effort}")
+            return effort
+        return "medium"
 
     async def consolidate(self) -> Dict[str, int]:
         self._log.append("----- sleep consolidation started -----")
@@ -195,6 +239,17 @@ class Hippocampus:
 
                 self.l1.mark_encoded(entry["timestamp"])
                 self._log.append(f"Compiled rule: {identity_rule[:120]}")
+                if self.audit_log:
+                    self.audit_log.append(
+                        "memory_consolidate",
+                        "Consolidated survivor into long-term memory",
+                        {
+                            "rule_id": rule_id,
+                            "scope": scope,
+                            "confidence": confidence,
+                            "episode_id": episode_id,
+                        },
+                    )
                 if reconcile_stats["deprecated"] or reconcile_stats["challenged"]:
                     self._log.append(
                         "Reconciled rule "
@@ -224,6 +279,12 @@ class Hippocampus:
             report = monitor.dream_report(result, self.logs)
             if self.dream_journal:
                 report = self.dream_journal.append(report)
+            if self.audit_log:
+                self.audit_log.append(
+                    "dream_cycle",
+                    "Completed dream cycle",
+                    {"report_id": report.get("report_id"), "summary": report.get("summary", {})},
+                )
             result["report"] = report
         self._log.append("----- dream cycle finished -----")
         return result

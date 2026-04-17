@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  openclaw-mini-benchmark:
+  openclaw-phase5-benchmark:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -23,7 +23,7 @@ jobs:
         pip install pytest pytest-asyncio
         pip install -e "."
 
-    - name: Run OpenClaw benchmark test
+    - name: Run OpenClaw benchmark tests
       run: |
         pytest tests/test_openclaw_benchmark.py
 
@@ -34,5 +34,5 @@ jobs:
     - name: Upload benchmark artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: openclaw-mini-benchmark-report
+        name: openclaw-phase5-benchmark-report
         path: benchmark_reports/

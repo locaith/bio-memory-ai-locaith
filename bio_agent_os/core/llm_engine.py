@@ -25,7 +25,7 @@ class LLMEngine:
     def __init__(
         self,
         backend: str = "gemini",
-        model_id: str = "gemini-2.5-flash",
+        model_id: str = "gemini-3-flash-preview",
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         temperature: float = 0.7,
@@ -41,7 +41,7 @@ class LLMEngine:
     @classmethod
     def from_env(cls) -> "LLMEngine":
         backend = os.getenv("LLM_BACKEND", "gemini")
-        model_id = os.getenv("MODEL_ID", "gemini-2.5-flash")
+        model_id = os.getenv("MODEL_ID", "gemini-3-flash-preview")
         api_key = os.getenv("LLM_API_KEY")
         base_url = os.getenv("LLM_BASE_URL")
         temperature = float(os.getenv("LLM_TEMPERATURE", "0.3"))
@@ -116,8 +116,14 @@ class LLMEngine:
     def is_ready(self) -> bool:
         return self._client is not None
 
-    async def generate(self, prompt: str, temperature: Optional[float] = None) -> str:
+    async def generate(
+        self,
+        prompt: str,
+        temperature: Optional[float] = None,
+        effort: Optional[str] = None,
+    ) -> str:
         temp = temperature if temperature is not None else self.temperature
+        prompt = self._apply_effort_hint(prompt, effort)
 
         if self.backend == "gemini":
             return await self._generate_gemini(prompt, temp)
@@ -135,10 +141,17 @@ class LLMEngine:
         prompt: str,
         schema: Type[BaseModel],
         temperature: float = 0.1,
+        effort: Optional[str] = None,
     ) -> dict:
+        prompt = self._apply_effort_hint(prompt, effort)
         if self.backend == "gemini":
             return await self._structured_gemini(prompt, schema, temperature)
         return await self._structured_fallback(prompt, schema, temperature)
+
+    def _apply_effort_hint(self, prompt: str, effort: Optional[str]) -> str:
+        if not effort:
+            return prompt
+        return f"[Adaptive effort hint: {effort}]\n{prompt}"
 
     async def _generate_gemini(self, prompt: str, temp: float) -> str:
         response = await self._client.aio.models.generate_content(

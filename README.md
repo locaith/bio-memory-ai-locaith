@@ -118,7 +118,13 @@ MODEL_ID=gemini-3-flash-preview
 GEMINI_API_KEY=your_key_here
 ```
 
-Gemini Pro public docs currently list `gemini-3-pro-preview`. If your Google account or gateway exposes a newer private alias such as `gemini-3.1-pro-preview`, you can swap it in directly.
+Nếu bạn muốn dùng bản mạnh hơn cho reasoning/coding:
+
+```env
+LLM_BACKEND=gemini
+MODEL_ID=gemini-3.1-pro-preview
+GEMINI_API_KEY=your_key_here
+```
 
 2. **Claude / Anthropic**
 ```env
@@ -130,12 +136,10 @@ ANTHROPIC_API_KEY=your_key_here
 3. **OpenAI / GPT**
 ```env
 LLM_BACKEND=openai
-MODEL_ID=gpt-5.2
+MODEL_ID=gpt-5.4
 OPENAI_API_KEY=your_key_here
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
-
-OpenAI public API docs currently list `gpt-5.2` as the latest documented GPT-5 API model in the docs I verified. If your account already exposes a newer private alias such as `gpt-5.4`, you can substitute it directly.
 
 4. **Grok / xAI**
 ```env
@@ -193,6 +197,17 @@ API hiện có:
 - `GET /api/beliefs/timeline`
 - `GET /api/beliefs/{rule_id}`
 - `GET /api/dreams`
+- `GET /api/audit`
+- `GET /api/replay`
+
+### Phase 5 memory upgrades
+
+Bio-Agent OS V2.1 phase 5 hiện bổ sung 4 nâng cấp thực dụng cho OpenClaw session dài:
+
+1. `compaction`: quan sát quá dài sẽ được nén gọn trước khi vào L1, nhưng episode gốc vẫn được giữ để audit và replay.
+2. `adaptive effort`: hippocampus có thể tự tăng mức effort cho ký ức quan trọng hoặc lúc bộ nhớ đang quá tải, thay vì đốt effort cao cho mọi event.
+3. `memory replay / audit view`: dùng `GET /api/audit` và `GET /api/replay` để soi lại toàn bộ vòng đời ingest, consolidate, reflect, dream.
+4. `deeper benchmark`: CI giờ kiểm cả mini benchmark lẫn long-session benchmark cho OpenClaw để đảm bảo rule được reinforce qua nhiều micro-sleep cycle.
 
 ---
 
@@ -333,7 +348,13 @@ MODEL_ID=gemini-3-flash-preview
 GEMINI_API_KEY=your_key_here
 ```
 
-Google's public Gemini API docs currently list `gemini-3-pro-preview` for Pro. If your Google account or gateway exposes a newer private alias such as `gemini-3.1-pro-preview`, you can switch to it directly.
+If you want the stronger reasoning/coding variant:
+
+```env
+LLM_BACKEND=gemini
+MODEL_ID=gemini-3.1-pro-preview
+GEMINI_API_KEY=your_key_here
+```
 
 2. **Claude / Anthropic**
 ```env
@@ -345,12 +366,10 @@ ANTHROPIC_API_KEY=your_key_here
 3. **OpenAI / GPT**
 ```env
 LLM_BACKEND=openai
-MODEL_ID=gpt-5.2
+MODEL_ID=gpt-5.4
 OPENAI_API_KEY=your_key_here
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
-
-OpenAI's public API docs currently list `gpt-5.2` as the latest documented GPT-5 API model that I could verify. If your account already exposes a newer private alias such as `gpt-5.4`, you can substitute it directly.
 
 4. **Grok / xAI**
 ```env
@@ -408,6 +427,17 @@ Current API:
 - `GET /api/beliefs/timeline`
 - `GET /api/beliefs/{rule_id}`
 - `GET /api/dreams`
+- `GET /api/audit`
+- `GET /api/replay`
+
+### Phase 5 memory upgrades
+
+Bio-Agent OS V2.1 phase 5 now adds four practical upgrades for long OpenClaw sessions:
+
+1. `compaction`: very long observations are compacted before L1 storage while the raw episode is still preserved for audit and replay.
+2. `adaptive effort`: the hippocampus can raise reasoning effort for high-importance or overloaded memory states instead of spending maximum effort on every event.
+3. `memory replay / audit view`: use `GET /api/audit` and `GET /api/replay` to inspect how memories were ingested, consolidated, reflected, and replayed over time.
+4. `deeper benchmark`: CI now runs both a mini benchmark and a longer OpenClaw session benchmark to verify rule reinforcement across repeated micro-sleep cycles.
 
 ---
 

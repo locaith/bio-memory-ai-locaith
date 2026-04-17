@@ -8,6 +8,8 @@ and long-running autonomous systems.
 __version__ = "0.4.0"
 __author__ = "Locaith Solution Tech"
 
+from bio_agent_os.core.audit_log import AuditLog
+from bio_agent_os.core.compaction import MemoryCompactor
 from bio_agent_os.core.dream_journal import DreamJournal
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
@@ -23,6 +25,7 @@ from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.graph_builder import GraphBuilder
 
 __all__ = [
+    "AuditLog",
     "DreamJournal",
     "EpisodeStore",
     "GarbageCollector",
@@ -33,6 +36,7 @@ __all__ = [
     "L1WorkingMemory",
     "L2SemanticMemory",
     "LLMEngine",
+    "MemoryCompactor",
     "MemoryHealthMonitor",
     "Persona",
     "ContradictionResolver",

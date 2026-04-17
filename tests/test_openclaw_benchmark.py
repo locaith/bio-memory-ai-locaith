@@ -10,7 +10,10 @@ class FakeEngine:
     backend = "test"
     model_id = "fake-memory-compiler"
 
-    async def generate_structured(self, prompt, schema, temperature=0.1):
+    async def generate(self, prompt, temperature=0.2, effort=None):
+        return f"reflection-effort:{effort or 'none'}"
+
+    async def generate_structured(self, prompt, schema, temperature=0.1, effort=None):
         schema_name = schema.__name__
         if schema_name == "MemoryLabel":
             return {
@@ -59,3 +62,35 @@ async def test_openclaw_benchmark_mini():
     rules = persona.get_rule_records()
     assert rules
     assert any("git push -f" in rule["text"] for rule in rules.values())
+
+
+@pytest.mark.asyncio
+async def test_openclaw_long_session_benchmark():
+    for file_path in (
+        Path("test_data/long-session-agent_core_identity.json"),
+        Path("test_data/long-session-agent_episodes.json"),
+        Path("test_data/long-session-agent_l1_memory.json"),
+    ):
+        if file_path.exists():
+            file_path.unlink()
+
+    engine = FakeEngine()
+    l1 = L1WorkingMemory(agent_name="long-session-agent", storage_dir="test_data")
+    l1.clear()
+    persona = Persona(name="long-session-agent", storage_dir="test_data")
+    episodes = EpisodeStore(agent_name="long-session-agent", storage_dir="test_data")
+    hippo = Hippocampus(engine=engine, l1=l1, persona=persona, episodes=episodes)
+    gc = GarbageCollector(l1=l1)
+    adapter = OpenClawBioAdapter(hippocampus=hippo, garbage_collector=gc, persona=persona)
+
+    for turn in range(30):
+        await adapter.ingest_observation("run_command", f"git push -f origin main attempt {turn}")
+
+    await adapter.trigger_micro_sleep()
+    await adapter.trigger_micro_sleep()
+    await adapter.trigger_micro_sleep()
+
+    rules = persona.get_rule_records()
+    assert len(rules) >= 1
+    strongest = max(rules.values(), key=lambda rule: rule["support_count"])
+    assert strongest["support_count"] >= 2
