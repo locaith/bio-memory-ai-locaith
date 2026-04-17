@@ -6,6 +6,7 @@ import base64
 import json
 import os
 import time
+import uuid
 from typing import Any, Dict, List, Optional
 
 from cryptography.fernet import Fernet
@@ -100,7 +101,7 @@ class Persona:
             self.save()
             return existing_rule_id
 
-        rule_id = f"rule_{int(now * 1000)}"
+        rule_id = f"rule_{uuid.uuid4().hex}"
         self._rules[rule_id] = {
             "id": rule_id,
             "text": rule_text,

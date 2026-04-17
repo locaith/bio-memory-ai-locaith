@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from bio_agent_os.core.dream_journal import DreamJournal
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
@@ -41,6 +42,7 @@ class Hippocampus:
         l2: Optional[L2SemanticMemory] = None,
         episodes: Optional[EpisodeStore] = None,
         graph: Optional[KnowledgeGraph] = None,
+        dream_journal: Optional[DreamJournal] = None,
     ):
         self.engine = engine
         self.l1 = l1
@@ -48,6 +50,7 @@ class Hippocampus:
         self.l2 = l2
         self.episodes = episodes
         self.graph = graph
+        self.dream_journal = dream_journal
         self.reconciler = ContradictionResolver(persona=persona)
         self._log: List[str] = []
 
@@ -219,6 +222,8 @@ class Hippocampus:
                 graph=self.graph,
             )
             report = monitor.dream_report(result, self.logs)
+            if self.dream_journal:
+                report = self.dream_journal.append(report)
             result["report"] = report
         self._log.append("----- dream cycle finished -----")
         return result

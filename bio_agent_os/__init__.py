@@ -8,6 +8,7 @@ and long-running autonomous systems.
 __version__ = "0.4.0"
 __author__ = "Locaith Solution Tech"
 
+from bio_agent_os.core.dream_journal import DreamJournal
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
@@ -22,6 +23,7 @@ from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.graph_builder import GraphBuilder
 
 __all__ = [
+    "DreamJournal",
     "EpisodeStore",
     "GarbageCollector",
     "GraphBuilder",

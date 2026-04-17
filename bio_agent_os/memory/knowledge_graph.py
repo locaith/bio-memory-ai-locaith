@@ -185,6 +185,38 @@ class KnowledgeGraph:
             "supersedes_edges": len(supersedes_edges),
         }
 
+    def belief_query(self, rule_id: Optional[str] = None, active_only: bool = False) -> Dict[str, Any]:
+        rules = self.query_by_type("belief_rule")
+        if active_only:
+            rules = [
+                rule
+                for rule in rules
+                if rule["properties"].get("state") not in {"deprecated", "archived"}
+            ]
+
+        if rule_id is None:
+            return {"rules": rules}
+
+        selected = next((rule for rule in rules if rule["name"] == rule_id), None)
+        if not selected:
+            return {"rule": None, "supports": [], "conflicts_with": [], "supersedes": [], "superseded_by": []}
+
+        supports = [edge for edge in self._edges if edge["relation"] == "supports" and edge["target"] == rule_id]
+        conflicts_with = [
+            edge for edge in self._edges
+            if edge["relation"] == "conflicts_with" and (edge["source"] == rule_id or edge["target"] == rule_id)
+        ]
+        supersedes = [edge for edge in self._edges if edge["relation"] == "supersedes" and edge["source"] == rule_id]
+        superseded_by = [edge for edge in self._edges if edge["relation"] == "supersedes" and edge["target"] == rule_id]
+
+        return {
+            "rule": selected,
+            "supports": supports,
+            "conflicts_with": conflicts_with,
+            "supersedes": supersedes,
+            "superseded_by": superseded_by,
+        }
+
     def find_path(self, source: str, target: str, max_depth: int = 4) -> List[str]:
         src = self._node_key(source)
         tgt = self._node_key(target)

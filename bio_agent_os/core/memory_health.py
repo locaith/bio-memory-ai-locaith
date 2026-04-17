@@ -88,3 +88,24 @@ class MemoryHealthMonitor:
             "belief_graph": status["snapshot"]["belief_graph"],
             "recent_logs": logs[-12:],
         }
+
+    def reflect(self) -> Dict[str, Any]:
+        snapshot = self.snapshot()
+        top_risks: List[str] = []
+        if snapshot["rules_low_confidence"] > 0:
+            top_risks.append("Some active rules still have low confidence.")
+        if snapshot["rules_challenged"] > 0:
+            top_risks.append("There are challenged beliefs that may need reconsolidation.")
+        if snapshot["l1_raw"] > snapshot["l1_encoded"]:
+            top_risks.append("Working memory is still heavier on raw events than encoded memory.")
+        if not top_risks:
+            top_risks.append("Memory state is currently balanced.")
+
+        return {
+            "agent_reflection": (
+                "Bio-Agent OS is tracking episodes, semantic memory, procedural memory, "
+                "and self-model rules. Stable beliefs should dominate over challenged ones."
+            ),
+            "snapshot": snapshot,
+            "top_risks": top_risks,
+        }

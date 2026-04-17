@@ -13,6 +13,7 @@ from fastapi.responses import HTMLResponse
 from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.graph_builder import GraphBuilder
 from bio_agent_os.background_jobs.hippocampus import Hippocampus
+from bio_agent_os.core.dream_journal import DreamJournal
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
@@ -37,10 +38,11 @@ hippo: Optional[Hippocampus] = None
 gc: Optional[GarbageCollector] = None
 graph_builder: Optional[GraphBuilder] = None
 health_monitor: Optional[MemoryHealthMonitor] = None
+dream_journal: Optional[DreamJournal] = None
 
 
 def init_components():
-    global engine, persona, router_ai, l1, l2, kg, episodes, hippo, gc, graph_builder, health_monitor
+    global engine, persona, router_ai, l1, l2, kg, episodes, hippo, gc, graph_builder, health_monitor, dream_journal
 
     from dotenv import load_dotenv
 
@@ -53,7 +55,16 @@ def init_components():
     l2 = L2SemanticMemory(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     kg = KnowledgeGraph(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     episodes = EpisodeStore(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
-    hippo = Hippocampus(engine=engine, l1=l1, persona=persona, l2=l2, episodes=episodes, graph=kg)
+    dream_journal = DreamJournal(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
+    hippo = Hippocampus(
+        engine=engine,
+        l1=l1,
+        persona=persona,
+        l2=l2,
+        episodes=episodes,
+        graph=kg,
+        dream_journal=dream_journal,
+    )
     gc = GarbageCollector(l1=l1, l2=l2)
     graph_builder = GraphBuilder(engine=engine, graph=kg)
     health_monitor = MemoryHealthMonitor(l1=l1, l2=l2, persona=persona, episodes=episodes, graph=kg)
@@ -188,6 +199,11 @@ async def trigger_dream():
     }
 
 
+@app.get("/api/reflect")
+def reflect():
+    return health_monitor.reflect()
+
+
 @app.get("/api/state")
 def get_state():
     return {
@@ -230,6 +246,21 @@ def get_graph():
         "edges": kg._edges,
         "stats": {"node_count": kg.node_count, "edge_count": kg.edge_count},
     }
+
+
+@app.get("/api/beliefs")
+def get_beliefs(active_only: bool = False):
+    return kg.belief_query(active_only=active_only)
+
+
+@app.get("/api/beliefs/{rule_id}")
+def get_belief(rule_id: str):
+    return kg.belief_query(rule_id=rule_id)
+
+
+@app.get("/api/dreams")
+def get_dream_reports(limit: int = 10):
+    return {"count": dream_journal.count, "reports": dream_journal.recent(limit)}
 
 
 @app.post("/api/reset")
