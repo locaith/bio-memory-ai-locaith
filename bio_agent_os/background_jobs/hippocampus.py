@@ -30,6 +30,7 @@ class CompiledMemory(BaseModel):
     episodic_summary: str = Field(description="Short factual memory of what happened")
     semantic_memory: str = Field(description="Generalized knowledge extracted from the event")
     procedural_memory: str = Field(description="Reusable procedure or workflow guidance")
+    exception_memory: str = Field(description="Important exception, caveat, or dangerous special case")
     identity_rule: str = Field(description="Stable rule candidate for the self-model")
     confidence: float = Field(description="Confidence score from 0 to 1")
     scope: str = Field(description="core, project, agent, user, session, organization")
@@ -169,7 +170,8 @@ class Hippocampus:
             "1. episodic summary\n"
             "2. semantic memory\n"
             "3. procedural memory\n"
-            "4. identity rule candidate\n"
+            "4. exception memory\n"
+            "5. identity rule candidate\n"
             "Keep it compact, reusable, and avoid hype.\n"
             f"Event:\n{content}\n\n"
             f"Metadata:\n{metadata}"
@@ -245,24 +247,59 @@ class Hippocampus:
 
                 if self.l2:
                     topic = metadata.get("topic", "general")
+                    mode_hints = self._mode_hints(metadata, content)
+                    shared_kwargs = {
+                        "importance": metadata.get("importance_score", 5),
+                        "source_rule_id": rule_id,
+                        "scope": scope,
+                        "mode_hints": mode_hints,
+                        "risk_level": self._risk_level(metadata),
+                        "stress_state": self._stress_state(metadata, content),
+                        "task_id": entry.get("task_id"),
+                        "workspace_id": entry.get("workspace_id"),
+                        "project_version": entry.get("project_version"),
+                    }
                     self.l2.store(
                         content=compiled["semantic_memory"],
-                        importance=metadata.get("importance_score", 5),
                         tags=[topic, "semantic"],
-                        source_rule_id=rule_id,
+                        memory_type="semantic",
+                        **shared_kwargs,
                     )
                     self.l2.store(
                         content=compiled["procedural_memory"],
-                        importance=metadata.get("importance_score", 5),
                         tags=[topic, "procedural"],
-                        source_rule_id=rule_id,
+                        memory_type="procedural",
+                        **shared_kwargs,
                     )
                     self.l2.store(
                         content=compiled["episodic_summary"],
                         importance=max(1.0, metadata.get("importance_score", 5) - 1),
                         tags=[topic, "episodic"],
                         source_rule_id=rule_id,
+                        memory_type="episodic",
+                        scope=scope,
+                        mode_hints=mode_hints,
+                        risk_level=self._risk_level(metadata),
+                        stress_state=self._stress_state(metadata, content),
+                        task_id=entry.get("task_id"),
+                        workspace_id=entry.get("workspace_id"),
+                        project_version=entry.get("project_version"),
                     )
+                    exception_memory = compiled.get("exception_memory", "").strip()
+                    if exception_memory:
+                        self.l2.store_exception(
+                            content=exception_memory,
+                            exception_for=topic,
+                            tags=[topic],
+                            source_rule_id=rule_id,
+                            scope=scope,
+                            mode_hints=mode_hints,
+                            risk_level=self._risk_level(metadata),
+                            stress_state=self._stress_state(metadata, content),
+                            task_id=entry.get("task_id"),
+                            workspace_id=entry.get("workspace_id"),
+                            project_version=entry.get("project_version"),
+                        )
 
                 self.l1.mark_encoded(entry["timestamp"])
                 self._log.append(f"Compiled rule: {identity_rule[:120]}")
@@ -291,6 +328,36 @@ class Hippocampus:
 
         self._log.append("----- sleep consolidation finished -----")
         return stats
+
+    def _mode_hints(self, metadata: Dict[str, Any], content: str) -> List[str]:
+        lowered = content.lower()
+        hints = set()
+        topic = str(metadata.get("topic", "")).lower()
+        if any(token in lowered for token in ["error", "failed", "panic", "traceback", "exception"]):
+            hints.add("debug")
+        if any(token in lowered for token in ["implement", "write", "create", "build feature"]):
+            hints.add("implement")
+        if any(token in lowered for token in ["refactor", "cleanup", "rename", "extract"]):
+            hints.add("refactor")
+        if any(token in lowered for token in ["deploy", "release", "production", "rollback", "migration"]):
+            hints.add("deploy")
+        if topic in {"git", "dependency", "build"}:
+            hints.update({"debug", "deploy"})
+        return sorted(hints or {"implement"})
+
+    def _risk_level(self, metadata: Dict[str, Any]) -> str:
+        importance = int(metadata.get("importance_score", 5))
+        if importance >= 8:
+            return "high"
+        if importance >= 5:
+            return "medium"
+        return "low"
+
+    def _stress_state(self, metadata: Dict[str, Any], content: str) -> str:
+        lowered = content.lower()
+        if any(token in lowered for token in ["failed", "panic", "critical", "error", "exception"]):
+            return "failure"
+        return metadata.get("user_state", "normal") or "normal"
 
     async def dream(self) -> Dict[str, int]:
         self._log.append("----- dream cycle started -----")

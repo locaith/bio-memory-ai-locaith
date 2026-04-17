@@ -121,6 +121,9 @@ async def chat(request: Request):
     workspace_id = data.get("workspace_id")
     project_version = data.get("project_version")
     source_refs = data.get("source_refs")
+    mode = data.get("mode", "implement")
+    stress_state = data.get("stress_state", "normal")
+    risk_level = data.get("risk_level", "medium")
     if not message:
         return {"error": "Empty message"}
 
@@ -128,12 +131,22 @@ async def chat(request: Request):
     l1_context = l1.build_context_string(n=5)
     identity_prompt = persona.get_identity_prompt()
 
+    retrieval_state = {
+        "mode": mode,
+        "stress_state": stress_state,
+        "risk_level": risk_level,
+        "task_id": task_id,
+        "workspace_id": workspace_id,
+        "project_version": project_version,
+        "prefer_exception": mode in {"debug", "deploy"} or stress_state == "failure" or risk_level == "high",
+    }
+
     l2_context = ""
-    if intent.value in ("knowledge", "recall"):
-        l2_results = l2.search(message, top_k=5)
+    if intent.value in ("knowledge", "recall", "task"):
+        l2_results = l2.search(message, top_k=5, retrieval_state=retrieval_state)
         if l2_results:
             l2_context = "\nRelevant long-term memory:\n" + "\n".join(
-                f"- {item['content']} (score={item['score']:.3f})"
+                f"- [{item['memory_type']}/{item['scope']}] {item['content']} (score={item['score']:.3f})"
                 for item in l2_results
             )
 
@@ -173,6 +186,9 @@ async def chat(request: Request):
             "task_id": task_id,
             "workspace_id": workspace_id,
             "project_version": project_version,
+            "mode": mode,
+            "stress_state": stress_state,
+            "risk_level": risk_level,
         },
     )
 
@@ -358,6 +374,25 @@ def get_audit(limit: int = 50, event_type: Optional[str] = None):
 @app.get("/api/replay")
 def replay_memory(since: float = 0.0, until: Optional[float] = None):
     return {"events": audit_log.replay(since=since, until=until)}
+
+
+@app.post("/api/retrieve")
+async def retrieve(request: Request):
+    data = await request.json()
+    query = data.get("query", "").strip()
+    if not query:
+        return {"error": "Empty query"}
+    retrieval_state = {
+        "mode": data.get("mode", "implement"),
+        "stress_state": data.get("stress_state", "normal"),
+        "risk_level": data.get("risk_level", "medium"),
+        "task_id": data.get("task_id"),
+        "workspace_id": data.get("workspace_id"),
+        "project_version": data.get("project_version"),
+        "prefer_exception": bool(data.get("prefer_exception", False)),
+    }
+    results = l2.search(query, top_k=int(data.get("top_k", 5)), retrieval_state=retrieval_state)
+    return {"query": query, "retrieval_state": retrieval_state, "results": results}
 
 
 @app.post("/api/reset")

@@ -31,6 +31,16 @@ def main():
                     "audit and replay compatibility",
                 ],
             },
+            {
+                "name": "openclaw-mode-benchmark",
+                "goal": "verify state-dependent retrieval across debug, implement, refactor, and deploy modes",
+                "checks": [
+                    "exception memory preference in debug",
+                    "procedural guidance preference in implement",
+                    "semantic guidance preference in refactor",
+                    "exception memory preference in deploy",
+                ],
+            },
         ],
         "status": "generated",
     }
@@ -47,11 +57,13 @@ def main():
   - rule promotion and reinforcement
   - belief graph linkage
   - audit and replay compatibility
+  - state-dependent retrieval across agent modes
 
 ## Included scenarios
 
 1. openclaw-mini-benchmark
 2. openclaw-long-session-benchmark
+3. openclaw-mode-benchmark
 """
 
     (report_dir / "openclaw-phase5-benchmark.json").write_text(

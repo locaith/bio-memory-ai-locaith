@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from bio_agent_os import EpisodeStore, GarbageCollector, Hippocampus, L1WorkingMemory, Persona
+from bio_agent_os import EpisodeStore, GarbageCollector, Hippocampus, L1WorkingMemory, L2SemanticMemory, Persona
 from bio_agent_os.adapters.openclaw_adapter import OpenClawBioAdapter
 
 
@@ -27,6 +27,7 @@ class FakeEngine:
                 "episodic_summary": "OpenClaw saw a risky git action.",
                 "semantic_memory": "Force pushing on protected branches is risky.",
                 "procedural_memory": "Check the branch policy before pushing.",
+                "exception_memory": "Exception: emergency hotfix branches may allow force push only with explicit approval.",
                 "identity_rule": "Never use git push -f on the frontend branch.",
                 "confidence": 0.82,
                 "scope": "project",
@@ -94,3 +95,67 @@ async def test_openclaw_long_session_benchmark():
     assert len(rules) >= 1
     strongest = max(rules.values(), key=lambda rule: rule["support_count"])
     assert strongest["support_count"] >= 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("mode", "query", "expected_memory_type"),
+    [
+        ("debug", "build failed after dependency change", "exception"),
+        ("implement", "how should I change the feature safely", "procedural"),
+        ("refactor", "what architecture rule matters during cleanup", "semantic"),
+        ("deploy", "what should I avoid during release", "exception"),
+    ],
+)
+async def test_openclaw_stateful_retrieval_modes(mode, query, expected_memory_type):
+    for file_path in (
+        Path("test_data/mode-benchmark-agent_core_identity.json"),
+        Path("test_data/mode-benchmark-agent_episodes.json"),
+        Path("test_data/mode-benchmark-agent_l1_memory.json"),
+    ):
+        if file_path.exists():
+            file_path.unlink()
+
+    engine = FakeEngine()
+    l1 = L1WorkingMemory(agent_name="mode-benchmark-agent", storage_dir="test_data")
+    l1.clear()
+    l2 = L2SemanticMemory(agent_name="mode-benchmark-agent", storage_dir="test_data")
+    persona = Persona(name="mode-benchmark-agent", storage_dir="test_data")
+    episodes = EpisodeStore(agent_name="mode-benchmark-agent", storage_dir="test_data")
+    hippo = Hippocampus(engine=engine, l1=l1, l2=l2, persona=persona, episodes=episodes)
+
+    observations = {
+        "debug": "build failed with dependency mismatch and urgent production issue",
+        "implement": "implement a safer branch policy workflow for contributors",
+        "refactor": "refactor the deployment helpers while preserving dependency rules",
+        "deploy": "deploy release candidate and avoid risky branch operations in production",
+    }
+    await hippo.label_and_store(
+        observations[mode],
+        source="openclaw",
+        task_id=f"task-{mode}",
+        workspace_id="workspace-a",
+        project_version="v2.2.0",
+        source_refs=[{"kind": "terminal", "ref": mode}],
+    )
+    l1.increment_nights()
+    l1.increment_nights()
+    l1.increment_nights()
+    await hippo.consolidate()
+
+    results = hippo.l2.search(
+        query,
+        top_k=3,
+        retrieval_state={
+            "mode": mode,
+            "stress_state": "failure" if mode in {"debug", "deploy"} else "normal",
+            "risk_level": "high" if mode in {"debug", "deploy"} else "medium",
+            "task_id": f"task-{mode}",
+            "workspace_id": "workspace-a",
+            "project_version": "v2.2.0",
+            "prefer_exception": mode in {"debug", "deploy"},
+        },
+    )
+
+    assert results
+    assert results[0]["memory_type"] == expected_memory_type

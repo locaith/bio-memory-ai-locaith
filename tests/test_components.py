@@ -34,6 +34,42 @@ def test_l2_semantic_memory():
     assert results[0]["importance"] == 8.0
 
 
+def test_state_dependent_retrieval_prefers_exception_memory_for_debug():
+    l2 = L2SemanticMemory(agent_name="stateful_agent", storage_dir="test_data")
+    l2.store(
+        "Check the lockfile and plugin major versions before changing code.",
+        importance=7.0,
+        tags=["dependency", "procedural"],
+        memory_type="procedural",
+        mode_hints=["implement"],
+        risk_level="medium",
+        stress_state="normal",
+        workspace_id="erp-frontend",
+    )
+    l2.store_exception(
+        "Exception: tenant X deployment breaks if vite is upgraded without pinning the plugin first.",
+        exception_for="dependency",
+        importance=9.0,
+        tags=["dependency"],
+        mode_hints=["debug", "deploy"],
+        workspace_id="erp-frontend",
+    )
+
+    results = l2.search(
+        "vite plugin dependency issue",
+        top_k=2,
+        retrieval_state={
+            "mode": "debug",
+            "stress_state": "failure",
+            "risk_level": "high",
+            "workspace_id": "erp-frontend",
+            "prefer_exception": True,
+        },
+    )
+    assert results[0]["memory_type"] == "exception"
+    assert results[0]["exception_for"] == "dependency"
+
+
 def test_persona_rule_lifecycle():
     os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
     storage_dir = "test_data"

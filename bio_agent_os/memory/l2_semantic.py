@@ -1,43 +1,40 @@
 """
-Long-term semantic memory with time decay.
+Long-term semantic memory with time decay and state-dependent retrieval.
 """
 
-import os
 import math
+import os
 import time
 import uuid
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     from qdrant_client import QdrantClient
-    from qdrant_client.models import Distance, VectorParams, PointStruct
+    from qdrant_client.models import Distance, PointStruct, VectorParams
+
     QDRANT_AVAILABLE = True
 except ImportError:
     QDRANT_AVAILABLE = False
 
 
-class SemanticEntry:
-    def __init__(self, content: str, importance: float = 5.0, tags: List[str] = None):
-        self.content = content
-        self.importance = importance
-        self.tags = tags or []
-        self.timestamp = time.time()
-
-
 class L2SemanticMemory:
     """
-    Enterprise-scale L2 Semantic memory via Qdrant Client.
-    Will fall back to in-memory Qdrant instance if no URL is provided.
+    Long-term memory store with support for:
+    - semantic memory
+    - procedural memory
+    - episodic summaries
+    - exception memory
+    - state-dependent retrieval for different agent modes
     """
 
     def __init__(self, agent_name: str = "Bio-AI", storage_dir: str = "data"):
         self.agent_name = agent_name
         self.collection_name = f"{agent_name}_l2"
         self.decay_lambda = 0.05
-        
+
         url = os.getenv("QDRANT_URL", None)
         api_key = os.getenv("QDRANT_API_KEY", None)
-        
+
         if QDRANT_AVAILABLE:
             if url:
                 self.client = QdrantClient(url=url, api_key=api_key)
@@ -47,8 +44,8 @@ class L2SemanticMemory:
             self._fallback = False
         else:
             self._fallback = True
-            self._entries = []
-            
+            self._entries: List[Dict[str, Any]] = []
+
     def _ensure_collection(self):
         if not self.client.collection_exists(self.collection_name):
             self.client.create_collection(
@@ -56,88 +53,257 @@ class L2SemanticMemory:
                 vectors_config=VectorParams(size=384, distance=Distance.COSINE),
             )
 
-    # Note: In a production ERP, you would embed the text via OpenAI or BGE models.
-    # We will use mock randomly generated vectors for this pipeline demo.
     def _mock_embed(self, text: str) -> List[float]:
         import random
-        # deterministic mock based on length for simple testing without heavy ML packages
-        random.seed(len(text)) 
+
+        random.seed(len(text))
         return [random.uniform(-1, 1) for _ in range(384)]
 
-    def store(self, content: str, importance: float = 5.0, tags: List[str] = None, source_rule_id: Optional[str] = None):
+    def _normalize_mode_hints(self, mode_hints: Optional[List[str]]) -> List[str]:
+        return sorted({str(mode).strip().lower() for mode in (mode_hints or []) if str(mode).strip()})
+
+    def _build_payload(
+        self,
+        content: str,
+        importance: float,
+        tags: Optional[List[str]],
+        source_rule_id: Optional[str],
+        memory_type: str,
+        scope: str,
+        mode_hints: Optional[List[str]],
+        risk_level: str,
+        stress_state: str,
+        exception_for: Optional[str],
+        task_id: Optional[str],
+        workspace_id: Optional[str],
+        project_version: Optional[str],
+    ) -> Dict[str, Any]:
+        return {
+            "entry_id": str(uuid.uuid4()),
+            "content": content,
+            "importance": importance,
+            "tags": tags or [],
+            "source_rule_id": source_rule_id,
+            "timestamp": time.time(),
+            "memory_type": memory_type,
+            "scope": scope,
+            "mode_hints": self._normalize_mode_hints(mode_hints),
+            "risk_level": risk_level,
+            "stress_state": stress_state,
+            "exception_for": exception_for,
+            "task_id": task_id,
+            "workspace_id": workspace_id,
+            "project_version": project_version,
+        }
+
+    def store(
+        self,
+        content: str,
+        importance: float = 5.0,
+        tags: Optional[List[str]] = None,
+        source_rule_id: Optional[str] = None,
+        memory_type: str = "semantic",
+        scope: str = "project",
+        mode_hints: Optional[List[str]] = None,
+        risk_level: str = "medium",
+        stress_state: str = "normal",
+        exception_for: Optional[str] = None,
+        task_id: Optional[str] = None,
+        workspace_id: Optional[str] = None,
+        project_version: Optional[str] = None,
+    ):
+        payload = self._build_payload(
+            content=content,
+            importance=importance,
+            tags=tags,
+            source_rule_id=source_rule_id,
+            memory_type=memory_type,
+            scope=scope,
+            mode_hints=mode_hints,
+            risk_level=risk_level,
+            stress_state=stress_state,
+            exception_for=exception_for,
+            task_id=task_id,
+            workspace_id=workspace_id,
+            project_version=project_version,
+        )
+
         if self._fallback:
-            self._entries.append(SemanticEntry(content, importance, tags))
+            self._entries.append(payload)
             return
 
         point = PointStruct(
-            id=str(uuid.uuid4()),
+            id=payload["entry_id"],
             vector=self._mock_embed(content),
-            payload={
-                "content": content,
-                "importance": importance,
-                "tags": tags or [],
-                "source_rule_id": source_rule_id,
-                "timestamp": time.time()
-            }
+            payload=payload,
         )
-        self.client.upsert(
-            collection_name=self.collection_name,
-            points=[point]
+        self.client.upsert(collection_name=self.collection_name, points=[point])
+
+    def store_exception(
+        self,
+        content: str,
+        exception_for: str,
+        importance: float = 8.0,
+        tags: Optional[List[str]] = None,
+        source_rule_id: Optional[str] = None,
+        scope: str = "project",
+        mode_hints: Optional[List[str]] = None,
+        risk_level: str = "high",
+        stress_state: str = "failure",
+        task_id: Optional[str] = None,
+        workspace_id: Optional[str] = None,
+        project_version: Optional[str] = None,
+    ):
+        self.store(
+            content=content,
+            importance=importance,
+            tags=(tags or []) + ["exception"],
+            source_rule_id=source_rule_id,
+            memory_type="exception",
+            scope=scope,
+            mode_hints=mode_hints,
+            risk_level=risk_level,
+            stress_state=stress_state,
+            exception_for=exception_for,
+            task_id=task_id,
+            workspace_id=workspace_id,
+            project_version=project_version,
         )
 
-    def search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    def _state_boost(self, payload: Dict[str, Any], retrieval_state: Optional[Dict[str, Any]]) -> float:
+        if not retrieval_state:
+            return 1.0
+
+        boost = 1.0
+        mode = str(retrieval_state.get("mode", "")).strip().lower()
+        risk_level = str(retrieval_state.get("risk_level", "")).strip().lower()
+        stress_state = str(retrieval_state.get("stress_state", "")).strip().lower()
+        task_id = retrieval_state.get("task_id")
+        workspace_id = retrieval_state.get("workspace_id")
+        project_version = retrieval_state.get("project_version")
+        prefer_exception = bool(retrieval_state.get("prefer_exception", False))
+
+        if mode and mode in payload.get("mode_hints", []):
+            boost += 0.45
+        if task_id and payload.get("task_id") == task_id:
+            boost += 0.25
+        if workspace_id and payload.get("workspace_id") == workspace_id:
+            boost += 0.2
+        if project_version and payload.get("project_version") == project_version:
+            boost += 0.15
+        if risk_level and payload.get("risk_level") == risk_level:
+            boost += 0.2
+        if stress_state and payload.get("stress_state") == stress_state:
+            boost += 0.15
+        if prefer_exception and payload.get("memory_type") == "exception":
+            boost += 0.6
+
+        if mode == "debug":
+            if payload.get("memory_type") in {"exception", "procedural"}:
+                boost += 0.25
+        elif mode == "implement":
+            if payload.get("memory_type") in {"procedural", "semantic"}:
+                boost += 0.25
+        elif mode == "refactor":
+            if payload.get("memory_type") == "semantic":
+                boost += 0.32
+            elif payload.get("memory_type") == "procedural":
+                boost += 0.12
+            elif payload.get("memory_type") == "exception" and prefer_exception:
+                boost += 0.12
+        elif mode == "deploy":
+            if payload.get("memory_type") in {"exception", "procedural"}:
+                boost += 0.3
+
+        return boost
+
+    def _rank_entries(
+        self,
+        entries: List[Dict[str, Any]],
+        query: str,
+        top_k: int,
+        retrieval_state: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        results = []
+        now = time.time()
+        query_terms = {term for term in query.lower().split() if term}
+        for payload in entries:
+            importance = float(payload["importance"])
+            timestamp = float(payload["timestamp"])
+            days_elapsed = (now - timestamp) / 86400
+            decay = math.exp(-self.decay_lambda * days_elapsed)
+
+            lexical_score = 0.6
+            content_terms = set(str(payload["content"]).lower().split())
+            tag_terms = {str(tag).lower() for tag in payload.get("tags", [])}
+            overlap = len(query_terms & (content_terms | tag_terms))
+            if query_terms:
+                lexical_score += min(0.4, overlap / max(len(query_terms), 1))
+
+            state_boost = self._state_boost(payload, retrieval_state)
+            final_score = lexical_score * importance * decay * state_boost
+
+            results.append(
+                {
+                    "content": payload["content"],
+                    "score": final_score,
+                    "importance": importance,
+                    "tags": payload.get("tags", []),
+                    "memory_type": payload.get("memory_type", "semantic"),
+                    "scope": payload.get("scope", "project"),
+                    "mode_hints": payload.get("mode_hints", []),
+                    "exception_for": payload.get("exception_for"),
+                    "risk_level": payload.get("risk_level", "medium"),
+                    "stress_state": payload.get("stress_state", "normal"),
+                    "task_id": payload.get("task_id"),
+                    "workspace_id": payload.get("workspace_id"),
+                    "project_version": payload.get("project_version"),
+                }
+            )
+
+        results.sort(key=lambda item: item["score"], reverse=True)
+        return results[:top_k]
+
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        retrieval_state: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
         if self._fallback:
-            return [{"content": e.content, "score": 1.0, "importance": e.importance} for e in self._entries[:top_k]]
-            
+            return self._rank_entries(self._entries, query=query, top_k=top_k, retrieval_state=retrieval_state)
+
         points_data = self.client.query_points(
             collection_name=self.collection_name,
             query=self._mock_embed(query),
-            limit=top_k * 2 # get more to decay
+            limit=top_k * 3,
         )
-        points = points_data.points
-
-        
-        results = []
-        now = time.time()
-        for hit in points:
-            payload = hit.payload
-            importance = payload["importance"]
-            timestamp = payload["timestamp"]
-            
-            # Apply Time Decay W(t)
-            days_elapsed = (now - timestamp) / 86400
-            decay = math.exp(-self.decay_lambda * days_elapsed)
-            final_score = hit.score * importance * decay
-            
-            results.append({
-                "content": payload["content"],
-                "score": final_score,
-                "importance": importance,
-                "tags": payload["tags"]
-            })
-            
-        results.sort(key=lambda x: x["score"], reverse=True)
-        return results[:top_k]
+        entries = [dict(hit.payload) for hit in points_data.points]
+        return self._rank_entries(entries, query=query, top_k=top_k, retrieval_state=retrieval_state)
 
     def prune_decayed(self, threshold: float = 1.0) -> int:
         if self._fallback:
-            return 0
-            
-        # In a real Qdrant integration, scroll through records, compute decay, and delete. 
-        # Simulated here for framework structural integrity.
+            before = len(self._entries)
+            now = time.time()
+            self._entries = [
+                entry for entry in self._entries
+                if entry["importance"] * math.exp(-self.decay_lambda * ((now - entry["timestamp"]) / 86400)) >= threshold
+            ]
+            return before - len(self._entries)
+
         points, _ = self.client.scroll(collection_name=self.collection_name, limit=1000)
         to_delete = []
         now = time.time()
-        
-        for p in points:
-            days_elapsed = (now - p.payload["timestamp"]) / 86400
-            decay_score = p.payload["importance"] * math.exp(-self.decay_lambda * days_elapsed)
+
+        for point in points:
+            days_elapsed = (now - point.payload["timestamp"]) / 86400
+            decay_score = point.payload["importance"] * math.exp(-self.decay_lambda * days_elapsed)
             if decay_score < threshold:
-                to_delete.append(p.id)
-                
+                to_delete.append(point.id)
+
         if to_delete:
             self.client.delete(collection_name=self.collection_name, points_selector=to_delete)
-            
+
         return len(to_delete)
 
     @property
