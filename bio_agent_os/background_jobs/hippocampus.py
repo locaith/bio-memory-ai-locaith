@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.persona import Persona
+from bio_agent_os.core.reconciliation import ContradictionResolver
 from bio_agent_os.memory.episodes import EpisodeStore
 from bio_agent_os.memory.l1_working import L1WorkingMemory
 from bio_agent_os.memory.l2_semantic import L2SemanticMemory
@@ -43,6 +44,7 @@ class Hippocampus:
         self.persona = persona
         self.l2 = l2
         self.episodes = episodes
+        self.reconciler = ContradictionResolver(persona=persona)
         self._log: List[str] = []
 
     @property
@@ -146,6 +148,7 @@ class Hippocampus:
                     confidence=confidence,
                     evidence_episode_ids=[episode_id] if episode_id else [],
                 )
+                reconcile_stats = self.reconciler.reconcile(rule_id)
 
                 if self.l2:
                     topic = metadata.get("topic", "general")
@@ -170,7 +173,14 @@ class Hippocampus:
 
                 self.l1.mark_encoded(entry["timestamp"])
                 self._log.append(f"Compiled rule: {identity_rule[:120]}")
+                if reconcile_stats["deprecated"] or reconcile_stats["challenged"]:
+                    self._log.append(
+                        "Reconciled rule "
+                        f"(deprecated={reconcile_stats['deprecated']}, "
+                        f"challenged={reconcile_stats['challenged']})."
+                    )
                 stats["encoded"] += 1
+                stats["challenged"] += reconcile_stats["challenged"]
             except Exception as exc:
                 self._log.append(f"Compile failed: {exc}")
                 stats["failed"] += 1

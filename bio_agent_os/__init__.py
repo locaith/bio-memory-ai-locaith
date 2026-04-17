@@ -10,6 +10,7 @@ __author__ = "Locaith Solution Tech"
 
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.persona import Persona
+from bio_agent_os.core.reconciliation import ContradictionResolver
 from bio_agent_os.core.router import IntentRouter
 from bio_agent_os.memory.l1_working import L1WorkingMemory
 from bio_agent_os.memory.l2_semantic import L2SemanticMemory
@@ -30,4 +31,5 @@ __all__ = [
     "L2SemanticMemory",
     "LLMEngine",
     "Persona",
+    "ContradictionResolver",
 ]

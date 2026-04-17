@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from bio_agent_os import EpisodeStore, L1WorkingMemory, L2SemanticMemory, Persona
+from bio_agent_os import ContradictionResolver, EpisodeStore, L1WorkingMemory, L2SemanticMemory, Persona
 
 
 def test_l1_memory():
@@ -64,3 +64,34 @@ def test_episode_store():
     )
     assert record["episode_id"]
     assert episodes.get(record["episode_id"]) is not None
+
+
+def test_contradiction_resolver_deprecates_weaker_rule():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    storage_dir = "test_data"
+    identity_file = Path(storage_dir) / "test_agent_reconcile_core_identity.json"
+    if identity_file.exists():
+        identity_file.unlink()
+
+    persona = Persona(name="test_agent_reconcile", storage_dir=storage_dir)
+    old_rule_id = persona.add_rule(
+        "Always use git push -f on the frontend branch.",
+        scope="project",
+        confidence=0.55,
+        evidence_episode_ids=["old"],
+    )
+    new_rule_id = persona.add_rule(
+        "Never use git push -f on the frontend branch.",
+        scope="project",
+        confidence=0.85,
+        evidence_episode_ids=["new"],
+    )
+
+    resolver = ContradictionResolver(persona)
+    assert old_rule_id in resolver.find_conflicts(new_rule_id)
+    stats = resolver.reconcile(new_rule_id)
+    rules = persona.get_rule_records()
+
+    assert stats["deprecated"] == 1
+    assert rules[old_rule_id]["state"] == "deprecated"
+    assert rules[old_rule_id]["superseded_by"] == new_rule_id
