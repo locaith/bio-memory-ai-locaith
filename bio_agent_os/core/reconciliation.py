@@ -84,6 +84,22 @@ class ContradictionResolver:
         overlap = len(left_core & right_core) / max(1, min(len(left_core), len(right_core)))
         return overlap >= 0.6
 
+    def fallback_action(self, rule: Dict, conflicting_rules: List[Dict]) -> Dict[str, object]:
+        is_destructive = any(
+            token in rule["text"].lower()
+            for token in ["delete", "drop", "force push", "push -f", "migration", "production", "auth", "security"]
+        )
+        return {
+            "rule_id": rule["id"],
+            "action": "defer_to_safe_mode",
+            "destructive_risk": is_destructive,
+            "conflicts_with": [item["id"] for item in conflicting_rules],
+            "instruction": (
+                "Do not treat this challenged belief as a hard rule. Prefer procedural memory and explicit exception memory. "
+                "If the action is destructive, irreversible, or production-facing, require explicit approval."
+            ),
+        }
+
     def find_conflicts(self, rule_id: str) -> List[str]:
         rules = self.persona.get_rule_records()
         target = rules.get(rule_id)
@@ -104,10 +120,10 @@ class ContradictionResolver:
         rules = self.persona.get_rule_records()
         target = rules.get(rule_id)
         if not target:
-            return {"challenged": 0, "deprecated": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "approval_request_ids": []}
+            return {"challenged": 0, "deprecated": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "approval_request_ids": [], "fallback_actions": []}
 
         conflicts = self.find_conflicts(rule_id)
-        stats = {"challenged": 0, "deprecated": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "approval_request_ids": []}
+        stats = {"challenged": 0, "deprecated": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "approval_request_ids": [], "fallback_actions": []}
 
         for other_id in conflicts:
             other = self.persona.get_rule_records()[other_id]
@@ -139,6 +155,7 @@ class ContradictionResolver:
                 if self.persona.challenge_rule(rule_id, reason=f"conflicts_with:{other_id}"):
                     stats["challenged"] += 1
                     stats["challenged_ids"].append(rule_id)
+                    stats.setdefault("fallback_actions", []).append(self.fallback_action(target, [other]))
                     target = self.persona.get_rule_records()[rule_id]
 
         return stats

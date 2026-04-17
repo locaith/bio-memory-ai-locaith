@@ -2,6 +2,7 @@
 Hybrid retrieval, safety guards, and lineage view service.
 """
 
+import re
 from typing import Dict, List, Optional
 
 from bio_agent_os.core.persona import Persona
@@ -23,6 +24,10 @@ class RetrievalService:
         self.episodes = episodes
         self.persona = persona
 
+    def _tokenize(self, text: str) -> set[str]:
+        cleaned = re.sub(r"[^a-z0-9\u00c0-\u024f\s]", " ", text.lower())
+        return {token for token in cleaned.split() if token}
+
     def build_retrieval_state(self, data: Dict[str, object]) -> Dict[str, object]:
         mode = str(data.get("mode", "implement"))
         stress_state = str(data.get("stress_state", "normal"))
@@ -41,6 +46,7 @@ class RetrievalService:
 
     def build_safety_guard(
         self,
+        query: str,
         l2_results: List[Dict[str, object]],
         graph_results: List[Dict[str, object]],
     ) -> str:
@@ -54,8 +60,26 @@ class RetrievalService:
             for item in graph_results
             if item.get("state") in {"stable", "reinforced"}
         ][:3]
+        challenged_lines = [
+            f"- [{item['scope']}] {item['text']} (state=challenged, confidence={item['confidence']:.2f})"
+            for item in graph_results
+            if item.get("state") == "challenged"
+        ][:3]
+        if not challenged_lines:
+            query_terms = self._tokenize(query)
+            fallback_candidates = []
+            for rule in self.persona.get_rule_records().values():
+                if rule.get("state") != "challenged":
+                    continue
+                text_terms = self._tokenize(str(rule.get("text", "")))
+                if len(query_terms & text_terms) >= 1:
+                    fallback_candidates.append(rule)
+            challenged_lines = [
+                f"- [{item['scope']}] {item['text']} (state=challenged, confidence={item['confidence']:.2f})"
+                for item in fallback_candidates[:3]
+            ]
 
-        if not exception_lines and not belief_lines:
+        if not exception_lines and not belief_lines and not challenged_lines:
             return ""
 
         lines = ["Safety guardrails for this request:"]
@@ -65,6 +89,13 @@ class RetrievalService:
         if belief_lines:
             lines.append("Belief constraints:")
             lines.extend(belief_lines)
+        if challenged_lines:
+            lines.append("Challenged beliefs to treat as uncertain:")
+            lines.extend(challenged_lines)
+            lines.append("Fallback action:")
+            lines.append("- Do not enforce challenged beliefs as hard constraints.")
+            lines.append("- Prefer procedural memory and explicit exception memory.")
+            lines.append("- Require explicit approval before destructive, irreversible, or production-facing actions.")
         return "\n".join(lines)
 
     def _graph_provenance_score(self, rule_id: str, retrieval_state: Dict[str, object]) -> float:
@@ -147,7 +178,7 @@ class RetrievalService:
         graph_results = self.graph.retrieve_beliefs(query, top_k=top_k, retrieval_state=retrieval_state)
         resolved = self._resolve_graph_l2_conflicts(l2_results, graph_results, retrieval_state)
         graph_results = resolved["graph_results"]
-        safety_guard = self.build_safety_guard(l2_results, graph_results)
+        safety_guard = self.build_safety_guard(query, l2_results, graph_results)
         return {
             "l2_results": l2_results,
             "graph_results": graph_results,

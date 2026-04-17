@@ -64,6 +64,47 @@ class L1WorkingMemory:
         self._migrate_legacy_json()
         self.load()
 
+    def _homeostasis_state(self) -> Dict[str, float]:
+        recent = self._entries[-12:]
+        if not recent:
+            return {
+                "stress_level": 0.0,
+                "global_gain": 1.0,
+                "failure_streak": 0.0,
+                "task_weight": 0.30,
+                "novelty_weight": 0.20,
+                "recency_weight": 0.15,
+                "severity_weight": 0.15,
+                "unresolved_weight": 0.20,
+            }
+
+        unresolved_ratio = sum(float(entry.get("unresolved_status", 0.0)) for entry in recent) / max(len(recent), 1)
+        severity_avg = sum(float(entry.get("severity", 0.5)) for entry in recent) / max(len(recent), 1)
+        raw_failure_streak = 0
+        for entry in reversed(recent):
+            if float(entry.get("unresolved_status", 0.0)) >= 0.5 or float(entry.get("severity", 0.0)) >= 0.75:
+                raw_failure_streak += 1
+            else:
+                break
+        failure_streak = min(1.0, raw_failure_streak / 5.0)
+        stress_level = self._clamp((0.45 * unresolved_ratio) + (0.35 * severity_avg) + (0.20 * failure_streak))
+        severity_weight = 0.15 + (0.20 * stress_level)
+        unresolved_weight = 0.20 + (0.10 * stress_level)
+        recency_weight = max(0.05, 0.15 - (0.05 * stress_level))
+        novelty_weight = max(0.10, 0.20 - (0.05 * stress_level))
+        task_weight = max(0.15, 1.0 - (severity_weight + unresolved_weight + recency_weight + novelty_weight))
+        total = task_weight + novelty_weight + unresolved_weight + recency_weight + severity_weight
+        return {
+            "stress_level": stress_level,
+            "global_gain": round(1.0 + stress_level, 3),
+            "failure_streak": float(raw_failure_streak),
+            "task_weight": task_weight / total,
+            "novelty_weight": novelty_weight / total,
+            "unresolved_weight": unresolved_weight / total,
+            "recency_weight": recency_weight / total,
+            "severity_weight": severity_weight / total,
+        }
+
     def _ensure_table(self):
         self._store.execute(
             f"""
@@ -186,13 +227,15 @@ class L1WorkingMemory:
         return self._clamp(0.9 - (similarities * 0.2))
 
     def _compute_attention(self, entry: Dict[str, Any]) -> float:
-        return self._clamp(
-            (0.30 * entry["task_relevance"])
-            + (0.20 * entry["novelty"])
-            + (0.20 * entry["unresolved_status"])
-            + (0.15 * entry["recency_score"])
-            + (0.15 * entry["severity"])
+        state = self._homeostasis_state()
+        weighted = (
+            (state["task_weight"] * entry["task_relevance"])
+            + (state["novelty_weight"] * entry["novelty"])
+            + (state["unresolved_weight"] * entry["unresolved_status"])
+            + (state["recency_weight"] * entry["recency_score"])
+            + (state["severity_weight"] * entry["severity"])
         )
+        return self._clamp(weighted * state["global_gain"])
 
     def _refresh_attention(self):
         now = time.time()
@@ -356,11 +399,24 @@ class L1WorkingMemory:
         focus_entries = self.get_focus_set(limit=n)
         if not focus_entries:
             return "(No recent working-memory events.)"
+        state = self._homeostasis_state()
         return "\n".join(
-            f"- [{entry['source']}] {entry['content']} "
+            [
+                (
+                    f"(attention-homeostasis: stress={state['stress_level']:.2f}, "
+                    f"gain={state['global_gain']:.2f}, failure_streak={state['failure_streak']:.0f})"
+                )
+            ]
+            + [
+                f"- [{entry['source']}] {entry['content']} "
             f"(attention={entry['attention_score']:.2f}, unresolved={entry['unresolved_status']:.2f})"
             for entry in focus_entries
+            ]
         )
+
+    def get_attention_state(self) -> Dict[str, float]:
+        self.load()
+        return self._homeostasis_state()
 
     def save(self):
         rows = [

@@ -7,6 +7,8 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
+from bio_agent_os.core.sqlite_store import SQLiteStore
+
 
 class KnowledgeGraph:
     """
@@ -20,11 +22,63 @@ class KnowledgeGraph:
         self.storage_dir = storage_dir
         self._nodes: Dict[str, Dict[str, Any]] = {}
         self._edges: List[Dict[str, Any]] = []
-        self._filepath = os.path.join(storage_dir, f"{agent_name}_knowledge_graph.json")
+        self._legacy_filepath = os.path.join(storage_dir, f"{agent_name}_knowledge_graph.json")
+        self._store = SQLiteStore(storage_dir=storage_dir)
+        base = self._store.sanitize_identifier(agent_name)
+        self._nodes_table = f"{base}_kg_nodes"
+        self._edges_table = f"{base}_kg_edges"
+        self._ensure_tables()
+        self._migrate_legacy_json()
         self.load()
+
+    def _ensure_tables(self):
+        self._store.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {self._nodes_table} (
+                node_key TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                type TEXT NOT NULL,
+                properties_json TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            )
+            """
+        )
+        self._store.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {self._edges_table} (
+                edge_key TEXT PRIMARY KEY,
+                source TEXT NOT NULL,
+                relation TEXT NOT NULL,
+                target TEXT NOT NULL,
+                weight REAL NOT NULL,
+                properties_json TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            )
+            """
+        )
+
+    def _migrate_legacy_json(self):
+        if not os.path.exists(self._legacy_filepath):
+            return
+        existing = self._store.fetchone(f"SELECT node_key FROM {self._nodes_table} LIMIT 1")
+        if existing:
+            return
+        try:
+            with open(self._legacy_filepath, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (json.JSONDecodeError, OSError):
+            return
+        self._nodes = data.get("nodes", {})
+        self._edges = data.get("edges", [])
+        self.save()
 
     def _node_key(self, name: str) -> str:
         return name.lower().strip()
+
+    def _edge_key(self, source: str, relation: str, target: str) -> str:
+        return f"{self._node_key(source)}::{relation}::{self._node_key(target)}"
 
     def add_entity(
         self,
@@ -32,6 +86,7 @@ class KnowledgeGraph:
         entity_type: str = "concept",
         properties: Optional[Dict[str, Any]] = None,
     ) -> bool:
+        self.load()
         key = self._node_key(name)
         if key in self._nodes:
             if properties:
@@ -51,9 +106,11 @@ class KnowledgeGraph:
         return True
 
     def get_entity(self, name: str) -> Optional[Dict[str, Any]]:
+        self.load()
         return self._nodes.get(self._node_key(name))
 
     def remove_entity(self, name: str) -> bool:
+        self.load()
         key = self._node_key(name)
         if key not in self._nodes:
             return False
@@ -74,6 +131,7 @@ class KnowledgeGraph:
         weight: float = 1.0,
         properties: Optional[Dict[str, Any]] = None,
     ) -> bool:
+        self.load()
         src_key = self._node_key(source)
         tgt_key = self._node_key(target)
 
@@ -155,6 +213,7 @@ class KnowledgeGraph:
         )
 
     def query_relations(self, entity_name: str) -> List[Dict[str, Any]]:
+        self.load()
         key = self._node_key(entity_name)
         return [
             edge
@@ -163,6 +222,7 @@ class KnowledgeGraph:
         ]
 
     def query_by_type(self, entity_type: str) -> List[Dict[str, Any]]:
+        self.load()
         return [node for node in self._nodes.values() if node["type"] == entity_type]
 
     def belief_summary(self) -> Dict[str, Any]:
@@ -248,6 +308,8 @@ class KnowledgeGraph:
 
             if state in {"stable", "reinforced"}:
                 score += 0.2
+            elif state == "challenged":
+                score *= 0.55
             if preferred_scope and scope == preferred_scope:
                 score += 0.15
 
@@ -272,6 +334,11 @@ class KnowledgeGraph:
                     "score": score,
                     "evidence_count": len(evidence_edges),
                     "conflict_count": len(conflict_edges),
+                    "fallback_action": (
+                        "Treat as non-authoritative. Prefer procedural/exception memory and require explicit approval before destructive actions."
+                        if state == "challenged"
+                        else ""
+                    ),
                 }
             )
 
@@ -279,6 +346,7 @@ class KnowledgeGraph:
         return results[:top_k]
 
     def find_path(self, source: str, target: str, max_depth: int = 4) -> List[str]:
+        self.load()
         src = self._node_key(source)
         tgt = self._node_key(target)
         if src not in self._nodes or tgt not in self._nodes:
@@ -314,27 +382,77 @@ class KnowledgeGraph:
 
     @property
     def node_count(self) -> int:
-        return len(self._nodes)
+        row = self._store.fetchone(f"SELECT COUNT(*) AS total FROM {self._nodes_table}")
+        return int(row["total"]) if row else 0
 
     @property
     def edge_count(self) -> int:
-        return len(self._edges)
+        row = self._store.fetchone(f"SELECT COUNT(*) AS total FROM {self._edges_table}")
+        return int(row["total"]) if row else 0
 
     def save(self):
-        os.makedirs(self.storage_dir, exist_ok=True)
-        with open(self._filepath, "w", encoding="utf-8") as handle:
-            json.dump({"nodes": self._nodes, "edges": self._edges}, handle, ensure_ascii=False, indent=2)
+        node_rows = [
+            (
+                self._node_key(key),
+                node["name"],
+                node["type"],
+                self._store.dumps_json(node.get("properties", {})),
+                float(node.get("created_at", time.time())),
+                float(node.get("updated_at", time.time())),
+            )
+            for key, node in self._nodes.items()
+        ]
+        edge_rows = [
+            (
+                self._edge_key(edge["source"], edge["relation"], edge["target"]),
+                edge["source"],
+                edge["relation"],
+                edge["target"],
+                float(edge.get("weight", 1.0)),
+                self._store.dumps_json(edge.get("properties", {})),
+                float(edge.get("created_at", time.time())),
+                float(edge.get("updated_at", time.time())),
+            )
+            for edge in self._edges
+        ]
+        self._store.execute(f"DELETE FROM {self._nodes_table}")
+        self._store.execute(f"DELETE FROM {self._edges_table}")
+        if node_rows:
+            self._store.executemany(
+                f"INSERT OR REPLACE INTO {self._nodes_table} (node_key, name, type, properties_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                node_rows,
+            )
+        if edge_rows:
+            self._store.executemany(
+                f"INSERT OR REPLACE INTO {self._edges_table} (edge_key, source, relation, target, weight, properties_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                edge_rows,
+            )
 
     def load(self):
-        if os.path.exists(self._filepath):
-            try:
-                with open(self._filepath, "r", encoding="utf-8") as handle:
-                    data = json.load(handle)
-                self._nodes = data.get("nodes", {})
-                self._edges = data.get("edges", [])
-            except (json.JSONDecodeError, OSError):
-                self._nodes = {}
-                self._edges = []
+        node_rows = self._store.fetchall(f"SELECT * FROM {self._nodes_table}")
+        edge_rows = self._store.fetchall(f"SELECT * FROM {self._edges_table}")
+        self._nodes = {
+            row["node_key"]: {
+                "name": row["name"],
+                "type": row["type"],
+                "properties": self._store.loads_json(row["properties_json"], {}),
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+            }
+            for row in node_rows
+        }
+        self._edges = [
+            {
+                "source": row["source"],
+                "relation": row["relation"],
+                "target": row["target"],
+                "weight": row["weight"],
+                "properties": self._store.loads_json(row["properties_json"], {}),
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+            }
+            for row in edge_rows
+        ]
 
     def __repr__(self) -> str:
         return f"KnowledgeGraph(nodes={self.node_count}, edges={self.edge_count})"

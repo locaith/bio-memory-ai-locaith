@@ -220,6 +220,23 @@ def test_l1_attention_scheduler_prioritizes_unresolved_errors():
     assert focus[0]["unresolved_status"] == 1.0
 
 
+def test_l1_neuromodulation_increases_stress_weight_during_failure_streak():
+    l1 = L1WorkingMemory(agent_name="attention_gain_agent", storage_dir="test_data")
+    l1.clear()
+    for index in range(4):
+        l1.add(
+            f"Critical deploy failed {index}",
+            source="terminal",
+            metadata={"importance_score": 9, "unresolved": True, "topic": "deploy"},
+        )
+
+    state = l1.get_attention_state()
+    assert state["stress_level"] > 0.5
+    assert state["global_gain"] > 1.0
+    assert state["severity_weight"] > 0.15
+    assert state["unresolved_weight"] > 0.20
+
+
 def test_persona_layers_group_core_project_and_adaptive_rules():
     os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
     storage_dir = "test_data"
@@ -337,3 +354,58 @@ def test_retrieval_service_builds_lineage_and_safety_guard():
     assert lineage["beliefs"]
     assert lineage["episodes"]
     assert lineage["exceptions"]
+
+
+def test_retrieval_service_adds_fallback_action_for_challenged_beliefs():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    storage_dir = "test_data"
+    persona = Persona(name="challenged_guard_agent", storage_dir=storage_dir)
+    episodes = EpisodeStore(agent_name="challenged_guard_agent", storage_dir=storage_dir)
+    l2 = L2SemanticMemory(agent_name="challenged_guard_agent", storage_dir=storage_dir)
+    graph = KnowledgeGraph(agent_name="challenged_guard_agent", storage_dir=storage_dir)
+
+    old_episode = episodes.add(
+        raw_payload="Repo policy says always use pnpm.",
+        actor="agent",
+        source="terminal",
+        topic="package-manager",
+        confidence=0.8,
+        workspace_id="frontend",
+    )
+    new_episode = episodes.add(
+        raw_payload="This workspace uses yarn and explicitly rejects pnpm.",
+        actor="agent",
+        source="terminal",
+        topic="package-manager",
+        confidence=0.9,
+        workspace_id="frontend",
+    )
+
+    old_rule_id = persona.add_rule(
+        "Always use pnpm in this workspace.",
+        scope="project",
+        confidence=0.72,
+        evidence_episode_ids=[old_episode["episode_id"]],
+    )
+    new_rule_id = persona.add_rule(
+        "Never use pnpm in this workspace.",
+        scope="project",
+        confidence=0.90,
+        evidence_episode_ids=[new_episode["episode_id"]],
+    )
+
+    resolver = ContradictionResolver(persona)
+    reconcile_stats = resolver.reconcile(old_rule_id)
+    assert reconcile_stats["challenged"] == 1
+
+    for rule in persona.get_rule_records().values():
+        graph.add_belief_rule(rule)
+        for episode_id in rule.get("evidence_episode_ids", []):
+            graph.add_episode_evidence(rule["id"], episode_id, confidence=rule["confidence"])
+
+    service = RetrievalService(l2=l2, graph=graph, episodes=episodes, persona=persona)
+    retrieval_state = service.build_retrieval_state({"mode": "implement", "workspace_id": "frontend"})
+    lineage = service.build_lineage("package manager workspace policy", retrieval_state, top_k=3)
+
+    assert "Fallback action:" in lineage["safety_guard"]
+    assert "challenged beliefs" in lineage["safety_guard"].lower()

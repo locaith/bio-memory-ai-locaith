@@ -28,6 +28,8 @@ ENV/
 
 # Local Data
 data/
+test_data/
+real_eval_data/
 *.db
 *.log
 

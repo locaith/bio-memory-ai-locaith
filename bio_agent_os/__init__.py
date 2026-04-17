@@ -14,6 +14,7 @@ from bio_agent_os.core.compaction import MemoryCompactor
 from bio_agent_os.core.dream_journal import DreamJournal
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
+from bio_agent_os.core.metrics_store import MetricsStore
 from bio_agent_os.core.persona import Persona
 from bio_agent_os.core.reconciliation import ContradictionResolver
 from bio_agent_os.core.retrieval_service import RetrievalService
@@ -41,6 +42,7 @@ __all__ = [
     "LLMEngine",
     "MemoryCompactor",
     "MemoryHealthMonitor",
+    "MetricsStore",
     "Persona",
     "ContradictionResolver",
     "RetrievalService",

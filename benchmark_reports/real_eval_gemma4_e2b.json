@@ -1,0 +1,463 @@
+{
+  "model": "gemma4:e2b",
+  "task_set_size": 6,
+  "calls": 14,
+  "token": {
+    "prompt_tokens": 6806,
+    "completion_tokens": 8041,
+    "total_tokens": 14847
+  },
+  "latency": {
+    "total_seconds": 90.454,
+    "avg_seconds_per_call": 6.461,
+    "avg_seconds_per_task": 15.278
+  },
+  "retention": {
+    "passed": 2,
+    "total": 3,
+    "rate": 0.667
+  },
+  "contradiction": {
+    "deprecated_rules": 0,
+    "challenged_rules": 0,
+    "stable_rules": 0,
+    "resolved": false
+  },
+  "task_success": {
+    "passed": 1,
+    "total": 3,
+    "rate": 0.333
+  },
+  "task_results": [
+    {
+      "task_id": "debug-1",
+      "mode": "debug",
+      "elapsed_seconds": 13.44,
+      "consolidate": {
+        "encoded": 1,
+        "failed": 0,
+        "challenged": 0,
+        "pending_approval": 0
+      }
+    },
+    {
+      "task_id": "debug-2",
+      "mode": "debug",
+      "elapsed_seconds": 12.828,
+      "consolidate": {
+        "encoded": 1,
+        "failed": 0,
+        "challenged": 0,
+        "pending_approval": 0
+      }
+    },
+    {
+      "task_id": "policy-1",
+      "mode": "deploy",
+      "elapsed_seconds": 13.348,
+      "consolidate": {
+        "encoded": 0,
+        "failed": 1,
+        "challenged": 0,
+        "pending_approval": 0
+      }
+    },
+    {
+      "task_id": "deploy-1",
+      "mode": "deploy",
+      "elapsed_seconds": 19.56,
+      "consolidate": {
+        "encoded": 2,
+        "failed": 0,
+        "challenged": 0,
+        "pending_approval": 0
+      }
+    },
+    {
+      "task_id": "hotfix-1",
+      "mode": "deploy",
+      "elapsed_seconds": 13.442,
+      "consolidate": {
+        "encoded": 0,
+        "failed": 1,
+        "challenged": 0,
+        "pending_approval": 0
+      }
+    },
+    {
+      "task_id": "hotfix-2",
+      "mode": "deploy",
+      "elapsed_seconds": 19.053,
+      "consolidate": {
+        "encoded": 1,
+        "failed": 1,
+        "challenged": 0,
+        "pending_approval": 0
+      }
+    }
+  ],
+  "probe_results": [
+    {
+      "name": "dependency-retention",
+      "passed": true,
+      "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Peer dependency mismatch is a common failure mode following major framework upgrades (e.g., Vite).\n- Error type: Major version mismatch during package installation (npm install).",
+      "top_l2": [
+        {
+          "content": "Peer dependency mismatch is a common failure mode following major framework upgrades (e.g., Vite).",
+          "score": 16.319261034728243,
+          "importance": 8.0,
+          "tags": [
+            "Software Build Error / Dependency Management",
+            "exception"
+          ],
+          "memory_type": "exception",
+          "scope": "agent",
+          "mode_hints": [
+            "debug"
+          ],
+          "exception_for": "Software Build Error / Dependency Management",
+          "risk_level": "high",
+          "stress_state": "failure",
+          "task_id": "debug-1",
+          "workspace_id": "frontend",
+          "project_version": "v3.0.0",
+          "embedding_backend": "hash",
+          "embedding_model": "hash-384"
+        },
+        {
+          "content": "Error type: Major version mismatch during package installation (npm install).",
+          "score": 15.359418518055119,
+          "importance": 8.0,
+          "tags": [
+            "Software Dependency Error",
+            "exception"
+          ],
+          "memory_type": "exception",
+          "scope": "software dependency",
+          "mode_hints": [
+            "debug"
+          ],
+          "exception_for": "Software Dependency Error",
+          "risk_level": "high",
+          "stress_state": "failure",
+          "task_id": "debug-2",
+          "workspace_id": "frontend",
+          "project_version": "v3.0.0",
+          "embedding_backend": "hash",
+          "embedding_model": "hash-384"
+        }
+      ],
+      "top_graph": [
+        {
+          "rule_id": "rule_e8c75f19c5e5404b97bc06d7f9c7792a",
+          "text": "Tool upgrades necessitate immediate verification and resolution of peer dependency conflicts.",
+          "scope": "agent",
+          "state": "proposed",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "score": 1.28736,
+          "evidence_count": 1,
+          "conflict_count": 0,
+          "fallback_action": "",
+          "provenance_score": 0.55
+        },
+        {
+          "rule_id": "rule_def10a24fe6048ceaca0a74115d4685f",
+          "text": "Always validate major version compatibility for all interdependent software dependencies before installation.",
+          "scope": "software dependency",
+          "state": "proposed",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "score": 0.96552,
+          "evidence_count": 1,
+          "conflict_count": 0,
+          "fallback_action": "",
+          "provenance_score": 0.55
+        }
+      ]
+    },
+    {
+      "name": "policy-retention",
+      "passed": false,
+      "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- The use of 'git push -f' on the frontend production branch is an explicit violation of team policy.\n- All production recovery actions involving hotfixes must include explicit approval and complete audit logging to ensure traceability and accountability.\n- Risky branch operations are explicitly forbidden during the production rollout phase.",
+      "top_l2": [
+        {
+          "content": "The use of 'git push -f' on the frontend production branch is an explicit violation of team policy.",
+          "score": 15.399710136461719,
+          "importance": 8.0,
+          "tags": [
+            "Git Policy / Deployment Rules",
+            "exception"
+          ],
+          "memory_type": "exception",
+          "scope": "frontend deployment policy",
+          "mode_hints": [
+            "deploy"
+          ],
+          "exception_for": "Git Policy / Deployment Rules",
+          "risk_level": "high",
+          "stress_state": "The team policy strictly prohibits using 'git push -f' on the frontend branch in production environments.",
+          "task_id": "policy-1",
+          "workspace_id": "frontend",
+          "project_version": "v3.0.0",
+          "embedding_backend": "hash",
+          "embedding_model": "hash-384"
+        },
+        {
+          "content": "All production recovery actions involving hotfixes must include explicit approval and complete audit logging to ensure traceability and accountability.",
+          "score": 14.639942980932236,
+          "importance": 8.0,
+          "tags": [
+            "Incident Response and Production Recovery",
+            "exception"
+          ],
+          "memory_type": "exception",
+          "scope": "agent, production recovery, incident response",
+          "mode_hints": [
+            "debug",
+            "deploy"
+          ],
+          "exception_for": "Incident Response and Production Recovery",
+          "risk_level": "high",
+          "stress_state": "failure",
+          "task_id": "hotfix-2",
+          "workspace_id": "frontend",
+          "project_version": "v3.0.1",
+          "embedding_backend": "hash",
+          "embedding_model": "hash-384"
+        }
+      ],
+      "top_graph": [
+        {
+          "rule_id": "rule_e8c75f19c5e5404b97bc06d7f9c7792a",
+          "text": "Tool upgrades necessitate immediate verification and resolution of peer dependency conflicts.",
+          "scope": "agent",
+          "state": "proposed",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "score": 0.96552,
+          "evidence_count": 1,
+          "conflict_count": 0,
+          "fallback_action": "",
+          "provenance_score": 0.4
+        },
+        {
+          "rule_id": "rule_def10a24fe6048ceaca0a74115d4685f",
+          "text": "Always validate major version compatibility for all interdependent software dependencies before installation.",
+          "scope": "software dependency",
+          "state": "proposed",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "score": 0.96552,
+          "evidence_count": 1,
+          "conflict_count": 0,
+          "fallback_action": "",
+          "provenance_score": 0.4
+        }
+      ]
+    },
+    {
+      "name": "hotfix-exception-retention",
+      "passed": true,
+      "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- All production recovery actions involving hotfixes must include explicit approval and complete audit logging to ensure traceability and accountability.\n- The use of 'git push -f' on the frontend production branch is an explicit violation of team policy.\n- Error type: Major version mismatch during package installation (npm install).",
+      "top_l2": [
+        {
+          "content": "All production recovery actions involving hotfixes must include explicit approval and complete audit logging to ensure traceability and accountability.",
+          "score": 16.591935241346146,
+          "importance": 8.0,
+          "tags": [
+            "Incident Response and Production Recovery",
+            "exception"
+          ],
+          "memory_type": "exception",
+          "scope": "agent, production recovery, incident response",
+          "mode_hints": [
+            "debug",
+            "deploy"
+          ],
+          "exception_for": "Incident Response and Production Recovery",
+          "risk_level": "high",
+          "stress_state": "failure",
+          "task_id": "hotfix-2",
+          "workspace_id": "frontend",
+          "project_version": "v3.0.1",
+          "embedding_backend": "hash",
+          "embedding_model": "hash-384"
+        },
+        {
+          "content": "The use of 'git push -f' on the frontend production branch is an explicit violation of team policy.",
+          "score": 14.959718294714934,
+          "importance": 8.0,
+          "tags": [
+            "Git Policy / Deployment Rules",
+            "exception"
+          ],
+          "memory_type": "exception",
+          "scope": "frontend deployment policy",
+          "mode_hints": [
+            "deploy"
+          ],
+          "exception_for": "Git Policy / Deployment Rules",
+          "risk_level": "high",
+          "stress_state": "The team policy strictly prohibits using 'git push -f' on the frontend branch in production environments.",
+          "task_id": "policy-1",
+          "workspace_id": "frontend",
+          "project_version": "v3.0.0",
+          "embedding_backend": "hash",
+          "embedding_model": "hash-384"
+        }
+      ],
+      "top_graph": [
+        {
+          "rule_id": "rule_e8c75f19c5e5404b97bc06d7f9c7792a",
+          "text": "Tool upgrades necessitate immediate verification and resolution of peer dependency conflicts.",
+          "scope": "agent",
+          "state": "proposed",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "score": 0.96552,
+          "evidence_count": 1,
+          "conflict_count": 0,
+          "fallback_action": "",
+          "provenance_score": 0.4
+        },
+        {
+          "rule_id": "rule_def10a24fe6048ceaca0a74115d4685f",
+          "text": "Always validate major version compatibility for all interdependent software dependencies before installation.",
+          "scope": "software dependency",
+          "state": "proposed",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "score": 0.96552,
+          "evidence_count": 1,
+          "conflict_count": 0,
+          "fallback_action": "",
+          "provenance_score": 0.4
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule_e8c75f19c5e5404b97bc06d7f9c7792a",
+      "text": "Tool upgrades necessitate immediate verification and resolution of peer dependency conflicts.",
+      "layer": "adaptive",
+      "scope": "agent",
+      "source": "hippocampus",
+      "confidence": 0.99,
+      "support_count": 1,
+      "contradiction_count": 0,
+      "state": "proposed",
+      "created_at": 1776445574.6862946,
+      "updated_at": 1776445574.6862946,
+      "last_validated_at": 1776445574.6862946,
+      "valid_from": 1776445574.6862946,
+      "valid_to": null,
+      "evidence_episode_ids": [
+        "5cdbe91a-020d-4515-88af-bb290557bc5a"
+      ],
+      "superseded_by": null,
+      "expires_at": null
+    },
+    {
+      "id": "rule_def10a24fe6048ceaca0a74115d4685f",
+      "text": "Always validate major version compatibility for all interdependent software dependencies before installation.",
+      "layer": "adaptive",
+      "scope": "software dependency",
+      "source": "hippocampus",
+      "confidence": 0.99,
+      "support_count": 1,
+      "contradiction_count": 0,
+      "state": "proposed",
+      "created_at": 1776445587.5341358,
+      "updated_at": 1776445587.5341358,
+      "last_validated_at": 1776445587.5341358,
+      "valid_from": 1776445587.5341358,
+      "valid_to": null,
+      "evidence_episode_ids": [
+        "e441ba29-8c93-4d3d-a7dc-b2d43c006423"
+      ],
+      "superseded_by": null,
+      "expires_at": null
+    },
+    {
+      "id": "rule_fd3ab54eae3945e7a56583aab83d1522",
+      "text": "Prioritize system stability and safety by strictly avoiding risky operations during critical deployment workflows.",
+      "layer": "adaptive",
+      "scope": "agent",
+      "source": "hippocampus",
+      "confidence": 0.99,
+      "support_count": 1,
+      "contradiction_count": 0,
+      "state": "proposed",
+      "created_at": 1776445613.7539458,
+      "updated_at": 1776445613.7539458,
+      "last_validated_at": 1776445613.7539458,
+      "valid_from": 1776445613.7539458,
+      "valid_to": null,
+      "evidence_episode_ids": [
+        "4254e04e-1676-422c-9568-04e62e38fd46"
+      ],
+      "superseded_by": null,
+      "expires_at": null
+    },
+    {
+      "id": "rule_6b7df92eb4dd45cb8629aeeda9232398",
+      "text": "Always adhere to the team policy regarding Git push commands for frontend production deployments.",
+      "layer": "adaptive",
+      "scope": "frontend deployment policy",
+      "source": "hippocampus",
+      "confidence": 0.99,
+      "support_count": 1,
+      "contradiction_count": 0,
+      "state": "proposed",
+      "created_at": 1776445620.4635212,
+      "updated_at": 1776445620.4635212,
+      "last_validated_at": 1776445620.4635212,
+      "valid_from": 1776445620.4635212,
+      "valid_to": null,
+      "evidence_episode_ids": [
+        "63339657-620b-4d5a-aafe-424566e12bbe"
+      ],
+      "superseded_by": null,
+      "expires_at": null
+    },
+    {
+      "id": "rule_e04a5e2743ff4bf895c4f7107910eed4",
+      "text": "Production hotfixes must follow a validated, approved, and fully audited deployment workflow.",
+      "layer": "adaptive",
+      "scope": "agent, production recovery, incident response",
+      "source": "hippocampus",
+      "confidence": 0.99,
+      "support_count": 1,
+      "contradiction_count": 0,
+      "state": "proposed",
+      "created_at": 1776445646.257691,
+      "updated_at": 1776445646.257691,
+      "last_validated_at": 1776445646.257691,
+      "valid_from": 1776445646.257691,
+      "valid_to": null,
+      "evidence_episode_ids": [
+        "e3e5b0ef-177d-4868-9248-7db8140ae6d4"
+      ],
+      "superseded_by": null,
+      "expires_at": null
+    }
+  ],
+  "attention_state": {
+    "stress_level": 0.74,
+    "global_gain": 1.74,
+    "failure_streak": 6.0,
+    "task_weight": 0.1519999999999999,
+    "novelty_weight": 0.163,
+    "unresolved_weight": 0.274,
+    "recency_weight": 0.11299999999999999,
+    "severity_weight": 0.298
+  }
+}
