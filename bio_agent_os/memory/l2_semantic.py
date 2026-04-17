@@ -1,7 +1,5 @@
 """
-memory/l2_semantic.py — Long-term Semantic Memory with Time-Decay.
-
-V0.3.0 Integration: Built-in Qdrant Client Integration for Enterprise ERP Scale.
+Long-term semantic memory with time decay.
 """
 
 import os
