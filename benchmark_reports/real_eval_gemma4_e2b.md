@@ -1,17 +1,18 @@
 # Real Evaluation Report: gemma4:e2b
 
-- Calls: 14
-- Total tokens: 14847
-- Prompt tokens: 6806
-- Completion tokens: 8041
-- Total latency (s): 90.454
-- Avg latency per call (s): 6.461
+- Run: run-3
+- Calls: 15
+- Total tokens: 17706
+- Prompt tokens: 7979
+- Completion tokens: 9727
+- Total latency (s): 102.791
+- Avg latency per call (s): 6.853
 - Retention rate: 2/3 = 0.667
 - Contradiction resolved: False
-- Task success rate: 1/3 = 0.333
+- Task success rate: 2/3 = 0.667
 
 ## Attention homeostasis
 
-- Stress level: 0.740
-- Global gain: 1.740
+- Stress level: 0.746
+- Global gain: 1.746
 - Failure streak: 6

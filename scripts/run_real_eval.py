@@ -41,12 +41,12 @@ class InstrumentedOllamaEngine(LLMEngine):
             return data.get("response", "")
 
 
-async def run_eval():
+async def run_eval(run_name: str = "run-1"):
     os.environ.setdefault("BIO_AGENT_SECRET_KEY", "real_eval_secret_key_123456")
-    storage_dir = Path("real_eval_data")
+    storage_dir = Path("real_eval_runs") / run_name
     if storage_dir.exists():
         shutil.rmtree(storage_dir)
-    storage_dir.mkdir(exist_ok=True)
+    storage_dir.mkdir(parents=True, exist_ok=True)
 
     engine = InstrumentedOllamaEngine(os.getenv("REAL_EVAL_MODEL", "gemma4:e2b"))
     l1 = L1WorkingMemory(agent_name="real-eval-agent", storage_dir=str(storage_dir))
@@ -233,6 +233,7 @@ async def run_eval():
     ]
 
     metrics = {
+        "run_name": run_name,
         "model": engine.model_id,
         "task_set_size": len(tasks),
         "calls": len(engine.usage),
@@ -271,32 +272,90 @@ async def run_eval():
     return metrics
 
 
-def write_reports(metrics):
+def _aggregate_runs(all_metrics):
+    def avg(path):
+        values = all_metrics
+        for key in path:
+            values = [item[key] if isinstance(item, dict) else None for item in values]
+        filtered = [value for value in values if isinstance(value, (int, float))]
+        return round(sum(filtered) / max(len(filtered), 1), 3)
+
+    return {
+        "runs": len(all_metrics),
+        "model": all_metrics[0]["model"] if all_metrics else "",
+        "retention_rates": [item["retention"]["rate"] for item in all_metrics],
+        "task_success_rates": [item["task_success"]["rate"] for item in all_metrics],
+        "contradiction_resolved_runs": sum(1 for item in all_metrics if item["contradiction"]["resolved"]),
+        "avg_total_tokens": avg(["token", "total_tokens"]),
+        "avg_total_latency_seconds": avg(["latency", "total_seconds"]),
+        "avg_retention_rate": avg(["retention", "rate"]),
+        "avg_task_success_rate": avg(["task_success", "rate"]),
+    }
+
+
+def write_reports(all_metrics):
     report_dir = Path("benchmark_reports")
     report_dir.mkdir(exist_ok=True)
+    aggregate = _aggregate_runs(all_metrics)
+    latest_metrics = all_metrics[-1]
     json_path = report_dir / "real_eval_gemma4_e2b.json"
     markdown_path = report_dir / "real_eval_gemma4_e2b.md"
-    json_path.write_text(json.dumps(metrics, indent=2, ensure_ascii=False), encoding="utf-8")
+    comparison_json_path = report_dir / "real_eval_gemma4_e2b_comparison.json"
+    comparison_md_path = report_dir / "real_eval_gemma4_e2b_comparison.md"
+    json_path.write_text(json.dumps(latest_metrics, indent=2, ensure_ascii=False), encoding="utf-8")
+    comparison_json_path.write_text(
+        json.dumps({"aggregate": aggregate, "runs": all_metrics}, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
     markdown_path.write_text(
         "\n".join(
             [
                 "# Real Evaluation Report: gemma4:e2b",
                 "",
-                f"- Calls: {metrics['calls']}",
-                f"- Total tokens: {metrics['token']['total_tokens']}",
-                f"- Prompt tokens: {metrics['token']['prompt_tokens']}",
-                f"- Completion tokens: {metrics['token']['completion_tokens']}",
-                f"- Total latency (s): {metrics['latency']['total_seconds']}",
-                f"- Avg latency per call (s): {metrics['latency']['avg_seconds_per_call']}",
-                f"- Retention rate: {metrics['retention']['passed']}/{metrics['retention']['total']} = {metrics['retention']['rate']}",
-                f"- Contradiction resolved: {metrics['contradiction']['resolved']}",
-                f"- Task success rate: {metrics['task_success']['passed']}/{metrics['task_success']['total']} = {metrics['task_success']['rate']}",
+                f"- Run: {latest_metrics['run_name']}",
+                f"- Calls: {latest_metrics['calls']}",
+                f"- Total tokens: {latest_metrics['token']['total_tokens']}",
+                f"- Prompt tokens: {latest_metrics['token']['prompt_tokens']}",
+                f"- Completion tokens: {latest_metrics['token']['completion_tokens']}",
+                f"- Total latency (s): {latest_metrics['latency']['total_seconds']}",
+                f"- Avg latency per call (s): {latest_metrics['latency']['avg_seconds_per_call']}",
+                f"- Retention rate: {latest_metrics['retention']['passed']}/{latest_metrics['retention']['total']} = {latest_metrics['retention']['rate']}",
+                f"- Contradiction resolved: {latest_metrics['contradiction']['resolved']}",
+                f"- Task success rate: {latest_metrics['task_success']['passed']}/{latest_metrics['task_success']['total']} = {latest_metrics['task_success']['rate']}",
                 "",
                 "## Attention homeostasis",
                 "",
-                f"- Stress level: {metrics['attention_state']['stress_level']:.3f}",
-                f"- Global gain: {metrics['attention_state']['global_gain']:.3f}",
-                f"- Failure streak: {metrics['attention_state']['failure_streak']:.0f}",
+                f"- Stress level: {latest_metrics['attention_state']['stress_level']:.3f}",
+                f"- Global gain: {latest_metrics['attention_state']['global_gain']:.3f}",
+                f"- Failure streak: {latest_metrics['attention_state']['failure_streak']:.0f}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    comparison_md_path.write_text(
+        "\n".join(
+            [
+                "# Real Evaluation Comparison: gemma4:e2b",
+                "",
+                f"- Runs: {aggregate['runs']}",
+                f"- Avg total tokens: {aggregate['avg_total_tokens']}",
+                f"- Avg total latency (s): {aggregate['avg_total_latency_seconds']}",
+                f"- Avg retention rate: {aggregate['avg_retention_rate']}",
+                f"- Avg task success rate: {aggregate['avg_task_success_rate']}",
+                f"- Runs with contradiction resolved: {aggregate['contradiction_resolved_runs']}/{aggregate['runs']}",
+                "",
+                "## Per-run trend",
+                "",
+            ]
+            + [
+                (
+                    f"- {item['run_name']}: tokens={item['token']['total_tokens']}, "
+                    f"latency={item['latency']['total_seconds']}s, "
+                    f"retention={item['retention']['rate']}, "
+                    f"task_success={item['task_success']['rate']}, "
+                    f"contradiction_resolved={item['contradiction']['resolved']}"
+                )
+                for item in all_metrics
             ]
         ),
         encoding="utf-8",
@@ -304,11 +363,15 @@ def write_reports(metrics):
 
 
 def main():
-    metrics = asyncio.run(run_eval())
-    metrics_store = MetricsStore(agent_name="real-eval-agent", storage_dir="real_eval_data")
-    metrics_store.append("openclaw-real-eval", metrics["model"], metrics)
-    write_reports(metrics)
-    print(json.dumps(metrics, indent=2, ensure_ascii=False))
+    run_count = int(os.getenv("REAL_EVAL_RUNS", "3"))
+    all_metrics = []
+    metrics_store = MetricsStore(agent_name="real-eval-agent", storage_dir="real_eval_metrics")
+    for index in range(1, run_count + 1):
+        metrics = asyncio.run(run_eval(run_name=f"run-{index}"))
+        metrics_store.append("openclaw-real-eval", metrics["model"], metrics)
+        all_metrics.append(metrics)
+    write_reports(all_metrics)
+    print(json.dumps({"aggregate": _aggregate_runs(all_metrics), "runs": all_metrics}, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

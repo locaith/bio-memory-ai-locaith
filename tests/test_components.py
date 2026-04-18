@@ -1,3 +1,4 @@
+import asyncio
 import os
 from pathlib import Path
 
@@ -11,6 +12,9 @@ from bio_agent_os import (
     Persona,
     RetrievalService,
 )
+from bio_agent_os.background_jobs.hippocampus import CompiledMemory
+from bio_agent_os.background_jobs.hippocampus import Hippocampus
+from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 
 
@@ -409,3 +413,55 @@ def test_retrieval_service_adds_fallback_action_for_challenged_beliefs():
 
     assert "Fallback action:" in lineage["safety_guard"]
     assert "challenged beliefs" in lineage["safety_guard"].lower()
+
+
+def test_hippocampus_normalizes_weird_scope_and_rejects_generic_rule_promotion():
+    class DummyEngine:
+        pass
+
+    l1 = L1WorkingMemory(agent_name="scope_gate_agent", storage_dir="test_data")
+    persona = Persona(name="scope_gate_agent", storage_dir="test_data")
+    l2 = L2SemanticMemory(agent_name="scope_gate_agent", storage_dir="test_data")
+    hippo = Hippocampus(engine=DummyEngine(), l1=l1, l2=l2, persona=persona)
+
+    metadata = {"importance_score": 8, "workspace_id": "frontend", "project_version": "v1"}
+    assert hippo._normalize_scope("team, frontend, deployment", metadata) == "project"
+    assert not hippo._should_promote_rule(
+        "Always prioritize system stability and quality.",
+        scope="project",
+        confidence=0.98,
+        metadata=metadata,
+    )
+    assert hippo._should_promote_rule(
+        "Never use git push -f on the frontend branch.",
+        scope="project",
+        confidence=0.85,
+        metadata=metadata,
+    )
+
+
+def test_structured_fallback_extracts_json_from_fenced_local_output():
+    class DummyStructuredEngine(LLMEngine):
+        def __init__(self):
+            super().__init__(backend="ollama", model_id="dummy", temperature=0.1)
+
+        async def generate(self, prompt: str, temperature=None, effort=None) -> str:
+            return """```json
+            {
+              "episodic_summary": "Build failed after dependency drift.",
+              "semantic_memory": "Dependency drift breaks builds.",
+              "procedural_memory": "Check versions before reinstalling dependencies.",
+              "exception_memory": "Peer dependency mismatch can appear after tool upgrades.",
+              "identity_rule": "Always verify dependency compatibility before upgrades.",
+              "confidence": 0.82,
+              "scope": "project"
+            }
+            ```"""
+
+    async def run():
+        engine = DummyStructuredEngine()
+        payload = await engine.generate_structured("compile this", schema=CompiledMemory, temperature=0.1)
+        assert payload["scope"] == "project"
+        assert payload["confidence"] == 0.82
+
+    asyncio.run(run())

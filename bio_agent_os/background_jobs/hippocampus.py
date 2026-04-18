@@ -2,6 +2,7 @@
 Sleep consolidation and memory compilation.
 """
 
+import re
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -62,6 +63,7 @@ class Hippocampus:
         self.compactor = MemoryCompactor()
         self.reconciler = ContradictionResolver(persona=persona, approval_queue=approval_queue)
         self._log: List[str] = []
+        self._allowed_scopes = {"core", "project", "agent", "user", "session", "organization"}
 
     @property
     def logs(self) -> List[str]:
@@ -186,6 +188,73 @@ class Hippocampus:
             effort=effort,
         )
 
+    def _normalize_scope(self, raw_scope: str, metadata: Dict[str, Any]) -> str:
+        scope = (raw_scope or "").strip().lower()
+        if scope in self._allowed_scopes:
+            return scope
+        if any(token in scope for token in ["organization", "company", "global"]):
+            return "organization"
+        if any(token in scope for token in ["session", "turn"]):
+            return "session"
+        if any(token in scope for token in ["user", "personal"]):
+            return "user"
+        if any(token in scope for token in ["agent", "assistant"]):
+            return "agent"
+        if any(token in scope for token in ["team", "repo", "project", "workspace", "frontend", "deployment", "production"]):
+            return "project"
+        if metadata.get("workspace_id") or metadata.get("project_version") or metadata.get("task_id"):
+            return "project"
+        return "agent"
+
+    def _should_promote_rule(
+        self,
+        identity_rule: str,
+        scope: str,
+        confidence: float,
+        metadata: Dict[str, Any],
+    ) -> bool:
+        text = " ".join(identity_rule.split()).strip()
+        lowered = text.lower()
+        if not text or len(text) < 18 or len(text) > 220:
+            return False
+        if scope == "core":
+            return False
+        if confidence < 0.60 and int(metadata.get("importance_score", 5)) < 8:
+            return False
+        vague_patterns = [
+            "always prioritize",
+            "prioritize system stability",
+            "follow best practices",
+            "be careful",
+            "maintain quality",
+            "ensure safety",
+        ]
+        if any(pattern in lowered for pattern in vague_patterns):
+            return False
+        action_markers = [
+            "never",
+            "do not",
+            "don't",
+            "must",
+            "require",
+            "avoid",
+            "pin",
+            "check",
+            "verify",
+            "allow",
+            "only",
+            "use ",
+            "git push -f",
+            "hotfix",
+            "dependency",
+        ]
+        if not any(marker in lowered for marker in action_markers):
+            return False
+        alpha_tokens = re.findall(r"[a-z0-9\-/]+", lowered)
+        if len(alpha_tokens) < 4:
+            return False
+        return True
+
     def _adaptive_effort(self, metadata: Dict[str, Any], content: str) -> str:
         if self.graph and self.episodes and self.l2:
             monitor = MemoryHealthMonitor(
@@ -223,7 +292,82 @@ class Hippocampus:
                 compiled = await self._compile_entry(content, metadata)
                 identity_rule = compiled["identity_rule"].strip()
                 confidence = float(compiled.get("confidence", 0.55))
-                scope = compiled.get("scope", "project").strip().lower() or "project"
+                scope = self._normalize_scope(compiled.get("scope", "project"), metadata)
+                promotion_allowed = self._should_promote_rule(identity_rule, scope, confidence, metadata)
+                if not promotion_allowed:
+                    self.l1.mark_encoded(entry["timestamp"])
+                    self._log.append(
+                        "Promotion gate rejected identity rule candidate: "
+                        f"{identity_rule[:120]} (scope={scope}, confidence={confidence:.2f})"
+                    )
+                    if self.audit_log:
+                        self.audit_log.append(
+                            "promotion_gate_reject",
+                            "Rejected weak or malformed identity rule candidate",
+                            {
+                                "identity_rule": identity_rule,
+                                "scope": scope,
+                                "confidence": confidence,
+                                "episode_id": episode_id,
+                            },
+                        )
+                    if self.l2:
+                        topic = metadata.get("topic", "general")
+                        mode_hints = self._mode_hints(metadata, content)
+                        shared_kwargs = {
+                            "importance": metadata.get("importance_score", 5),
+                            "source_rule_id": None,
+                            "scope": scope,
+                            "mode_hints": mode_hints,
+                            "risk_level": self._risk_level(metadata),
+                            "stress_state": self._stress_state(metadata, content),
+                            "task_id": entry.get("task_id"),
+                            "workspace_id": entry.get("workspace_id"),
+                            "project_version": entry.get("project_version"),
+                        }
+                        self.l2.store(
+                            content=compiled["semantic_memory"],
+                            tags=[topic, "semantic"],
+                            memory_type="semantic",
+                            **shared_kwargs,
+                        )
+                        self.l2.store(
+                            content=compiled["procedural_memory"],
+                            tags=[topic, "procedural"],
+                            memory_type="procedural",
+                            **shared_kwargs,
+                        )
+                        self.l2.store(
+                            content=compiled["episodic_summary"],
+                            importance=max(1.0, metadata.get("importance_score", 5) - 1),
+                            tags=[topic, "episodic"],
+                            source_rule_id=None,
+                            memory_type="episodic",
+                            scope=scope,
+                            mode_hints=mode_hints,
+                            risk_level=self._risk_level(metadata),
+                            stress_state=self._stress_state(metadata, content),
+                            task_id=entry.get("task_id"),
+                            workspace_id=entry.get("workspace_id"),
+                            project_version=entry.get("project_version"),
+                        )
+                        exception_memory = compiled.get("exception_memory", "").strip()
+                        if exception_memory:
+                            self.l2.store_exception(
+                                content=exception_memory,
+                                exception_for=topic,
+                                tags=[topic],
+                                source_rule_id=None,
+                                scope=scope,
+                                mode_hints=mode_hints,
+                                risk_level=self._risk_level(metadata),
+                                stress_state=self._stress_state(metadata, content),
+                                task_id=entry.get("task_id"),
+                                workspace_id=entry.get("workspace_id"),
+                                project_version=entry.get("project_version"),
+                            )
+                    stats["encoded"] += 1
+                    continue
                 if self.approval_queue and self.approval_queue.requires_approval(identity_rule, scope=scope, confidence=confidence):
                     request = self.approval_queue.submit(
                         "promote_sensitive_rule",

@@ -4,6 +4,7 @@ LLM abstraction layer for portable memory operations.
 
 import json
 import os
+import re
 from typing import Optional, Type
 
 from pydantic import BaseModel
@@ -220,13 +221,54 @@ class LLMEngine:
         temp: float,
     ) -> dict:
         schema_json = json.dumps(schema.model_json_schema(), indent=2, ensure_ascii=False)
+        extra_rules = ""
+        if schema.__name__ == "CompiledMemory":
+            extra_rules = (
+                'The "scope" field must be exactly one of: "core", "project", "agent", "user", "session", "organization".\n'
+                'The "confidence" field must be a number from 0 to 1.\n'
+            )
+        elif schema.__name__ == "MemoryLabel":
+            extra_rules = (
+                'The "importance_score" field must be an integer from 1 to 10.\n'
+                'Keep "topic" concise.\n'
+            )
         wrapped_prompt = (
             f"{prompt}\n\n"
             "Return valid JSON only. Do not add markdown fences.\n"
+            "Every required field must be present.\n"
+            "Use plain JSON values, not prose explanations.\n"
+            f"{extra_rules}"
             f"Schema:\n{schema_json}\n"
         )
-        raw = await self.generate(wrapped_prompt, temperature=temp)
-        raw = raw.strip()
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
-        return json.loads(raw)
+        last_error: Optional[Exception] = None
+        raw = ""
+        for attempt in range(2):
+            raw = await self.generate(wrapped_prompt, temperature=temp if attempt == 0 else 0.0)
+            try:
+                candidate = self._extract_json_candidate(raw)
+                payload = json.loads(candidate)
+                return schema.model_validate(payload).model_dump()
+            except Exception as exc:
+                last_error = exc
+                repair_prompt = self._build_json_repair_prompt(raw, schema_json)
+                wrapped_prompt = repair_prompt
+        raise ValueError(f"Structured generation failed for {schema.__name__}: {last_error}. Raw output: {raw[:400]}")
+
+    def _extract_json_candidate(self, raw: str) -> str:
+        text = raw.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        if text.startswith("{") and text.endswith("}"):
+            return text
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            return match.group(0)
+        raise ValueError("No JSON object found in model output.")
+
+    def _build_json_repair_prompt(self, raw: str, schema_json: str) -> str:
+        return (
+            "Rewrite the following output into one valid JSON object only.\n"
+            "Do not explain. Do not add markdown fences. Do not omit required fields.\n\n"
+            f"Schema:\n{schema_json}\n\n"
+            f"Output to repair:\n{raw}"
+        )

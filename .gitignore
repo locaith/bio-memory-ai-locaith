@@ -30,6 +30,8 @@ ENV/
 data/
 test_data/
 real_eval_data/
+real_eval_runs/
+real_eval_metrics/
 *.db
 *.log
 
