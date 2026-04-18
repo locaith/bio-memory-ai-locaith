@@ -8,9 +8,12 @@ import argparse
 import asyncio
 import json
 import os
+from pathlib import Path
 
 import uvicorn
 
+from bio_agent_os.core.migration import SQLiteToPostgresMigrator
+from bio_agent_os.rest_client import BioAgentRESTClient
 from bio_agent_os.sdk import BioAgentSDK
 
 
@@ -50,6 +53,23 @@ def _base_parser() -> argparse.ArgumentParser:
     reflect.add_argument("--query", default="")
 
     subparsers.add_parser("status", help="Print health/status snapshot", parents=[common])
+
+    migrate = subparsers.add_parser("migrate-db", help="Migrate SQLite data to PostgreSQL", parents=[common])
+    migrate.add_argument("--sqlite-path", default="")
+    migrate.add_argument("--postgres-dsn", default=os.getenv("BIO_AGENT_DATABASE_URL", ""))
+
+    rstatus = subparsers.add_parser("remote-status", help="Read status from a running Bio-Agent OS server")
+    rstatus.add_argument("--base-url", default=os.getenv("BIO_AGENT_BASE_URL", "http://127.0.0.1:8055"))
+
+    rchat = subparsers.add_parser("remote-chat", help="Send one chat turn to a running Bio-Agent OS server")
+    rchat.add_argument("message")
+    rchat.add_argument("--base-url", default=os.getenv("BIO_AGENT_BASE_URL", "http://127.0.0.1:8055"))
+    rchat.add_argument("--task-id")
+    rchat.add_argument("--workspace-id")
+    rchat.add_argument("--project-version")
+    rchat.add_argument("--mode", default="implement")
+    rchat.add_argument("--risk-level", default="medium")
+    rchat.add_argument("--stress-state", default="normal")
     return parser
 
 
@@ -109,6 +129,42 @@ def main():
 
     if args.command == "status":
         _print(sdk.status())
+        return
+
+    if args.command == "migrate-db":
+        sqlite_path = args.sqlite_path or str(Path(args.storage_dir) / "bio_agent_os.db")
+        migrator = SQLiteToPostgresMigrator(sqlite_path=sqlite_path, postgres_dsn=args.postgres_dsn)
+        summary = migrator.migrate()
+        _print(
+            {
+                "sqlite_path": sqlite_path,
+                "tables_created": summary.tables_created,
+                "rows_copied": summary.rows_copied,
+                "tables_skipped": summary.tables_skipped,
+            }
+        )
+        return
+
+    if args.command == "remote-status":
+        client = BioAgentRESTClient(base_url=args.base_url)
+        _print(asyncio.run(client.status()))
+        return
+
+    if args.command == "remote-chat":
+        client = BioAgentRESTClient(base_url=args.base_url)
+        _print(
+            asyncio.run(
+                client.chat(
+                    args.message,
+                    task_id=args.task_id,
+                    workspace_id=args.workspace_id,
+                    project_version=args.project_version,
+                    mode=args.mode,
+                    risk_level=args.risk_level,
+                    stress_state=args.stress_state,
+                )
+            )
+        )
         return
 
     parser.error(f"Unknown command: {args.command}")

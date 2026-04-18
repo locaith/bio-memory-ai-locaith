@@ -451,6 +451,23 @@ The V2.1 target is to move Bio-Agent OS closer to truly human-like long-term mem
 4. **OpenClaw-first usability**: Setup, docs, and examples should make the project easy to adopt for the OpenClaw ecosystem.
 5. **Global portability**: One memory controller that runs across local AI and cloud AI, and across many agent platforms.
 
+### V2.2 next bottleneck: semantic contradiction detection
+
+The current contradiction path is operational, but the remaining bottleneck is still conflict detection quality.
+
+Current implementation:
+
+- lexical polarity markers
+- semantic-core token overlap
+- domain ontology hints
+
+Planned V2.2 upgrade:
+
+1. **LLM/NLI contradiction classifier**: compare `Rule A` vs `Rule B` using a lightweight model and return `entailment`, `contradiction`, or `neutral` as structured JSON.
+2. **Hybrid reconciliation**: keep fast lexical heuristics as a cheap prefilter, then escalate ambiguous pairs to Gemini Flash / local Gemma / other low-cost models.
+3. **Semantic governed exceptions**: detect conditional overrides based on meaning, not just keyword overlap.
+4. **Confidence-aware adjudication**: use NLI confidence as one more signal in promotion, challenge, and deprecation.
+
 ---
 
 ## 🌏 Mission & Open-source Commitment
@@ -488,6 +505,8 @@ Bio-Agent OS now includes an ecosystem layer in addition to the core memory arch
 - Docker and devcontainer files for reproducible environments
 - adapter-based database routing for local SQLite and PostgreSQL-ready deployments
 - async SQLite path with `aiosqlite` for concurrent app workloads
+- standard SQLite -> PostgreSQL migration path
+- remote REST client for client/server deployments
 
 ### Database backend selection
 
@@ -511,6 +530,18 @@ Async SQLite dependency:
 pip install -e ".[async-sqlite]"
 ```
 
+REST client dependency:
+
+```bash
+pip install -e ".[client]"
+```
+
+### SQLite -> PostgreSQL migration
+
+```bash
+bio-agent-os migrate-db --storage-dir data --postgres-dsn postgresql://postgres:postgres@localhost:5432/bio_agent_os
+```
+
 ### CLI quick examples
 
 ```bash
@@ -519,6 +550,8 @@ bio-agent-os status
 bio-agent-os ingest "build failed with peer dependency mismatch" --source openclaw --workspace-id frontend
 bio-agent-os chat "what did you learn from the last deployment?" --mode deploy --workspace-id frontend
 bio-agent-os dream
+bio-agent-os migrate-db --storage-dir data --postgres-dsn postgresql://postgres:postgres@localhost:5432/bio_agent_os
+bio-agent-os remote-status --base-url http://127.0.0.1:8055
 ```
 
 ### Python SDK quick example
@@ -549,9 +582,27 @@ async def main():
 asyncio.run(main())
 ```
 
+### Remote REST client example
+
+```python
+import asyncio
+from bio_agent_os import BioAgentRESTClient
+
+async def main():
+    client = BioAgentRESTClient(base_url="http://127.0.0.1:8055")
+    status = await client.status()
+    print(status["status"]["belief_graph"])
+
+asyncio.run(main())
+```
+
 ### Container quick start
 
 ```bash
 copy .env.example .env
 docker compose up --build
 ```
+
+### Docker image publishing
+
+The repository now includes `.github/workflows/docker-publish.yml` for publishing multi-arch images to `ghcr.io`.

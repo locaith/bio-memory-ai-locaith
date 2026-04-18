@@ -6,6 +6,7 @@ from pathlib import Path
 from bio_agent_os import (
     ApprovalQueue,
     AsyncSQLiteStore,
+    BioAgentRESTClient,
     ContradictionResolver,
     EpisodeStore,
     L1WorkingMemory,
@@ -22,6 +23,7 @@ from bio_agent_os.core.db_adapter import (
     _translate_qmark_placeholders,
     resolve_database_backend,
 )
+from bio_agent_os.core.migration import SQLiteToPostgresMigrator, map_sqlite_type
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 
@@ -60,6 +62,34 @@ def test_insert_or_replace_translation():
 def test_async_sqlite_store_helpers():
     assert AsyncSQLiteStore.sanitize_identifier("Bio Agent OS") == "bio_agent_os"
     assert AsyncSQLiteStore.loads_json("", default=[]) == []
+
+
+def test_sqlite_type_mapping_for_postgres_migration():
+    assert map_sqlite_type("TEXT") == "TEXT"
+    assert map_sqlite_type("INTEGER") == "BIGINT"
+    assert map_sqlite_type("REAL") == "DOUBLE PRECISION"
+
+
+def test_migration_create_table_sql():
+    migrator = SQLiteToPostgresMigrator.__new__(SQLiteToPostgresMigrator)
+    sql = migrator._create_table_sql(
+        "sample_table",
+        [
+            {"name": "rule_id", "type": "TEXT", "notnull": 1, "dflt_value": None, "pk": 1},
+            {"name": "confidence", "type": "REAL", "notnull": 1, "dflt_value": "0.5", "pk": 0},
+        ],
+    )
+    assert "CREATE TABLE IF NOT EXISTS sample_table" in sql
+    assert "rule_id TEXT NOT NULL" in sql
+    assert "confidence DOUBLE PRECISION NOT NULL DEFAULT 0.5" in sql
+    assert "PRIMARY KEY (rule_id)" in sql
+
+
+def test_rest_client_headers():
+    client = BioAgentRESTClient(base_url="http://127.0.0.1:8055", api_key="secret")
+    headers = client._headers()
+    assert headers["Authorization"] == "Bearer secret"
+    assert headers["Content-Type"] == "application/json"
 
 
 def test_l2_semantic_memory():
