@@ -36,6 +36,10 @@ dependencies = [
 [project.scripts]
 bio-agent-os = "bio_agent_os.cli:main"
 
+[project.entry-points."bio_agent_os.plugins"]
+openclaw = "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
+swe-agent = "bio_agent_os.plugins.swe_agent:build_swe_agent_plugin"
+
 [project.optional-dependencies]
 gemini = ["google-genai>=1.0.0"]
 ollama = ["aiohttp>=3.9.0"]

@@ -33,6 +33,12 @@ from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.graph_builder import GraphBuilder
 from bio_agent_os.rest_client import BioAgentRESTClient
 from bio_agent_os.sdk import BioAgentSDK
+from bio_agent_os.plugins import (
+    OpenClawMemoryPlugin,
+    SWEAgentMemoryPlugin,
+    build_openclaw_plugin,
+    build_swe_agent_plugin,
+)
 
 __all__ = [
     "AsyncSQLiteStore",
@@ -60,7 +66,11 @@ __all__ = [
     "SQLiteToPostgresMigrator",
     "ContradictionResolver",
     "RetrievalService",
+    "OpenClawMemoryPlugin",
+    "SWEAgentMemoryPlugin",
     "SQLiteAdapter",
     "SQLiteStore",
+    "build_openclaw_plugin",
+    "build_swe_agent_plugin",
     "build_runtime",
 ]

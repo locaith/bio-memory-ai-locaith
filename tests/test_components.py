@@ -29,6 +29,8 @@ from bio_agent_os.core.migration import SQLiteToPostgresMigrator, map_sqlite_typ
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.reconciliation import RuleRelationDecision
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
+from bio_agent_os.plugins.openclaw import OpenClawMemoryPlugin, build_openclaw_plugin
+from bio_agent_os.plugins.swe_agent import SWEAgentMemoryPlugin, build_swe_agent_plugin
 
 
 def test_l1_memory():
@@ -808,3 +810,23 @@ def test_structured_fallback_extracts_json_from_fenced_local_output():
         assert payload["confidence"] == 0.82
 
     asyncio.run(run())
+
+
+def test_openclaw_plugin_factory_and_target():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    plugin = build_openclaw_plugin(agent_name="plugin-agent", storage_dir="test_data")
+    assert isinstance(plugin, OpenClawMemoryPlugin)
+    assert plugin.config_target() == "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
+    status = plugin.status()
+    assert status["plugin"] == "openclaw"
+    assert status["target"] == "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
+
+
+def test_swe_agent_plugin_factory_and_target():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    plugin = build_swe_agent_plugin(agent_name="plugin-agent", storage_dir="test_data")
+    assert isinstance(plugin, SWEAgentMemoryPlugin)
+    assert plugin.config_target() == "bio_agent_os.plugins.swe_agent:build_swe_agent_plugin"
+    status = plugin.status()
+    assert status["plugin"] == "swe-agent"
+    assert status["target"] == "bio_agent_os.plugins.swe_agent:build_swe_agent_plugin"

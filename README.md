@@ -75,6 +75,16 @@ Dưới đây là biểu đồ mô phỏng hiệu suất và lượng Token sụ
 pip install bio-agent-os[gemini]
 ```
 
+### ✅ Trạng thái bản hiện tại
+
+- `v0.6.0` đã có hybrid contradiction detector với NLI cache.
+- `detector_benchmark` hiện mở rộng lên `8` cặp đa domain: deploy, security, tenant, migration, neutral architecture.
+- Kết quả real eval gần nhất với `gemma4:e2b`:
+  - heuristic detector: `4/8`
+  - hybrid + NLI detector: `8/8`
+  - hybrid false positive: `0`
+  - cache repeat-pass confirmation: `8/8`
+
 ### Sử dụng OpenClaw Adapter (Preview)
 
 Chúng tôi cung cấp sẵn một Blueprint `OpenClawBioAdapter` trong thư mục `bio_agent_os.adapters` để bạn cắm thẳng vào vòng lặp của tác vụ.
@@ -106,6 +116,42 @@ async def main():
 
 asyncio.run(main())
 ```
+
+### 🔌 OpenClaw Plugin: pip install + 1 dòng config
+
+Từ bản hiện tại, adapter đã được đóng gói thành plugin target pip-installable.
+
+```bash
+pip install -e ".[ollama]"
+```
+
+OpenClaw config:
+
+```yaml
+memory_plugin: "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
+```
+
+Nếu framework của bạn hỗ trợ truyền tham số:
+
+```yaml
+memory_plugin: "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
+memory_plugin_kwargs:
+  agent_name: "openclaw-brain"
+  storage_dir: "./data"
+```
+
+Plugin này sẽ:
+- ingest terminal/tool observations vào episode memory
+- trigger micro-sleep consolidation
+- bơm `self-model + safety guard + governed exceptions` ngược vào prompt của OpenClaw
+
+### 🛠️ SWE-Agent Plugin
+
+```yaml
+memory_plugin: "bio_agent_os.plugins.swe_agent:build_swe_agent_plugin"
+```
+
+Mục tiêu tương tự: dùng cùng lõi bio-memory nhưng bọc thành plugin target riêng cho SWE-Agent.
 
 ### 🔌 Cấu hình đa nền tảng model: Local AI, Gemini, Claude, GPT, Grok
 
@@ -305,6 +351,16 @@ Below is a simulated graph representing the horrific token bloat and performance
 pip install bio-agent-os[gemini]
 ```
 
+### ✅ Current release state
+
+- `v0.6.0` now includes hybrid contradiction detection with persistent NLI caching.
+- `detector_benchmark` now spans `8` cross-domain pairs: deploy, security, tenant, migration, and neutral architecture cases.
+- Latest real eval with `gemma4:e2b`:
+  - heuristic detector: `4/8`
+  - hybrid + NLI detector: `8/8`
+  - hybrid false positives: `0`
+  - repeat-pass cache confirmations: `8/8`
+
 ### Using the OpenClaw Adapter (Preview)
 
 We provide an `OpenClawBioAdapter` Blueprint natively inside the `bio_agent_os.adapters` directory for seamless integration into your task loops.
@@ -336,6 +392,42 @@ async def main():
 
 asyncio.run(main())
 ```
+
+### 🔌 OpenClaw Plugin: pip install + one-line config
+
+The adapter is now packaged as a pip-installable plugin target.
+
+```bash
+pip install -e ".[ollama]"
+```
+
+OpenClaw config:
+
+```yaml
+memory_plugin: "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
+```
+
+If your host supports plugin kwargs:
+
+```yaml
+memory_plugin: "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
+memory_plugin_kwargs:
+  agent_name: "openclaw-brain"
+  storage_dir: "./data"
+```
+
+This plugin target handles:
+- ingesting tool observations into episode memory
+- triggering micro-sleep consolidation
+- injecting `self-model + safety guard + governed exceptions` back into the OpenClaw prompt/controller
+
+### 🛠️ SWE-Agent Plugin
+
+```yaml
+memory_plugin: "bio_agent_os.plugins.swe_agent:build_swe_agent_plugin"
+```
+
+This exposes the same bio-memory core behind a SWE-Agent-specific plugin target.
 
 ### 🔌 Multi-provider setup: Local AI, Gemini, Claude, GPT, Grok
 
@@ -617,3 +709,10 @@ docker compose up --build
 ### Docker image publishing
 
 The repository now includes `.github/workflows/docker-publish.yml` for publishing multi-arch images to `ghcr.io`.
+
+### Plugin entry points
+
+The package now exports plugin entry points through `bio_agent_os.plugins`:
+
+- `openclaw = bio_agent_os.plugins.openclaw:build_openclaw_plugin`
+- `swe-agent = bio_agent_os.plugins.swe_agent:build_swe_agent_plugin`

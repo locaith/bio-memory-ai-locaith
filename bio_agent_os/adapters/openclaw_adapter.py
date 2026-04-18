@@ -33,7 +33,15 @@ class OpenClawBioAdapter:
         self.retrieval_service = retrieval_service
         self.action_counter = 0
 
-    async def ingest_observation(self, action_type: str, observation_output: str) -> bool:
+    async def ingest_observation(
+        self,
+        action_type: str,
+        observation_output: str,
+        task_id: Optional[str] = None,
+        workspace_id: Optional[str] = None,
+        project_version: Optional[str] = None,
+        source_refs: Optional[List[str]] = None,
+    ) -> bool:
         if len(observation_output) > 2000:
             observation_output = (
                 observation_output[:1000]
@@ -46,7 +54,14 @@ class OpenClawBioAdapter:
             f"Observation:\n{observation_output}"
         )
 
-        await self.hippo.label_and_store(raw_data, source="OpenClaw-Worker")
+        await self.hippo.label_and_store(
+            raw_data,
+            source="OpenClaw-Worker",
+            task_id=task_id,
+            workspace_id=workspace_id,
+            project_version=project_version,
+            source_refs=source_refs,
+        )
         self.action_counter += 1
 
         if self.action_counter >= 10:
