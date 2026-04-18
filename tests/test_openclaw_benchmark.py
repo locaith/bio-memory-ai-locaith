@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from bio_agent_os import EpisodeStore, GarbageCollector, Hippocampus, L1WorkingMemory, L2SemanticMemory, Persona
+from bio_agent_os import ContradictionResolver, EpisodeStore, GarbageCollector, Hippocampus, L1WorkingMemory, L2SemanticMemory, Persona
 from bio_agent_os.adapters.openclaw_adapter import OpenClawBioAdapter
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 
@@ -16,6 +16,25 @@ class FakeEngine:
 
     async def generate_structured(self, prompt, schema, temperature=0.1, effort=None):
         schema_name = schema.__name__
+        if schema_name == "RuleRelationDecision":
+            lowered = prompt.lower()
+            if "overnight only" in lowered and "every production release must happen at 10 am" in lowered:
+                return {
+                    "relation": "contradiction",
+                    "confidence": 0.95,
+                    "reason": "Semantic contradiction between night-only deployment and 10 AM updates.",
+                }
+            if "tenant a" in lowered and "after onboarding" in lowered:
+                return {
+                    "relation": "governed_exception",
+                    "confidence": 0.93,
+                    "reason": "Tenant-specific override is a governed exception.",
+                }
+            return {
+                "relation": "neutral",
+                "confidence": 0.7,
+                "reason": "No contradiction detected.",
+            }
         if schema_name == "MemoryLabel":
             lowered = prompt.lower()
             if "hotfix" in lowered or "allow force push" in lowered:
@@ -344,3 +363,39 @@ async def test_openclaw_contradiction_chain_reconsolidates_rules():
     )
     assert graph_results
     assert "Allow use git push on the frontend branch" in graph_results[0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_detector_benchmark_hybrid_beats_heuristic_on_semantic_pairs():
+    engine = FakeEngine()
+    persona = Persona(name="detector-benchmark-test", storage_dir="test_data")
+    heuristic = ContradictionResolver(persona=persona, engine=engine, detector_mode="heuristic")
+    hybrid = ContradictionResolver(persona=persona, engine=engine, detector_mode="hybrid")
+
+    pairs = [
+        (
+            {"text": "Deploy production releases overnight only.", "scope": "project"},
+            {"text": "Every production release must happen at 10 AM every business day.", "scope": "project"},
+            "contradiction",
+        ),
+        (
+            {"text": "Never rename ERP customer codes after onboarding.", "scope": "project"},
+            {"text": "Allow customer code rename for Tenant A only with finance approval and audit logging.", "scope": "project"},
+            "governed_exception",
+        ),
+        (
+            {"text": "Prefer React Hook Form for complex forms.", "scope": "project"},
+            {"text": "Avoid Redux in new frontend modules.", "scope": "project"},
+            "neutral",
+        ),
+    ]
+
+    heuristic_correct = 0
+    hybrid_correct = 0
+    for left, right, expected in pairs:
+        heuristic_result = await heuristic.classify_relation(left, right)
+        hybrid_result = await hybrid.classify_relation(left, right)
+        heuristic_correct += int(heuristic_result.relation == expected)
+        hybrid_correct += int(hybrid_result.relation == expected)
+
+    assert hybrid_correct > heuristic_correct

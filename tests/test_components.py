@@ -3,6 +3,8 @@ import os
 import time
 from pathlib import Path
 
+import pytest
+
 from bio_agent_os import (
     ApprovalQueue,
     AsyncSQLiteStore,
@@ -25,6 +27,7 @@ from bio_agent_os.core.db_adapter import (
 )
 from bio_agent_os.core.migration import SQLiteToPostgresMigrator, map_sqlite_type
 from bio_agent_os.core.llm_engine import LLMEngine
+from bio_agent_os.core.reconciliation import RuleRelationDecision
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 
 
@@ -90,6 +93,32 @@ def test_rest_client_headers():
     headers = client._headers()
     assert headers["Authorization"] == "Bearer secret"
     assert headers["Content-Type"] == "application/json"
+
+
+class FakeNLIEngine:
+    is_ready = True
+
+    async def generate_structured(self, prompt, schema, temperature=0.0, effort=None):
+        if schema.__name__ != "RuleRelationDecision":
+            raise ValueError(schema.__name__)
+        lowered = prompt.lower()
+        if "overnight only" in lowered and "every production release must happen at 10 am" in lowered:
+            return {
+                "relation": "contradiction",
+                "confidence": 0.93,
+                "reason": "Night-only deployment conflicts with a 10 AM server update.",
+            }
+        if "tenant a" in lowered and "after onboarding" in lowered:
+            return {
+                "relation": "governed_exception",
+                "confidence": 0.91,
+                "reason": "Tenant-specific override is a governed exception of the default onboarding policy.",
+            }
+        return {
+            "relation": "neutral",
+            "confidence": 0.6,
+            "reason": "No contradiction detected.",
+        }
 
 
 def test_l2_semantic_memory():
@@ -265,6 +294,70 @@ def test_conditional_exception_is_reinforced_without_deprecating_default_policy(
     assert rules[policy_rule_id]["state"] == "stable"
     assert rules[exception_rule_id]["state"] == "reinforced"
     assert rules[exception_rule_id]["confidence"] >= 0.9
+
+
+@pytest.mark.asyncio
+async def test_hybrid_nli_detector_finds_semantic_contradiction_beyond_keyword_overlap():
+    persona = Persona(name="nli_contradiction_agent", storage_dir="test_data")
+    rule_a_id = persona.add_rule(
+        "Deploy production releases overnight only.",
+        scope="project",
+        confidence=0.8,
+        evidence_episode_ids=["ep-a"],
+    )
+    rule_b_id = persona.add_rule(
+        "Every production release must happen at 10 AM every business day.",
+        scope="project",
+        confidence=0.82,
+        evidence_episode_ids=["ep-b"],
+    )
+    resolver = ContradictionResolver(
+        persona,
+        engine=FakeNLIEngine(),
+        detector_mode="hybrid",
+    )
+    relation = await resolver.classify_relation(
+        persona.get_rule_records()[rule_a_id],
+        persona.get_rule_records()[rule_b_id],
+    )
+    assert relation.relation == "contradiction"
+    stats = await resolver.areconcile(rule_b_id)
+    assert stats["challenged"] + stats["deprecated"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_hybrid_nli_detector_preserves_governed_exception():
+    persona = Persona(name="nli_exception_agent", storage_dir="test_data")
+    default_rule_id = persona.add_rule(
+        "Never rename ERP customer codes after onboarding.",
+        scope="project",
+        confidence=0.9,
+        evidence_episode_ids=["ep-default"],
+    )
+    exception_rule_id = persona.add_rule(
+        "Allow customer code rename for Tenant A only with finance approval and audit logging.",
+        scope="project",
+        confidence=0.88,
+        evidence_episode_ids=["ep-override-1"],
+    )
+    persona.add_rule(
+        "Allow customer code rename for Tenant A only with finance approval and audit logging.",
+        scope="project",
+        confidence=0.88,
+        evidence_episode_ids=["ep-override-2"],
+    )
+    resolver = ContradictionResolver(
+        persona,
+        engine=FakeNLIEngine(),
+        detector_mode="hybrid",
+    )
+    relation = await resolver.classify_relation(
+        persona.get_rule_records()[default_rule_id],
+        persona.get_rule_records()[exception_rule_id],
+    )
+    assert relation.relation == "governed_exception"
+    stats = await resolver.areconcile(exception_rule_id)
+    assert stats["governed"] >= 1
 
 
 def test_belief_graph_and_health_snapshot():

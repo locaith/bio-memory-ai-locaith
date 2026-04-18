@@ -7,7 +7,7 @@ from pathlib import Path
 
 import aiohttp
 
-from bio_agent_os import EpisodeStore, Hippocampus, KnowledgeGraph, L1WorkingMemory, L2SemanticMemory, MetricsStore, Persona
+from bio_agent_os import ContradictionResolver, EpisodeStore, Hippocampus, KnowledgeGraph, L1WorkingMemory, L2SemanticMemory, MetricsStore, Persona
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.retrieval_service import RetrievalService
 
@@ -39,6 +39,118 @@ class InstrumentedOllamaEngine(LLMEngine):
                 }
             )
             return data.get("response", "")
+
+
+async def run_contradiction_suite(tasks, storage_dir: Path, detector_mode: str, model_id: str):
+    if storage_dir.exists():
+        shutil.rmtree(storage_dir)
+    storage_dir.mkdir(parents=True, exist_ok=True)
+
+    engine = InstrumentedOllamaEngine(model_id)
+    l1 = L1WorkingMemory(agent_name=f"contradiction-agent-{detector_mode}", storage_dir=str(storage_dir))
+    l2 = L2SemanticMemory(agent_name=f"contradiction-agent-{detector_mode}", storage_dir=str(storage_dir))
+    persona = Persona(name=f"contradiction-agent-{detector_mode}", storage_dir=str(storage_dir))
+    episodes = EpisodeStore(agent_name=f"contradiction-agent-{detector_mode}", storage_dir=str(storage_dir))
+    graph = KnowledgeGraph(agent_name=f"contradiction-agent-{detector_mode}", storage_dir=str(storage_dir))
+    hippo = Hippocampus(
+        engine=engine,
+        l1=l1,
+        l2=l2,
+        persona=persona,
+        episodes=episodes,
+        graph=graph,
+        detector_mode=detector_mode,
+    )
+
+    task_results = []
+    nli_used = 0
+    for task in tasks:
+        started = time.perf_counter()
+        await hippo.label_and_store(
+            task["text"],
+            source="openclaw",
+            task_id=task["task_id"],
+            workspace_id=task["workspace_id"],
+            project_version=task["project_version"],
+            source_refs=[{"kind": "terminal", "ref": task["task_id"]}],
+        )
+        l1.increment_nights()
+        l1.increment_nights()
+        l1.increment_nights()
+        consolidate_result = await hippo.consolidate()
+        nli_used += int(consolidate_result.get("nli_used", 0))
+        task_results.append(
+            {
+                "task_id": task["task_id"],
+                "elapsed_seconds": round(time.perf_counter() - started, 3),
+                "consolidate": consolidate_result,
+            }
+        )
+
+    rules = persona.get_rule_records()
+    return {
+        "calls": len(engine.usage),
+        "token_total": sum(item["prompt_eval_count"] + item["eval_count"] for item in engine.usage),
+        "stable_rules": len([rule for rule in rules.values() if rule["state"] == "stable"]),
+        "reinforced_rules": len([rule for rule in rules.values() if rule["state"] == "reinforced"]),
+        "challenged_rules": len([rule for rule in rules.values() if rule["state"] == "challenged"]),
+        "deprecated_rules": len([rule for rule in rules.values() if rule["state"] == "deprecated"]),
+        "resolved": len([rule for rule in rules.values() if rule["state"] in {"stable", "reinforced", "challenged", "deprecated"}]) >= 2,
+        "task_results": task_results,
+        "rules": list(rules.values()),
+        "nli_used": nli_used,
+    }
+
+
+async def run_detector_benchmark(model_id: str):
+    engine = InstrumentedOllamaEngine(model_id)
+    persona = Persona(name="detector-benchmark-agent", storage_dir="real_eval_runs/detector-benchmark")
+    heuristic = ContradictionResolver(persona, engine=engine, detector_mode="heuristic")
+    hybrid = ContradictionResolver(persona, engine=engine, detector_mode="hybrid")
+
+    pairs = [
+        {
+            "name": "semantic-deploy-window",
+            "left": {"text": "Deploy production releases overnight only.", "scope": "project"},
+            "right": {"text": "Every production release must happen at 10 AM every business day.", "scope": "project"},
+            "expected": "contradiction",
+        },
+        {
+            "name": "tenant-approved-override",
+            "left": {"text": "Never rename ERP customer codes after onboarding.", "scope": "project"},
+            "right": {"text": "Allow customer code rename for Tenant A only with finance approval and audit logging.", "scope": "project"},
+            "expected": "governed_exception",
+        },
+        {
+            "name": "neutral-stack-choice",
+            "left": {"text": "Prefer React Hook Form for complex forms.", "scope": "project"},
+            "right": {"text": "Avoid Redux in new frontend modules.", "scope": "project"},
+            "expected": "neutral",
+        },
+    ]
+
+    results = []
+    for item in pairs:
+        heuristic_result = await heuristic.classify_relation(item["left"], item["right"])
+        hybrid_result = await hybrid.classify_relation(item["left"], item["right"])
+        results.append(
+            {
+                "name": item["name"],
+                "expected": item["expected"],
+                "heuristic": heuristic_result.model_dump(),
+                "hybrid": hybrid_result.model_dump(),
+                "heuristic_correct": heuristic_result.relation == item["expected"],
+                "hybrid_correct": hybrid_result.relation == item["expected"],
+            }
+        )
+    return {
+        "pairs": results,
+        "heuristic_correct": sum(1 for item in results if item["heuristic_correct"]),
+        "hybrid_correct": sum(1 for item in results if item["hybrid_correct"]),
+        "total": len(results),
+        "calls": len(engine.usage),
+        "token_total": sum(item["prompt_eval_count"] + item["eval_count"] for item in engine.usage),
+    }
 
 
 async def run_eval(run_name: str = "run-1"):
@@ -380,55 +492,22 @@ async def run_eval(run_name: str = "run-1"):
         "attention_state": l1.get_attention_state(),
     }
 
-    contradiction_storage = Path("real_eval_runs") / f"{run_name}-contradiction"
-    if contradiction_storage.exists():
-        shutil.rmtree(contradiction_storage)
-    contradiction_storage.mkdir(parents=True, exist_ok=True)
-
-    contradiction_engine = InstrumentedOllamaEngine(os.getenv("REAL_EVAL_MODEL", "gemma4:e2b"))
-    c_l1 = L1WorkingMemory(agent_name="contradiction-agent", storage_dir=str(contradiction_storage))
-    c_l2 = L2SemanticMemory(agent_name="contradiction-agent", storage_dir=str(contradiction_storage))
-    c_persona = Persona(name="contradiction-agent", storage_dir=str(contradiction_storage))
-    c_episodes = EpisodeStore(agent_name="contradiction-agent", storage_dir=str(contradiction_storage))
-    c_graph = KnowledgeGraph(agent_name="contradiction-agent", storage_dir=str(contradiction_storage))
-    c_hippo = Hippocampus(engine=contradiction_engine, l1=c_l1, l2=c_l2, persona=c_persona, episodes=c_episodes, graph=c_graph)
-
-    contradiction_task_results = []
-    for task in contradiction_tasks:
-        started = time.perf_counter()
-        await c_hippo.label_and_store(
-            task["text"],
-            source="openclaw",
-            task_id=task["task_id"],
-            workspace_id=task["workspace_id"],
-            project_version=task["project_version"],
-            source_refs=[{"kind": "terminal", "ref": task["task_id"]}],
-        )
-        c_l1.increment_nights()
-        c_l1.increment_nights()
-        c_l1.increment_nights()
-        consolidate_result = await c_hippo.consolidate()
-        contradiction_task_results.append(
-            {
-                "task_id": task["task_id"],
-                "elapsed_seconds": round(time.perf_counter() - started, 3),
-                "consolidate": consolidate_result,
-            }
-        )
-
-    contradiction_rules = c_persona.get_rule_records()
-    contradiction_metrics = {
-        "calls": len(contradiction_engine.usage),
-        "token_total": sum(item["prompt_eval_count"] + item["eval_count"] for item in contradiction_engine.usage),
-        "stable_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "stable"]),
-        "reinforced_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "reinforced"]),
-        "challenged_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "challenged"]),
-        "deprecated_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "deprecated"]),
-            "resolved": any(rule["state"] in {"reinforced", "challenged", "deprecated"} for rule in contradiction_rules.values()),
-        "task_results": contradiction_task_results,
-        "rules": list(contradiction_rules.values()),
-    }
+    contradiction_metrics = await run_contradiction_suite(
+        contradiction_tasks,
+        storage_dir=Path("real_eval_runs") / f"{run_name}-contradiction-hybrid",
+        detector_mode="hybrid",
+        model_id=os.getenv("REAL_EVAL_MODEL", "gemma4:e2b"),
+    )
+    heuristic_contradiction_metrics = await run_contradiction_suite(
+        contradiction_tasks,
+        storage_dir=Path("real_eval_runs") / f"{run_name}-contradiction-heuristic",
+        detector_mode="heuristic",
+        model_id=os.getenv("REAL_EVAL_MODEL", "gemma4:e2b"),
+    )
+    detector_benchmark = await run_detector_benchmark(os.getenv("REAL_EVAL_MODEL", "gemma4:e2b"))
     metrics["contradiction_suite"] = contradiction_metrics
+    metrics["heuristic_contradiction_suite"] = heuristic_contradiction_metrics
+    metrics["detector_benchmark"] = detector_benchmark
 
     override_storage = Path("real_eval_runs") / f"{run_name}-approved-overrides"
     if override_storage.exists():
@@ -501,9 +580,12 @@ def _aggregate_runs(all_metrics):
         "task_success_rates": [item["task_success"]["rate"] for item in all_metrics],
         "contradiction_resolved_runs": sum(1 for item in all_metrics if item["contradiction"]["resolved"]),
         "contradiction_suite_resolved_runs": sum(1 for item in all_metrics if item["contradiction_suite"]["resolved"]),
+        "heuristic_contradiction_suite_resolved_runs": sum(1 for item in all_metrics if item["heuristic_contradiction_suite"]["resolved"]),
         "approved_override_resolved_runs": sum(1 for item in all_metrics if item["approved_override_suite"]["resolved"]),
         "stable_rule_counts": [item["contradiction_suite"]["stable_rules"] for item in all_metrics],
         "reinforced_rule_counts": [item["contradiction_suite"]["reinforced_rules"] for item in all_metrics],
+        "heuristic_detector_correct": [item["detector_benchmark"]["heuristic_correct"] for item in all_metrics],
+        "hybrid_detector_correct": [item["detector_benchmark"]["hybrid_correct"] for item in all_metrics],
         "avg_total_tokens": avg(["token", "total_tokens"]),
         "avg_total_latency_seconds": avg(["latency", "total_seconds"]),
         "avg_retention_rate": avg(["retention", "rate"]),
@@ -540,6 +622,9 @@ def write_reports(all_metrics):
                 f"- Retention rate: {latest_metrics['retention']['passed']}/{latest_metrics['retention']['total']} = {latest_metrics['retention']['rate']}",
                 f"- Contradiction resolved: {latest_metrics['contradiction']['resolved']}",
                 f"- Task success rate: {latest_metrics['task_success']['passed']}/{latest_metrics['task_success']['total']} = {latest_metrics['task_success']['rate']}",
+                f"- Hybrid contradiction suite resolved: {latest_metrics['contradiction_suite']['resolved']}",
+                f"- Heuristic contradiction suite resolved: {latest_metrics['heuristic_contradiction_suite']['resolved']}",
+                f"- Detector benchmark: heuristic={latest_metrics['detector_benchmark']['heuristic_correct']}/{latest_metrics['detector_benchmark']['total']}, hybrid={latest_metrics['detector_benchmark']['hybrid_correct']}/{latest_metrics['detector_benchmark']['total']}",
                 "",
                 "## Attention homeostasis",
                 "",
@@ -562,7 +647,10 @@ def write_reports(all_metrics):
                 f"- Avg task success rate: {aggregate['avg_task_success_rate']}",
                 f"- Runs with contradiction resolved: {aggregate['contradiction_resolved_runs']}/{aggregate['runs']}",
                 f"- Contradiction-suite resolved runs: {aggregate['contradiction_suite_resolved_runs']}/{aggregate['runs']}",
+                f"- Heuristic contradiction-suite resolved runs: {aggregate['heuristic_contradiction_suite_resolved_runs']}/{aggregate['runs']}",
                 f"- Approved-override-suite resolved runs: {aggregate['approved_override_resolved_runs']}/{aggregate['runs']}",
+                f"- Detector benchmark heuristic correct totals: {aggregate['heuristic_detector_correct']}",
+                f"- Detector benchmark hybrid correct totals: {aggregate['hybrid_detector_correct']}",
                 "",
                 "## Per-run trend",
                 "",
@@ -577,6 +665,9 @@ def write_reports(all_metrics):
                     f"contradiction_suite_stable={item['contradiction_suite']['stable_rules']}, "
                     f"contradiction_suite_reinforced={item['contradiction_suite']['reinforced_rules']}, "
                     f"contradiction_suite_resolved={item['contradiction_suite']['resolved']}, "
+                    f"heuristic_contradiction_suite_resolved={item['heuristic_contradiction_suite']['resolved']}, "
+                    f"detector_heuristic={item['detector_benchmark']['heuristic_correct']}/{item['detector_benchmark']['total']}, "
+                    f"detector_hybrid={item['detector_benchmark']['hybrid_correct']}/{item['detector_benchmark']['total']}, "
                     f"approved_override_reinforced={item['approved_override_suite']['reinforced_rules']}, "
                     f"approved_override_edges={item['approved_override_suite']['governed_exception_edges']}, "
                     f"approved_by_policy_edges={item['approved_override_suite']['approved_by_policy_edges']}, "

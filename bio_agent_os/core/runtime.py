@@ -4,6 +4,7 @@ Shared runtime builder for API, SDK, and CLI.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 from dotenv import load_dotenv
@@ -69,6 +70,7 @@ def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
         dream_journal=dream_journal,
         audit_log=audit_log,
         approval_queue=approval_queue,
+        detector_mode=os.getenv("BIO_AGENT_CONFLICT_DETECTOR", "hybrid"),
     )
     gc = GarbageCollector(l1=l1, l2=l2)
     graph_builder = GraphBuilder(engine=engine, graph=kg)

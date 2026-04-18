@@ -515,6 +515,7 @@ Local default:
 ```env
 BIO_AGENT_DB_BACKEND=sqlite
 BIO_AGENT_DATABASE_URL=
+BIO_AGENT_CONFLICT_DETECTOR=hybrid
 ```
 
 PostgreSQL abstraction:
@@ -541,6 +542,16 @@ pip install -e ".[client]"
 ```bash
 bio-agent-os migrate-db --storage-dir data --postgres-dsn postgresql://postgres:postgres@localhost:5432/bio_agent_os
 ```
+
+### Conflict detector modes
+
+```env
+BIO_AGENT_CONFLICT_DETECTOR=heuristic
+BIO_AGENT_CONFLICT_DETECTOR=hybrid
+BIO_AGENT_CONFLICT_DETECTOR=nli
+```
+
+`hybrid` is the recommended default: cheap lexical/ontology prefilter first, then lightweight LLM/NLI adjudication for ambiguous pairs.
 
 ### CLI quick examples
 

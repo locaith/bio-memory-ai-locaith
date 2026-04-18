@@ -50,6 +50,7 @@ class Hippocampus:
         dream_journal: Optional[DreamJournal] = None,
         audit_log: Optional[AuditLog] = None,
         approval_queue: Optional[ApprovalQueue] = None,
+        detector_mode: str = "heuristic",
     ):
         self.engine = engine
         self.l1 = l1
@@ -61,7 +62,12 @@ class Hippocampus:
         self.audit_log = audit_log
         self.approval_queue = approval_queue
         self.compactor = MemoryCompactor()
-        self.reconciler = ContradictionResolver(persona=persona, approval_queue=approval_queue)
+        self.reconciler = ContradictionResolver(
+            persona=persona,
+            approval_queue=approval_queue,
+            engine=engine,
+            detector_mode=detector_mode,
+        )
         self._log: List[str] = []
         self._allowed_scopes = {"core", "project", "agent", "user", "session", "organization"}
 
@@ -360,7 +366,7 @@ class Hippocampus:
     async def consolidate(self) -> Dict[str, int]:
         self._log.append("----- sleep consolidation started -----")
         survivors = self.l1.get_survivors()
-        stats = {"encoded": 0, "failed": 0, "challenged": 0, "pending_approval": 0}
+        stats = {"encoded": 0, "failed": 0, "challenged": 0, "pending_approval": 0, "nli_used": 0}
 
         if not survivors:
             self._log.append("No survivors to consolidate.")
@@ -482,7 +488,7 @@ class Hippocampus:
                     evidence_episode_ids=[episode_id] if episode_id else [],
                     promotion_threshold=self._promotion_threshold(metadata, identity_rule, scope),
                 )
-                reconcile_stats = self.reconciler.reconcile(rule_id)
+                reconcile_stats = await self.reconciler.areconcile(rule_id)
                 rule_record = self.persona.get_rule_records()[rule_id]
 
                 if self.graph:
@@ -610,6 +616,7 @@ class Hippocampus:
                 stats["encoded"] += 1
                 stats["challenged"] += reconcile_stats["challenged"]
                 stats["pending_approval"] += int(reconcile_stats.get("pending_approval", 0))
+                stats["nli_used"] += int(reconcile_stats.get("nli_used", 0))
             except Exception as exc:
                 self._log.append(f"Compile failed: {exc}")
                 stats["failed"] += 1
