@@ -181,6 +181,18 @@ sweagent run --config config/default.yaml --config examples/swe-agent/bio_memory
 
 Mục tiêu tương tự: dùng cùng lõi bio-memory nhưng bọc thành đường sidecar/config riêng cho SWE-Agent.
 
+### 📌 Ghi nhận tích hợp thực tế với OpenClaw / BioLoca
+
+Bio-Agent OS đã được một agent OpenClaw cài và nối thành công vào hệ BioLoca trên máy khác, theo đúng flow vận hành thực tế:
+
+1. clone repo `locaith/bio-memory-ai-locaith`
+2. cài `bio-agent-os` và package `bio-agent-os-openclaw`
+3. khởi chạy Bio-Agent OS API sidecar trên cổng `8055`
+4. trỏ plugin `bio-agent-os-openclaw` vào `openclaw.json`
+5. restart OpenClaw gateway để nhận memory slot mới
+
+Điểm quan trọng ở đây không phải benchmark giả lập, mà là OpenClaw đã tự báo cáo lại rằng nó load được lớp trí nhớ sinh học này như một memory backend thật trong workflow BioLoca.
+
 ### 🔌 Cấu hình đa nền tảng model: Local AI, Gemini, Claude, GPT, Grok
 
 Bio-Agent OS giờ hỗ trợ nhiều đường chạy khác nhau cho phần "Hồi Hải Mã" và layer suy luận:
@@ -484,6 +496,18 @@ sweagent run --config config/default.yaml --config examples/swe-agent/bio_memory
 ```
 
 This exposes the same bio-memory core behind a SWE-Agent sidecar/config path.
+
+### 📌 Real OpenClaw / BioLoca integration note
+
+Bio-Agent OS has already been installed and wired by an OpenClaw agent into a separate BioLoca environment using the real deployment path:
+
+1. clone `locaith/bio-memory-ai-locaith`
+2. install `bio-agent-os` and `bio-agent-os-openclaw`
+3. launch the Bio-Agent OS API sidecar on port `8055`
+4. point the `bio-agent-os-openclaw` plugin entry from `openclaw.json`
+5. restart the OpenClaw gateway so the new memory slot is loaded
+
+The important result is not just a local demo. OpenClaw itself reported that it successfully loaded Bio-Agent OS as a working biological-memory backend inside the BioLoca workflow.
 
 ### 🔌 Multi-provider setup: Local AI, Gemini, Claude, GPT, Grok
 
