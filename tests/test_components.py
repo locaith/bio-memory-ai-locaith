@@ -156,6 +156,56 @@ def test_contradiction_resolver_deprecates_weaker_rule():
     assert rules[old_rule_id]["superseded_by"] == new_rule_id
 
 
+def test_conditional_exception_is_reinforced_without_deprecating_default_policy():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    persona = Persona(name="conditional_exception_agent", storage_dir="test_data")
+    policy_rule_id = persona.add_rule(
+        "Never use git push -f on the frontend branch in production.",
+        scope="project",
+        confidence=0.9,
+        evidence_episode_ids=["neg-1"],
+        promotion_threshold=3,
+    )
+    persona.add_rule(
+        "Never use git push -f on the frontend branch in production.",
+        scope="project",
+        confidence=0.9,
+        evidence_episode_ids=["neg-2"],
+        promotion_threshold=3,
+    )
+    persona.add_rule(
+        "Never use git push -f on the frontend branch in production.",
+        scope="project",
+        confidence=0.9,
+        evidence_episode_ids=["neg-3"],
+        promotion_threshold=3,
+    )
+
+    exception_rule_id = persona.add_rule(
+        "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
+        scope="project",
+        confidence=0.86,
+        evidence_episode_ids=["pos-1"],
+        promotion_threshold=3,
+    )
+    persona.add_rule(
+        "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
+        scope="project",
+        confidence=0.86,
+        evidence_episode_ids=["pos-2"],
+        promotion_threshold=3,
+    )
+
+    resolver = ContradictionResolver(persona)
+    stats = resolver.reconcile(exception_rule_id)
+    rules = persona.get_rule_records()
+
+    assert stats["governed"] >= 1
+    assert rules[policy_rule_id]["state"] == "stable"
+    assert rules[exception_rule_id]["state"] == "reinforced"
+    assert rules[exception_rule_id]["confidence"] >= 0.9
+
+
 def test_belief_graph_and_health_snapshot():
     os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
     storage_dir = "test_data"

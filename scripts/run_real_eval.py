@@ -243,7 +243,8 @@ async def run_eval(run_name: str = "run-1"):
     deprecated_rules = [rule for rule in rules.values() if rule["state"] == "deprecated"]
     challenged_rules = [rule for rule in rules.values() if rule["state"] == "challenged"]
     stable_rules = [rule for rule in rules.values() if rule["state"] in {"reinforced", "stable"}]
-    contradiction_success = bool(deprecated_rules or challenged_rules)
+    reinforced_rules = [rule for rule in rules.values() if rule["state"] == "reinforced"]
+    contradiction_success = bool(deprecated_rules or challenged_rules or reinforced_rules)
     task_success_checks = [
         any(
             "dependency" in item["content"].lower()
@@ -358,7 +359,7 @@ async def run_eval(run_name: str = "run-1"):
         "reinforced_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "reinforced"]),
         "challenged_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "challenged"]),
         "deprecated_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "deprecated"]),
-        "resolved": any(rule["state"] in {"challenged", "deprecated"} for rule in contradiction_rules.values()),
+            "resolved": any(rule["state"] in {"reinforced", "challenged", "deprecated"} for rule in contradiction_rules.values()),
         "task_results": contradiction_task_results,
         "rules": list(contradiction_rules.values()),
     }

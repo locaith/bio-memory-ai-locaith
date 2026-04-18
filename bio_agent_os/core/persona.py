@@ -325,6 +325,21 @@ class Persona:
         self.save()
         return True
 
+    def govern_exception_rule(self, rule_id: str, confidence_bonus: float = 0.03) -> bool:
+        self.load()
+        rule = self._rules.get(rule_id)
+        if not rule:
+            return False
+        rule["confidence"] = min(0.99, max(rule["confidence"], 0.68) + confidence_bonus)
+        if rule["support_count"] >= 2:
+            rule["state"] = "reinforced"
+        elif rule["state"] == "challenged":
+            rule["state"] = "proposed"
+        rule["updated_at"] = time.time()
+        rule["last_validated_at"] = time.time()
+        self.save()
+        return True
+
     def deprecate_rule(self, rule_id: str, superseded_by: Optional[str] = None) -> bool:
         self.load()
         rule = self._rules.get(rule_id)

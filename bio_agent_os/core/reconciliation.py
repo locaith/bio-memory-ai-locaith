@@ -84,6 +84,43 @@ class ContradictionResolver:
         overlap = len(left_core & right_core) / max(1, min(len(left_core), len(right_core)))
         return overlap >= 0.6
 
+    def _is_conditional_exception(self, rule: Dict) -> bool:
+        normalized = self._normalize_text(rule["text"])
+        if self._polarity(rule["text"]) != "positive":
+            return False
+        condition_markers = [
+            "only",
+            "if",
+            "when",
+            "during",
+            "with",
+            "approval",
+            "approved",
+            "audit",
+            "logging",
+            "hotfix",
+            "exception",
+            "runbook",
+        ]
+        matches = sum(1 for marker in condition_markers if marker in normalized)
+        return matches >= 2
+
+    def _is_general_negative_policy(self, rule: Dict) -> bool:
+        normalized = self._normalize_text(rule["text"])
+        if self._polarity(rule["text"]) != "negative":
+            return False
+        return not any(marker in normalized for marker in ["except", "unless", "approval", "audit", "hotfix"])
+
+    def _is_governed_exception_pair(self, left: Dict, right: Dict) -> bool:
+        if left["scope"] != right["scope"]:
+            return False
+        if not self._is_conflict(left, right):
+            return False
+        return (
+            (self._is_conditional_exception(left) and self._is_general_negative_policy(right))
+            or (self._is_conditional_exception(right) and self._is_general_negative_policy(left))
+        )
+
     def fallback_action(self, rule: Dict, conflicting_rules: List[Dict]) -> Dict[str, object]:
         is_destructive = any(
             token in rule["text"].lower()
@@ -120,13 +157,20 @@ class ContradictionResolver:
         rules = self.persona.get_rule_records()
         target = rules.get(rule_id)
         if not target:
-            return {"challenged": 0, "deprecated": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "approval_request_ids": [], "fallback_actions": []}
+            return {"challenged": 0, "deprecated": 0, "governed": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "governed_ids": [], "approval_request_ids": [], "fallback_actions": []}
 
         conflicts = self.find_conflicts(rule_id)
-        stats = {"challenged": 0, "deprecated": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "approval_request_ids": [], "fallback_actions": []}
+        stats = {"challenged": 0, "deprecated": 0, "governed": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "governed_ids": [], "approval_request_ids": [], "fallback_actions": []}
 
         for other_id in conflicts:
             other = self.persona.get_rule_records()[other_id]
+            if self._is_governed_exception_pair(target, other):
+                conditional_rule_id = rule_id if self._is_conditional_exception(target) else other_id
+                if self.persona.govern_exception_rule(conditional_rule_id):
+                    stats["governed"] += 1
+                    stats["governed_ids"].append(conditional_rule_id)
+                    target = self.persona.get_rule_records()[rule_id]
+                continue
             target_score = target["confidence"] + (target["support_count"] * 0.1)
             other_score = other["confidence"] + (other["support_count"] * 0.1)
 

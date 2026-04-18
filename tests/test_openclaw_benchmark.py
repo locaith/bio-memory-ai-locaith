@@ -290,6 +290,8 @@ async def test_openclaw_contradiction_chain_reconsolidates_rules():
 
     negative_events = [
         "git policy says never force push on frontend branches",
+        "frontend production policy forbids git push -f and requires reviewed pushes",
+        "never use git push -f on the frontend branch during production deployment",
     ]
     for idx, observation in enumerate(negative_events):
         await hippo.label_and_store(
@@ -327,13 +329,13 @@ async def test_openclaw_contradiction_chain_reconsolidates_rules():
     await hippo.consolidate()
 
     rules = persona.get_rule_records()
-    deprecated_rules = [rule for rule in rules.values() if rule["state"] == "deprecated"]
-    stable_rules = [rule for rule in rules.values() if rule["state"] in {"reinforced", "stable"}]
+    stable_rules = [rule for rule in rules.values() if rule["state"] == "stable"]
+    reinforced_rules = [rule for rule in rules.values() if rule["state"] == "reinforced"]
 
-    assert deprecated_rules
     assert stable_rules
-    assert any("Allow use git push on the frontend branch" in rule["text"] for rule in stable_rules)
-    assert any("Never use git push -f" in rule["text"] for rule in deprecated_rules)
+    assert reinforced_rules
+    assert any("Never use git push -f" in rule["text"] for rule in stable_rules)
+    assert any("Allow use git push on the frontend branch" in rule["text"] for rule in reinforced_rules)
 
     graph_results = graph.retrieve_beliefs(
         "hotfix branch force push exception",
