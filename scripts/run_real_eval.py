@@ -102,6 +102,51 @@ async def run_eval(run_name: str = "run-1"):
         },
     ]
 
+    contradiction_tasks = [
+        {
+            "task_id": "policy-neg-1",
+            "mode": "deploy",
+            "text": "team policy says never use git push -f on the frontend branch in production",
+            "workspace_id": "frontend",
+            "project_version": "v3.0.0",
+        },
+        {
+            "task_id": "policy-neg-2",
+            "mode": "deploy",
+            "text": "frontend production policy forbids git push -f and requires normal reviewed pushes",
+            "workspace_id": "frontend",
+            "project_version": "v3.0.0",
+        },
+        {
+            "task_id": "policy-neg-3",
+            "mode": "deploy",
+            "text": "never use git push -f on the frontend branch during production deployment",
+            "workspace_id": "frontend",
+            "project_version": "v3.0.0",
+        },
+        {
+            "task_id": "hotfix-pos-1",
+            "mode": "deploy",
+            "text": "approved hotfix runbook says allow force push on hotfix branches only with explicit approval and audit logging",
+            "workspace_id": "frontend",
+            "project_version": "v3.0.1",
+        },
+        {
+            "task_id": "hotfix-pos-2",
+            "mode": "deploy",
+            "text": "incident response allows git push -f on approved hotfix branches with audit logging",
+            "workspace_id": "frontend",
+            "project_version": "v3.0.1",
+        },
+        {
+            "task_id": "hotfix-pos-3",
+            "mode": "deploy",
+            "text": "allow force push on approved hotfix branches in production only when explicit approval and audit logging are present",
+            "workspace_id": "frontend",
+            "project_version": "v3.0.1",
+        },
+    ]
+
     task_results = []
     for task in tasks:
         started = time.perf_counter()
@@ -269,6 +314,56 @@ async def run_eval(run_name: str = "run-1"):
         "attention_state": l1.get_attention_state(),
     }
 
+    contradiction_storage = Path("real_eval_runs") / f"{run_name}-contradiction"
+    if contradiction_storage.exists():
+        shutil.rmtree(contradiction_storage)
+    contradiction_storage.mkdir(parents=True, exist_ok=True)
+
+    contradiction_engine = InstrumentedOllamaEngine(os.getenv("REAL_EVAL_MODEL", "gemma4:e2b"))
+    c_l1 = L1WorkingMemory(agent_name="contradiction-agent", storage_dir=str(contradiction_storage))
+    c_l2 = L2SemanticMemory(agent_name="contradiction-agent", storage_dir=str(contradiction_storage))
+    c_persona = Persona(name="contradiction-agent", storage_dir=str(contradiction_storage))
+    c_episodes = EpisodeStore(agent_name="contradiction-agent", storage_dir=str(contradiction_storage))
+    c_graph = KnowledgeGraph(agent_name="contradiction-agent", storage_dir=str(contradiction_storage))
+    c_hippo = Hippocampus(engine=contradiction_engine, l1=c_l1, l2=c_l2, persona=c_persona, episodes=c_episodes, graph=c_graph)
+
+    contradiction_task_results = []
+    for task in contradiction_tasks:
+        started = time.perf_counter()
+        await c_hippo.label_and_store(
+            task["text"],
+            source="openclaw",
+            task_id=task["task_id"],
+            workspace_id=task["workspace_id"],
+            project_version=task["project_version"],
+            source_refs=[{"kind": "terminal", "ref": task["task_id"]}],
+        )
+        c_l1.increment_nights()
+        c_l1.increment_nights()
+        c_l1.increment_nights()
+        consolidate_result = await c_hippo.consolidate()
+        contradiction_task_results.append(
+            {
+                "task_id": task["task_id"],
+                "elapsed_seconds": round(time.perf_counter() - started, 3),
+                "consolidate": consolidate_result,
+            }
+        )
+
+    contradiction_rules = c_persona.get_rule_records()
+    contradiction_metrics = {
+        "calls": len(contradiction_engine.usage),
+        "token_total": sum(item["prompt_eval_count"] + item["eval_count"] for item in contradiction_engine.usage),
+        "stable_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "stable"]),
+        "reinforced_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "reinforced"]),
+        "challenged_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "challenged"]),
+        "deprecated_rules": len([rule for rule in contradiction_rules.values() if rule["state"] == "deprecated"]),
+        "resolved": any(rule["state"] in {"challenged", "deprecated"} for rule in contradiction_rules.values()),
+        "task_results": contradiction_task_results,
+        "rules": list(contradiction_rules.values()),
+    }
+    metrics["contradiction_suite"] = contradiction_metrics
+
     return metrics
 
 
@@ -286,6 +381,9 @@ def _aggregate_runs(all_metrics):
         "retention_rates": [item["retention"]["rate"] for item in all_metrics],
         "task_success_rates": [item["task_success"]["rate"] for item in all_metrics],
         "contradiction_resolved_runs": sum(1 for item in all_metrics if item["contradiction"]["resolved"]),
+        "contradiction_suite_resolved_runs": sum(1 for item in all_metrics if item["contradiction_suite"]["resolved"]),
+        "stable_rule_counts": [item["contradiction_suite"]["stable_rules"] for item in all_metrics],
+        "reinforced_rule_counts": [item["contradiction_suite"]["reinforced_rules"] for item in all_metrics],
         "avg_total_tokens": avg(["token", "total_tokens"]),
         "avg_total_latency_seconds": avg(["latency", "total_seconds"]),
         "avg_retention_rate": avg(["retention", "rate"]),
@@ -343,6 +441,7 @@ def write_reports(all_metrics):
                 f"- Avg retention rate: {aggregate['avg_retention_rate']}",
                 f"- Avg task success rate: {aggregate['avg_task_success_rate']}",
                 f"- Runs with contradiction resolved: {aggregate['contradiction_resolved_runs']}/{aggregate['runs']}",
+                f"- Contradiction-suite resolved runs: {aggregate['contradiction_suite_resolved_runs']}/{aggregate['runs']}",
                 "",
                 "## Per-run trend",
                 "",
@@ -353,7 +452,10 @@ def write_reports(all_metrics):
                     f"latency={item['latency']['total_seconds']}s, "
                     f"retention={item['retention']['rate']}, "
                     f"task_success={item['task_success']['rate']}, "
-                    f"contradiction_resolved={item['contradiction']['resolved']}"
+                    f"contradiction_resolved={item['contradiction']['resolved']}, "
+                    f"contradiction_suite_stable={item['contradiction_suite']['stable_rules']}, "
+                    f"contradiction_suite_reinforced={item['contradiction_suite']['reinforced_rules']}, "
+                    f"contradiction_suite_resolved={item['contradiction_suite']['resolved']}"
                 )
                 for item in all_metrics
             ]

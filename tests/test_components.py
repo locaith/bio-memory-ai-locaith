@@ -417,7 +417,7 @@ def test_retrieval_service_adds_fallback_action_for_challenged_beliefs():
 
 def test_hippocampus_normalizes_weird_scope_and_rejects_generic_rule_promotion():
     class DummyEngine:
-        pass
+        backend = "ollama"
 
     l1 = L1WorkingMemory(agent_name="scope_gate_agent", storage_dir="test_data")
     persona = Persona(name="scope_gate_agent", storage_dir="test_data")
@@ -438,6 +438,59 @@ def test_hippocampus_normalizes_weird_scope_and_rejects_generic_rule_promotion()
         confidence=0.85,
         metadata=metadata,
     )
+    assert hippo._promotion_threshold(metadata, "Never use git push -f on the frontend branch in production.", "project") == 3
+
+
+def test_hippocampus_canonicalizes_policy_and_hotfix_rules():
+    class DummyEngine:
+        backend = "ollama"
+
+    hippo = Hippocampus(
+        engine=DummyEngine(),
+        l1=L1WorkingMemory(agent_name="canon_agent", storage_dir="test_data"),
+        l2=L2SemanticMemory(agent_name="canon_agent", storage_dir="test_data"),
+        persona=Persona(name="canon_agent", storage_dir="test_data"),
+    )
+    metadata = {"workspace_id": "frontend", "importance_score": 9}
+    deny_rule = hippo._canonicalize_identity_rule(
+        {"identity_rule": "Team policy forbids force pushing."},
+        "team policy says never use git push -f on the frontend branch in production",
+        metadata,
+    )
+    allow_rule = hippo._canonicalize_identity_rule(
+        {"identity_rule": "Approved hotfixes may allow force push."},
+        "approved hotfix runbook says allow force push on hotfix branches only with explicit approval and audit logging",
+        metadata,
+    )
+    assert deny_rule == "Never use git push -f on the frontend branch in production."
+    assert allow_rule == "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging."
+
+
+def test_persona_reaches_stable_after_threshold_repeats():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    persona = Persona(name="threshold_agent", storage_dir="test_data")
+    rule_id = persona.add_rule(
+        "Never use git push -f on the frontend branch in production.",
+        scope="project",
+        confidence=0.85,
+        evidence_episode_ids=["ep1"],
+        promotion_threshold=3,
+    )
+    persona.add_rule(
+        "Never use git push -f on the frontend branch in production.",
+        scope="project",
+        confidence=0.85,
+        evidence_episode_ids=["ep2"],
+        promotion_threshold=3,
+    )
+    persona.add_rule(
+        "Never use git push -f on the frontend branch in production.",
+        scope="project",
+        confidence=0.85,
+        evidence_episode_ids=["ep3"],
+        promotion_threshold=3,
+    )
+    assert persona.get_rule_records()[rule_id]["state"] == "stable"
 
 
 def test_structured_fallback_extracts_json_from_fenced_local_output():

@@ -202,8 +202,10 @@ class L2SemanticMemory:
             if payload.get("memory_type") in {"exception", "procedural"}:
                 boost += 0.25
         elif mode == "implement":
-            if payload.get("memory_type") in {"procedural", "semantic"}:
-                boost += 0.25
+            if payload.get("memory_type") == "procedural":
+                boost += 0.35
+            elif payload.get("memory_type") == "semantic":
+                boost += 0.18
         elif mode == "refactor":
             if payload.get("memory_type") == "semantic":
                 boost += 0.32

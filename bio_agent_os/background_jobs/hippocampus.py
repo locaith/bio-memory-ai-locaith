@@ -169,27 +169,96 @@ class Hippocampus:
 
     async def _compile_entry(self, content: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
         effort = self._adaptive_effort(metadata, content)
-        prompt = (
+        prompt = self._build_compile_prompt(content, metadata)
+        compiled = await self.engine.generate_structured(
+            prompt,
+            schema=CompiledMemory,
+            temperature=0.2,
+            effort=effort,
+        )
+        compiled["scope"] = self._normalize_scope(compiled.get("scope", "project"), metadata)
+        compiled["identity_rule"] = self._canonicalize_identity_rule(compiled, content, metadata)
+        return compiled
+
+    def _build_compile_prompt(self, content: str, metadata: Dict[str, Any]) -> str:
+        lowered = content.lower()
+        policy_hotfix_mode = any(
+            token in lowered
+            for token in [
+                "policy",
+                "git push -f",
+                "force push",
+                "hotfix",
+                "approval",
+                "audit logging",
+                "production",
+                "deploy",
+            ]
+        )
+        base = (
             "You are a memory compiler for a coding agent.\n"
-            "Transform one event into four outputs:\n"
+            "Transform one event into five outputs:\n"
             "1. episodic summary\n"
             "2. semantic memory\n"
             "3. procedural memory\n"
             "4. exception memory\n"
             "5. identity rule candidate\n"
             "Keep it compact, reusable, and avoid hype.\n"
-            f"Event:\n{content}\n\n"
-            f"Metadata:\n{metadata}"
         )
-        return await self.engine.generate_structured(
-            prompt,
-            schema=CompiledMemory,
-            temperature=0.2,
-            effort=effort,
-        )
+        if policy_hotfix_mode:
+            base += (
+                "This is a policy or emergency-exception memory.\n"
+                "Return highly concrete operational guidance.\n"
+                "The identity_rule must be one imperative rule sentence, not a slogan.\n"
+                "If the event forbids a risky action, identity_rule should start with 'Never' or 'Do not'.\n"
+                "If the event describes an approved emergency exception, identity_rule should start with 'Allow' and include the safety condition.\n"
+                "For scope, use only 'project' for repo, branch, deployment, policy, or incident-response exception memory.\n"
+            )
+        else:
+            base += (
+                "Prefer practical coding memory. Avoid generic governance slogans.\n"
+                "The identity_rule should describe one reusable operational constraint or practice.\n"
+            )
+        return base + f"\nEvent:\n{content}\n\nMetadata:\n{metadata}"
+
+    def _canonicalize_identity_rule(self, compiled: Dict[str, Any], content: str, metadata: Dict[str, Any]) -> str:
+        raw_rule = " ".join(str(compiled.get("identity_rule", "")).split()).strip()
+        if getattr(self.engine, "backend", "") != "ollama":
+            return raw_rule
+        lowered = f"{content} {raw_rule}".lower()
+        workspace = str(metadata.get("workspace_id") or "workspace").strip().lower()
+        if "git push -f" in lowered or "force push" in lowered:
+            if "hotfix" in lowered and any(token in lowered for token in ["allow", "approved", "approval", "audit"]):
+                return f"Allow use git push on the {workspace} branch during approved hotfix response with explicit approval and audit logging."
+            if any(token in lowered for token in ["never", "forbid", "forbidden", "avoid", "prohibit", "do not"]):
+                return f"Never use git push -f on the {workspace} branch in production."
+        return raw_rule
+
+    def _promotion_threshold(self, metadata: Dict[str, Any], identity_rule: str, scope: str) -> int:
+        lowered = identity_rule.lower()
+        importance = int(metadata.get("importance_score", 5))
+        if scope == "core":
+            return 999
+        if any(token in lowered for token in ["git push -f", "force push", "hotfix", "production", "approval", "audit logging"]):
+            return 3
+        if importance >= 8 or scope in {"project", "organization"}:
+            return 2
+        return 3
 
     def _normalize_scope(self, raw_scope: str, metadata: Dict[str, Any]) -> str:
         scope = (raw_scope or "").strip().lower()
+        topic = str(metadata.get("topic", "")).lower()
+        user_state = str(metadata.get("user_state", "")).lower()
+        policy_context = " ".join(
+            [
+                scope,
+                str(metadata.get("workspace_id", "")).lower(),
+                topic,
+                user_state,
+            ]
+        )
+        if any(token in policy_context for token in ["repo", "branch", "deployment", "production", "git", "policy"]):
+            return "project"
         if scope in self._allowed_scopes:
             return scope
         if any(token in scope for token in ["organization", "company", "global"]):
@@ -395,6 +464,7 @@ class Hippocampus:
                     scope=scope,
                     confidence=confidence,
                     evidence_episode_ids=[episode_id] if episode_id else [],
+                    promotion_threshold=self._promotion_threshold(metadata, identity_rule, scope),
                 )
                 reconcile_stats = self.reconciler.reconcile(rule_id)
                 rule_record = self.persona.get_rule_records()[rule_id]
