@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.approval_queue import ApprovalQueue
 from bio_agent_os.core.persona import Persona
+from bio_agent_os.core.sqlite_store import SQLiteStore
 
 
 NEGATIVE_MARKERS = {
@@ -69,12 +70,76 @@ class ContradictionResolver:
         self.approval_queue = approval_queue
         self.engine = engine
         self.detector_mode = detector_mode
+        self._store = SQLiteStore(storage_dir=persona.storage_dir)
+        self._cache_table = f"{self._store.sanitize_identifier(persona.name)}_nli_cache"
+        self._ensure_cache_table()
+        self.nli_cache_hits = 0
+        self.nli_cache_misses = 0
+        self.nli_live_calls = 0
+
+    def _ensure_cache_table(self):
+        self._store.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {self._cache_table} (
+                cache_key TEXT PRIMARY KEY,
+                left_text TEXT NOT NULL,
+                right_text TEXT NOT NULL,
+                relation TEXT NOT NULL,
+                confidence REAL NOT NULL,
+                reason TEXT NOT NULL,
+                updated_at REAL NOT NULL
+            )
+            """
+        )
 
     def _normalize_text(self, text: str) -> str:
         lowered = text.lower().strip()
         lowered = re.sub(r"[^a-z0-9\u00c0-\u024f\s]", " ", lowered)
         lowered = re.sub(r"\s+", " ", lowered)
         return lowered
+
+    def _cache_key(self, left: Dict, right: Dict) -> str:
+        left_text = self._normalize_text(left["text"])
+        right_text = self._normalize_text(right["text"])
+        ordered = sorted(
+            [
+                f"{left.get('scope', 'project')}::{left_text}",
+                f"{right.get('scope', 'project')}::{right_text}",
+            ]
+        )
+        return "||".join(ordered)
+
+    def _load_cached_decision(self, left: Dict, right: Dict) -> Optional[RuleRelationDecision]:
+        row = self._store.fetchone(
+            f"SELECT relation, confidence, reason FROM {self._cache_table} WHERE cache_key = ?",
+            [self._cache_key(left, right)],
+        )
+        if not row:
+            return None
+        self.nli_cache_hits += 1
+        return RuleRelationDecision(
+            relation=row["relation"],
+            confidence=float(row["confidence"]),
+            reason="nli-cache",
+        )
+
+    def _save_cached_decision(self, left: Dict, right: Dict, decision: RuleRelationDecision):
+        self._store.execute(
+            f"""
+            INSERT OR REPLACE INTO {self._cache_table}
+            (cache_key, left_text, right_text, relation, confidence, reason, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                self._cache_key(left, right),
+                self._normalize_text(left["text"]),
+                self._normalize_text(right["text"]),
+                decision.relation,
+                float(decision.confidence),
+                str(decision.reason),
+                time.time(),
+            ],
+        )
 
     def _polarity(self, text: str) -> str:
         normalized = self._normalize_text(text)
@@ -185,6 +250,11 @@ class ContradictionResolver:
         return heuristic == "neutral" or bool(shared_domains) or overlap < 0.7
 
     async def _nli_relation(self, left: Dict, right: Dict) -> RuleRelationDecision:
+        cached = self._load_cached_decision(left, right)
+        if cached:
+            return cached
+        self.nli_cache_misses += 1
+        self.nli_live_calls += 1
         prompt = (
             "You are a contradiction detector for long-term agent memory.\n"
             "Classify the logical relation between Rule A and Rule B.\n"
@@ -207,7 +277,9 @@ class ContradictionResolver:
             temperature=0.0,
             effort="low",
         )
-        return RuleRelationDecision.model_validate(payload)
+        decision = RuleRelationDecision.model_validate(payload)
+        self._save_cached_decision(left, right, decision)
+        return decision
 
     async def classify_relation(self, left: Dict, right: Dict) -> RuleRelationDecision:
         heuristic_relation = self._heuristic_relation(left, right)

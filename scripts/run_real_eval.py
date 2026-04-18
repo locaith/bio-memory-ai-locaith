@@ -99,12 +99,19 @@ async def run_contradiction_suite(tasks, storage_dir: Path, detector_mode: str, 
         "task_results": task_results,
         "rules": list(rules.values()),
         "nli_used": nli_used,
+        "nli_cache_hits": hippo.reconciler.nli_cache_hits,
+        "nli_cache_misses": hippo.reconciler.nli_cache_misses,
+        "nli_live_calls": hippo.reconciler.nli_live_calls,
     }
 
 
 async def run_detector_benchmark(model_id: str):
     engine = InstrumentedOllamaEngine(model_id)
-    persona = Persona(name="detector-benchmark-agent", storage_dir="real_eval_runs/detector-benchmark")
+    benchmark_dir = Path("real_eval_runs/detector-benchmark")
+    if benchmark_dir.exists():
+        shutil.rmtree(benchmark_dir)
+    benchmark_dir.mkdir(parents=True, exist_ok=True)
+    persona = Persona(name="detector-benchmark-agent", storage_dir=str(benchmark_dir))
     heuristic = ContradictionResolver(persona, engine=engine, detector_mode="heuristic")
     hybrid = ContradictionResolver(persona, engine=engine, detector_mode="hybrid")
 
@@ -127,29 +134,92 @@ async def run_detector_benchmark(model_id: str):
             "right": {"text": "Avoid Redux in new frontend modules.", "scope": "project"},
             "expected": "neutral",
         },
+        {
+            "name": "security-time-conflict",
+            "left": {"text": "Rotate production admin credentials only during the midnight maintenance window.", "scope": "project"},
+            "right": {"text": "Every production admin credential rotation must occur at 9 AM during office hours.", "scope": "project"},
+            "expected": "contradiction",
+        },
+        {
+            "name": "migration-approved-override",
+            "left": {"text": "Never run destructive schema migration during business hours.", "scope": "project"},
+            "right": {"text": "Allow destructive schema migration during recovery windows only with DBA approval and a documented rollback plan.", "scope": "project"},
+            "expected": "governed_exception",
+        },
+        {
+            "name": "tenant-neutral-separation",
+            "left": {"text": "Use optimistic UI updates in tenant settings pages.", "scope": "project"},
+            "right": {"text": "Require finance approval before renaming ERP customer codes for Tenant A.", "scope": "project"},
+            "expected": "neutral",
+        },
+        {
+            "name": "deploy-window-conflict",
+            "left": {"text": "All production deployments must be completed before sunrise.", "scope": "project"},
+            "right": {"text": "Every production deployment must start at noon for observability staffing.", "scope": "project"},
+            "expected": "contradiction",
+        },
+        {
+            "name": "security-approved-override",
+            "left": {"text": "Never disable MFA in production.", "scope": "project"},
+            "right": {"text": "Allow temporary MFA bypass only with human approval, an incident ticket, and a documented expiry window.", "scope": "project"},
+            "expected": "governed_exception",
+        },
     ]
 
     results = []
+    heuristic_fp = heuristic_fn = hybrid_fp = hybrid_fn = 0
     for item in pairs:
         heuristic_result = await heuristic.classify_relation(item["left"], item["right"])
         hybrid_result = await hybrid.classify_relation(item["left"], item["right"])
+        heuristic_correct = heuristic_result.relation == item["expected"]
+        hybrid_correct = hybrid_result.relation == item["expected"]
+        if heuristic_result.relation != item["expected"] and heuristic_result.relation != "neutral":
+            heuristic_fp += 1
+        if heuristic_result.relation == "neutral" and item["expected"] != "neutral":
+            heuristic_fn += 1
+        if hybrid_result.relation != item["expected"] and hybrid_result.relation != "neutral":
+            hybrid_fp += 1
+        if hybrid_result.relation == "neutral" and item["expected"] != "neutral":
+            hybrid_fn += 1
         results.append(
             {
                 "name": item["name"],
                 "expected": item["expected"],
                 "heuristic": heuristic_result.model_dump(),
                 "hybrid": hybrid_result.model_dump(),
-                "heuristic_correct": heuristic_result.relation == item["expected"],
-                "hybrid_correct": hybrid_result.relation == item["expected"],
+                "heuristic_correct": heuristic_correct,
+                "hybrid_correct": hybrid_correct,
             }
         )
+    repeat_hybrid_results = [
+        await hybrid.classify_relation(item["left"], item["right"])
+        for item in pairs
+    ]
     return {
         "pairs": results,
         "heuristic_correct": sum(1 for item in results if item["heuristic_correct"]),
         "hybrid_correct": sum(1 for item in results if item["hybrid_correct"]),
         "total": len(results),
+        "heuristic_precision": round(
+            sum(1 for item in results if item["expected"] != "neutral" and item["heuristic"]["relation"] == item["expected"])
+            / max(1, sum(1 for item in results if item["heuristic"]["relation"] != "neutral")),
+            3,
+        ),
+        "hybrid_precision": round(
+            sum(1 for item in results if item["expected"] != "neutral" and item["hybrid"]["relation"] == item["expected"])
+            / max(1, sum(1 for item in results if item["hybrid"]["relation"] != "neutral")),
+            3,
+        ),
+        "heuristic_false_positive": heuristic_fp,
+        "heuristic_false_negative": heuristic_fn,
+        "hybrid_false_positive": hybrid_fp,
+        "hybrid_false_negative": hybrid_fn,
+        "repeat_cache_confirmed": sum(1 for item in repeat_hybrid_results if item.reason == "nli-cache"),
         "calls": len(engine.usage),
         "token_total": sum(item["prompt_eval_count"] + item["eval_count"] for item in engine.usage),
+        "nli_cache_hits": hybrid.nli_cache_hits,
+        "nli_cache_misses": hybrid.nli_cache_misses,
+        "nli_live_calls": hybrid.nli_live_calls,
     }
 
 
@@ -586,6 +656,13 @@ def _aggregate_runs(all_metrics):
         "reinforced_rule_counts": [item["contradiction_suite"]["reinforced_rules"] for item in all_metrics],
         "heuristic_detector_correct": [item["detector_benchmark"]["heuristic_correct"] for item in all_metrics],
         "hybrid_detector_correct": [item["detector_benchmark"]["hybrid_correct"] for item in all_metrics],
+        "heuristic_detector_precision": [item["detector_benchmark"]["heuristic_precision"] for item in all_metrics],
+        "hybrid_detector_precision": [item["detector_benchmark"]["hybrid_precision"] for item in all_metrics],
+        "heuristic_detector_false_positive": [item["detector_benchmark"]["heuristic_false_positive"] for item in all_metrics],
+        "hybrid_detector_false_positive": [item["detector_benchmark"]["hybrid_false_positive"] for item in all_metrics],
+        "hybrid_nli_cache_hits": [item["detector_benchmark"]["nli_cache_hits"] for item in all_metrics],
+        "hybrid_nli_live_calls": [item["detector_benchmark"]["nli_live_calls"] for item in all_metrics],
+        "hybrid_detector_repeat_cache_confirmed": [item["detector_benchmark"]["repeat_cache_confirmed"] for item in all_metrics],
         "avg_total_tokens": avg(["token", "total_tokens"]),
         "avg_total_latency_seconds": avg(["latency", "total_seconds"]),
         "avg_retention_rate": avg(["retention", "rate"]),
@@ -625,6 +702,9 @@ def write_reports(all_metrics):
                 f"- Hybrid contradiction suite resolved: {latest_metrics['contradiction_suite']['resolved']}",
                 f"- Heuristic contradiction suite resolved: {latest_metrics['heuristic_contradiction_suite']['resolved']}",
                 f"- Detector benchmark: heuristic={latest_metrics['detector_benchmark']['heuristic_correct']}/{latest_metrics['detector_benchmark']['total']}, hybrid={latest_metrics['detector_benchmark']['hybrid_correct']}/{latest_metrics['detector_benchmark']['total']}",
+                f"- Detector precision: heuristic={latest_metrics['detector_benchmark']['heuristic_precision']}, hybrid={latest_metrics['detector_benchmark']['hybrid_precision']}",
+                f"- Detector false positives: heuristic={latest_metrics['detector_benchmark']['heuristic_false_positive']}, hybrid={latest_metrics['detector_benchmark']['hybrid_false_positive']}",
+                f"- Hybrid NLI cache: hits={latest_metrics['detector_benchmark']['nli_cache_hits']}, live_calls={latest_metrics['detector_benchmark']['nli_live_calls']}, repeat_cache_confirmed={latest_metrics['detector_benchmark']['repeat_cache_confirmed']}",
                 "",
                 "## Attention homeostasis",
                 "",
@@ -651,6 +731,13 @@ def write_reports(all_metrics):
                 f"- Approved-override-suite resolved runs: {aggregate['approved_override_resolved_runs']}/{aggregate['runs']}",
                 f"- Detector benchmark heuristic correct totals: {aggregate['heuristic_detector_correct']}",
                 f"- Detector benchmark hybrid correct totals: {aggregate['hybrid_detector_correct']}",
+                f"- Detector benchmark heuristic precision: {aggregate['heuristic_detector_precision']}",
+                f"- Detector benchmark hybrid precision: {aggregate['hybrid_detector_precision']}",
+                f"- Detector benchmark heuristic false positives: {aggregate['heuristic_detector_false_positive']}",
+                f"- Detector benchmark hybrid false positives: {aggregate['hybrid_detector_false_positive']}",
+                f"- Hybrid NLI cache hits across runs: {aggregate['hybrid_nli_cache_hits']}",
+                f"- Hybrid NLI live calls across runs: {aggregate['hybrid_nli_live_calls']}",
+                f"- Hybrid repeat-pass cache confirmations: {aggregate['hybrid_detector_repeat_cache_confirmed']}",
                 "",
                 "## Per-run trend",
                 "",
@@ -668,6 +755,13 @@ def write_reports(all_metrics):
                     f"heuristic_contradiction_suite_resolved={item['heuristic_contradiction_suite']['resolved']}, "
                     f"detector_heuristic={item['detector_benchmark']['heuristic_correct']}/{item['detector_benchmark']['total']}, "
                     f"detector_hybrid={item['detector_benchmark']['hybrid_correct']}/{item['detector_benchmark']['total']}, "
+                    f"heuristic_precision={item['detector_benchmark']['heuristic_precision']}, "
+                    f"hybrid_precision={item['detector_benchmark']['hybrid_precision']}, "
+                    f"heuristic_fp={item['detector_benchmark']['heuristic_false_positive']}, "
+                    f"hybrid_fp={item['detector_benchmark']['hybrid_false_positive']}, "
+                    f"hybrid_cache_hits={item['detector_benchmark']['nli_cache_hits']}, "
+                    f"hybrid_live_calls={item['detector_benchmark']['nli_live_calls']}, "
+                    f"hybrid_repeat_cache={item['detector_benchmark']['repeat_cache_confirmed']}, "
                     f"approved_override_reinforced={item['approved_override_suite']['reinforced_rules']}, "
                     f"approved_override_edges={item['approved_override_suite']['governed_exception_edges']}, "
                     f"approved_by_policy_edges={item['approved_override_suite']['approved_by_policy_edges']}, "

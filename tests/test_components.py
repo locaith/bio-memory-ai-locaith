@@ -98,7 +98,11 @@ def test_rest_client_headers():
 class FakeNLIEngine:
     is_ready = True
 
+    def __init__(self):
+        self.calls = 0
+
     async def generate_structured(self, prompt, schema, temperature=0.0, effort=None):
+        self.calls += 1
         if schema.__name__ != "RuleRelationDecision":
             raise ValueError(schema.__name__)
         lowered = prompt.lower()
@@ -358,6 +362,24 @@ async def test_hybrid_nli_detector_preserves_governed_exception():
     assert relation.relation == "governed_exception"
     stats = await resolver.areconcile(exception_rule_id)
     assert stats["governed"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_hybrid_nli_detector_uses_cache_for_repeated_pair():
+    engine = FakeNLIEngine()
+    persona = Persona(name="nli_cache_agent", storage_dir="test_data")
+    resolver = ContradictionResolver(
+        persona,
+        engine=engine,
+        detector_mode="hybrid",
+    )
+    left = {"text": "Deploy production releases overnight only.", "scope": "project"}
+    right = {"text": "Every production release must happen at 10 AM every business day.", "scope": "project"}
+    first = await resolver.classify_relation(left, right)
+    second = await resolver.classify_relation(left, right)
+    assert first.relation == "contradiction"
+    assert second.reason == "nli-cache"
+    assert engine.calls == 1
 
 
 def test_belief_graph_and_health_snapshot():
