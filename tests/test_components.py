@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 from pathlib import Path
 
 from bio_agent_os import (
@@ -414,9 +415,14 @@ def test_retrieval_service_builds_lineage_and_safety_guard():
     )
     graph.add_belief_rule(persona.get_rule_records()[override_rule_id])
     graph.add_governed_exception(override_rule_id, rule_id)
-    graph.add_approved_by_policy(override_rule_id, rule_id)
+    graph.add_approved_by_policy(
+        override_rule_id,
+        "Never use git push -f on the frontend branch.",
+        scope="project",
+        domain="git_hotfix",
+    )
     graph.add_requires_human_approval(override_rule_id)
-    graph.add_expires_override_at(override_rule_id, "temporary_override_window")
+    graph.add_expires_override_at(override_rule_id, 1000.0, 2000.0)
     l2.store_exception(
         "Exception: emergency hotfix branches may force push only with explicit approval.",
         exception_for="git",
@@ -443,6 +449,24 @@ def test_retrieval_service_builds_lineage_and_safety_guard():
     assert belief_bundle["approved_by_policy"]
     assert belief_bundle["requires_human_approval"]
     assert belief_bundle["expires_override_at"]
+    assert belief_bundle["approved_by_policy"][0]["target"].startswith("policy::")
+
+
+def test_l1_stress_decay_drops_when_failures_are_old():
+    l1 = L1WorkingMemory(agent_name="stress_decay_agent", storage_dir="test_data")
+    l1.clear()
+    old_timestamp = time.time() - (10 * 3600)
+    for index in range(3):
+        l1.add(
+            f"Old critical failure {index}",
+            source="terminal",
+            metadata={"importance_score": 9, "unresolved": True, "topic": "deploy"},
+        )
+        l1._entries[-1]["timestamp"] = old_timestamp
+    l1.save()
+    decayed = l1.get_attention_state()
+    assert decayed["stress_decay_factor"] < 1.0
+    assert decayed["hours_since_last_failure"] >= 9.0
 
 
 def test_retrieval_service_adds_fallback_action_for_challenged_beliefs():
@@ -547,8 +571,14 @@ def test_hippocampus_canonicalizes_policy_and_hotfix_rules():
         "approved hotfix runbook says allow force push on hotfix branches only with explicit approval and audit logging",
         metadata,
     )
+    tenant_rule = hippo._canonicalize_identity_rule(
+        {"identity_rule": "Tenant A can rename customer codes with signoff."},
+        "for tenant A, approved code rename override requires finance signoff and audit logging",
+        metadata,
+    )
     assert deny_rule == "Never use git push -f on the frontend branch in production."
     assert allow_rule == "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging."
+    assert tenant_rule == "Allow customer code rename for Tenant A only with finance approval and audit logging."
 
 
 def test_persona_reaches_stable_after_threshold_repeats():

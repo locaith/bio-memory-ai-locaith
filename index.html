@@ -650,6 +650,19 @@
     }
 
     function renderLineage(payload) {
+      const formatPolicies = (policies) => {
+        if (!policies || !policies.length) return "none";
+        return policies.map((item) => item.policy_text || item.policy_node_id || item).join(" | ");
+      };
+      const formatWindows = (windows) => {
+        if (!windows || !windows.length) return "none";
+        return windows.map((item) => {
+          if (!item || typeof item !== "object") return String(item);
+          const start = item.valid_from ? new Date(item.valid_from * 1000).toLocaleString() : "now";
+          const end = item.valid_to ? new Date(item.valid_to * 1000).toLocaleString() : "open";
+          return `${start} -> ${end}`;
+        }).join(" | ");
+      };
       dom.safetyGuard.textContent = payload.safety_guard || "No safety guard generated for this query.";
       dom.guardMeta.textContent = `${(payload.graph_results || []).length} beliefs · ${(payload.exceptions || []).length} exceptions · ${(payload.override_chains || []).length} overrides`;
 
@@ -700,7 +713,7 @@
             <span class="pill">approved override</span>
             <strong>${escapeHtml(item.override_text)}</strong>
             <p>default=${escapeHtml((item.default_rules || []).map(rule => rule.properties?.text || rule.name).join(" | ") || "none")}</p>
-            <p>policy=${escapeHtml((item.approved_by_policy || []).join(", ") || "none")} · human_approval=${escapeHtml((item.requires_human_approval || []).join(", ") || "none")} · expires=${escapeHtml((item.expires_override_at || []).join(", ") || "none")}</p>
+            <p>policy=${escapeHtml(formatPolicies(item.approved_by_policy))} · human_approval=${escapeHtml((item.requires_human_approval || []).join(", ") || "none")} · expires=${escapeHtml(formatWindows(item.expires_override_at))}</p>
             <p>evidence=${escapeHtml((item.evidence_episode_ids || []).join(", ") || "none")}</p>
           </div>
         `,

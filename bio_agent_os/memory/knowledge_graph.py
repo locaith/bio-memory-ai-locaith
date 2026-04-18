@@ -221,11 +221,21 @@ class KnowledgeGraph:
             properties={"valid_from": time.time(), "valid_to": None},
         )
 
-    def add_approved_by_policy(self, exception_rule_id: str, policy_rule_id: str) -> bool:
+    def ensure_policy_node(self, policy_text: str, scope: str = "project", domain: str = "general") -> str:
+        policy_id = f"policy::{self._node_key(policy_text)}::{scope}::{domain}"
+        self.add_entity(
+            policy_id,
+            entity_type="policy_node",
+            properties={"text": policy_text, "scope": scope, "domain": domain},
+        )
+        return policy_id
+
+    def add_approved_by_policy(self, exception_rule_id: str, policy_text: str, scope: str = "project", domain: str = "general") -> bool:
+        policy_node_id = self.ensure_policy_node(policy_text, scope=scope, domain=domain)
         return self.add_relation(
             exception_rule_id,
             "approved_by_policy",
-            policy_rule_id,
+            policy_node_id,
             weight=1.0,
             properties={"valid_from": time.time(), "valid_to": None},
         )
@@ -240,14 +250,19 @@ class KnowledgeGraph:
             properties={"valid_from": time.time(), "valid_to": None},
         )
 
-    def add_expires_override_at(self, rule_id: str, expiry_label: str) -> bool:
-        self.add_entity(expiry_label, entity_type="expiry_window")
+    def add_expires_override_at(self, rule_id: str, valid_from: float, valid_to: Optional[float]) -> bool:
+        window_node_id = f"expiry_window::{rule_id}"
+        self.add_entity(
+            window_node_id,
+            entity_type="expiry_window",
+            properties={"valid_from": valid_from, "valid_to": valid_to},
+        )
         return self.add_relation(
             rule_id,
             "expires_override_at",
-            expiry_label,
+            window_node_id,
             weight=1.0,
-            properties={"valid_from": time.time(), "valid_to": None},
+            properties={"valid_from": valid_from, "valid_to": valid_to},
         )
 
     def query_relations(self, entity_name: str) -> List[Dict[str, Any]]:
@@ -435,9 +450,22 @@ class KnowledgeGraph:
                     "governed_by_exception_count": len(governed_by_exceptions),
                     "governed_exception_for": [edge["target"] for edge in governed_exception_for],
                     "governed_by_exceptions": [edge["source"] for edge in governed_by_exceptions],
-                    "approved_by_policy": [edge["target"] for edge in approved_by_policy],
+                    "approved_by_policy": [
+                        {
+                            "policy_node_id": edge["target"],
+                            "policy_text": self._nodes.get(self._node_key(edge["target"]), {}).get("properties", {}).get("text", edge["target"]),
+                        }
+                        for edge in approved_by_policy
+                    ],
                     "requires_human_approval": [edge["target"] for edge in requires_human_approval],
-                    "expires_override_at": [edge["target"] for edge in expires_override_at],
+                    "expires_override_at": [
+                        {
+                            "window_node_id": edge["target"],
+                            "valid_from": edge.get("properties", {}).get("valid_from"),
+                            "valid_to": edge.get("properties", {}).get("valid_to"),
+                        }
+                        for edge in expires_override_at
+                    ],
                     "fallback_action": (
                         "Treat as non-authoritative. Prefer procedural/exception memory and require explicit approval before destructive actions."
                         if state == "challenged"

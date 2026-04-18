@@ -3,6 +3,7 @@ Rule contradiction detection and reconciliation.
 """
 
 import re
+import time
 from typing import Dict, List, Optional
 
 from bio_agent_os.core.approval_queue import ApprovalQueue
@@ -145,17 +146,19 @@ class ContradictionResolver:
         requires_human_approval = any(
             token in normalized for token in ["approval", "approved", "human", "signoff", "dba", "incident ticket"]
         )
-        expiry_label = ""
+        valid_from = time.time()
+        valid_to = None
         if any(token in normalized for token in ["expiry", "temporary", "window", "recovery window", "business hours"]):
             if "business hours" in normalized:
-                expiry_label = "outside_business_hours"
+                valid_to = valid_from + (12 * 3600)
             elif "recovery" in normalized:
-                expiry_label = "recovery_window_only"
+                valid_to = valid_from + (6 * 3600)
             else:
-                expiry_label = "temporary_override_window"
+                valid_to = valid_from + (24 * 3600)
         return {
             "requires_human_approval": requires_human_approval,
-            "expiry_label": expiry_label,
+            "valid_from": valid_from,
+            "valid_to": valid_to,
         }
 
     def fallback_action(self, rule: Dict, conflicting_rules: List[Dict]) -> Dict[str, object]:
@@ -198,12 +201,45 @@ class ContradictionResolver:
 
         conflicts = self.find_conflicts(rule_id)
         stats = {"challenged": 0, "deprecated": 0, "governed": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "governed_ids": [], "governed_pairs": [], "approval_request_ids": [], "fallback_actions": []}
+        governed_defaults = set()
+
+        for other_id, other in rules.items():
+            if other_id == rule_id:
+                continue
+            if other["state"] in {"deprecated", "archived"}:
+                continue
+            if not self._is_governed_exception_pair(target, other):
+                continue
+
+            conditional_rule_id = rule_id if self._is_conditional_exception(target) else other_id
+            default_rule_id = other_id if conditional_rule_id == rule_id else rule_id
+            if default_rule_id in governed_defaults:
+                continue
+            if self.persona.govern_exception_rule(conditional_rule_id):
+                metadata = self._override_metadata(
+                    self.persona.get_rule_records()[conditional_rule_id]
+                )
+                stats["governed"] += 1
+                stats["governed_ids"].append(conditional_rule_id)
+                stats["governed_pairs"].append(
+                    {
+                        "exception_rule_id": conditional_rule_id,
+                        "default_rule_id": default_rule_id,
+                        "requires_human_approval": metadata["requires_human_approval"],
+                        "valid_from": metadata["valid_from"],
+                        "valid_to": metadata["valid_to"],
+                    }
+                )
+                governed_defaults.add(default_rule_id)
+                target = self.persona.get_rule_records()[rule_id]
 
         for other_id in conflicts:
             other = self.persona.get_rule_records()[other_id]
             if self._is_governed_exception_pair(target, other):
                 conditional_rule_id = rule_id if self._is_conditional_exception(target) else other_id
                 default_rule_id = other_id if conditional_rule_id == rule_id else rule_id
+                if default_rule_id in governed_defaults:
+                    continue
                 if self.persona.govern_exception_rule(conditional_rule_id):
                     metadata = self._override_metadata(
                         self.persona.get_rule_records()[conditional_rule_id]
@@ -215,9 +251,11 @@ class ContradictionResolver:
                             "exception_rule_id": conditional_rule_id,
                             "default_rule_id": default_rule_id,
                             "requires_human_approval": metadata["requires_human_approval"],
-                            "expiry_label": metadata["expiry_label"],
+                            "valid_from": metadata["valid_from"],
+                            "valid_to": metadata["valid_to"],
                         }
                     )
+                    governed_defaults.add(default_rule_id)
                     target = self.persona.get_rule_records()[rule_id]
                 continue
             target_score = target["confidence"] + (target["support_count"] * 0.1)

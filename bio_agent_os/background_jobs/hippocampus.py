@@ -232,7 +232,11 @@ class Hippocampus:
                 return f"Allow use git push on the {workspace} branch during approved hotfix response with explicit approval and audit logging."
             if any(token in lowered for token in ["never", "forbid", "forbidden", "avoid", "prohibit", "do not"]):
                 return f"Never use git push -f on the {workspace} branch in production."
-        if "customer code" in lowered and "tenant a" in lowered and any(token in lowered for token in ["allow", "approval", "audit", "signoff"]):
+        if (
+            ("customer code" in lowered or ("code" in lowered and "rename" in lowered))
+            and "tenant a" in lowered
+            and any(token in lowered for token in ["allow", "approval", "audit", "signoff", "finance"])
+        ):
             return "Allow customer code rename for Tenant A only with finance approval and audit logging."
         if "customer code" in lowered and any(token in lowered for token in ["never", "do not", "forbid", "forbidden"]):
             return "Never rename ERP customer codes after onboarding."
@@ -495,20 +499,36 @@ class Hippocampus:
                     for challenged_id in reconcile_stats["challenged_ids"]:
                         self.graph.add_conflict(challenged_id, rule_id)
                     for governed_pair in reconcile_stats.get("governed_pairs", []):
+                        current_rules = self.persona.get_rule_records()
+                        default_rule = current_rules.get(governed_pair["default_rule_id"], {})
+                        exception_rule = current_rules.get(governed_pair["exception_rule_id"], {})
+                        relation_domain = "general"
+                        lowered_exception = str(exception_rule.get("text", "")).lower()
+                        if "tenant" in lowered_exception or "customer code" in lowered_exception:
+                            relation_domain = "tenant_code"
+                        elif "migration" in lowered_exception or "schema" in lowered_exception:
+                            relation_domain = "migration"
+                        elif "mfa" in lowered_exception or "incident ticket" in lowered_exception:
+                            relation_domain = "security_override"
+                        elif "git push" in lowered_exception or "hotfix" in lowered_exception:
+                            relation_domain = "git_hotfix"
                         self.graph.add_governed_exception(
                             governed_pair["exception_rule_id"],
                             governed_pair["default_rule_id"],
                         )
                         self.graph.add_approved_by_policy(
                             governed_pair["exception_rule_id"],
-                            governed_pair["default_rule_id"],
+                            str(default_rule.get("text", governed_pair["default_rule_id"])),
+                            scope=str(default_rule.get("scope", "project")),
+                            domain=relation_domain,
                         )
                         if governed_pair.get("requires_human_approval"):
                             self.graph.add_requires_human_approval(governed_pair["exception_rule_id"])
-                        if governed_pair.get("expiry_label"):
+                        if governed_pair.get("valid_to"):
                             self.graph.add_expires_override_at(
                                 governed_pair["exception_rule_id"],
-                                str(governed_pair["expiry_label"]),
+                                float(governed_pair.get("valid_from") or 0.0),
+                                float(governed_pair["valid_to"]),
                             )
 
                 if self.l2:

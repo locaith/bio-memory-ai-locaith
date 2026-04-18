@@ -474,6 +474,8 @@ async def run_eval(run_name: str = "run-1"):
         "stable_rules": len([rule for rule in override_rules.values() if rule["state"] == "stable"]),
         "reinforced_rules": len([rule for rule in override_rules.values() if rule["state"] == "reinforced"]),
         "governed_exception_edges": len([edge for edge in o_graph._edges if edge["relation"] == "governed_exception_for"]),
+        "approved_by_policy_edges": len([edge for edge in o_graph._edges if edge["relation"] == "approved_by_policy"]),
+        "expiring_override_edges": len([edge for edge in o_graph._edges if edge["relation"] == "expires_override_at"]),
         "resolved": any(rule["state"] == "reinforced" for rule in override_rules.values()),
         "task_results": override_task_results,
         "rules": list(override_rules.values()),
@@ -577,6 +579,8 @@ def write_reports(all_metrics):
                     f"contradiction_suite_resolved={item['contradiction_suite']['resolved']}, "
                     f"approved_override_reinforced={item['approved_override_suite']['reinforced_rules']}, "
                     f"approved_override_edges={item['approved_override_suite']['governed_exception_edges']}, "
+                    f"approved_by_policy_edges={item['approved_override_suite']['approved_by_policy_edges']}, "
+                    f"expiring_override_edges={item['approved_override_suite']['expiring_override_edges']}, "
                     f"approved_override_resolved={item['approved_override_suite']['resolved']}"
                 )
                 for item in all_metrics

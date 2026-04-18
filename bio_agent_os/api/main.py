@@ -95,7 +95,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Bio-Agent OS",
     description="Portable bio-inspired memory infrastructure for AI agents",
-    version="0.4.0",
+    version="0.6.0",
     lifespan=lifespan,
 )
 

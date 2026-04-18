@@ -50,6 +50,23 @@ class RetrievalService:
         l2_results: List[Dict[str, object]],
         graph_results: List[Dict[str, object]],
     ) -> str:
+        def _expiry_label(item: Dict[str, object]) -> str:
+            windows = item.get("expires_override_at") or []
+            if not windows:
+                return "none"
+            labels = []
+            for window in windows:
+                if isinstance(window, dict):
+                    start = window.get("valid_from")
+                    end = window.get("valid_to")
+                    if end:
+                        labels.append(f"{start:.0f}->{end:.0f}")
+                    elif start:
+                        labels.append(f"{start:.0f}->open")
+                else:
+                    labels.append(str(window))
+            return ",".join(labels) or "none"
+
         exception_lines = [
             f"- {item['content']}"
             for item in l2_results
@@ -65,7 +82,7 @@ class RetrievalService:
                 f"- [{item['scope']}] {item['text']} "
                 f"(approved override, confidence={item['confidence']:.2f}, "
                 f"requires_approval={'yes' if item.get('requires_human_approval') else 'no'}, "
-                f"expires={','.join(item.get('expires_override_at') or ['none'])})"
+                f"expires={_expiry_label(item)})"
             )
             for item in graph_results
             if item.get("state") in {"stable", "reinforced"} and item.get("governed_exception_for")
@@ -221,9 +238,23 @@ class RetrievalService:
                         "override_rule_id": graph_item["rule_id"],
                         "override_text": graph_item["text"],
                         "default_rules": default_rules,
-                        "approved_by_policy": [edge["target"] for edge in belief_bundle.get("approved_by_policy", [])],
+                        "approved_by_policy": [
+                            {
+                                "policy_node_id": edge["target"],
+                                "policy_text": self.graph.get_entity(edge["target"]).get("properties", {}).get("text", edge["target"])
+                                if self.graph.get_entity(edge["target"])
+                                else edge["target"],
+                            }
+                            for edge in belief_bundle.get("approved_by_policy", [])
+                        ],
                         "requires_human_approval": [edge["target"] for edge in belief_bundle.get("requires_human_approval", [])],
-                        "expires_override_at": [edge["target"] for edge in belief_bundle.get("expires_override_at", [])],
+                        "expires_override_at": [
+                            {
+                                "valid_from": edge.get("properties", {}).get("valid_from"),
+                                "valid_to": edge.get("properties", {}).get("valid_to"),
+                            }
+                            for edge in belief_bundle.get("expires_override_at", [])
+                        ],
                         "evidence_episode_ids": [edge["source"] for edge in belief_bundle.get("supports", []) if edge.get("source")],
                     }
                 )

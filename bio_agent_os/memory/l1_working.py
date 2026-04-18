@@ -81,13 +81,19 @@ class L1WorkingMemory:
         unresolved_ratio = sum(float(entry.get("unresolved_status", 0.0)) for entry in recent) / max(len(recent), 1)
         severity_avg = sum(float(entry.get("severity", 0.5)) for entry in recent) / max(len(recent), 1)
         raw_failure_streak = 0
+        last_failure_timestamp = None
         for entry in reversed(recent):
             if float(entry.get("unresolved_status", 0.0)) >= 0.5 or float(entry.get("severity", 0.0)) >= 0.75:
                 raw_failure_streak += 1
+                last_failure_timestamp = float(entry.get("timestamp", time.time()))
             else:
                 break
         failure_streak = min(1.0, raw_failure_streak / 5.0)
-        stress_level = self._clamp((0.45 * unresolved_ratio) + (0.35 * severity_avg) + (0.20 * failure_streak))
+        if last_failure_timestamp is None:
+            last_failure_timestamp = max(float(entry.get("timestamp", time.time())) for entry in recent)
+        hours_since_last_failure = max(0.0, (time.time() - last_failure_timestamp) / 3600.0)
+        decay_factor = max(0.35, 1.0 - min(hours_since_last_failure / 8.0, 0.65))
+        stress_level = self._clamp(((0.45 * unresolved_ratio) + (0.35 * severity_avg) + (0.20 * failure_streak)) * decay_factor)
         severity_weight = 0.15 + (0.20 * stress_level)
         unresolved_weight = 0.20 + (0.10 * stress_level)
         recency_weight = max(0.05, 0.15 - (0.05 * stress_level))
@@ -98,6 +104,8 @@ class L1WorkingMemory:
             "stress_level": stress_level,
             "global_gain": round(1.0 + stress_level, 3),
             "failure_streak": float(raw_failure_streak),
+            "stress_decay_factor": decay_factor,
+            "hours_since_last_failure": hours_since_last_failure,
             "task_weight": task_weight / total,
             "novelty_weight": novelty_weight / total,
             "unresolved_weight": unresolved_weight / total,
