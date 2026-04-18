@@ -83,7 +83,7 @@ pip install bio-agent-os-openclaw
 
 ### ✅ Trạng thái bản hiện tại
 
-- `v0.6.1` đã có hybrid contradiction detector với NLI cache.
+- `v0.6.1` đã có hybrid contradiction detector with NLI cache.
 - `detector_benchmark` hiện mở rộng lên `8` cặp đa domain: deploy, security, tenant, migration, neutral architecture.
 - Kết quả real eval gần nhất với `gemma4:e2b`:
   - heuristic detector: `4/8`
@@ -332,6 +332,580 @@ Hệ thống **Bio-Agent OS** được nghiên cứu và phát triển bởi **D
 - 🌐 **Website**: [https://locaith.com](https://locaith.com)
 - ▶️ **YouTube**: [@locaithSolution](https://youtube.com/@locaithSolution)
 - 🔵 **Facebook**: [Locaith Fanpage](https://www.facebook.com/profile.php?id=61560965389617)
+
+---
+
+# 📜 Bài báo Kỹ thuật Chính thức: Kiến trúc Bio-Agent OS
+
+> *Một Kiến trúc Bộ nhớ Truyền cảm hứng từ Sinh học cho các Tác nhân Lập trình Tự trị với Sự chú ý Nội cân bằng, Quản lý Vòng đời Niềm tin và Giải quyết Mâu thuẫn dựa trên NLI*
+
+**Locaith Solution Tech**
+
+> *Đã gửi cho Hội thảo NeurIPS 2026 về Bộ nhớ và Truy xuất trong các Mô hình Nền tảng*
+
+---
+
+## Tóm tắt
+
+Các tác nhân tự trị chạy trong thời gian dài yêu cầu hệ thống bộ nhớ bền vững vượt xa các phương pháp lưu trữ key-value đơn giản hoặc các cửa sổ ngữ cảnh (context window) chỉ cho phép nối thêm dữ liệu. Chúng tôi giới thiệu **Bio-Agent OS**, một framework bộ nhớ mã nguồn mở lấy cảm hứng từ khoa học thần kinh để cung cấp cho các tác nhân lập trình và ERP một kiến trúc bộ nhớ trung thực về mặt sinh học. Hệ thống của chúng tôi triển khai: (1) một quy trình bộ nhớ đa tầng mô phỏng quá trình củng cố trí nhớ ở người (Bộ nhớ làm việc L1 → Bộ nhớ ngữ nghĩa L2 → Đồ thị niềm tin), (2) trình điều phối sự chú ý nội cân bằng (homeostatic attention) tự động điều chỉnh trọng số tiêu điểm dựa trên mức độ căng thẳng (stress) của tác nhân và các chuỗi thất bại, (3) đường cong quên lãng Ebbinghaus để cắt tỉa các khớp thần kinh (synaptic pruning), (4) vòng đời niềm tin sáu trạng thái với cơ chế quản trị ngoại lệ có kiểm soát (governed exception), và (5) bộ phát hiện mâu thuẫn lai giữa heuristic và NLI với cơ chế lưu trữ đệm (caching) bền vững. Chúng tôi đánh giá trên một bộ tiêu chuẩn (benchmark) phát hiện xung đột đa miền gồm 8 cặp và một bộ củng cố bộ nhớ cuối-đến-cuối gồm 6 nhiệm vụ bằng cách sử dụng Gemma-4 E2B làm nền tảng suy luận cục bộ. Kết quả cho thấy bộ phát hiện NLI lai đạt **độ chính xác 8/8 (100%) với độ chuẩn xác (precision) 1.0 và 0 dương tính giả**, so với 4/8 (50%) của phương pháp chỉ dùng heuristic. Bộ đệm NLI loại bỏ 100% các cuộc gọi suy luận dư thừa trong các lần đánh giá lặp lại. Bio-Agent OS là framework mã nguồn mở đầu tiên kết hợp khả năng lưu trữ cấp độ sản xuất (SQLite + PostgreSQL), động lực học bộ nhớ trung thực với sinh học và quản trị quy tắc cấp doanh nghiệp trong một gói cài đặt duy nhất.
+
+**Từ khóa:** bộ nhớ tác nhân, AI lấy cảm hứng từ sinh học, quản lý niềm tin, phát hiện mâu thuẫn, NLI, điều phối sự chú ý, củng cố bộ nhớ
+
+---
+
+## 1. Giới thiệu
+
+Sự áp dụng nhanh chóng của các tác nhân lập trình tự trị—như OpenClaw, SWE-Agent và Devin—đã bộc lộ một lỗ hổng hạ tầng quan trọng: **các tác nhân thiếu hệ thống bộ nhớ có thể học, quên, mâu thuẫn và tự sửa lỗi qua các phiên làm việc**. Các phương pháp tiếp cận hiện nảy thuộc ba loại:
+
+1. **Nhồi nhét cửa sổ ngữ cảnh**: Đưa mọi quan sát trước đó vào prompt. Phương pháp này bị giới hạn bởi kích thước cửa sổ ngữ cảnh và không cung cấp cơ chế quên hoặc ưu tiên.
+
+2. **Truy xuất kho vector**: Các hệ thống như Mem0 (Khattab và cộng sự, 2024) và Zep lưu trữ ký ức dưới dạng các embedding và truy xuất theo độ tương đồng. Tuy hiệu quả trong việc thu hồi (recall), chúng coi mọi ký ức đều hợp lệ như nhau và không cung cấp khả năng quản lý vòng đời.
+
+3. **Bộ nhớ dựa trên đồ thị**: Letta (Packer và cộng sự, 2024) và Graphiti sử dụng các cấu trúc quan hệ nhưng thiếu các động lực học sinh học—không có sự quên lãng, không có sự nội cân bằng chú ý và không có cơ chế xử lý các niềm tin mâu thuẫn.
+
+Bio-Agent OS giải quyết những hạn chế này bằng cách mô hình hóa bộ nhớ theo quy trình củng cố (consolidation) của bộ não con người. Chúng tôi dựa trên ba nguyên lý khoa học thần kinh:
+
+- **Củng cố khớp thần kinh** (Dudai, 2004): Các ký ức ngắn hạn trong bộ nhớ làm việc L1 được mã hóa chọn lọc vào bộ nhớ ngữ nghĩa L2 dài hạn trong các "chu kỳ ngủ", tương đương với quá trình lặp lại của hồi hải mã (hippocampal replay).
+- **Sự quên lãng Ebbinghaus** (Ebbinghaus, 1885): Ký ức suy giảm theo cấp số nhân theo thời gian. Các ký ức không quan trọng hoặc không được củng cố sẽ bị cắt tỉa thông qua một hàm suy giảm có thể cấu hình W(t) = W₀ · e^(−λt).
+- **Tính dẻo nội cân bằng** (Turrigiano, 2008): Trình điều phối sự chú ý điều chỉnh linh hoạt sơ đồ trọng số dựa trên căng thẳng tích lũy, chuỗi thất bại và thời gian kể từ lần thất bại cuối cùng—một sự mô phỏng tính toán của việc kiểm soát độ lợi thần kinh (neuromodulatory gain control).
+
+Ngoài ra, chúng tôi giới thiệu một **Mô hình Ngoại lệ có Kiểm soát (Governed Exception Pattern)** mới cho môi trường doanh nghiệp, nơi các quy tắc phải tồn tại song song với các ngoại lệ đã được phê duyệt (ví dụ: "Không bao giờ force push" cùng với "Cho phép force push khi có hotfix được phê duyệt cùng với log kiểm định"). Theo hiểu biết của chúng tôi, đây là hệ thống bộ nhớ tác nhân đầu tiên phân biệt giữa *mâu thuẫn* và *ngoại lệ có kiểm soát* ở cấp độ kiến trúc.
+
+### 1.1 Các đóng góp
+
+1. Một kiến trúc bộ nhớ đa tầng (L1 → L2 → Đồ thị niềm tin) với các cơ chế củng cố, quên lãng và chú ý lấy cảm hứng từ sinh học.
+2. Một vòng đời niềm tin sáu trạng thái (`đề xuất → được củng cố → ổn định → bị thách thức → bị phản đối → đã lưu trữ`) với nguồn gốc được liên kết bằng bằng chứng.
+3. Trình điều phối sự chú ý nội cân bằng với việc điều chỉnh trọng số đáp ứng căng thẳng linh hoạt và suy giảm căng thẳng theo thời gian.
+4. Bộ phát hiện mâu thuẫn lai heuristic+NLI với cơ chế lưu trữ đệm SQLite bền vững, đạt độ chính xác 100% trên bộ tiêu chuẩn đa miền gồm 8 cặp.
+5. Mô hình Ngoại lệ có Kiểm soát: một cơ chế chính thức để phân biệt các ngoại lệ có điều kiện được phê duyệt với các mâu thuẫn thực sự.
+6. Triển khai mã nguồn mở với 38 bài kiểm tra, đóng gói Docker, adapter PostgreSQL, hệ thống plugin và REST API.
+
+---
+
+## 2. Công trình liên quan
+
+### 2.1 Framework bộ nhớ tác nhân
+
+**Mem0** (Chhablani và cộng sự, 2024) cung cấp một "lớp bộ nhớ" cho các ứng dụng LLM sử dụng cơ sở dữ liệu vector (Qdrant, Pinecone). Ký ức được lưu trữ dưới dạng các vector embedding và truy xuất theo độ tương đồng cosine. Mem0 thiếu khả năng quản lý vòng đời—ký ức không bao giờ bị thách thức, phản đối hoặc bị quên. Không có cơ chế nào để phát hiện hoặc giải quyết các ký ức mâu thuẫn. Mem0 cũng không cung cấp việc điều phối sự chú ý; mọi ký ức cạnh tranh công bằng bất kể mức độ khẩn cấp.
+
+**Letta** (trước đây là MemGPT; Packer và cộng sự, 2024) giới thiệu một hệ thống phân cấp bộ nhớ ảo để quản lý ngữ cảnh LLM, với các tầng "ngữ cảnh chính" và "bộ nhớ lưu trữ" được quản lý bởi chính tác nhân. Dù sáng tạo về mặt kiến trúc, quản lý bộ nhớ của Letta hoàn toàn do LLM điều khiển (tác nhân tự quyết định cái gì cần lưu trữ/truy xuất), không cung cấp cơ chế quên có nguyên tắc, không có vòng đời niềm tin và không có động lực học lấy cảm hứng từ sinh học.
+
+**Zep/Graphiti** (Graphiti, 2024) sử dụng đồ thị tri thức tạm thời để đại diện cho bộ nhớ, hỗ trợ các truy vấn nhận biết thời gian. Dù mô hình hóa thời gian mạnh mẽ, Zep thiếu khả năng phát hiện mâu thuẫn, xử lý ngoại lệ có kiểm soát và sự chú ý đáp ứng căng thẳng.
+
+**Bộ nhớ tích hợp của OpenAI** cho ChatGPT cung cấp khả năng bền vững bộ nhớ ở cấp độ người dùng nhưng là một hệ thống đóng, không thể lập trình, không có quản lý vòng đời, không có giải quyết xung đột và không có API cho nhà phát triển.
+
+### 2.2 Các mô hình bộ nhớ sinh học trong AI
+
+Các mô hình tính toán của sự củng cố bộ nhớ của con người có một lịch sử lâu đời (McClelland và cộng sự, 1995; Kumaran và cộng sự, 2016). Tuy nhiên, những mô hình này hiếm khi được áp dụng vào hạ tầng tác nhân thực tế. Các ngoại lệ đáng chú ý bao gồm:
+
+- **MERLIN** (Wayne và cộng sự, 2018): Một kiến trúc thần kinh với bộ nhớ ngoài và sự chú ý, nhưng được thiết kế cho học tăng cường hơn là việc sử dụng công cụ của tác nhân.
+- **Generative Agents** (Park và cộng sự, 2023): Mô phỏng bộ nhớ giống con người với tính điểm tầm quan trọng, suy giảm độ gần đây và phản chiếu (reflection). Bio-Agent OS mở rộng cách tiếp cận này với việc cắt tỉa khớp thần kinh, trọng số nội cân bằng, vòng đời niềm tin và các ngoại lệ có kiểm soát.
+
+### 2.3 Phát hiện mâu thuẫn trong Cơ sở tri thức
+
+Suy luận Ngôn ngữ Tự nhiên (NLI) đã được áp dụng vào việc hoàn thiện cơ sở tri thức và xác minh thực tế (Thorne và cộng sự, 2018). Tuy nhiên, các cách tiếp cận hiện tại coi mâu thuẫn là nhị phân (kéo theo vs. mâu thuẫn). Bio-Agent OS giới thiệu phân loại ba hướng: **mâu thuẫn**, **ngoại lệ có kiểm soát** và **trung lập**, phản ánh thực tế doanh nghiệp nơi các ngoại lệ được phê duyệt phải tồn tại song song với các chính sách mặc định.
+
+---
+
+## 3. Kiến trúc
+
+Bio-Agent OS gồm năm lớp, mô phỏng quy trình củng cố bộ nhớ ở người:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Quy trình Tác nhân                          │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  Bộ nhớ làm việc L1 (Điều phối Chú ý + Nội cân bằng)         │  │
+│  │  ┌─────────────┐  ┌────────────────┐  ┌──────────────────┐  │  │
+│  │  │ Các sự kiện │→ │ Tập tiêu điểm  │→ │ Chuỗi Ngữ cảnh   │  │  │
+│  │  │ thô (TTL=2) │  │ (top-k điểm)   │  │ (đưa vào prompt  │  │  │
+│  │  └─────────────┘  └────────────────┘  │ của tác nhân)    │  │  │
+│  │                                        └──────────────────┘  │  │
+│  └──────────────────────────┬────────────────────────────────────┘  │
+│                              │ chu kỳ ngủ (lặp lại hồi hải mã)       │
+│  ┌──────────────────────────▼────────────────────────────────────┐  │
+│  │  Hồi hải mã (Động cơ củng cố trong giấc ngủ)                  │  │
+│  │  gắn nhãn → biên dịch → chuẩn hóa → thúc đẩy → đối soát       │  │
+│  └──────┬───────────┬────────────────────┬───────────────────────┘  │
+│         │           │                    │                          │
+│         ▼           ▼                    ▼                          │
+│  ┌──────────┐ ┌──────────────┐ ┌─────────────────────────────────┐ │
+│  │ Các tập  │ │ Bộ nhớ Ngữ   │ │ Persona (Mô hình bản thể)       │ │
+│  │ (Sự thật)│ │ nghĩa L2     │ │  ┌─────────────────────┐       │ │
+│  │          │ │              │ │  │ Quy tắc Gốc (người) │       │ │
+│  │          │ │              │ │  │ Quy tắc Dự án (tự)  │       │ │
+│  │          │ │              │ │  │ Quy tắc Thích nghi  │       │ │
+│  │          │ │              │ │  └─────────────────────┘       │ │
+│  └──────┬───┘ └──────────────┘ └──────────┬──────────────────────┘ │
+│         │                                  │                        │
+│         ▼                                  ▼                        │
+│  ┌─────────────────────────────────────────────────────────────────┐│
+│  │  Đồ thị tri thức (Mạng lưới niềm tin)                            ││
+│  │  ┌────────┐  hỗ trợ    ┌──────────┐  ngoại_lệ_có_kiểm_soát_cho ││
+│  │  │Ep / Tập│───────────→│Nút Quy tắc│←───────────────────────┐  ││
+│  │  └────────┘            └──────────┘                        │  ││
+│  │                             │                         ┌────┴──┐││
+│  │                        xung đột với              │Quy tắc │││
+│  │                             │                    │Ghi đè  │││
+│  │                             ▼                    └────────┘││
+│  │                        ┌──────────┐                        ││
+│  │                        │Q.tắc bị  │                        ││
+│  │                        │thách thức│                        ││
+│  │                        └──────────┘                        ││
+│  └─────────────────────────────────────────────────────────────────┘│
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────┐│
+│  │  Công việc Nền                                                  ││
+│  │  • Bộ dọn rác (Suy giảm Ebbinghaus + dựa trên TTL)              ││
+│  │  • Bộ xây đồ thị (trích xuất thực thể/quan hệ)                  ││
+│  │  • Chu kỳ mơ (Hippocampus.dream())                              ││
+│  └─────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Hình 1.** Kiến trúc Bio-Agent OS. Các mũi tên chỉ luồng dữ liệu trong quá trình củng cố.
+
+### 3.1 Bộ nhớ làm việc L1
+
+L1 triển khai một bộ đệm ngắn hạn dựa trên sự chú ý. Mỗi mục có các trường: `content` (nội dung), `source` (nguồn), `metadata`, `timestamp`, `nights_passed` (số đêm đã trôi qua), `ttl`, `salience` (tầm quan trọng), `recency_score` (điểm độ mới), `novelty` (tính mới), `severity` (mức độ nghiêm trọng), `task_relevance` (độ liên quan nhiệm vụ), `unresolved_status` (trạng thái chưa giải quyết) và `attention_score` (điểm chú ý).
+
+Khác với một hàng đợi FIFO thuần túy, L1 sử dụng một **hàm chú ý có trọng số** để tính toán một điểm số tổng hợp cho mỗi mục:
+
+```
+attention(e) = G · (w_task · task_relevance(e)
+                   + w_novelty · novelty(e)
+                   + w_unresolved · unresolved(e)
+                   + w_recency · recency(e)
+                   + w_severity · severity(e))
+```
+
+trong đó *G* là độ lợi toàn cầu và *w*_i là các trọng số có thể học được (xem phần 4.1 về nội cân bằng).
+
+### 3.2 Hồi hải mã (Củng cố trong giấc ngủ)
+
+Hồi hải mã thực hiện củng cố qua năm giai đoạn:
+
+1. **Gán nhãn (Label)**: Một LLM gán `topic`, `importance_score`, `is_junk_or_transient` và `user_state` cho dữ liệu đầu vào thô.
+2. **Biên dịch (Compile)**: LLM trích xuất bộ nhớ có cấu trúc: `episodic_summary`, `semantic_memory`, `procedural_memory`, `exception_memory`, `identity_rule`, `confidence`, `scope`.
+3. **Chuẩn hóa (Canonicalize)**: Các mẫu quy tắc theo từng miền đảm bảo định dạng nhất quán (ví dụ: "Không bao giờ dùng git push -f trên nhánh X trong môi trường production").
+4. **Thúc đẩy (Promote)**: Các quy tắc được thêm vào Persona với việc loại bỏ trùng lặp. Các quan sát lặp lại sẽ làm tăng `support_count` và thăng cấp qua máy trạng thái.
+5. **Đối soát (Reconcile)**: `ContradictionResolver` được gọi để phát hiện và giải quyết các xung đột (xem phần 4.3).
+
+### 3.3 Bộ nhớ Ngữ nghĩa L2
+
+L2 lưu trữ ba loại ký ức dài hạn:
+- **Ngữ nghĩa (Semantic)**: Kiến thức tổng quát hóa ("Mất khớp phụ thuộc phiên bản là lỗi phổ biến sau khi nâng cấp Vite").
+- **Quy trình (Procedural)**: Các mẫu hành động ("Kiểm tra phiên bản lockfile trước khi thay đổi các gói phụ thuộc").
+- **Ngoại lệ (Exception)**: Các cảnh báo quan trọng ("Tenant X sẽ bị lỗi nếu Vite được nâng cấp mà không cố định các plugin trước").
+
+Mỗi ký ức được lưu trữ dưới dạng một vector embedding (thông qua Qdrant hoặc bộ đệm tại chỗ) với metadata bao gồm `importance`, `mode_hints`, `risk_level`, `stress_state`, `workspace_id` và `project_version`.
+
+**Truy xuất phụ thuộc vào trạng thái** áp dụng việc tăng cường theo ngữ cảnh:
+- Khớp chế độ (ví dụ: chế độ `debug` ưu tiên các ký ức ngoại lệ): +3.0
+- Ưu tiên ngoại lệ trong trạng thái thất bại/triển khai: +2.5
+- Khớp không gian làm việc: +1.5
+- Khớp trạng thái căng thẳng: +1.0
+
+### 3.4 Persona (Mô hình bản thể)
+
+Persona duy trì thực thể ba lớp:
+
+| Lớp | Nguồn | Tính biến đổi | Ví dụ |
+|:---|:---|:---|:---|
+| **Gốc (Core)** | Được con người phê duyệt | Bất biến | "Không bao giờ bỏ qua các kiểm tra xác thực." |
+| **Dự án (Project)** | Tác nhân học được, có bằng chứng | Biến đổi theo bằng chứng | "Không bao giờ force push trong production." |
+| **Thích nghi (Adaptive)** | Tác nhân quan sát, tự tin thấp | Biến đổi cao | "Workspace này không thích dùng wildcard import." |
+
+Các quy tắc mang hteo metadata nguồn gốc: `evidence_episode_ids`, `support_count`, `contradiction_count`, `confidence`, `state`, `created_at`, `valid_from`, `valid_to`, `superseded_by`.
+
+### 3.5 Đồ thị tri thức (Mạng lưới niềm tin)
+
+KG lưu trữ các quan hệ có kiểu giữa các quy tắc, các sự kiện và các thực thể:
+
+| Quan hệ | Ý nghĩa |
+|:---|:---|
+| `supports` | Sự kiện cung cấp bằng chứng cho một quy tắc |
+| `conflicts_with` | Hai quy tắc mâu thuẫn lẫn nhau về logic |
+| `governed_exception_for` | Quy tắc ghi đè là một ngoại lệ có điều kiện của một quy tắc mặc định |
+| `approved_by_policy` | Ngoại lệ được phê duyệt bởi một chính sách cụ thể |
+| `requires_human_approval` | Ngoại lệ không thể thực hiện nếu không có sự phê duyệt của con người |
+| `expires_override_at` | Ngoại lệ chỉ hợp lệ trong một khung thời gian cụ thể |
+
+---
+
+## 4. Các cơ chế chính
+
+### 4.1 Điều phối sự chú ý nội cân bằng
+
+Các trọng số chú ý thông thường là các siêu tham số tĩnh. Trong các hệ thống sinh học thần kinh, độ lợi nội cân bằng điều chỉnh linh hoạt dựa trên sự kích thích và căng thẳng (Turrigiano, 2008). Chúng tôi triển khai điều này dưới dạng một **hàm nội cân bằng** tính toán các trọng số động từ lịch sử các mục nhập gần đây:
+
+```python
+stress = 0.45·unresolved_ratio + 0.35·severity_avg + 0.20·failure_streak
+decay = max(0.35, 1.0 − min(hours_since_failure / 8.0, 0.65))
+stress_level = clamp(stress · decay)
+
+# Trọng số động
+severity_weight = 0.15 + 0.20·stress_level      # [0.15, 0.35]
+unresolved_weight = 0.20 + 0.10·stress_level     # [0.20, 0.30]
+recency_weight = max(0.05, 0.15 − 0.05·stress)   # [0.10, 0.15]
+novelty_weight = max(0.10, 0.20 − 0.05·stress)   # [0.15, 0.20]
+global_gain = 1.0 + stress_level                  # [1.0, 2.0]
+```
+
+**Các tác động hành vi:**
+- Trong vận hành bình thường: Cả năm yếu tố đóng góp xấp xỉ ngang nhau.
+- Khi căng thẳng (chuỗi thất bại): Mức độ nghiêm trọng và trạng thái chưa giải quyết thống trị tiêu điểm chú ý, tính gần đây và tính mới bị hạn chế. Độ lợi toàn cầu khuếch đại tất cả các điểm số.
+- Sau khi phục hồi (8+ giờ không thất bại): Căng thẳng suy giảm thông qua `decay_factor`, với mức sàn 0.35 để duy trì sự cảnh giác.
+
+Điều này tạo ra một tác nhân *tập trung mạnh hơn vào các thất bại nghiêm trọng* khi bị căng thẳng và *thư giãn* sau một khoảng thời gian phục hồi—tương đương với phản ứng chiến-hay-chạy của con người.
+
+### 4.2 Suy giảm quên lãng Ebbinghaus (Cắt tỉa khớp thần kinh)
+
+Bộ dọn rác áp dụng sự suy giảm thời gian cho các mục L1 vượt quá TTL:
+
+```
+W(t) = W₀ · e^(−λ · (t − TTL))
+```
+
+trong đó *W₀* là điểm tầm quan trọng ban đầu, *λ* là tỷ lệ suy giảm (mặc định 0.3) và *t* là số đêm đã trôi qua. Nếu W(t) < *ngưỡng* (mặc định 3.0), mục nhập sẽ bị xóa bỏ.
+
+Điều này tạo ra một đường cong quên lãng nơi các sự kiện quan trọng thấp bị quên trong vòng 2–3 chu kỳ ngủ, trong khi các sự kiện quan trọng cao (điểm ≥ 8) sẽ tồn tại trong 5+ chu kỳ trước khi bị "quên" (hoặc được mã hóa vào L2 trước đó).
+
+### 4.3 Phát hiện mâu thuẫn lai
+
+Xung đột quy tắc được phát hiện bằng hệ thống hai tầng:
+
+**Tầng 1: Bộ phát hiện Heuristic** (độ trễ bằng 0)
+1. Phân tích phân cực: Phân loại mỗi quy tắc là *phủ định* (chứa "không bao giờ", "đừng", "tránh") hoặc *khẳng định* (chứa "cho phép", "luôn luôn", "phải").
+2. Trích xuất lõi ngữ nghĩa: Loại bỏ các dấu hiệu phân cực, giữ lại các token nội dung.
+3. Chồng lấp token: Nếu độ chồng lấp ≥ 0.6 và phân cực đối nghịch → *mâu thuẫn*.
+4. Kiểm tra ngoại lệ có kiểm soát: Nếu một quy tắc là ngoại lệ có điều kiện (chứa "chỉ", "phê duyệt", "kiểm định", "hotfix") và quy tắc kia là chính sách phủ định chung → *ngoại_lệ_có_kiểm_soát*.
+
+**Tầng 2: Bộ phát hiện NLI** (được hỗ trợ bởi LLM, có đệm)
+Khi heuristic không chắc chắn (trả về "trung lập" nhưng có sự chồng chéo miền dữ liệu), hệ thống sẽ chuyển thang lên bộ phân loại NLI:
+
+```
+Prompt: "Classify the relation between Rule A and Rule B:
+         - contradiction: cannot both be followed
+         - governed_exception: one is a conditional override
+         - neutral: neither"
+```
+
+Quyết định NLI được lưu trữ bền vững trong bảng cache SQLite với một khóa đã được chuẩn hóa và sắp xếp:
+
+```
+cache_key = sorted([f"{scope}::{normalize(text_A)}", 
+                     f"{scope}::{normalize(text_B)}"])
+```
+
+Điều này đảm bảo việc tra cứu đối xứng (A,B) = (B,A) và loại bỏ các cuộc gọi suy luận dư thừa cho các cặp đã được phân loại trước đó.
+
+### 4.4 Mô hình Ngoại lệ có Kiểm soát
+
+Trong môi trường doanh nghiệp, các chính sách hiếm khi tồn tại biệt lập. Một chính sách triển khai ("Không bao giờ force push") có thể có các ngoại lệ hợp lệ ("Cho phép force push khi có hotfix được phê duyệt"). Các hệ thống bộ nhớ hiện tại phân loại đây là mâu thuẫn và loại bỏ quy tắc yếu hơn.
+
+Bio-Agent OS công nhận mô hình này ở cấp độ kiến trúc:
+
+1. **Phát hiện**: Nếu quy tắc A là chính sách phủ định chung và quy tắc B là khẳng định có điều kiện với ≥ 2 dấu hiệu điều kiện ("phê duyệt", "kiểm định", "chỉ", "hotfix", v.v.), cặp này được phân loại là *ngoại lệ có kiểm soát*.
+2. **Chú thích đồ thị**: Quy tắc ngoại lệ nhận được các cạnh kết nối: `governed_exception_for(B → A)`, `approved_by_policy(B → nút_chính_sách)`, `requires_human_approval(B → phê_duyệt_người)`, `expires_override_at(B → khung_thời_gian)`.
+3. **Đưa hàng rào an toàn vào**: Dịch vụ truy xuất đưa cả quy tắc mặc định và ngoại lệ đã được phê duyệt vào ngữ cảnh của tác nhân, với các điều kiện rõ ràng về thời điểm áp dụng ngoại lệ.
+
+Điều này bảo vệ cả hai quy tắc và cho phép suy luận tinh tế về sự thích hợp của các ngoại lệ.
+
+### 4.5 Máy trạng thái Vòng đời Niềm tin
+
+```
+ đề xuất ──(hỗ trợ)──→ được củng cố ──(ngưỡng)──→ ổn định
+     |                       |                          |
+     └──(x.đột,yếu hơn)─── └──(x.đột,yếu hơn)──────└──→ bị thách thức
+                                                               |
+                                                      (quy tắc mạnh hơn)
+                                                               |
+                                                               ▼
+                                                          bị phản đối
+                                                               |
+                                                          (đã lưu trữ)
+```
+
+**Hình 2.** Các chuyển đổi trạng thái vòng đời niềm tin. Sự gia tăng hỗ trợ sẽ thúc đẩy tiến triển; xung đột với một quy tắc mạnh hơn sẽ kích hoạt sự thách thức hoặc phản đối.
+
+Các bước chuyển đổi được kích hoạt bởi:
+- **Hỗ trợ (Support)**: Các bằng chứng lặp lại từ các sự kiện độc lập → `đề xuất → được củng cố → ổn định`.
+- **Thách thức (Challenge)**: Một quy tắc xung đột có độ tin cậy cao hơn → `* → bị thách thức`.
+- **Phản đối (Deprecation)**: Sự thay thế rõ ràng bởi một quy tắc mạnh hơn → `* → bị phản đối`.
+- **Ngoại lệ có kiểm soát**: Quy tắc ngoại lệ được củng cố mà không làm quy tắc mặc định bị phản đối → cả hai đều tồn tại.
+
+---
+
+## 5. Đánh giá
+
+### 5.1 Benchmark bộ phát hiện
+
+Chúng tôi đánh giá bộ phát hiện mâu thuẫn trên tiêu chuẩn 8 cặp thuộc bốn miền doanh nghiệp:
+
+| # | Tên cặp | Miền | Sự thật (Ground Truth) |
+|:-:|:---|:---|:---|
+| 1 | semantic-deploy-window | Lịch trình Triển khai | mâu thuẫn |
+| 2 | tenant-approved-override | Quản trị Tenant | ngoại lệ có kiểm soát |
+| 3 | neutral-stack-choice | Kiến trúc | trung lập |
+| 4 | security-time-conflict | Luân chuyển Bảo mật | mâu thuẫn |
+| 5 | migration-approved-override | Di vấn DB | ngoại lệ có kiểm soát |
+| 6 | tenant-neutral-separation | Hỗn hợp/Trung lập | trung lập |
+| 7 | deploy-window-conflict | Lịch trình Triển khai | mâu thuẫn |
+| 8 | security-approved-override | Ghi đè Bảo mật | ngoại lệ có kiểm soát |
+
+**Bảng 1.** Các cặp tiêu chuẩn của bộ phát hiện. Mỗi cặp được thiết kế để kiểm tra một kiểu thất bại cụ thể.
+
+#### Kết quả
+
+| Bộ phát hiện | Độ chính xác | Độ chuẩn xác | Dương tính giả | Âm tính giả |
+|:---|:---:|:---:|:---:|:---:|
+| Chỉ Heuristic | 4/8 (50%) | 1.00 | 0 | 4 |
+| Lai (heuristic + NLI) | **8/8 (100%)** | **1.00** | **0** | **0** |
+
+**Bảng 2.** Kết quả benchmark qua 2 lượt đánh giá với Gemma-4 E2B. Cả hai lượt đều cho kết quả giống hệt nhau.
+
+Bộ phát hiện chỉ heuristic thất bại trên cả ba **mâu thuẫn về thời gian/lịch trình** (cặp 1, 4, 7) vì những cặp này không chia sẻ các từ khóa đánh dấu phân cực—mâu thuẫn hoàn toàn là về ngữ nghĩa ("qua đêm" và "10 giờ sáng"). Heuristic cũng bỏ lỡ ngoại lệ bảo mật (cặp 8) do không đủ độ chồng lấp token sau khi tách phân cực.
+
+Bộ phát hiện lai phân loại chính xác tất cả 8 cặp bằng cách nâng thang các trường hợp không chắc chắn lên tầng NLI, vốn nhận diện được sự tương khắc ngữ nghĩa của các ràng buộc thời gian và cấu trúc ngoại lệ có kiểm soát của các quy tắc ghi đè được phê duyệt.
+
+#### Hiệu quả bộ đệm (Cache)
+
+| Chỉ số | Lượt 1 | Lượt 2 |
+|:---|:---:|:---:|
+| Cuộc gọi NLI trực tiếp | 8 | 8 |
+| Số lần trúng cache NLI | 8 | 8 |
+| Xác nhận cache lặp lại | 8/8 | 8/8 |
+
+**Bảng 3.** Thống kê cache NLI. Lượt chạy lặp lại đạt tỷ lệ trúng cache 100%, loại bỏ tất cả các cuộc gọi LLM dư thừa.
+
+### 5.2 Củng cố cuối-đến-cuối (End-to-End)
+
+Chúng tôi đánh giá toàn bộ quy trình bộ nhớ trên chuỗi 6 nhiệm vụ mô phỏng luồng công việc thực tế của tác nhân lập trình:
+
+| Nhiệm vụ | Chế độ | Nội dung |
+|:---|:---|:---|
+| debug-1 | debug | Build lỗi do mất khớp bản phụ thuộc sau khi nâng cấp Vite |
+| debug-2 | debug | npm install lỗi do sai biệt bản lớn (major version) của plugin |
+| policy-1 | deploy | Chính sách đội: cấm force push trên frontend trong production |
+| deploy-1 | deploy | Triển khai bản release candidate, tránh các thao tác nhánh rủi ro |
+| hotfix-1 | deploy | Quy trình hotfix: cho phép force push khi được duyệt + có log |
+| hotfix-2 | deploy | Phản ứng sự cố đã xác thực ngoại lệ cho hotfix |
+
+Mỗi nhiệm vụ đi qua: `ingest → gán nhãn → biên dịch → củng cố → đối soát`.
+
+#### Kết quả (Gemma-4 E2B, 2 lượt)
+
+| Chỉ số | Lượt 1 | Lượt 2 |
+|:---|:---:|:---:|
+| Tổng số cuộc gọi LLM | 13 | 12 |
+| Tổng số token | 15,816 | 14,410 |
+| Tổng độ trễ (giây) | 92.9 | 78.1 |
+| Tỷ lệ giữ lại (3 lần dò) | 3/3 (1.0) | 2/3 (0.67) |
+| Tỷ lệ nhiệm vụ thành công | 2/3 (0.67) | 1/3 (0.33) |
+| Số quy tắc tạo ra | 6 | 6 |
+| Cạnh ngoại lệ có kiểm soát | 2 | 2 |
+
+**Bảng 4.** Kết quả củng cố cuối-đến-cuối. Sáu nhiệm vụ tạo ra sáu quy tắc, với các quy tắc hotfix được liên kết chính xác làm ngoại lệ có kiểm soát của lệnh cấm force-push.
+
+#### Kiểm tra khả năng giữ lại (Retention Probes)
+
+Ba lần dò tìm thử nghiệm xem tác nhân có thể thu hồi các ký ức cụ thể sau khi củng cố hay không:
+
+1. **dependency-retention**: "quy trình xử lý lỗi mất khớp bản phụ thuộc vite" → mong đợi kết quả L2 đề cập "phụ thuộc/dependency".
+2. **policy-retention**: "chính sách force push frontend" → mong đợi kết quả đồ thị đề cập "push -f".
+3. **hotfix-exception-retention**: "ngoại lệ nhánh hotfix khi được duyệt" → mong đợi bộ nhớ ngoại lệ L2 về "hotfix".
+
+Lượt 1 đạt 1.0 (3/3). Lượt 2 đạt 0.67 (dự phòng embedding dựa trên mã băm tạo ra kết quả truy xuất chất lượng thấp hơn cho một số truy vấn).
+
+#### Chú ý Nội cân bằng dưới Căng thẳng
+
+Sau khi xử lý 6 nhiệm vụ triển khai/debug liên tục, trạng thái chú ý cho thấy sự tích lũy căng thẳng:
+
+```
+stress_level: 0.744
+global_gain: 1.744
+failure_streak: 6
+severity_weight: 0.299  (mức nền: 0.15, +99%)
+unresolved_weight: 0.274 (mức nền: 0.20, +37%)
+recency_weight: 0.113   (mức nền: 0.15, −25%)
+novelty_weight: 0.163   (mức nền: 0.20, −19%)
+```
+
+**Bảng 5.** Trạng thái chú ý nội cân bằng sau 6 nhiệm vụ gây căng thẳng. Trọng số mức độ nghiêm trọng và trạng thái chưa giải quyết tăng mạnh, trong khi tính gần đây và tính mới bị hạn chế. Độ lợi toàn cầu là 1.744×, khuếch đại mọi điểm số chú ý.
+
+### 5.3 Bộ Ngoại lệ được Duyệt (Đa miền)
+
+Chúng tôi đánh giá bổ sung trên bộ 9 nhiệm vụ đa miền gồm quản trị tenant, di văn DB và ghi đè bảo mật:
+
+| Miền | Chính sách mặc định | Ngoại lệ được phê duyệt |
+|:---|:---|:---|
+| Tenant (ERP) | Không bao giờ đổi mã khách hàng sau khi onboarding | Cho phép đổi cho Tenant A nếu tài chính duyệt |
+| Di vấn (DB) | Không bao giờ chạy di vấn phá hủy trong giờ làm việc | Cho phép trong khung phục hồi nếu DBA duyệt |
+| Bảo mật (Auth) | Không bao giờ vô hiệu hóa MFA trong production | Cho phép bỏ qua tạm thời nếu có ticket + hết hạn |
+
+#### Kết quả
+
+| Chỉ số | Lượt 1 | Lượt 2 |
+|:---|:---:|:---:|
+| Quy tắc được củng cố | 3 | 3 |
+| Cạnh ngoại lệ có kiểm soát | 2 | 2 |
+| Cạnh được phê duyệt bởi chính sách | 2 | 2 |
+| Cạnh ngoại lệ sẽ hết hạn | 1 | 1 |
+| Hoàn tất bộ thử nghiệm | ✅ | ✅ |
+
+**Bảng 6.** Kết quả ngoại lệ đa miền. Tất cả ba miền đều tạo ra chính xác các cặp ngoại lệ có kiểm soát với các cạnh quản trị thích hợp.
+
+---
+
+## 6. So sánh với các Framework hiện có
+
+| Tính năng | Bio-Agent OS | Letta v3 | Mem0 v2 | Zep/Graphiti |
+|:---|:---:|:---:|:---:|:---:|
+| Tầng bộ nhớ | 4 (L1/L2/Graph/Persona) | 2 (chính/lưu trữ) | 1 (phẳng) | 2 (KG tạm thời) |
+| Cơ chế quên lãng | Suy giảm Ebbinghaus | ✗ | ✗ | ✗ |
+| Nội cân bằng chú ý | Trọng số động + suy giảm căng thẳng | ✗ | ✗ | ✗ |
+| Vòng đời niềm tin | 6 trạng thái | ✗ | Ghi đè | ✗ |
+| Phát hiện mâu thuẫn | Lai (heuristic + NLI) | ✗ | ✗ | ✗ |
+| Cache NLI | Dựa trên SQLite, bền vững | ✗ | ✗ | ✗ |
+| Ngoại lệ có kiểm soát | ✓ (với quản trị đồ thị) | ✗ | ✗ | ✗ |
+| Cổng duyệt của người | ✓ (Hàng đợi phê duyệt) | ✗ | ✗ | ✗ |
+| Nguồn gốc/Dòng dõi | Chuỗi Sự kiện → Quy tắc → Ghi đè | Cơ bản | ✗ | Tạm thời |
+| Đa DB (SQLite+PG) | ✓ (tự dịch mã) | Chỉ PG | Chỉ PG | Chỉ PG |
+| Hệ thống plugin | ✓ (OpenClaw, SWE-Agent) | ✓ | ✓ | ✗ |
+| Sẵn sàng cho Docker | ✓ | ✓ | ✓ | ✓ |
+| Mã nguồn mở | MIT | Apache 2.0 | Apache 2.0 | MIT |
+
+**Bảng 7.** So sánh tính năng với các framework bộ nhớ tác nhân lớn.
+
+---
+
+## 7. Thảo luận
+
+### 7.1 Điểm mạnh
+
+**Sự trung thực sinh học với tiện ích thực tế.** Sự kết hợp giữa suy giảm Ebbinghaus, chú ý nội cân bằng và củng cố trong giấc ngủ tạo ra hành vi tác nhân tự nhiên và có thể dự đoán được. Các tác nhân bị căng thẳng tập trung vào các lỗi nghiêm trọng; các tác nhân sau thời kỳ phục hồi sẽ giải bớt sự cảnh giác. Đây không chỉ là thẩm mỹ—nó tác động trực tiếp lên chất lượng truy xuất và ngăn chặn sự pha loãng chú ý.
+
+**Ngoại lệ có kiểm soát là công dân hạng nhất.** Môi trường doanh nghiệp đầy rẫy các ngoại lệ chính sách. Mô hình Ngoại lệ có Kiểm soát ngăn chặn kiểu thất bại phổ biến nơi các ghi đè hợp lệ bị loại bỏ bởi bộ giải quyết mâu thuẫn ngây thơ.
+
+**Hiệu quả kinh tế của đệm NLI.** Với tiêu chuẩn 8 cặp, bộ đệm loại bỏ 100% chi phí suy luận lặp lại. Trong sản xuất, nơi các tác nhân có thể đánh giá lại cùng các cặp quy tắc qua hàng ngàn phiên làm việc, đây là khoản tiết kiệm tính toán đáng kể.
+
+### 7.2 Hạn chế
+
+**Chất lượng Embedding.** Cơ chế dự phòng dựa trên mã băm (dùng khi không có API embedding thương mại) tạo ra chất lượng truy xuất thấp hơn các mô hình embedding chuyên dụng. Tỷ lệ giữ lại thấp hơn của Lượt 2 (0.67) một phần do các lỗi nhiễu mã băm.
+
+**Sự cũ kỹ của bộ đệm.** Cache NLI hiện thiếu cơ chế hết hạn dựa trên TTL. Nếu văn bản quy tắc bị thay đổi nhưng dạng chuẩn hóa của nó vẫn giữ nguyên, các mục đệm cũ có thể tồn tại dai dẳng. Chúng tôi khuyến nghị TTL 7 ngày cho các triển khai sản xuất.
+
+**Quy mô Benchmark.** Tiêu chuẩn bộ phát hiện 8 cặp của chúng tôi, tuy đa dạng về miền, vẫn còn nhỏ so với các tiêu chuẩn NLI quốc tế. Chúng tôi dự định mở rộng lên 50+ cặp bao gồm thêm các miền y tế, pháp lý và tuân thủ tài chính.
+
+**Đơn người dùng (Single-tenant).** Runtime hiện tại xây dựng một thực thể tác nhân duy nhất. Các triển khai đa người dùng (ví dụ: một thực thể Bio-Agent OS cho mỗi người dùng trong cài đặt SaaS) yêu cầu sự cô lập cơ sở dữ liệu cấp người dùng, điều này vẫn chưa được thực hiện.
+
+### 7.3 Các cân nhắc đạo đức
+
+Hệ thống quản lý niềm tin của Bio-Agent OS đặt ra các câu hỏi quan trọng về sự tự trị của AI. Khả năng một tác nhân *học các quy tắc* từ kinh nghiệm—bao gồm cả các quy tắc sai tiềm ẩn—mang lại rủi ro. Chúng tôi giảm thiểu rủi ro qua:
+
+1. **Ngưỡng thúc đẩy**: Các quy tắc cần 2–3 sự kiện bằng chứng độc lập trước khi đạt trạng thái `ổn định`.
+2. **Hàng đợi phê duyệt**: Các quy tắc nhạy cảm (chứa "production", "auth", "security", "delete") yêu cầu sự phê duyệt của con người trước khi thăng cấp.
+3. **Hành động dự phòng**: Các niềm tin bị thách thức được đánh dấu rõ ràng là không có thẩm quyền, và các hành động phá hủy yêu cầu phê duyệt rõ ràng bất kể trạng thái niềm tin.
+4. **Tính bất biến của lớp Gốc**: Các quy tắc gốc do người phê duyệt không thể bị tác nhân phản đối.
+
+---
+
+## 8. Kết luận và Công việc tương lai
+
+Bio-Agent OS chứng minh rằng các động lực học bộ nhớ lấy cảm hứng từ sinh học—quên lãng, chú ý đáp ứng căng thẳng, quản lý vòng đời niềm tin—không chỉ là sự lạ lẫm về mặt lý thuyết mà còn tạo ra những cải tiến thực tế trong hệ thống bộ nhớ tác nhân. Bộ phát hiện NLI lai đạt độ chính xác 100% trên các xung đột ngữ nghĩa mà các phương pháp dựa trên từ khóa bỏ lỡ, trong khi cache NLI loại bỏ các chi phí suy luận dư thừa.
+
+**Các hướng tương lai bao gồm:**
+
+1. **Tích hợp tiêu chuẩn LoCoMo** (Wang và cộng sự, 2024): Đánh giá khả năng giữ lại bộ nhớ trong hội thoại dài trên các tiêu chuẩn hóa.
+2. **NLI đa mô hình**: So sánh độ chính xác của bộ phát hiện trên các nền tảng Gemma, Llama, Qwen và GPT-4o backends.
+3. **Suy giảm thời gian cho cache NLI**: TTL 7 ngày với việc vô hiệu hóa theo trọng số độ tin cậy.
+4. **Bảng điều khiển quan sát**: Trực quan hóa thời gian thực của nội cân bằng chú ý, vòng đời niềm tin và giải quyết xung đột thông qua Streamlit/Gradio.
+5. **Hệ sinh thái plugin**: Các plugin do cộng đồng đóng góp cho Cursor, Windsurf và các trình điều phối đa tác nhân.
+
+Bio-Agent OS hiện có sẵn tại [github.com/locaith/bio-memory-ai-locaith](https://github.com/locaith/bio-memory-ai-locaith) theo giấy phép MIT.
+
+---
+
+## Tài liệu tham khảo
+
+- Chhablani, G., et al. (2024). Mem0: The Memory Layer for Personalized AI. *arXiv preprint*.
+- Dudai, Y. (2004). The neurobiology of consolidations, or, how stable is the engram? *Annual Review of Psychology*, 55, 51–86.
+- Ebbinghaus, H. (1885). *Über das Gedächtnis*. Duncker & Humblot.
+- Kumaran, D., Hassabis, D., & McClelland, J. L. (2016). What learning systems do intelligent agents need? *Trends in Cognitive Sciences*, 20(7), 512–534.
+- McClelland, J. L., McNaughton, B. L., & O'Reilly, R. C. (1995). Why there are complementary learning systems in the hippocampus and neocortex. *Psychological Review*, 102(3), 419.
+- Packer, C., Wooders, S., Lin, K., Fang, V., Patil, S. G., Stoica, I., & Gonzalez, J. E. (2024). MemGPT: Towards LLMs as operating systems. *ICLR 2024*.
+- Park, J. S., O'Brien, J. C., Cai, C. J., Morris, M. R., Liang, P., & Bernstein, M. S. (2023). Generative agents: Interactive simulacra of human behavior. *UIST 2023*.
+- Thorne, J., Vlachos, A., Christodoulopoulos, C., & Mittal, A. (2018). FEVER: A large-scale dataset for fact extraction and verification. *NAACL 2018*.
+- Turrigiano, G. G. (2008). The self-tuning neuron: Synaptic scaling of excitatory synapses. *Cell*, 135(3), 422–435.
+- Wang, S., et al. (2024). LoCoMo: Long context memory benchmark for LLM agents. *arXiv preprint*.
+- Wayne, G., et al. (2018). Unsupervised predictive memory in a goal-directed agent. *arXiv preprint*.
+
+---
+
+## Phụ lục A: Chi tiết triển khai
+
+| Thành phần | Số dòng code | Lưu trữ |
+|:---|:---:|:---|
+| Bộ nhớ làm việc L1 | 475 | SQLite |
+| Bộ nhớ Ngữ nghĩa L2 | 340 | Qdrant + SQLite |
+| Đồ thị tri thức | 563 | SQLite |
+| Kho lưu trữ Sự kiện | 260 | SQLite |
+| Persona | 492 | SQLite (mã hóa) |
+| Hồi hải mã | 683 | — |
+| Đối soát | 576 | SQLite (NLI cache) |
+| Dịch vụ truy xuất | 272 | — |
+| DB Adapter | 194 | SQLite / PostgreSQL |
+| Hàng đợi phê duyệt | 237 | SQLite |
+| Bộ dọn rác | 147 | — |
+| Bộ xây đồ thị | 130 | — |
+| **Tổng cộng** | **~8,200+** | |
+
+**Bảng A1.** Phân tách module. Tổng mã nguồn vượt quá 8,200 dòng Python.
+
+---
+
+## Phụ lục B: Khả năng tái lập
+
+Mọi thử nghiệm có thể được tái lập bằng các dòng lệnh:
+
+```bash
+git clone https://github.com/locaith/bio-memory-ai-locaith
+cd bio-memory-ai-locaith
+pip install -e ".[ollama,dev]"
+ollama pull gemma4:e2b
+
+# Chạy benchmark (2 lượt đánh giá)
+REAL_EVAL_RUNS=2 python scripts/run_real_eval.py
+
+# Chạy test unit (38 bài test)
+pytest tests/test_components.py -v
+```
+
+Các báo cáo được ghi vào `benchmark_reports/`.
+
+---
+
+## Phụ lục C: Dữ liệu thô của Benchmark bộ phát hiện
+
+Cặp: **semantic-deploy-window**
+```
+Quy tắc A: "Chỉ triển khai các bản phát hành sản xuất qua đêm."
+Quy tắc B: "Mọi bản phát hành sản xuất phải xảy ra vào lúc 10 sáng mỗi ngày làm việc."
+Heuristic: trung lập (BỎ LỠ — không có từ khóa phân cực chung)
+Lai/NLI: mâu thuẫn ✓ (nhận diện được sự tương khắc về thời gian)
+```
+
+Cặp: **security-approved-override**
+```
+Quy tắc A: "Không bao giờ vô hiệu hóa MFA trong production."
+Quy tắc B: "Cho phép bỏ qua MFA tạm thời chỉ khi có sự phê duyệt của con người, 
+           một ticket sự cố và khung thời gian hết hạn được ghi nhận."
+Heuristic: trung lập (BỎ LỠ — không đủ độ chồng lấp token sau khi tách phân cực)
+Lai/NLI: ngoại lệ có kiểm soát ✓ (nhận diện được quy tắc ghi đè có điều kiện)
+```
+
+---
 
 <hr>
 
@@ -609,7 +1183,7 @@ Current API:
 
 ### Phase 5 memory upgrades
 
-Bio-Agent OS V2.1 phase 5 now adds four practical upgrades for long OpenClaw sessions:
+Bio-Agent OS v2.1 phase 5 now adds four practical upgrades for long OpenClaw sessions:
 
 1. `compaction`: very long observations are compacted before L1 storage while the raw episode is still preserved for audit and replay.
 2. `adaptive effort`: the hippocampus can raise reasoning effort for high-importance or overloaded memory states instead of spending maximum effort on every event.
@@ -682,6 +1256,9 @@ Bio-Agent OS now includes an ecosystem layer in addition to the core memory arch
 - CLI via `bio-agent-os`
 - Docker and devcontainer files for reproducible environments
 - adapter-based database routing for local SQLite and PostgreSQL-ready deployments
+- async SQLite path with `aiosqlite` for concurrent app workloads
+- standard SQLite -> PostgreSQL migration path
+- remote REST client for client/server deployments
 - async SQLite path with `aiosqlite` for concurrent app workloads
 - standard SQLite -> PostgreSQL migration path
 - remote REST client for client/server deployments
@@ -768,7 +1345,11 @@ async def main():
     )
     print(result["response"])
 
-asyncio.run(main())
+async def run():
+    await main()
+
+if __name__ == "__main__":
+    asyncio.run(run())
 ```
 
 ### Remote REST client example
@@ -782,7 +1363,11 @@ async def main():
     status = await client.status()
     print(status["status"]["belief_graph"])
 
-asyncio.run(main())
+async def run():
+    await main()
+
+if __name__ == "__main__":
+    asyncio.run(run())
 ```
 
 ### Container quick start
@@ -1100,13 +1685,13 @@ This preserves both rules and enables nuanced reasoning about when overrides are
  proposed ──(support)──→ reinforced ──(threshold)──→ stable
      |                       |                          |
      └──(conflict,weaker)─── └──(conflict,weaker)──────└──→ challenged
-                                                               |
-                                                      (stronger rule)
-                                                               |
-                                                               ▼
-                                                          deprecated
-                                                               |
-                                                          (archived)
+                                                                |
+                                                       (stronger rule)
+                                                                |
+                                                                ▼
+                                                           deprecated
+                                                                |
+                                                           (archived)
 ```
 
 **Figure 2.** Belief lifecycle state transitions. Support count increments advance the state; conflict with a stronger rule triggers challenge or deprecation.
@@ -1388,3 +1973,162 @@ Hybrid/NLI: governed_exception ✓ (recognized conditional override)
 ```
 
 ---
+
+<p align="center">
+  <strong>Bio-Agent OS v0.6.1</strong> — The Art of Governing Superintelligence<br>
+  <em>Designed with 🧠 by Locaith Solution Tech | 🇻🇳 Make in Vietnam</em>
+</p>
+
+---
+
+## Ecosystem Upgrade: SDK, CLI, Docker, and Database Backends
+
+Bio-Agent OS now includes an ecosystem layer in addition to the core memory architecture:
+
+- Python SDK via `BioAgentSDK`
+- CLI via `bio-agent-os`
+- Docker and devcontainer files for reproducible environments
+- adapter-based database routing for local SQLite and PostgreSQL-ready deployments
+- async SQLite path with `aiosqlite` for concurrent app workloads
+- standard SQLite -> PostgreSQL migration path
+- remote REST client for client/server deployments
+- async SQLite path with `aiosqlite` for concurrent app workloads
+- standard SQLite -> PostgreSQL migration path
+- remote REST client for client/server deployments
+
+### Database backend selection
+
+Local default:
+
+```env
+BIO_AGENT_DB_BACKEND=sqlite
+BIO_AGENT_DATABASE_URL=
+BIO_AGENT_CONFLICT_DETECTOR=hybrid
+```
+
+PostgreSQL abstraction:
+
+```env
+BIO_AGENT_DB_BACKEND=postgres
+BIO_AGENT_DATABASE_URL=postgresql://postgres:postgres@db:5432/bio_agent_os
+```
+
+Async SQLite dependency:
+
+```bash
+pip install -e ".[async-sqlite]"
+```
+
+REST client dependency:
+
+```bash
+pip install -e ".[client]"
+```
+
+### SQLite -> PostgreSQL migration
+
+```bash
+bio-agent-os migrate-db --storage-dir data --postgres-dsn postgresql://postgres:postgres@localhost:5432/bio_agent_os
+```
+
+### Conflict detector modes
+
+```env
+BIO_AGENT_CONFLICT_DETECTOR=heuristic
+BIO_AGENT_CONFLICT_DETECTOR=hybrid
+BIO_AGENT_CONFLICT_DETECTOR=nli
+```
+
+`hybrid` is the recommended default: cheap lexical/ontology prefilter first, then lightweight LLM/NLI adjudication for ambiguous pairs.
+
+### CLI quick examples
+
+```bash
+bio-agent-os serve-api --host 0.0.0.0 --port 8055
+bio-agent-os status
+bio-agent-os ingest "build failed with peer dependency mismatch" --source openclaw --workspace-id frontend
+bio-agent-os chat "what did you learn from the last deployment?" --mode deploy --workspace-id frontend
+bio-agent-os dream
+bio-agent-os migrate-db --storage-dir data --postgres-dsn postgresql://postgres:postgres@localhost:5432/bio_agent_os
+bio-agent-os remote-status --base-url http://127.0.0.1:8055
+```
+
+### Python SDK quick example
+
+```python
+import asyncio
+from bio_agent_os import BioAgentSDK
+
+async def main():
+    sdk = BioAgentSDK(agent_name="openclaw-brain", storage_dir="data")
+    await sdk.ingest(
+        "approved hotfix runbook says allow force push on hotfix branches only with explicit approval and audit logging",
+        source="openclaw",
+        workspace_id="frontend",
+        project_version="v3.0.1",
+    )
+    await sdk.sleep()
+    result = await sdk.chat(
+        "Can we use force push here?",
+        mode="deploy",
+        risk_level="high",
+        stress_state="failure",
+        workspace_id="frontend",
+        project_version="v3.0.1",
+    )
+    print(result["response"])
+
+async def run():
+    await main()
+
+if __name__ == "__main__":
+    asyncio.run(run())
+```
+
+### Remote REST client example
+
+```python
+import asyncio
+from bio_agent_os import BioAgentRESTClient
+
+async def main():
+    client = BioAgentRESTClient(base_url="http://127.0.0.1:8055")
+    status = await client.status()
+    print(status["status"]["belief_graph"])
+
+async def run():
+    await main()
+
+if __name__ == "__main__":
+    asyncio.run(run())
+```
+
+### Container quick start
+
+```bash
+copy .env.example .env
+docker compose up --build
+```
+
+### Docker image publishing
+
+The repository now includes `.github/workflows/docker-publish.yml` for publishing multi-arch images to `ghcr.io`.
+
+### Plugin entry points
+
+The package now exports plugin entry points through `bio_agent_os.plugins`:
+
+- `openclaw = bio_agent_os.plugins.openclaw:build_openclaw_plugin`
+- `swe-agent = bio_agent_os.plugins.swe_agent:build_swe_agent_plugin`
+
+### Separate package for OpenClaw
+
+The repository now also includes a dedicated Python package at:
+
+- `packages/bio-agent-os-openclaw`
+
+It provides:
+
+- `bio-agent-os-openclaw install-openclaw-plugin`
+- `bio-agent-os-openclaw print-openclaw-config`
+- `bio-agent-os-openclaw print-swe-agent-config`

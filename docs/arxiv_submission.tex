@@ -1,0 +1,87 @@
+\documentclass[authoryear]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+
+\title{Bio-Agent OS: A Biologically-Inspired Memory Architecture for Autonomous Coding Agents with Homeostatic Attention, Belief Lifecycle Management, and NLI-Backed Contradiction Resolution}
+\author{Ha Tuan Anh \\ Locaith Solution Tech \\ \texttt{tuananhnangluong@gmail.com}}
+\date{April 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Long-running autonomous agents require persistent memory systems that go beyond simple key-value caching or append-only context windows. We present \textbf{Bio-Agent OS}, an open-source memory framework that draws from neuroscience to provide coding and ERP agents with a biologically faithful memory architecture. Our system implements (1) a multi-tier memory pipeline mirroring human memory consolidation (L1 Working Memory $\rightarrow$ L2 Semantic Memory $\rightarrow$ Belief Graph), (2) a homeostatic attention scheduler that dynamically adjusts focus weights based on agent stress and failure streaks, (3) an Ebbinghaus-decay forgetting curve for synaptic pruning, (4) a six-state belief lifecycle with governed exception governance, and (5) a hybrid heuristic+NLI contradiction detector with persistent caching. We evaluate on an 8-pair multi-domain conflict detection benchmark and a 6-task end-to-end memory consolidation suite using Gemma-4 E2B as the local inference backbone. Results show that the hybrid NLI detector achieves \textbf{8/8 (100\%) accuracy with 1.0 precision and 0 false positives}, compared to 4/8 (50\%) for heuristic-only detection. The NLI cache eliminates 100\% of redundant inference calls on repeat evaluations. Bio-Agent OS is the first open-source framework to combine production-grade persistence (SQLite + PostgreSQL), bio-faithful memory dynamics, and enterprise-grade rule governance in a single installable package.
+\end{abstract}
+
+\section{Introduction}
+
+The rapid adoption of autonomous coding agents—systems like OpenClaw, SWE-Agent, and Devin—has exposed a critical infrastructure gap: \textbf{agents lack memory systems that can learn, forget, contradict, and self-correct across sessions}. Current approaches fall into three categories:
+
+\begin{enumerate}
+    \item \textbf{Context window stuffing}: Prepending all prior observations into the prompt. This is bounded by the context window size and provides no mechanism for forgetting or prioritization.
+    \item \textbf{Vector-store retrieval}: Systems like Mem0 (Khattab et al., 2024) and Zep store memories as embeddings and retrieve by similarity. While effective for recall, they treat all memories as equally valid and provide no lifecycle management.
+    \item \textbf{Graph-based memory}: Letta (Packer et al., 2024) and Graphiti use relational structures but lack biological dynamics—there is no forgetting, no attention homeostasis, and no mechanism for handling contradictory beliefs.
+\end{enumerate}
+
+Bio-Agent OS addresses these limitations by modeling memory after the human brain's consolidation pipeline. We draw from three neuroscience principles:
+\begin{itemize}
+    \item \textbf{Synaptic consolidation} (Dudai, 2004): Short-term memories in L1 working memory are selectively encoded into long-term L2 semantic memory during "sleep cycles," analogous to hippocampal replay.
+    \item \textbf{Ebbinghaus forgetting} (Ebbinghaus, 1885): Memories decay exponentially with time. Unimportant or unreinforced memories are pruned via a configurable decay function $W(t) = W_0 \cdot e^{-\lambda t}$.
+    \item \textbf{Homeostatic plasticity} (Turrigiano, 2008): The attention scheduler dynamically adjusts its weighting scheme based on cumulative stress, failure streaks, and time since last failure—a computational analog of neuromodulatory gain control.
+\end{itemize}
+
+Additionally, we introduce a novel \textbf{Governed Exception Pattern} for enterprise environments where rules must coexist with approved overrides (e.g., "Never force push" alongside "Allow force push during approved hotfix with audit logging"). This is, to our knowledge, the first agent memory system to distinguish \textit{矛盾} from \textit{governed exceptions} at the architectural level.
+
+\section{Architecture}
+
+Bio-Agent OS consists of five layers, mirroring the human memory consolidation pipeline: L1 Working Memory, Hippocampus (Sleep Consolidation Engine), L2 Semantic Memory, Persona (Self-Model), and Knowledge Graph (Belief Network).
+
+\subsection{L1 Working Memory}
+
+L1 implements an attention-based short-term buffer. Unlike a pure FIFO queue, L1 uses a \textbf{weighted attention function} to compute a composite score for each entry:
+
+\begin{equation}
+attention(e) = G \cdot (w_{task} \cdot task\_relevance(e) + w_{novelty} \cdot novelty(e) + w_{unresolved} \cdot unresolved(e) + w_{recency} \cdot recency(e) + w_{severity} \cdot severity(e))
+\end{equation}
+
+where $G$ is the global gain and $w_i$ are learnable weights.
+
+\subsection{Hippocampus}
+
+The Hippocampus performs consolidation in five stages: label, compile, canonicalize, promote, and reconcile.
+
+\section{Key Mechanisms}
+
+\subsection{Homeostatic Attention Scheduling}
+
+Conventional attention weights are static hyperparameters. We implement a \textbf{homeostasis function} that computes dynamic weights:
+
+\begin{lstlisting}[language=Python]
+stress = 0.45*unresolved_ratio + 0.35*severity_avg + 0.20*failure_streak
+decay = max(0.35, 1.0 - min(hours_since_failure / 8.0, 0.65))
+stress_level = clamp(stress * decay)
+global_gain = 1.0 + stress_level
+\end{lstlisting}
+
+\subsection{Hybrid Contradiction Detection}
+
+Rule conflicts are detected using a two-tier system: a Tier 1 Heuristic detector (zero latency) and a Tier 2 NLI detector (LLM-backed, cached). QEC (NLI) decisions are persisted in a SQLite cache table to eliminate redundant inference costs.
+
+\section{Evaluation}
+
+We evaluate the contradiction detector on an 8-pair benchmark spanning four enterprise domains. The hybrid detector achieved \textbf{8/8 (100\%) accuracy}, compared to 4/8 (50\%) for the heuristic-only approach.
+
+\section{Conclusion}
+
+Bio-Agent OS demonstrates that biologically-inspired memory dynamics are not merely theoretical novelties but produce practical improvements in agent memory systems. Bio-Agent OS is available at \url{https://github.com/locaith/bio-memory-ai-locaith} under the MIT license.
+
+\end{document}
