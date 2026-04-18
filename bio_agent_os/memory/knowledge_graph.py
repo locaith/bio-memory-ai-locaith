@@ -212,6 +212,15 @@ class KnowledgeGraph:
             properties={"valid_from": time.time(), "valid_to": None},
         )
 
+    def add_governed_exception(self, exception_rule_id: str, default_rule_id: str) -> bool:
+        return self.add_relation(
+            exception_rule_id,
+            "governed_exception_for",
+            default_rule_id,
+            weight=1.0,
+            properties={"valid_from": time.time(), "valid_to": None},
+        )
+
     def query_relations(self, entity_name: str) -> List[Dict[str, Any]]:
         self.load()
         key = self._node_key(entity_name)
@@ -234,6 +243,7 @@ class KnowledgeGraph:
             node for node in rules if node["properties"].get("state") == "challenged"
         ]
         supersedes_edges = [edge for edge in self._edges if edge["relation"] == "supersedes"]
+        governed_exception_edges = [edge for edge in self._edges if edge["relation"] == "governed_exception_for"]
         conflict_edges = [edge for edge in self._edges if edge["relation"] == "conflicts_with"]
         support_edges = [edge for edge in self._edges if edge["relation"] == "supports"]
         return {
@@ -243,6 +253,7 @@ class KnowledgeGraph:
             "support_edges": len(support_edges),
             "conflict_edges": len(conflict_edges),
             "supersedes_edges": len(supersedes_edges),
+            "governed_exception_edges": len(governed_exception_edges),
         }
 
     def belief_query(self, rule_id: Optional[str] = None, active_only: bool = False) -> Dict[str, Any]:
@@ -259,7 +270,15 @@ class KnowledgeGraph:
 
         selected = next((rule for rule in rules if rule["name"] == rule_id), None)
         if not selected:
-            return {"rule": None, "supports": [], "conflicts_with": [], "supersedes": [], "superseded_by": []}
+            return {
+                "rule": None,
+                "supports": [],
+                "conflicts_with": [],
+                "supersedes": [],
+                "superseded_by": [],
+                "governed_exception_for": [],
+                "governed_by_exceptions": [],
+            }
 
         supports = [edge for edge in self._edges if edge["relation"] == "supports" and edge["target"] == rule_id]
         conflicts_with = [
@@ -268,6 +287,12 @@ class KnowledgeGraph:
         ]
         supersedes = [edge for edge in self._edges if edge["relation"] == "supersedes" and edge["source"] == rule_id]
         superseded_by = [edge for edge in self._edges if edge["relation"] == "supersedes" and edge["target"] == rule_id]
+        governed_exception_for = [
+            edge for edge in self._edges if edge["relation"] == "governed_exception_for" and edge["source"] == rule_id
+        ]
+        governed_by_exceptions = [
+            edge for edge in self._edges if edge["relation"] == "governed_exception_for" and edge["target"] == rule_id
+        ]
 
         return {
             "rule": selected,
@@ -275,6 +300,8 @@ class KnowledgeGraph:
             "conflicts_with": conflicts_with,
             "supersedes": supersedes,
             "superseded_by": superseded_by,
+            "governed_exception_for": governed_exception_for,
+            "governed_by_exceptions": governed_by_exceptions,
         }
 
     def retrieve_beliefs(
@@ -321,6 +348,14 @@ class KnowledgeGraph:
                 edge for edge in self._edges
                 if edge["relation"] == "conflicts_with" and (edge["source"] == node["name"] or edge["target"] == node["name"])
             ]
+            governed_exception_for = [
+                edge for edge in self._edges
+                if edge["relation"] == "governed_exception_for" and edge["source"] == node["name"]
+            ]
+            governed_by_exceptions = [
+                edge for edge in self._edges
+                if edge["relation"] == "governed_exception_for" and edge["target"] == node["name"]
+            ]
 
             results.append(
                 {
@@ -334,6 +369,10 @@ class KnowledgeGraph:
                     "score": score,
                     "evidence_count": len(evidence_edges),
                     "conflict_count": len(conflict_edges),
+                    "governed_exception_for_count": len(governed_exception_for),
+                    "governed_by_exception_count": len(governed_by_exceptions),
+                    "governed_exception_for": [edge["target"] for edge in governed_exception_for],
+                    "governed_by_exceptions": [edge["source"] for edge in governed_by_exceptions],
                     "fallback_action": (
                         "Treat as non-authoritative. Prefer procedural/exception memory and require explicit approval before destructive actions."
                         if state == "challenged"

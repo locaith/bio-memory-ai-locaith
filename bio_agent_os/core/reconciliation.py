@@ -114,7 +114,10 @@ class ContradictionResolver:
     def _is_governed_exception_pair(self, left: Dict, right: Dict) -> bool:
         if left["scope"] != right["scope"]:
             return False
-        if not self._is_conflict(left, right):
+        left_core = self._semantic_core(left["text"])
+        right_core = self._semantic_core(right["text"])
+        overlap = len(left_core & right_core) / max(1, min(len(left_core), len(right_core)))
+        if overlap < 0.45:
             return False
         return (
             (self._is_conditional_exception(left) and self._is_general_negative_policy(right))
@@ -157,18 +160,25 @@ class ContradictionResolver:
         rules = self.persona.get_rule_records()
         target = rules.get(rule_id)
         if not target:
-            return {"challenged": 0, "deprecated": 0, "governed": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "governed_ids": [], "approval_request_ids": [], "fallback_actions": []}
+            return {"challenged": 0, "deprecated": 0, "governed": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "governed_ids": [], "governed_pairs": [], "approval_request_ids": [], "fallback_actions": []}
 
         conflicts = self.find_conflicts(rule_id)
-        stats = {"challenged": 0, "deprecated": 0, "governed": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "governed_ids": [], "approval_request_ids": [], "fallback_actions": []}
+        stats = {"challenged": 0, "deprecated": 0, "governed": 0, "pending_approval": 0, "challenged_ids": [], "deprecated_ids": [], "governed_ids": [], "governed_pairs": [], "approval_request_ids": [], "fallback_actions": []}
 
         for other_id in conflicts:
             other = self.persona.get_rule_records()[other_id]
             if self._is_governed_exception_pair(target, other):
                 conditional_rule_id = rule_id if self._is_conditional_exception(target) else other_id
+                default_rule_id = other_id if conditional_rule_id == rule_id else rule_id
                 if self.persona.govern_exception_rule(conditional_rule_id):
                     stats["governed"] += 1
                     stats["governed_ids"].append(conditional_rule_id)
+                    stats["governed_pairs"].append(
+                        {
+                            "exception_rule_id": conditional_rule_id,
+                            "default_rule_id": default_rule_id,
+                        }
+                    )
                     target = self.persona.get_rule_records()[rule_id]
                 continue
             target_score = target["confidence"] + (target["support_count"] * 0.1)

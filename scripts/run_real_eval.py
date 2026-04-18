@@ -146,6 +146,71 @@ async def run_eval(run_name: str = "run-1"):
             "project_version": "v3.0.1",
         },
     ]
+    approved_override_tasks = [
+        {
+            "task_id": "tenant-default-1",
+            "mode": "implement",
+            "text": "default tenant policy says never rename ERP customer codes after onboarding",
+            "workspace_id": "erp-core",
+            "project_version": "v5.2.0",
+        },
+        {
+            "task_id": "tenant-exception-1",
+            "mode": "implement",
+            "text": "tenant A exception allows customer code rename only with finance approval and audit trail",
+            "workspace_id": "erp-core",
+            "project_version": "v5.2.1",
+        },
+        {
+            "task_id": "tenant-exception-2",
+            "mode": "implement",
+            "text": "for tenant A, approved code rename override requires finance signoff and audit logging",
+            "workspace_id": "erp-core",
+            "project_version": "v5.2.1",
+        },
+        {
+            "task_id": "migration-default-1",
+            "mode": "deploy",
+            "text": "default migration policy says never run destructive schema migration during business hours",
+            "workspace_id": "erp-db",
+            "project_version": "v8.0.0",
+        },
+        {
+            "task_id": "migration-exception-1",
+            "mode": "deploy",
+            "text": "approved migration exception allows destructive schema change during recovery window only with DBA approval and rollback plan",
+            "workspace_id": "erp-db",
+            "project_version": "v8.0.1",
+        },
+        {
+            "task_id": "migration-exception-2",
+            "mode": "deploy",
+            "text": "during recovery window, migration override is allowed only if DBA approval and rollback checklist are recorded",
+            "workspace_id": "erp-db",
+            "project_version": "v8.0.1",
+        },
+        {
+            "task_id": "security-default-1",
+            "mode": "deploy",
+            "text": "security policy says never disable MFA in production",
+            "workspace_id": "auth-core",
+            "project_version": "v4.4.0",
+        },
+        {
+            "task_id": "security-exception-1",
+            "mode": "deploy",
+            "text": "security override allows temporary MFA bypass only with human approval, incident ticket, and expiry window",
+            "workspace_id": "auth-core",
+            "project_version": "v4.4.1",
+        },
+        {
+            "task_id": "security-exception-2",
+            "mode": "deploy",
+            "text": "temporary MFA bypass exception is approved only when human approval, incident ticket, and timed rollback are documented",
+            "workspace_id": "auth-core",
+            "project_version": "v4.4.1",
+        },
+    ]
 
     task_results = []
     for task in tasks:
@@ -365,6 +430,57 @@ async def run_eval(run_name: str = "run-1"):
     }
     metrics["contradiction_suite"] = contradiction_metrics
 
+    override_storage = Path("real_eval_runs") / f"{run_name}-approved-overrides"
+    if override_storage.exists():
+        shutil.rmtree(override_storage)
+    override_storage.mkdir(parents=True, exist_ok=True)
+
+    o_engine = InstrumentedOllamaEngine(os.getenv("REAL_EVAL_MODEL", "gemma4:e2b"))
+    o_l1 = L1WorkingMemory(agent_name="override-agent", storage_dir=str(override_storage))
+    o_l2 = L2SemanticMemory(agent_name="override-agent", storage_dir=str(override_storage))
+    o_persona = Persona(name="override-agent", storage_dir=str(override_storage))
+    o_episodes = EpisodeStore(agent_name="override-agent", storage_dir=str(override_storage))
+    o_graph = KnowledgeGraph(agent_name="override-agent", storage_dir=str(override_storage))
+    o_hippo = Hippocampus(engine=o_engine, l1=o_l1, l2=o_l2, persona=o_persona, episodes=o_episodes, graph=o_graph)
+
+    override_task_results = []
+    for task in approved_override_tasks:
+        started = time.perf_counter()
+        await o_hippo.label_and_store(
+            task["text"],
+            source="openclaw",
+            task_id=task["task_id"],
+            workspace_id=task["workspace_id"],
+            project_version=task["project_version"],
+            source_refs=[{"kind": "terminal", "ref": task["task_id"]}],
+        )
+        o_l1.increment_nights()
+        o_l1.increment_nights()
+        o_l1.increment_nights()
+        consolidate_result = await o_hippo.consolidate()
+        override_task_results.append(
+            {
+                "task_id": task["task_id"],
+                "elapsed_seconds": round(time.perf_counter() - started, 3),
+                "consolidate": consolidate_result,
+            }
+        )
+
+    override_rules = o_persona.get_rule_records()
+    governed_edges = [edge for edge in o_graph.query_relations(next(iter(override_rules.keys()), "")) if edge["relation"] == "governed_exception_for"] if override_rules else []
+    override_metrics = {
+        "calls": len(o_engine.usage),
+        "token_total": sum(item["prompt_eval_count"] + item["eval_count"] for item in o_engine.usage),
+        "stable_rules": len([rule for rule in override_rules.values() if rule["state"] == "stable"]),
+        "reinforced_rules": len([rule for rule in override_rules.values() if rule["state"] == "reinforced"]),
+        "governed_exception_edges": len([edge for edge in o_graph._edges if edge["relation"] == "governed_exception_for"]),
+        "resolved": any(rule["state"] == "reinforced" for rule in override_rules.values()),
+        "task_results": override_task_results,
+        "rules": list(override_rules.values()),
+        "sample_relations": governed_edges[:5],
+    }
+    metrics["approved_override_suite"] = override_metrics
+
     return metrics
 
 
@@ -383,6 +499,7 @@ def _aggregate_runs(all_metrics):
         "task_success_rates": [item["task_success"]["rate"] for item in all_metrics],
         "contradiction_resolved_runs": sum(1 for item in all_metrics if item["contradiction"]["resolved"]),
         "contradiction_suite_resolved_runs": sum(1 for item in all_metrics if item["contradiction_suite"]["resolved"]),
+        "approved_override_resolved_runs": sum(1 for item in all_metrics if item["approved_override_suite"]["resolved"]),
         "stable_rule_counts": [item["contradiction_suite"]["stable_rules"] for item in all_metrics],
         "reinforced_rule_counts": [item["contradiction_suite"]["reinforced_rules"] for item in all_metrics],
         "avg_total_tokens": avg(["token", "total_tokens"]),
@@ -443,6 +560,7 @@ def write_reports(all_metrics):
                 f"- Avg task success rate: {aggregate['avg_task_success_rate']}",
                 f"- Runs with contradiction resolved: {aggregate['contradiction_resolved_runs']}/{aggregate['runs']}",
                 f"- Contradiction-suite resolved runs: {aggregate['contradiction_suite_resolved_runs']}/{aggregate['runs']}",
+                f"- Approved-override-suite resolved runs: {aggregate['approved_override_resolved_runs']}/{aggregate['runs']}",
                 "",
                 "## Per-run trend",
                 "",
@@ -456,7 +574,10 @@ def write_reports(all_metrics):
                     f"contradiction_resolved={item['contradiction']['resolved']}, "
                     f"contradiction_suite_stable={item['contradiction_suite']['stable_rules']}, "
                     f"contradiction_suite_reinforced={item['contradiction_suite']['reinforced_rules']}, "
-                    f"contradiction_suite_resolved={item['contradiction_suite']['resolved']}"
+                    f"contradiction_suite_resolved={item['contradiction_suite']['resolved']}, "
+                    f"approved_override_reinforced={item['approved_override_suite']['reinforced_rules']}, "
+                    f"approved_override_edges={item['approved_override_suite']['governed_exception_edges']}, "
+                    f"approved_override_resolved={item['approved_override_suite']['resolved']}"
                 )
                 for item in all_metrics
             ]

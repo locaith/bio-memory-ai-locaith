@@ -4,16 +4,17 @@
     "model": "gemma4:e2b",
     "retention_rates": [
       1.0,
-      1.0,
-      1.0
+      0.667,
+      0.667
     ],
     "task_success_rates": [
-      1.0,
+      0.667,
       1.0,
       1.0
     ],
     "contradiction_resolved_runs": 0,
     "contradiction_suite_resolved_runs": 3,
+    "approved_override_resolved_runs": 3,
     "stable_rule_counts": [
       1,
       1,
@@ -24,10 +25,10 @@
       1,
       1
     ],
-    "avg_total_tokens": 14129.0,
-    "avg_total_latency_seconds": 84.134,
-    "avg_retention_rate": 1.0,
-    "avg_task_success_rate": 1.0
+    "avg_total_tokens": 14719.667,
+    "avg_total_latency_seconds": 78.735,
+    "avg_retention_rate": 0.778,
+    "avg_task_success_rate": 0.889
   },
   "runs": [
     {
@@ -36,14 +37,14 @@
       "task_set_size": 6,
       "calls": 12,
       "token": {
-        "prompt_tokens": 6683,
-        "completion_tokens": 7672,
-        "total_tokens": 14355
+        "prompt_tokens": 6675,
+        "completion_tokens": 7527,
+        "total_tokens": 14202
       },
       "latency": {
-        "total_seconds": 91.768,
-        "avg_seconds_per_call": 7.647,
-        "avg_seconds_per_task": 15.603
+        "total_seconds": 75.761,
+        "avg_seconds_per_call": 6.313,
+        "avg_seconds_per_task": 12.79
       },
       "retention": {
         "passed": 3,
@@ -57,15 +58,15 @@
         "resolved": false
       },
       "task_success": {
-        "passed": 3,
+        "passed": 2,
         "total": 3,
-        "rate": 1.0
+        "rate": 0.667
       },
       "task_results": [
         {
           "task_id": "debug-1",
           "mode": "debug",
-          "elapsed_seconds": 22.164,
+          "elapsed_seconds": 12.202,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -76,7 +77,7 @@
         {
           "task_id": "debug-2",
           "mode": "debug",
-          "elapsed_seconds": 13.839,
+          "elapsed_seconds": 12.377,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -87,7 +88,7 @@
         {
           "task_id": "policy-1",
           "mode": "deploy",
-          "elapsed_seconds": 14.794,
+          "elapsed_seconds": 13.386,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -98,7 +99,7 @@
         {
           "task_id": "deploy-1",
           "mode": "deploy",
-          "elapsed_seconds": 13.545,
+          "elapsed_seconds": 12.42,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -109,7 +110,7 @@
         {
           "task_id": "hotfix-1",
           "mode": "deploy",
-          "elapsed_seconds": 15.085,
+          "elapsed_seconds": 12.608,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -120,7 +121,7 @@
         {
           "task_id": "hotfix-2",
           "mode": "deploy",
-          "elapsed_seconds": 14.194,
+          "elapsed_seconds": 13.748,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -133,11 +134,33 @@
         {
           "name": "dependency-retention",
           "passed": true,
-          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Peer dependency mismatches are a common failure mode following frontend framework or build tool upgrades.\n- Hotfix deployment during production recovery is an approved exception, contingent upon validation, approval, and mandatory audit logging.\n- Risky branch operations are forbidden during a production rollout.",
+          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Peer dependency mismatches are a common failure mode following frontend toolchain upgrades (like Vite).\n- Hotfix branch exceptions are permitted during production recovery only when explicit approval and full audit logging are completed.",
           "top_l2": [
             {
-              "content": "Peer dependency mismatches are a common failure mode following frontend framework or build tool upgrades.",
-              "score": 15.359364834183467,
+              "content": "When a build fails due to dependency mismatch after an upgrade, the procedure is to inspect the dependency tree, align peer dependency versions in package files, and re-run installation/build commands.",
+              "score": 15.55141914226274,
+              "importance": 9.0,
+              "tags": [
+                "Build Error",
+                "procedural"
+              ],
+              "memory_type": "procedural",
+              "scope": "project",
+              "mode_hints": [
+                "debug"
+              ],
+              "exception_for": null,
+              "risk_level": "high",
+              "stress_state": "failure",
+              "task_id": "debug-1",
+              "workspace_id": "frontend",
+              "project_version": "v3.0.0",
+              "embedding_backend": "hash",
+              "embedding_model": "hash-384"
+            },
+            {
+              "content": "Peer dependency mismatches are a common failure mode following frontend toolchain upgrades (like Vite).",
+              "score": 15.35942632222747,
               "importance": 8.0,
               "tags": [
                 "Build Error",
@@ -156,34 +179,12 @@
               "project_version": "v3.0.0",
               "embedding_backend": "hash",
               "embedding_model": "hash-384"
-            },
-            {
-              "content": "After a tool upgrade, verify and reconcile peer dependencies in the project's dependency files to ensure compatibility before rebuilding.",
-              "score": 13.82342834268783,
-              "importance": 9.0,
-              "tags": [
-                "Build Error",
-                "procedural"
-              ],
-              "memory_type": "procedural",
-              "scope": "project",
-              "mode_hints": [
-                "debug"
-              ],
-              "exception_for": null,
-              "risk_level": "high",
-              "stress_state": "failure",
-              "task_id": "debug-1",
-              "workspace_id": "frontend",
-              "project_version": "v3.0.0",
-              "embedding_backend": "hash",
-              "embedding_model": "hash-384"
             }
           ],
           "top_graph": [
             {
-              "rule_id": "rule_cc7392fc83984561aa94981ba49eafa5",
-              "text": "Always verify major version compatibility between dependencies and plugins before attempting installation.",
+              "rule_id": "rule_b8a3e28cb6bd40d997c2bae35bad5498",
+              "text": "Always verify major version compatibility between core dependencies and plugins before executing package installation.",
               "scope": "project",
               "state": "proposed",
               "confidence": 0.99,
@@ -192,11 +193,15 @@
               "score": 0.96552,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [],
               "fallback_action": "",
               "provenance_score": 0.55
             },
             {
-              "rule_id": "rule_159fb0def817481d95fdc5ce8b4d396a",
+              "rule_id": "rule_b422cd9dada24cde9e11063a06d7d89d",
               "text": "Never use git push -f on the frontend branch in production.",
               "scope": "project",
               "state": "proposed",
@@ -206,6 +211,12 @@
               "score": 0.96552,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 1,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [
+                "rule_36ee6f1c4cd94142901afcc3c8e00e6c"
+              ],
               "fallback_action": "",
               "provenance_score": 0.55
             }
@@ -214,14 +225,36 @@
         {
           "name": "policy-retention",
           "passed": true,
-          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Hotfix deployment during production recovery is an approved exception, contingent upon validation, approval, and mandatory audit logging.\n- No exceptions are permitted for this policy; the prohibition is absolute.\n- Force pushing on hotfix branches is an approved exception, contingent upon explicit approval and mandatory audit logging.",
+          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Using git push -f on the frontend branch in production is strictly prohibited by team policy.\n- Hotfix branch exceptions are permitted during production recovery only when explicit approval and full audit logging are completed.\n- Force pushing on hotfix branches is an approved exception contingent upon explicit approval and mandatory audit logging.",
           "top_l2": [
             {
-              "content": "Hotfix deployment during production recovery is an approved exception, contingent upon validation, approval, and mandatory audit logging.",
-              "score": 14.639999715112383,
+              "content": "Using git push -f on the frontend branch in production is strictly prohibited by team policy.",
+              "score": 15.399654140035834,
               "importance": 8.0,
               "tags": [
-                "Incident Recovery",
+                "Git Policy",
+                "exception"
+              ],
+              "memory_type": "exception",
+              "scope": "project",
+              "mode_hints": [
+                "deploy"
+              ],
+              "exception_for": "Git Policy",
+              "risk_level": "high",
+              "stress_state": "Agent is aware of the team's policy regarding using git push -f on the frontend branch in production.",
+              "task_id": "policy-1",
+              "workspace_id": "frontend",
+              "project_version": "v3.0.0",
+              "embedding_backend": "hash",
+              "embedding_model": "hash-384"
+            },
+            {
+              "content": "Hotfix branch exceptions are permitted during production recovery only when explicit approval and full audit logging are completed.",
+              "score": 14.639999736719629,
+              "importance": 8.0,
+              "tags": [
+                "Production Recovery",
                 "exception"
               ],
               "memory_type": "exception",
@@ -230,30 +263,7 @@
                 "debug",
                 "deploy"
               ],
-              "exception_for": "Incident Recovery",
-              "risk_level": "high",
-              "stress_state": "failure",
-              "task_id": "hotfix-2",
-              "workspace_id": "frontend",
-              "project_version": "v3.0.1",
-              "embedding_backend": "hash",
-              "embedding_model": "hash-384"
-            },
-            {
-              "content": "When deploying a hotfix during production recovery, the workflow requires validating the branch exception, obtaining necessary approval, and logging all steps for audit.",
-              "score": 13.229999734965823,
-              "importance": 9.0,
-              "tags": [
-                "Incident Recovery",
-                "procedural"
-              ],
-              "memory_type": "procedural",
-              "scope": "project",
-              "mode_hints": [
-                "debug",
-                "deploy"
-              ],
-              "exception_for": null,
+              "exception_for": "Production Recovery",
               "risk_level": "high",
               "stress_state": "failure",
               "task_id": "hotfix-2",
@@ -265,7 +275,7 @@
           ],
           "top_graph": [
             {
-              "rule_id": "rule_159fb0def817481d95fdc5ce8b4d396a",
+              "rule_id": "rule_b422cd9dada24cde9e11063a06d7d89d",
               "text": "Never use git push -f on the frontend branch in production.",
               "scope": "project",
               "state": "proposed",
@@ -275,11 +285,17 @@
               "score": 1.6092000000000002,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 1,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [
+                "rule_36ee6f1c4cd94142901afcc3c8e00e6c"
+              ],
               "fallback_action": "",
               "provenance_score": 0.4
             },
             {
-              "rule_id": "rule_d8573bfa3b6f4d749581f580859cf6ed",
+              "rule_id": "rule_36ee6f1c4cd94142901afcc3c8e00e6c",
               "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
               "scope": "project",
               "state": "proposed",
@@ -289,6 +305,12 @@
               "score": 1.6092000000000002,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 1,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [
+                "rule_b422cd9dada24cde9e11063a06d7d89d"
+              ],
+              "governed_by_exceptions": [],
               "fallback_action": "",
               "provenance_score": 0.55
             }
@@ -297,14 +319,14 @@
         {
           "name": "hotfix-exception-retention",
           "passed": true,
-          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Hotfix deployment during production recovery is an approved exception, contingent upon validation, approval, and mandatory audit logging.\n- Force pushing on hotfix branches is an approved exception, contingent upon explicit approval and mandatory audit logging.\n- No exceptions are permitted for this policy; the prohibition is absolute.",
+          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Hotfix branch exceptions are permitted during production recovery only when explicit approval and full audit logging are completed.\n- Using git push -f on the frontend branch in production is strictly prohibited by team policy.\n- Major version mismatch error encountered during npm install, specifically between a plugin and Vite.",
           "top_l2": [
             {
-              "content": "Hotfix deployment during production recovery is an approved exception, contingent upon validation, approval, and mandatory audit logging.",
-              "score": 16.591999520189447,
+              "content": "Hotfix branch exceptions are permitted during production recovery only when explicit approval and full audit logging are completed.",
+              "score": 18.543999497335367,
               "importance": 8.0,
               "tags": [
-                "Incident Recovery",
+                "Production Recovery",
                 "exception"
               ],
               "memory_type": "exception",
@@ -313,7 +335,7 @@
                 "debug",
                 "deploy"
               ],
-              "exception_for": "Incident Recovery",
+              "exception_for": "Production Recovery",
               "risk_level": "high",
               "stress_state": "failure",
               "task_id": "hotfix-2",
@@ -323,11 +345,11 @@
               "embedding_model": "hash-384"
             },
             {
-              "content": "When deploying a hotfix during production recovery, the workflow requires validating the branch exception, obtaining necessary approval, and logging all steps for audit.",
-              "score": 14.993999557804937,
+              "content": "During production recovery, if a hotfix branch exception occurs, the procedure requires immediate validation, formal approval, and detailed audit logging.",
+              "score": 15.875999555772546,
               "importance": 9.0,
               "tags": [
-                "Incident Recovery",
+                "Production Recovery",
                 "procedural"
               ],
               "memory_type": "procedural",
@@ -348,7 +370,7 @@
           ],
           "top_graph": [
             {
-              "rule_id": "rule_d8573bfa3b6f4d749581f580859cf6ed",
+              "rule_id": "rule_36ee6f1c4cd94142901afcc3c8e00e6c",
               "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
               "scope": "project",
               "state": "proposed",
@@ -358,12 +380,18 @@
               "score": 1.6092000000000002,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 1,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [
+                "rule_b422cd9dada24cde9e11063a06d7d89d"
+              ],
+              "governed_by_exceptions": [],
               "fallback_action": "",
               "provenance_score": 0.55
             },
             {
-              "rule_id": "rule_95f8f1434cd34958b1e0ecdc326378b0",
-              "text": "Allow hotfix deployment during production recovery only if the branch exception is validated, approved, and fully audited.",
+              "rule_id": "rule_ce13adfb4e884227aeac3d5c8e9cda12",
+              "text": "Allow hotfix branch exceptions during production recovery if approval and audit logging are completed.",
               "scope": "project",
               "state": "proposed",
               "confidence": 0.99,
@@ -372,6 +400,10 @@
               "score": 1.6092000000000002,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [],
               "fallback_action": "",
               "provenance_score": 0.55
             }
@@ -380,8 +412,8 @@
       ],
       "rules": [
         {
-          "id": "rule_cc7392fc83984561aa94981ba49eafa5",
-          "text": "Always verify major version compatibility between dependencies and plugins before attempting installation.",
+          "id": "rule_b8a3e28cb6bd40d997c2bae35bad5498",
+          "text": "Always verify major version compatibility between core dependencies and plugins before executing package installation.",
           "layer": "project",
           "scope": "project",
           "source": "hippocampus",
@@ -389,19 +421,19 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487210.9675586,
-          "updated_at": 1776487210.9675586,
-          "last_validated_at": 1776487210.9675586,
-          "valid_from": 1776487210.9675586,
+          "created_at": 1776493062.564181,
+          "updated_at": 1776493062.564181,
+          "last_validated_at": 1776493062.564181,
+          "valid_from": 1776493062.564181,
           "valid_to": null,
           "evidence_episode_ids": [
-            "2874ab61-c9c4-4e54-a551-0b816ca78992"
+            "64daeb2f-0542-4828-846a-cf608b584a86"
           ],
           "superseded_by": null,
           "expires_at": null
         },
         {
-          "id": "rule_159fb0def817481d95fdc5ce8b4d396a",
+          "id": "rule_b422cd9dada24cde9e11063a06d7d89d",
           "text": "Never use git push -f on the frontend branch in production.",
           "layer": "project",
           "scope": "project",
@@ -410,19 +442,19 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487225.7507057,
-          "updated_at": 1776487225.7507057,
-          "last_validated_at": 1776487225.7507057,
-          "valid_from": 1776487225.7507057,
+          "created_at": 1776493075.9256136,
+          "updated_at": 1776493075.9256136,
+          "last_validated_at": 1776493075.9256136,
+          "valid_from": 1776493075.9256136,
           "valid_to": null,
           "evidence_episode_ids": [
-            "eafd8f1d-e712-40c6-b130-fe0e72992852"
+            "99e6df1c-41e1-4313-979a-139927ff05a4"
           ],
           "superseded_by": null,
           "expires_at": null
         },
         {
-          "id": "rule_c06db44441b4444ab7ba279a3349d6fb",
+          "id": "rule_21f3d0a8e367461e9822260f480feaf7",
           "text": "Do not perform risky branch operations during a production rollout.",
           "layer": "project",
           "scope": "project",
@@ -431,19 +463,19 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487239.2930748,
-          "updated_at": 1776487239.2930748,
-          "last_validated_at": 1776487239.2930748,
-          "valid_from": 1776487239.2930748,
+          "created_at": 1776493088.3629987,
+          "updated_at": 1776493088.3629987,
+          "last_validated_at": 1776493088.3629987,
+          "valid_from": 1776493088.3629987,
           "valid_to": null,
           "evidence_episode_ids": [
-            "e60362df-94cf-425f-bba8-6b8170845e2d"
+            "dbc45f22-ea89-4209-9c4c-ceee6cad7b2a"
           ],
           "superseded_by": null,
           "expires_at": null
         },
         {
-          "id": "rule_d8573bfa3b6f4d749581f580859cf6ed",
+          "id": "rule_36ee6f1c4cd94142901afcc3c8e00e6c",
           "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
           "layer": "project",
           "scope": "project",
@@ -452,20 +484,20 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487254.3683443,
-          "updated_at": 1776487254.3826206,
-          "last_validated_at": 1776487254.3826206,
-          "valid_from": 1776487254.3683443,
+          "created_at": 1776493100.943014,
+          "updated_at": 1776493100.956252,
+          "last_validated_at": 1776493100.956252,
+          "valid_from": 1776493100.943014,
           "valid_to": null,
           "evidence_episode_ids": [
-            "a56eb29b-1055-496d-a30e-7b3ef7d5638b"
+            "8bcc8cdf-c86d-4757-bddb-ba290f5daa26"
           ],
           "superseded_by": null,
           "expires_at": null
         },
         {
-          "id": "rule_95f8f1434cd34958b1e0ecdc326378b0",
-          "text": "Allow hotfix deployment during production recovery only if the branch exception is validated, approved, and fully audited.",
+          "id": "rule_ce13adfb4e884227aeac3d5c8e9cda12",
+          "text": "Allow hotfix branch exceptions during production recovery if approval and audit logging are completed.",
           "layer": "project",
           "scope": "project",
           "source": "hippocampus",
@@ -473,31 +505,31 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487268.5748065,
-          "updated_at": 1776487268.5748065,
-          "last_validated_at": 1776487268.5748065,
-          "valid_from": 1776487268.5748065,
+          "created_at": 1776493114.721765,
+          "updated_at": 1776493114.721765,
+          "last_validated_at": 1776493114.721765,
+          "valid_from": 1776493114.721765,
           "valid_to": null,
           "evidence_episode_ids": [
-            "7ab6f546-cb9b-4d11-b02a-73e88035f222"
+            "d01135a8-a637-4ceb-a4dd-aa9cfe5b68f0"
           ],
           "superseded_by": null,
           "expires_at": null
         }
       ],
       "attention_state": {
-        "stress_level": 0.7458333333333333,
-        "global_gain": 1.746,
+        "stress_level": 0.74,
+        "global_gain": 1.74,
         "failure_streak": 6.0,
-        "task_weight": 0.15083333333333337,
-        "novelty_weight": 0.16270833333333334,
-        "unresolved_weight": 0.27458333333333335,
-        "recency_weight": 0.11270833333333333,
-        "severity_weight": 0.2991666666666667
+        "task_weight": 0.1519999999999999,
+        "novelty_weight": 0.163,
+        "unresolved_weight": 0.274,
+        "recency_weight": 0.11299999999999999,
+        "severity_weight": 0.298
       },
       "contradiction_suite": {
-        "calls": 12,
-        "token_total": 14664,
+        "calls": 13,
+        "token_total": 15811,
         "stable_rules": 1,
         "reinforced_rules": 1,
         "challenged_rules": 0,
@@ -506,7 +538,7 @@
         "task_results": [
           {
             "task_id": "policy-neg-1",
-            "elapsed_seconds": 15.173,
+            "elapsed_seconds": 13.874,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -516,7 +548,7 @@
           },
           {
             "task_id": "policy-neg-2",
-            "elapsed_seconds": 13.599,
+            "elapsed_seconds": 12.265,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -526,7 +558,7 @@
           },
           {
             "task_id": "policy-neg-3",
-            "elapsed_seconds": 14.168,
+            "elapsed_seconds": 12.058,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -536,7 +568,7 @@
           },
           {
             "task_id": "hotfix-pos-1",
-            "elapsed_seconds": 14.51,
+            "elapsed_seconds": 12.512,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -546,7 +578,7 @@
           },
           {
             "task_id": "hotfix-pos-2",
-            "elapsed_seconds": 13.96,
+            "elapsed_seconds": 20.408,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -556,7 +588,7 @@
           },
           {
             "task_id": "hotfix-pos-3",
-            "elapsed_seconds": 14.263,
+            "elapsed_seconds": 13.33,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -567,7 +599,7 @@
         ],
         "rules": [
           {
-            "id": "rule_5088fbb3d1c1464b86f563fc17d07de0",
+            "id": "rule_201007d8956b4f50881ea827a4f1eb4b",
             "text": "Never use git push -f on the frontend branch in production.",
             "layer": "project",
             "scope": "project",
@@ -576,21 +608,21 @@
             "support_count": 3,
             "contradiction_count": 0,
             "state": "stable",
-            "created_at": 1776487284.3307378,
-            "updated_at": 1776487312.1406553,
-            "last_validated_at": 1776487312.1406553,
-            "valid_from": 1776487284.3307378,
+            "created_at": 1776493129.2195559,
+            "updated_at": 1776493153.5286486,
+            "last_validated_at": 1776493153.5286486,
+            "valid_from": 1776493129.2195559,
             "valid_to": null,
             "evidence_episode_ids": [
-              "0ab9ecc3-0047-4259-a2c6-4d217e2f7b2e",
-              "b1b83904-61b7-4139-94da-5076d5975a05",
-              "cd7ab3fb-5e24-4630-9129-b310a4dd14a8"
+              "0dba324b-efa0-4667-b869-622c509e5963",
+              "6464857a-d25c-4d33-b8d3-00393e8b0b90",
+              "c774294a-e9b5-455a-b108-72ab7083a37a"
             ],
             "superseded_by": null,
             "expires_at": null
           },
           {
-            "id": "rule_01c18be55baf4b16bae4921f08204102",
+            "id": "rule_00c0ae86b1fd44a88df761fae9b5f876",
             "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
             "layer": "project",
             "scope": "project",
@@ -599,20 +631,272 @@
             "support_count": 3,
             "contradiction_count": 0,
             "state": "reinforced",
-            "created_at": 1776487326.6432996,
-            "updated_at": 1776487354.8833907,
-            "last_validated_at": 1776487354.8833907,
-            "valid_from": 1776487326.6432996,
+            "created_at": 1776493166.0177052,
+            "updated_at": 1776493199.7671943,
+            "last_validated_at": 1776493199.7671943,
+            "valid_from": 1776493166.0177052,
             "valid_to": null,
             "evidence_episode_ids": [
-              "79c6eaad-ff71-41b1-a74c-1dd03c912d7d",
-              "d2540dc6-77e6-4c0c-89c3-d2c5a628059e",
-              "dff5ad85-9c89-4df1-a459-6692ae0794a9"
+              "1c71de9a-21ed-4cd7-9aae-ea5103aa8d6b",
+              "8c910e8d-4c41-4acf-89d7-9f32d5a91ce3",
+              "e14b5f39-9e66-4428-a28f-1e0c38c53a56"
             ],
             "superseded_by": null,
             "expires_at": null
           }
         ]
+      },
+      "approved_override_suite": {
+        "calls": 20,
+        "token_total": 24213,
+        "stable_rules": 0,
+        "reinforced_rules": 2,
+        "governed_exception_edges": 0,
+        "resolved": true,
+        "task_results": [
+          {
+            "task_id": "tenant-default-1",
+            "elapsed_seconds": 18.533,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "tenant-exception-1",
+            "elapsed_seconds": 20.51,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "tenant-exception-2",
+            "elapsed_seconds": 12.383,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "migration-default-1",
+            "elapsed_seconds": 12.296,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "migration-exception-1",
+            "elapsed_seconds": 13.085,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "migration-exception-2",
+            "elapsed_seconds": 12.603,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "security-default-1",
+            "elapsed_seconds": 12.422,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "security-exception-1",
+            "elapsed_seconds": 13.935,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "security-exception-2",
+            "elapsed_seconds": 13.899,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          }
+        ],
+        "rules": [
+          {
+            "id": "rule_e911d40e6f5e4107bf1ff6599ebc764e",
+            "text": "Never rename ERP customer codes after onboarding.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493218.8469477,
+            "updated_at": 1776493218.8469477,
+            "last_validated_at": 1776493218.8469477,
+            "valid_from": 1776493218.8469477,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "ad3359d7-addb-44af-bb67-048ce0186423"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_c5014a2f26684a5dbf16e19dc4361d89",
+            "text": "Allow customer code rename for Tenant A only with finance approval and audit logging.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493239.34741,
+            "updated_at": 1776493239.34741,
+            "last_validated_at": 1776493239.34741,
+            "valid_from": 1776493239.34741,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "a94eb85a-6156-4662-8b42-4c551ef121fc"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_5368464144844b21b73b44079d3af0ab",
+            "text": "Allow code rename overrides for Tenant A only after obtaining finance signoff and logging the action.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493251.738917,
+            "updated_at": 1776493251.738917,
+            "last_validated_at": 1776493251.738917,
+            "valid_from": 1776493251.738917,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "1e3d9917-f294-40c1-9f7e-41da4754713b"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_32b4c0fc0ecf46f891a33a0f46d7fed1",
+            "text": "Never run destructive schema migration during business hours.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493264.0352976,
+            "updated_at": 1776493264.0352976,
+            "last_validated_at": 1776493264.0352976,
+            "valid_from": 1776493264.0352976,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "6ac6f5a2-da64-4059-b120-933fbf47e0c7"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_47bfcbc9453244448cb632a42d2b48df",
+            "text": "Allow destructive schema migration during recovery windows only with DBA approval and a documented rollback plan.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 2,
+            "contradiction_count": 0,
+            "state": "reinforced",
+            "created_at": 1776493277.1155543,
+            "updated_at": 1776493289.5325282,
+            "last_validated_at": 1776493289.5325282,
+            "valid_from": 1776493277.1155543,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "85f9da3f-af1a-4b63-9c89-3d72f5d70f9e",
+              "e7f0e2a9-d81f-4f75-99b9-f5e16eebe239"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_5444f84a7b504c2ebfbb5fc411fc47d7",
+            "text": "Never disable MFA in production.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493302.1390538,
+            "updated_at": 1776493302.1390538,
+            "last_validated_at": 1776493302.1390538,
+            "valid_from": 1776493302.1390538,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "9121fd37-ed28-49a7-ac08-5af343c60f6c"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_d9ca7f10698c439485eb2aaa84c90f6f",
+            "text": "Allow temporary MFA bypass only with human approval, an incident ticket, and a documented expiry window.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 2,
+            "contradiction_count": 0,
+            "state": "reinforced",
+            "created_at": 1776493316.0777023,
+            "updated_at": 1776493329.9752474,
+            "last_validated_at": 1776493329.9752474,
+            "valid_from": 1776493316.0777023,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "ae429199-7f56-4680-b679-0c3d1e7757ea",
+              "f2d10c4d-9021-4ffd-b377-ccdb5fae65e6"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          }
+        ],
+        "sample_relations": []
       }
     },
     {
@@ -621,19 +905,19 @@
       "task_set_size": 6,
       "calls": 12,
       "token": {
-        "prompt_tokens": 6680,
-        "completion_tokens": 7395,
-        "total_tokens": 14075
+        "prompt_tokens": 6677,
+        "completion_tokens": 7506,
+        "total_tokens": 14183
       },
       "latency": {
-        "total_seconds": 80.941,
-        "avg_seconds_per_call": 6.745,
-        "avg_seconds_per_task": 13.648
+        "total_seconds": 75.461,
+        "avg_seconds_per_call": 6.288,
+        "avg_seconds_per_task": 12.81
       },
       "retention": {
-        "passed": 3,
+        "passed": 2,
         "total": 3,
-        "rate": 1.0
+        "rate": 0.667
       },
       "contradiction": {
         "deprecated_rules": 0,
@@ -650,7 +934,7 @@
         {
           "task_id": "debug-1",
           "mode": "debug",
-          "elapsed_seconds": 12.477,
+          "elapsed_seconds": 12.714,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -661,7 +945,7 @@
         {
           "task_id": "debug-2",
           "mode": "debug",
-          "elapsed_seconds": 14.285,
+          "elapsed_seconds": 11.859,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -672,7 +956,7 @@
         {
           "task_id": "policy-1",
           "mode": "deploy",
-          "elapsed_seconds": 14.6,
+          "elapsed_seconds": 12.944,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -683,7 +967,7 @@
         {
           "task_id": "deploy-1",
           "mode": "deploy",
-          "elapsed_seconds": 12.806,
+          "elapsed_seconds": 13.372,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -694,7 +978,7 @@
         {
           "task_id": "hotfix-1",
           "mode": "deploy",
-          "elapsed_seconds": 13.724,
+          "elapsed_seconds": 12.857,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -705,7 +989,7 @@
         {
           "task_id": "hotfix-2",
           "mode": "deploy",
-          "elapsed_seconds": 13.997,
+          "elapsed_seconds": 13.113,
           "consolidate": {
             "encoded": 1,
             "failed": 0,
@@ -718,615 +1002,11 @@
         {
           "name": "dependency-retention",
           "passed": true,
-          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Deployment of a validated hotfix during production recovery is an approved exception, contingent upon successful approval and audit logging.",
-          "top_l2": [
-            {
-              "content": "When dependency installation fails due to version mismatch, the procedure is to identify the required major version of the core framework (e.g., Vite) and ensure all installed plugins are compatible with that version before running the install command.",
-              "score": 14.687531303911562,
-              "importance": 9.0,
-              "tags": [
-                "Dependency Error",
-                "procedural"
-              ],
-              "memory_type": "procedural",
-              "scope": "project",
-              "mode_hints": [
-                "debug"
-              ],
-              "exception_for": null,
-              "risk_level": "high",
-              "stress_state": "failure",
-              "task_id": "debug-2",
-              "workspace_id": "frontend",
-              "project_version": "v3.0.0",
-              "embedding_backend": "hash",
-              "embedding_model": "hash-384"
-            },
-            {
-              "content": "When dependency conflicts occur after an upgrade, the procedure is to inspect the dependency tree, identify mismatched peer dependencies, and manually resolve the conflicts in the relevant package files.",
-              "score": 14.687409893133289,
-              "importance": 9.0,
-              "tags": [
-                "Dependency Error",
-                "procedural"
-              ],
-              "memory_type": "procedural",
-              "scope": "project",
-              "mode_hints": [
-                "debug"
-              ],
-              "exception_for": null,
-              "risk_level": "high",
-              "stress_state": "failure",
-              "task_id": "debug-1",
-              "workspace_id": "frontend",
-              "project_version": "v3.0.0",
-              "embedding_backend": "hash",
-              "embedding_model": "hash-384"
-            }
-          ],
-          "top_graph": [
-            {
-              "rule_id": "rule_30a4ea1959b647f88db0096ecbe5f77a",
-              "text": "Always validate and resolve peer dependency conflicts immediately after updating major framework or build tools in a workspace.",
-              "scope": "project",
-              "state": "proposed",
-              "confidence": 0.99,
-              "support_count": 1,
-              "contradiction_count": 0,
-              "score": 1.28736,
-              "evidence_count": 1,
-              "conflict_count": 0,
-              "fallback_action": "",
-              "provenance_score": 0.55
-            },
-            {
-              "rule_id": "rule_4c88fe892e1f4db08b32b30833adea4a",
-              "text": "Always verify major version compatibility for all related dependencies (core framework and plugins) before executing dependency installation.",
-              "scope": "project",
-              "state": "proposed",
-              "confidence": 0.99,
-              "support_count": 1,
-              "contradiction_count": 0,
-              "score": 1.28736,
-              "evidence_count": 1,
-              "conflict_count": 0,
-              "fallback_action": "",
-              "provenance_score": 0.55
-            }
-          ]
-        },
-        {
-          "name": "policy-retention",
-          "passed": true,
-          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- During a production rollout, risky branch operations are explicitly forbidden.\n- No specific exceptions are defined for this policy; the rule is a strict prohibition.",
-          "top_l2": [
-            {
-              "content": "When performing production recovery, follow the validated hotfix procedure: apply the hotfix, secure necessary approvals, and ensure all actions are logged for audit.",
-              "score": 13.229999747440555,
-              "importance": 9.0,
-              "tags": [
-                "Incident Recovery",
-                "procedural"
-              ],
-              "memory_type": "procedural",
-              "scope": "project",
-              "mode_hints": [
-                "debug",
-                "deploy"
-              ],
-              "exception_for": null,
-              "risk_level": "high",
-              "stress_state": "failure",
-              "task_id": "hotfix-2",
-              "workspace_id": "frontend",
-              "project_version": "v3.0.1",
-              "embedding_backend": "hash",
-              "embedding_model": "hash-384"
-            },
-            {
-              "content": "During a production rollout, risky branch operations are explicitly forbidden.",
-              "score": 13.199787997927036,
-              "importance": 8.0,
-              "tags": [
-                "Deployment Strategy",
-                "exception"
-              ],
-              "memory_type": "exception",
-              "scope": "project",
-              "mode_hints": [
-                "deploy"
-              ],
-              "exception_for": "Deployment Strategy",
-              "risk_level": "high",
-              "stress_state": "Execute release candidate deployment to production while strictly avoiding risky branch operations.",
-              "task_id": "deploy-1",
-              "workspace_id": "frontend",
-              "project_version": "v3.0.0",
-              "embedding_backend": "hash",
-              "embedding_model": "hash-384"
-            }
-          ],
-          "top_graph": [
-            {
-              "rule_id": "rule_8d1e8b0078f546ad8a091bd96e632bbb",
-              "text": "Never use git push -f on the frontend branch in production.",
-              "scope": "project",
-              "state": "proposed",
-              "confidence": 0.99,
-              "support_count": 1,
-              "contradiction_count": 0,
-              "score": 1.6092000000000002,
-              "evidence_count": 1,
-              "conflict_count": 0,
-              "fallback_action": "",
-              "provenance_score": 0.4
-            },
-            {
-              "rule_id": "rule_f5159a23fdd94aa8965bdee63924c502",
-              "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
-              "scope": "project",
-              "state": "proposed",
-              "confidence": 0.99,
-              "support_count": 1,
-              "contradiction_count": 0,
-              "score": 1.6092000000000002,
-              "evidence_count": 1,
-              "conflict_count": 0,
-              "fallback_action": "",
-              "provenance_score": 0.55
-            }
-          ]
-        },
-        {
-          "name": "hotfix-exception-retention",
-          "passed": true,
-          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Deployment of a validated hotfix during production recovery is an approved exception, contingent upon successful approval and audit logging.\n- During a production rollout, risky branch operations are explicitly forbidden.\n- Force pushes on hotfix branches are an approved exception, contingent upon explicit approval and mandatory audit logging.",
-          "top_l2": [
-            {
-              "content": "Deployment of a validated hotfix during production recovery is an approved exception, contingent upon successful approval and audit logging.",
-              "score": 17.567999515256766,
-              "importance": 8.0,
-              "tags": [
-                "Incident Recovery",
-                "exception"
-              ],
-              "memory_type": "exception",
-              "scope": "project",
-              "mode_hints": [
-                "debug",
-                "deploy"
-              ],
-              "exception_for": "Incident Recovery",
-              "risk_level": "high",
-              "stress_state": "failure",
-              "task_id": "hotfix-2",
-              "workspace_id": "frontend",
-              "project_version": "v3.0.1",
-              "embedding_backend": "hash",
-              "embedding_model": "hash-384"
-            },
-            {
-              "content": "During a production rollout, risky branch operations are explicitly forbidden.",
-              "score": 14.959759595194013,
-              "importance": 8.0,
-              "tags": [
-                "Deployment Strategy",
-                "exception"
-              ],
-              "memory_type": "exception",
-              "scope": "project",
-              "mode_hints": [
-                "deploy"
-              ],
-              "exception_for": "Deployment Strategy",
-              "risk_level": "high",
-              "stress_state": "Execute release candidate deployment to production while strictly avoiding risky branch operations.",
-              "task_id": "deploy-1",
-              "workspace_id": "frontend",
-              "project_version": "v3.0.0",
-              "embedding_backend": "hash",
-              "embedding_model": "hash-384"
-            }
-          ],
-          "top_graph": [
-            {
-              "rule_id": "rule_f5159a23fdd94aa8965bdee63924c502",
-              "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
-              "scope": "project",
-              "state": "proposed",
-              "confidence": 0.99,
-              "support_count": 1,
-              "contradiction_count": 0,
-              "score": 1.6092000000000002,
-              "evidence_count": 1,
-              "conflict_count": 0,
-              "fallback_action": "",
-              "provenance_score": 0.55
-            },
-            {
-              "rule_id": "rule_8d1e8b0078f546ad8a091bd96e632bbb",
-              "text": "Never use git push -f on the frontend branch in production.",
-              "scope": "project",
-              "state": "proposed",
-              "confidence": 0.99,
-              "support_count": 1,
-              "contradiction_count": 0,
-              "score": 1.28736,
-              "evidence_count": 1,
-              "conflict_count": 0,
-              "fallback_action": "",
-              "provenance_score": 0.4
-            }
-          ]
-        }
-      ],
-      "rules": [
-        {
-          "id": "rule_30a4ea1959b647f88db0096ecbe5f77a",
-          "text": "Always validate and resolve peer dependency conflicts immediately after updating major framework or build tools in a workspace.",
-          "layer": "project",
-          "scope": "project",
-          "source": "hippocampus",
-          "confidence": 0.99,
-          "support_count": 1,
-          "contradiction_count": 0,
-          "state": "proposed",
-          "created_at": 1776487368.417049,
-          "updated_at": 1776487368.417049,
-          "last_validated_at": 1776487368.417049,
-          "valid_from": 1776487368.417049,
-          "valid_to": null,
-          "evidence_episode_ids": [
-            "8c9b2152-b75f-4b64-bb03-6da94e2ad569"
-          ],
-          "superseded_by": null,
-          "expires_at": null
-        },
-        {
-          "id": "rule_4c88fe892e1f4db08b32b30833adea4a",
-          "text": "Always verify major version compatibility for all related dependencies (core framework and plugins) before executing dependency installation.",
-          "layer": "project",
-          "scope": "project",
-          "source": "hippocampus",
-          "confidence": 0.99,
-          "support_count": 1,
-          "contradiction_count": 0,
-          "state": "proposed",
-          "created_at": 1776487382.6925712,
-          "updated_at": 1776487382.6925712,
-          "last_validated_at": 1776487382.6925712,
-          "valid_from": 1776487382.6925712,
-          "valid_to": null,
-          "evidence_episode_ids": [
-            "97eb6e72-bc7f-4ed3-8b48-a3166026fdc3"
-          ],
-          "superseded_by": null,
-          "expires_at": null
-        },
-        {
-          "id": "rule_8d1e8b0078f546ad8a091bd96e632bbb",
-          "text": "Never use git push -f on the frontend branch in production.",
-          "layer": "project",
-          "scope": "project",
-          "source": "hippocampus",
-          "confidence": 0.99,
-          "support_count": 1,
-          "contradiction_count": 0,
-          "state": "proposed",
-          "created_at": 1776487397.2891521,
-          "updated_at": 1776487397.2891521,
-          "last_validated_at": 1776487397.2891521,
-          "valid_from": 1776487397.2891521,
-          "valid_to": null,
-          "evidence_episode_ids": [
-            "ecda86c7-9734-4f00-bd53-288356135a2d"
-          ],
-          "superseded_by": null,
-          "expires_at": null
-        },
-        {
-          "id": "rule_33001b690eac4a6b890970df163833b1",
-          "text": "Do not perform risky branch operations during a production rollout.",
-          "layer": "project",
-          "scope": "project",
-          "source": "hippocampus",
-          "confidence": 0.99,
-          "support_count": 1,
-          "contradiction_count": 0,
-          "state": "proposed",
-          "created_at": 1776487410.1090357,
-          "updated_at": 1776487410.1090357,
-          "last_validated_at": 1776487410.1090357,
-          "valid_from": 1776487410.1090357,
-          "valid_to": null,
-          "evidence_episode_ids": [
-            "e4008776-51e7-4943-9430-e854a1e9de09"
-          ],
-          "superseded_by": null,
-          "expires_at": null
-        },
-        {
-          "id": "rule_f5159a23fdd94aa8965bdee63924c502",
-          "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
-          "layer": "project",
-          "scope": "project",
-          "source": "hippocampus",
-          "confidence": 0.99,
-          "support_count": 1,
-          "contradiction_count": 0,
-          "state": "proposed",
-          "created_at": 1776487423.8057976,
-          "updated_at": 1776487423.8212526,
-          "last_validated_at": 1776487423.8212526,
-          "valid_from": 1776487423.8057976,
-          "valid_to": null,
-          "evidence_episode_ids": [
-            "1ed4b93f-896f-422c-a48f-c45139440fad"
-          ],
-          "superseded_by": null,
-          "expires_at": null
-        },
-        {
-          "id": "rule_15146999d9dc4eb5bdf512d0039dd93b",
-          "text": "Allow validated hotfix deployment during production recovery if formal approval and audit logging are completed.",
-          "layer": "project",
-          "scope": "project",
-          "source": "hippocampus",
-          "confidence": 0.99,
-          "support_count": 1,
-          "contradiction_count": 0,
-          "state": "proposed",
-          "created_at": 1776487437.8320153,
-          "updated_at": 1776487437.8320153,
-          "last_validated_at": 1776487437.8320153,
-          "valid_from": 1776487437.8320153,
-          "valid_to": null,
-          "evidence_episode_ids": [
-            "f826460a-5092-49d4-b07f-ae964f6ac12e"
-          ],
-          "superseded_by": null,
-          "expires_at": null
-        }
-      ],
-      "attention_state": {
-        "stress_level": 0.7458333333333333,
-        "global_gain": 1.746,
-        "failure_streak": 6.0,
-        "task_weight": 0.15083333333333337,
-        "novelty_weight": 0.16270833333333334,
-        "unresolved_weight": 0.27458333333333335,
-        "recency_weight": 0.11270833333333333,
-        "severity_weight": 0.2991666666666667
-      },
-      "contradiction_suite": {
-        "calls": 13,
-        "token_total": 15837,
-        "stable_rules": 1,
-        "reinforced_rules": 1,
-        "challenged_rules": 0,
-        "deprecated_rules": 0,
-        "resolved": true,
-        "task_results": [
-          {
-            "task_id": "policy-neg-1",
-            "elapsed_seconds": 15.1,
-            "consolidate": {
-              "encoded": 1,
-              "failed": 0,
-              "challenged": 0,
-              "pending_approval": 0
-            }
-          },
-          {
-            "task_id": "policy-neg-2",
-            "elapsed_seconds": 14.129,
-            "consolidate": {
-              "encoded": 1,
-              "failed": 0,
-              "challenged": 0,
-              "pending_approval": 0
-            }
-          },
-          {
-            "task_id": "policy-neg-3",
-            "elapsed_seconds": 13.531,
-            "consolidate": {
-              "encoded": 1,
-              "failed": 0,
-              "challenged": 0,
-              "pending_approval": 0
-            }
-          },
-          {
-            "task_id": "hotfix-pos-1",
-            "elapsed_seconds": 21.844,
-            "consolidate": {
-              "encoded": 1,
-              "failed": 0,
-              "challenged": 0,
-              "pending_approval": 0
-            }
-          },
-          {
-            "task_id": "hotfix-pos-2",
-            "elapsed_seconds": 13.885,
-            "consolidate": {
-              "encoded": 1,
-              "failed": 0,
-              "challenged": 0,
-              "pending_approval": 0
-            }
-          },
-          {
-            "task_id": "hotfix-pos-3",
-            "elapsed_seconds": 13.857,
-            "consolidate": {
-              "encoded": 1,
-              "failed": 0,
-              "challenged": 0,
-              "pending_approval": 0
-            }
-          }
-        ],
-        "rules": [
-          {
-            "id": "rule_f69c13715893430e899272be0487bb41",
-            "text": "Never use git push -f on the frontend branch in production.",
-            "layer": "project",
-            "scope": "project",
-            "source": "hippocampus",
-            "confidence": 0.99,
-            "support_count": 3,
-            "contradiction_count": 0,
-            "state": "stable",
-            "created_at": 1776487453.3462849,
-            "updated_at": 1776487481.0557547,
-            "last_validated_at": 1776487481.0557547,
-            "valid_from": 1776487453.3462849,
-            "valid_to": null,
-            "evidence_episode_ids": [
-              "4682a9ab-d184-4cba-a3ed-a4e71c0e94ba",
-              "67da81a8-256b-4c20-a28c-70227b3ed4fb",
-              "fe4fc46e-43b3-4b96-a2cb-9e4d8791ee28"
-            ],
-            "superseded_by": null,
-            "expires_at": null
-          },
-          {
-            "id": "rule_a94fd4a6f10146e48acc917f4faad8a9",
-            "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
-            "layer": "project",
-            "scope": "project",
-            "source": "hippocampus",
-            "confidence": 0.99,
-            "support_count": 3,
-            "contradiction_count": 0,
-            "state": "reinforced",
-            "created_at": 1776487502.8714354,
-            "updated_at": 1776487530.6303098,
-            "last_validated_at": 1776487530.6303098,
-            "valid_from": 1776487502.8714354,
-            "valid_to": null,
-            "evidence_episode_ids": [
-              "51cf83d9-69ef-4102-92b7-9b1f49dbd4e0",
-              "abb8e0b9-bcb6-4192-91c9-b95bda1c321b",
-              "fa602cd5-2012-4f35-a39f-d4c807899746"
-            ],
-            "superseded_by": null,
-            "expires_at": null
-          }
-        ]
-      }
-    },
-    {
-      "run_name": "run-3",
-      "model": "gemma4:e2b",
-      "task_set_size": 6,
-      "calls": 12,
-      "token": {
-        "prompt_tokens": 6671,
-        "completion_tokens": 7286,
-        "total_tokens": 13957
-      },
-      "latency": {
-        "total_seconds": 79.692,
-        "avg_seconds_per_call": 6.641,
-        "avg_seconds_per_task": 13.471
-      },
-      "retention": {
-        "passed": 3,
-        "total": 3,
-        "rate": 1.0
-      },
-      "contradiction": {
-        "deprecated_rules": 0,
-        "challenged_rules": 0,
-        "stable_rules": 0,
-        "resolved": false
-      },
-      "task_success": {
-        "passed": 3,
-        "total": 3,
-        "rate": 1.0
-      },
-      "task_results": [
-        {
-          "task_id": "debug-1",
-          "mode": "debug",
-          "elapsed_seconds": 12.667,
-          "consolidate": {
-            "encoded": 1,
-            "failed": 0,
-            "challenged": 0,
-            "pending_approval": 0
-          }
-        },
-        {
-          "task_id": "debug-2",
-          "mode": "debug",
-          "elapsed_seconds": 13.706,
-          "consolidate": {
-            "encoded": 1,
-            "failed": 0,
-            "challenged": 0,
-            "pending_approval": 0
-          }
-        },
-        {
-          "task_id": "policy-1",
-          "mode": "deploy",
-          "elapsed_seconds": 13.999,
-          "consolidate": {
-            "encoded": 1,
-            "failed": 0,
-            "challenged": 0,
-            "pending_approval": 0
-          }
-        },
-        {
-          "task_id": "deploy-1",
-          "mode": "deploy",
-          "elapsed_seconds": 12.466,
-          "consolidate": {
-            "encoded": 1,
-            "failed": 0,
-            "challenged": 0,
-            "pending_approval": 0
-          }
-        },
-        {
-          "task_id": "hotfix-1",
-          "mode": "deploy",
-          "elapsed_seconds": 14.235,
-          "consolidate": {
-            "encoded": 1,
-            "failed": 0,
-            "challenged": 0,
-            "pending_approval": 0
-          }
-        },
-        {
-          "task_id": "hotfix-2",
-          "mode": "deploy",
-          "elapsed_seconds": 13.754,
-          "consolidate": {
-            "encoded": 1,
-            "failed": 0,
-            "challenged": 0,
-            "pending_approval": 0
-          }
-        }
-      ],
-      "probe_results": [
-        {
-          "name": "dependency-retention",
-          "passed": true,
-          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Major version mismatch between a plugin and Vite causes npm installation failure.\n- Validated hotfix branch exceptions are permitted during production recovery, provided approval and audit logging are completed.",
+          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Major version mismatch between a plugin and Vite causes npm installation failure.\n- Peer dependency mismatches are a common failure mode post-toolchain upgrades (e.g., Vite), indicating a need for explicit dependency reconciliation rather than simple reinstallation.\n- Risky branch operations are strictly forbidden during production deployment rollouts.",
           "top_l2": [
             {
               "content": "Major version mismatch between a plugin and Vite causes npm installation failure.",
-              "score": 17.279455331696205,
+              "score": 17.27947712270531,
               "importance": 8.0,
               "tags": [
                 "Dependency Error",
@@ -1347,8 +1027,874 @@
               "embedding_model": "hash-384"
             },
             {
-              "content": "When dependency installation fails due to version mismatch, verify that all related packages (e.g., Vite and its plugins) are using compatible major versions before attempting installation.",
-              "score": 14.68753702744093,
+              "content": "Peer dependency mismatches are a common failure mode post-toolchain upgrades (e.g., Vite), indicating a need for explicit dependency reconciliation rather than simple reinstallation.",
+              "score": 15.359429731685399,
+              "importance": 8.0,
+              "tags": [
+                "Build Error",
+                "exception"
+              ],
+              "memory_type": "exception",
+              "scope": "project",
+              "mode_hints": [
+                "debug"
+              ],
+              "exception_for": "Build Error",
+              "risk_level": "high",
+              "stress_state": "failure",
+              "task_id": "debug-1",
+              "workspace_id": "frontend",
+              "project_version": "v3.0.0",
+              "embedding_backend": "hash",
+              "embedding_model": "hash-384"
+            }
+          ],
+          "top_graph": [
+            {
+              "rule_id": "rule_666ee86629e243dcb851198e13bb7652",
+              "text": "Always validate and synchronize dependency lock files immediately after updating core build tools to prevent runtime dependency conflicts.",
+              "scope": "project",
+              "state": "proposed",
+              "confidence": 0.99,
+              "support_count": 1,
+              "contradiction_count": 0,
+              "score": 1.28736,
+              "evidence_count": 1,
+              "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [],
+              "fallback_action": "",
+              "provenance_score": 0.55
+            },
+            {
+              "rule_id": "rule_ab3955638f224ac3bac4a32cfc345518",
+              "text": "Never use git push -f on the frontend branch in production.",
+              "scope": "project",
+              "state": "proposed",
+              "confidence": 0.99,
+              "support_count": 1,
+              "contradiction_count": 0,
+              "score": 0.96552,
+              "evidence_count": 1,
+              "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 1,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [
+                "rule_bc0fdd87b277499aa93b5b50138be8d6"
+              ],
+              "fallback_action": "",
+              "provenance_score": 0.55
+            }
+          ]
+        },
+        {
+          "name": "policy-retention",
+          "passed": true,
+          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Emergency hotfix deployment during production recovery is permitted only when explicit approval and full audit logging are completed.\n- Risky branch operations are strictly forbidden during production deployment rollouts.\n- Force pushes on hotfix branches are permitted only if explicit approval and audit logging are documented.",
+          "top_l2": [
+            {
+              "content": "Emergency hotfix deployment during production recovery is permitted only when explicit approval and full audit logging are completed.",
+              "score": 14.639999740799897,
+              "importance": 8.0,
+              "tags": [
+                "Incident Response",
+                "exception"
+              ],
+              "memory_type": "exception",
+              "scope": "project",
+              "mode_hints": [
+                "debug",
+                "deploy"
+              ],
+              "exception_for": "Incident Response",
+              "risk_level": "high",
+              "stress_state": "failure",
+              "task_id": "hotfix-2",
+              "workspace_id": "frontend",
+              "project_version": "v3.0.1",
+              "embedding_backend": "hash",
+              "embedding_model": "hash-384"
+            },
+            {
+              "content": "When deploying a hotfix during production recovery, follow the validated procedure requiring explicit approval and mandatory audit logging.",
+              "score": 13.229999757974891,
+              "importance": 9.0,
+              "tags": [
+                "Incident Response",
+                "procedural"
+              ],
+              "memory_type": "procedural",
+              "scope": "project",
+              "mode_hints": [
+                "debug",
+                "deploy"
+              ],
+              "exception_for": null,
+              "risk_level": "high",
+              "stress_state": "failure",
+              "task_id": "hotfix-2",
+              "workspace_id": "frontend",
+              "project_version": "v3.0.1",
+              "embedding_backend": "hash",
+              "embedding_model": "hash-384"
+            }
+          ],
+          "top_graph": [
+            {
+              "rule_id": "rule_ab3955638f224ac3bac4a32cfc345518",
+              "text": "Never use git push -f on the frontend branch in production.",
+              "scope": "project",
+              "state": "proposed",
+              "confidence": 0.99,
+              "support_count": 1,
+              "contradiction_count": 0,
+              "score": 1.6092000000000002,
+              "evidence_count": 1,
+              "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 1,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [
+                "rule_bc0fdd87b277499aa93b5b50138be8d6"
+              ],
+              "fallback_action": "",
+              "provenance_score": 0.4
+            },
+            {
+              "rule_id": "rule_666ee86629e243dcb851198e13bb7652",
+              "text": "Always validate and synchronize dependency lock files immediately after updating core build tools to prevent runtime dependency conflicts.",
+              "scope": "project",
+              "state": "proposed",
+              "confidence": 0.99,
+              "support_count": 1,
+              "contradiction_count": 0,
+              "score": 0.96552,
+              "evidence_count": 1,
+              "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [],
+              "fallback_action": "",
+              "provenance_score": 0.4
+            }
+          ]
+        },
+        {
+          "name": "hotfix-exception-retention",
+          "passed": false,
+          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Risky branch operations are strictly forbidden during production deployment rollouts.\n- Major version mismatch between a plugin and Vite causes npm installation failure.",
+          "top_l2": [
+            {
+              "content": "When deploying a hotfix during production recovery, follow the validated procedure requiring explicit approval and mandatory audit logging.",
+              "score": 14.993999623221761,
+              "importance": 9.0,
+              "tags": [
+                "Incident Response",
+                "procedural"
+              ],
+              "memory_type": "procedural",
+              "scope": "project",
+              "mode_hints": [
+                "debug",
+                "deploy"
+              ],
+              "exception_for": null,
+              "risk_level": "high",
+              "stress_state": "failure",
+              "task_id": "hotfix-2",
+              "workspace_id": "frontend",
+              "project_version": "v3.0.1",
+              "embedding_backend": "hash",
+              "embedding_model": "hash-384"
+            },
+            {
+              "content": "Risky branch operations are strictly forbidden during production deployment rollouts.",
+              "score": 14.959774765463163,
+              "importance": 8.0,
+              "tags": [
+                "Deployment Safety",
+                "exception"
+              ],
+              "memory_type": "exception",
+              "scope": "project",
+              "mode_hints": [
+                "deploy"
+              ],
+              "exception_for": "Deployment Safety",
+              "risk_level": "high",
+              "stress_state": "Executing production deployment while prioritizing risk avoidance and branch stability",
+              "task_id": "deploy-1",
+              "workspace_id": "frontend",
+              "project_version": "v3.0.0",
+              "embedding_backend": "hash",
+              "embedding_model": "hash-384"
+            }
+          ],
+          "top_graph": [
+            {
+              "rule_id": "rule_ab3955638f224ac3bac4a32cfc345518",
+              "text": "Never use git push -f on the frontend branch in production.",
+              "scope": "project",
+              "state": "proposed",
+              "confidence": 0.99,
+              "support_count": 1,
+              "contradiction_count": 0,
+              "score": 1.28736,
+              "evidence_count": 1,
+              "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 1,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [
+                "rule_bc0fdd87b277499aa93b5b50138be8d6"
+              ],
+              "fallback_action": "",
+              "provenance_score": 0.4
+            },
+            {
+              "rule_id": "rule_0796a00d10a14143ac596226f69be79c",
+              "text": "Do not perform risky branch operations while executing a production deployment.",
+              "scope": "project",
+              "state": "proposed",
+              "confidence": 0.99,
+              "support_count": 1,
+              "contradiction_count": 0,
+              "score": 1.28736,
+              "evidence_count": 1,
+              "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [],
+              "fallback_action": "",
+              "provenance_score": 0.4
+            }
+          ]
+        }
+      ],
+      "rules": [
+        {
+          "id": "rule_666ee86629e243dcb851198e13bb7652",
+          "text": "Always validate and synchronize dependency lock files immediately after updating core build tools to prevent runtime dependency conflicts.",
+          "layer": "project",
+          "scope": "project",
+          "source": "hippocampus",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "state": "proposed",
+          "created_at": 1776493343.347964,
+          "updated_at": 1776493343.347964,
+          "last_validated_at": 1776493343.347964,
+          "valid_from": 1776493343.347964,
+          "valid_to": null,
+          "evidence_episode_ids": [
+            "10efb74a-fa6c-42a8-b1bd-0262b36abc0c"
+          ],
+          "superseded_by": null,
+          "expires_at": null
+        },
+        {
+          "id": "rule_ab3955638f224ac3bac4a32cfc345518",
+          "text": "Never use git push -f on the frontend branch in production.",
+          "layer": "project",
+          "scope": "project",
+          "source": "hippocampus",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "state": "proposed",
+          "created_at": 1776493368.135962,
+          "updated_at": 1776493368.135962,
+          "last_validated_at": 1776493368.135962,
+          "valid_from": 1776493368.135962,
+          "valid_to": null,
+          "evidence_episode_ids": [
+            "c83d06f7-f9a0-4a68-bf9f-37ce1965afba"
+          ],
+          "superseded_by": null,
+          "expires_at": null
+        },
+        {
+          "id": "rule_0796a00d10a14143ac596226f69be79c",
+          "text": "Do not perform risky branch operations while executing a production deployment.",
+          "layer": "project",
+          "scope": "project",
+          "source": "hippocampus",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "state": "proposed",
+          "created_at": 1776493381.5143352,
+          "updated_at": 1776493381.5143352,
+          "last_validated_at": 1776493381.5143352,
+          "valid_from": 1776493381.5143352,
+          "valid_to": null,
+          "evidence_episode_ids": [
+            "d3c5f786-dda5-4c87-88f1-13e704a5cb25"
+          ],
+          "superseded_by": null,
+          "expires_at": null
+        },
+        {
+          "id": "rule_bc0fdd87b277499aa93b5b50138be8d6",
+          "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
+          "layer": "project",
+          "scope": "project",
+          "source": "hippocampus",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "state": "proposed",
+          "created_at": 1776493394.381853,
+          "updated_at": 1776493394.3947382,
+          "last_validated_at": 1776493394.3947382,
+          "valid_from": 1776493394.381853,
+          "valid_to": null,
+          "evidence_episode_ids": [
+            "e101e4b6-c3f9-4c1c-b117-4ed2fee859ad"
+          ],
+          "superseded_by": null,
+          "expires_at": null
+        },
+        {
+          "id": "rule_f2fc54a2ae7246b2a99119ce1af188ce",
+          "text": "Allow hotfix deployment during production recovery if explicit approval and audit logging are completed.",
+          "layer": "project",
+          "scope": "project",
+          "source": "hippocampus",
+          "confidence": 0.99,
+          "support_count": 1,
+          "contradiction_count": 0,
+          "state": "proposed",
+          "created_at": 1776493407.541984,
+          "updated_at": 1776493407.541984,
+          "last_validated_at": 1776493407.541984,
+          "valid_from": 1776493407.541984,
+          "valid_to": null,
+          "evidence_episode_ids": [
+            "f85adfed-d790-4ef4-9ad6-27014cd21546"
+          ],
+          "superseded_by": null,
+          "expires_at": null
+        }
+      ],
+      "attention_state": {
+        "stress_level": 0.7516666666666667,
+        "global_gain": 1.752,
+        "failure_streak": 6.0,
+        "task_weight": 0.14995001666111296,
+        "novelty_weight": 0.16236254581806067,
+        "unresolved_weight": 0.27507497500833056,
+        "recency_weight": 0.11237920693102299,
+        "severity_weight": 0.30023325558147285
+      },
+      "contradiction_suite": {
+        "calls": 12,
+        "token_total": 14631,
+        "stable_rules": 1,
+        "reinforced_rules": 1,
+        "challenged_rules": 0,
+        "deprecated_rules": 0,
+        "resolved": true,
+        "task_results": [
+          {
+            "task_id": "policy-neg-1",
+            "elapsed_seconds": 14.307,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "policy-neg-2",
+            "elapsed_seconds": 12.948,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "policy-neg-3",
+            "elapsed_seconds": 12.323,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "hotfix-pos-1",
+            "elapsed_seconds": 12.765,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "hotfix-pos-2",
+            "elapsed_seconds": 12.999,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "hotfix-pos-3",
+            "elapsed_seconds": 13.873,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          }
+        ],
+        "rules": [
+          {
+            "id": "rule_1adca525f2404eb1936fcdb39424aea9",
+            "text": "Never use git push -f on the frontend branch in production.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 3,
+            "contradiction_count": 0,
+            "state": "stable",
+            "created_at": 1776493422.1269565,
+            "updated_at": 1776493447.5551827,
+            "last_validated_at": 1776493447.5551827,
+            "valid_from": 1776493422.1269565,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "79b67cc5-44f7-4b73-baa9-124d72169ec1",
+              "a8e46415-4f3c-4b7e-bab8-2716839bc84f",
+              "ccf07907-d8f0-458c-a2da-7b444373a549"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_595920d592f943b1923e7aab6f5587b5",
+            "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 3,
+            "contradiction_count": 0,
+            "state": "reinforced",
+            "created_at": 1776493460.2914336,
+            "updated_at": 1776493487.1756508,
+            "last_validated_at": 1776493487.1756508,
+            "valid_from": 1776493460.2914336,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "02358b67-e356-422b-b1d6-21b666bc9647",
+              "1e5ffcc5-a3fd-4706-bc72-9a5fecdac1dc",
+              "7f2c975b-f034-4e3f-8306-63ff25ff53ed"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          }
+        ]
+      },
+      "approved_override_suite": {
+        "calls": 18,
+        "token_total": 21533,
+        "stable_rules": 0,
+        "reinforced_rules": 2,
+        "governed_exception_edges": 0,
+        "resolved": true,
+        "task_results": [
+          {
+            "task_id": "tenant-default-1",
+            "elapsed_seconds": 12.482,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "tenant-exception-1",
+            "elapsed_seconds": 14.178,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "tenant-exception-2",
+            "elapsed_seconds": 12.602,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "migration-default-1",
+            "elapsed_seconds": 11.315,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "migration-exception-1",
+            "elapsed_seconds": 13.119,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "migration-exception-2",
+            "elapsed_seconds": 12.293,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "security-default-1",
+            "elapsed_seconds": 11.731,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "security-exception-1",
+            "elapsed_seconds": 13.225,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "security-exception-2",
+            "elapsed_seconds": 13.487,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          }
+        ],
+        "rules": [
+          {
+            "id": "rule_c9b6255f80cc41a7bce65bb0e02f54c9",
+            "text": "Never rename ERP customer codes after onboarding.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493500.1139777,
+            "updated_at": 1776493500.1139777,
+            "last_validated_at": 1776493500.1139777,
+            "valid_from": 1776493500.1139777,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "6304dd6d-5deb-40d7-82a0-a8f893844063"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_14986c397f164373a03067e9e2b79361",
+            "text": "Allow customer code rename for Tenant A only with finance approval and audit logging.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493514.389562,
+            "updated_at": 1776493514.389562,
+            "last_validated_at": 1776493514.389562,
+            "valid_from": 1776493514.389562,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "c203cafb-4165-4801-ba87-233be8a8100a"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_648a0ffb3ec2448ba9d9d59c506bacd8",
+            "text": "Allow code rename overrides for Tenant A only when finance signoff and audit logging are completed.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493526.9959362,
+            "updated_at": 1776493526.9959362,
+            "last_validated_at": 1776493526.9959362,
+            "valid_from": 1776493526.9959362,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "3e36ca7d-8e43-4cce-8c68-d521399eafa9"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_ab53ed945147470da2ff3fcde3f76e2a",
+            "text": "Never run destructive schema migration during business hours.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493538.3096611,
+            "updated_at": 1776493538.3096611,
+            "last_validated_at": 1776493538.3096611,
+            "valid_from": 1776493538.3096611,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "94e43bd3-680b-45f7-a36c-891b9fe58fa5"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_dd501904f2094a0aba28d1f4a287a7e2",
+            "text": "Allow destructive schema migration during recovery windows only with DBA approval and a documented rollback plan.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 2,
+            "contradiction_count": 0,
+            "state": "reinforced",
+            "created_at": 1776493551.4263062,
+            "updated_at": 1776493563.720705,
+            "last_validated_at": 1776493563.720705,
+            "valid_from": 1776493551.4263062,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "0fcd0710-4476-4341-8647-5ab61aebfe6b",
+              "e7f473d6-bf24-4308-9705-ab89721312c9"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_38f4050252354048acfd669303a78d7f",
+            "text": "Never disable MFA in production.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493575.452276,
+            "updated_at": 1776493575.452276,
+            "last_validated_at": 1776493575.452276,
+            "valid_from": 1776493575.452276,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "208d8128-52fd-40c7-b5ad-93f31362036b"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_d4aec268c38044d8818c6603911f6315",
+            "text": "Allow temporary MFA bypass only with human approval, an incident ticket, and a documented expiry window.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 2,
+            "contradiction_count": 0,
+            "state": "reinforced",
+            "created_at": 1776493588.675848,
+            "updated_at": 1776493602.1634479,
+            "last_validated_at": 1776493602.1634479,
+            "valid_from": 1776493588.675848,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "b9d52025-1636-497f-b8b0-dea8543086a5",
+              "e32f408a-fab5-4633-aedb-7c3e59415744"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          }
+        ],
+        "sample_relations": []
+      }
+    },
+    {
+      "run_name": "run-3",
+      "model": "gemma4:e2b",
+      "task_set_size": 6,
+      "calls": 13,
+      "token": {
+        "prompt_tokens": 7281,
+        "completion_tokens": 8493,
+        "total_tokens": 15774
+      },
+      "latency": {
+        "total_seconds": 84.982,
+        "avg_seconds_per_call": 6.537,
+        "avg_seconds_per_task": 14.384
+      },
+      "retention": {
+        "passed": 2,
+        "total": 3,
+        "rate": 0.667
+      },
+      "contradiction": {
+        "deprecated_rules": 0,
+        "challenged_rules": 0,
+        "stable_rules": 0,
+        "resolved": false
+      },
+      "task_success": {
+        "passed": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "task_results": [
+        {
+          "task_id": "debug-1",
+          "mode": "debug",
+          "elapsed_seconds": 12.532,
+          "consolidate": {
+            "encoded": 1,
+            "failed": 0,
+            "challenged": 0,
+            "pending_approval": 0
+          }
+        },
+        {
+          "task_id": "debug-2",
+          "mode": "debug",
+          "elapsed_seconds": 12.662,
+          "consolidate": {
+            "encoded": 1,
+            "failed": 0,
+            "challenged": 0,
+            "pending_approval": 0
+          }
+        },
+        {
+          "task_id": "policy-1",
+          "mode": "deploy",
+          "elapsed_seconds": 13.413,
+          "consolidate": {
+            "encoded": 1,
+            "failed": 0,
+            "challenged": 0,
+            "pending_approval": 0
+          }
+        },
+        {
+          "task_id": "deploy-1",
+          "mode": "deploy",
+          "elapsed_seconds": 13.011,
+          "consolidate": {
+            "encoded": 1,
+            "failed": 0,
+            "challenged": 0,
+            "pending_approval": 0
+          }
+        },
+        {
+          "task_id": "hotfix-1",
+          "mode": "deploy",
+          "elapsed_seconds": 13.222,
+          "consolidate": {
+            "encoded": 1,
+            "failed": 0,
+            "challenged": 0,
+            "pending_approval": 0
+          }
+        },
+        {
+          "task_id": "hotfix-2",
+          "mode": "deploy",
+          "elapsed_seconds": 21.462,
+          "consolidate": {
+            "encoded": 1,
+            "failed": 0,
+            "challenged": 0,
+            "pending_approval": 0
+          }
+        }
+      ],
+      "probe_results": [
+        {
+          "name": "dependency-retention",
+          "passed": true,
+          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Vite upgrades can trigger peer dependency mismatches, requiring explicit dependency resolution steps.\n- Hotfix deployment during production recovery is an approved exception, provided formal approval and audit logging are completed.",
+          "top_l2": [
+            {
+              "content": "Vite upgrades can trigger peer dependency mismatches, requiring explicit dependency resolution steps.",
+              "score": 16.31930136396523,
+              "importance": 8.0,
+              "tags": [
+                "Dependency Error",
+                "exception"
+              ],
+              "memory_type": "exception",
+              "scope": "project",
+              "mode_hints": [
+                "debug"
+              ],
+              "exception_for": "Dependency Error",
+              "risk_level": "high",
+              "stress_state": "failure",
+              "task_id": "debug-1",
+              "workspace_id": "frontend",
+              "project_version": "v3.0.0",
+              "embedding_backend": "hash",
+              "embedding_model": "hash-384"
+            },
+            {
+              "content": "After a tool upgrade, check the dependency tree and manually resolve any peer dependency mismatches by adjusting package versions in package.json.",
+              "score": 13.823408201207176,
               "importance": 9.0,
               "tags": [
                 "Dependency Error",
@@ -1362,7 +1908,7 @@
               "exception_for": null,
               "risk_level": "high",
               "stress_state": "failure",
-              "task_id": "debug-2",
+              "task_id": "debug-1",
               "workspace_id": "frontend",
               "project_version": "v3.0.0",
               "embedding_backend": "hash",
@@ -1371,8 +1917,8 @@
           ],
           "top_graph": [
             {
-              "rule_id": "rule_7d643549c9254891ba030466c05757cc",
-              "text": "Post-tool-upgrade dependency validation must be a mandatory step in the build workflow.",
+              "rule_id": "rule_1538ebb2843c49f5b3a76f65725d2030",
+              "text": "Always validate and resolve peer dependency conflicts immediately following major tool or package upgrades.",
               "scope": "project",
               "state": "proposed",
               "confidence": 0.99,
@@ -1381,20 +1927,28 @@
               "score": 1.28736,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [],
               "fallback_action": "",
               "provenance_score": 0.55
             },
             {
-              "rule_id": "rule_1d2262f9f50944bcb3074bf8c970a9d2",
-              "text": "Always verify major version compatibility between core frameworks (like Vite) and their associated plugins before running dependency installation commands.",
+              "rule_id": "rule_38d9e9ff3b4840718db1d1180f3aa946",
+              "text": "Always verify major version compatibility between core dependencies and plugins before running installation commands.",
               "scope": "project",
               "state": "proposed",
               "confidence": 0.99,
               "support_count": 1,
               "contradiction_count": 0,
-              "score": 1.28736,
+              "score": 0.96552,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [],
               "fallback_action": "",
               "provenance_score": 0.55
             }
@@ -1403,11 +1957,11 @@
         {
           "name": "policy-retention",
           "passed": true,
-          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- There are no approved exceptions for using 'git push -f' on the frontend branch in production.\n- During production deployment, risky branch operations are strictly forbidden.\n- Force pushing on hotfix branches is an approved exception, contingent upon explicit approval and mandatory audit logging.",
+          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- No exceptions exist for using 'git push -f' on the frontend branch in production.\n- Hotfix deployment during production recovery is an approved exception, provided formal approval and audit logging are completed.\n- Risky branch operations are forbidden during the production rollout phase.",
           "top_l2": [
             {
-              "content": "There are no approved exceptions for using 'git push -f' on the frontend branch in production.",
-              "score": 15.399637752281505,
+              "content": "No exceptions exist for using 'git push -f' on the frontend branch in production.",
+              "score": 15.399573025808628,
               "importance": 8.0,
               "tags": [
                 "Git Policy",
@@ -1420,7 +1974,7 @@
               ],
               "exception_for": "Git Policy",
               "risk_level": "high",
-              "stress_state": "The agent has learned the team policy prohibiting the use of 'git push -f' on the frontend branch in production.",
+              "stress_state": "The agent is aware of the team policy prohibiting the use of 'git push -f' on the frontend branch in production environments.",
               "task_id": "policy-1",
               "workspace_id": "frontend",
               "project_version": "v3.0.0",
@@ -1428,31 +1982,32 @@
               "embedding_model": "hash-384"
             },
             {
-              "content": "When updating the frontend branch for production, do not use 'git push -f'. Use approved deployment procedures instead.",
-              "score": 13.544681356811543,
-              "importance": 9.0,
+              "content": "Hotfix deployment during production recovery is an approved exception, provided formal approval and audit logging are completed.",
+              "score": 14.63999823342943,
+              "importance": 8.0,
               "tags": [
-                "Git Policy",
-                "procedural"
+                "Incident Response",
+                "exception"
               ],
-              "memory_type": "procedural",
+              "memory_type": "exception",
               "scope": "project",
               "mode_hints": [
+                "debug",
                 "deploy"
               ],
-              "exception_for": null,
+              "exception_for": "Incident Response",
               "risk_level": "high",
-              "stress_state": "The agent has learned the team policy prohibiting the use of 'git push -f' on the frontend branch in production.",
-              "task_id": "policy-1",
+              "stress_state": "failure",
+              "task_id": "hotfix-2",
               "workspace_id": "frontend",
-              "project_version": "v3.0.0",
+              "project_version": "v3.0.1",
               "embedding_backend": "hash",
               "embedding_model": "hash-384"
             }
           ],
           "top_graph": [
             {
-              "rule_id": "rule_ee2068002a5a481b8c4e9e41ce15ebad",
+              "rule_id": "rule_b48a16f020fa4a8bbc5b1aa5e3d30145",
               "text": "Never use git push -f on the frontend branch in production.",
               "scope": "project",
               "state": "proposed",
@@ -1462,12 +2017,18 @@
               "score": 1.6092000000000002,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 1,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [
+                "rule_3625eb0fa5b0440b9f8d54dabc36fe6f"
+              ],
               "fallback_action": "",
               "provenance_score": 0.4
             },
             {
-              "rule_id": "rule_7d643549c9254891ba030466c05757cc",
-              "text": "Post-tool-upgrade dependency validation must be a mandatory step in the build workflow.",
+              "rule_id": "rule_1538ebb2843c49f5b3a76f65725d2030",
+              "text": "Always validate and resolve peer dependency conflicts immediately following major tool or package upgrades.",
               "scope": "project",
               "state": "proposed",
               "confidence": 0.99,
@@ -1476,6 +2037,10 @@
               "score": 0.96552,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [],
               "fallback_action": "",
               "provenance_score": 0.4
             }
@@ -1483,91 +2048,100 @@
         },
         {
           "name": "hotfix-exception-retention",
-          "passed": true,
-          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Validated hotfix branch exceptions are permitted during production recovery, provided approval and audit logging are completed.\n- Force pushing on hotfix branches is an approved exception, contingent upon explicit approval and mandatory audit logging.\n- Major version mismatch between a plugin and Vite causes npm installation failure.",
+          "passed": false,
+          "safety_guard": "Safety guardrails for this request:\nCritical exceptions:\n- Risky branch operations are forbidden during the production rollout phase.\n- Vite upgrades can trigger peer dependency mismatches, requiring explicit dependency resolution steps.",
           "top_l2": [
             {
-              "content": "Validated hotfix branch exceptions are permitted during production recovery, provided approval and audit logging are completed.",
-              "score": 18.543997756024247,
+              "content": "Risky branch operations are forbidden during the production rollout phase.",
+              "score": 14.95969782268033,
               "importance": 8.0,
               "tags": [
-                "Incident Recovery",
+                "Release Deployment Strategy",
                 "exception"
               ],
               "memory_type": "exception",
               "scope": "project",
               "mode_hints": [
-                "debug",
                 "deploy"
               ],
-              "exception_for": "Incident Recovery",
+              "exception_for": "Release Deployment Strategy",
               "risk_level": "high",
-              "stress_state": "failure",
-              "task_id": "hotfix-2",
+              "stress_state": "Execute release candidate deployment to production while strictly avoiding risky branch operations.",
+              "task_id": "deploy-1",
               "workspace_id": "frontend",
-              "project_version": "v3.0.1",
+              "project_version": "v3.0.0",
               "embedding_backend": "hash",
               "embedding_model": "hash-384"
             },
             {
-              "content": "Force pushing on hotfix branches is an approved exception, contingent upon explicit approval and mandatory audit logging.",
-              "score": 14.111885970276827,
-              "importance": 8.0,
+              "content": "During a release candidate deployment, the procedure mandates the avoidance of all risky branch operations.",
+              "score": 13.75972205344372,
+              "importance": 10.0,
               "tags": [
-                "Hotfix Policy",
-                "exception"
+                "Release Deployment Strategy",
+                "procedural"
               ],
-              "memory_type": "exception",
+              "memory_type": "procedural",
               "scope": "project",
               "mode_hints": [
-                "implement"
+                "deploy"
               ],
-              "exception_for": "Hotfix Policy",
+              "exception_for": null,
               "risk_level": "high",
-              "stress_state": "Force push on hotfix branches requires explicit approval and audit logging.",
-              "task_id": "hotfix-1",
+              "stress_state": "Execute release candidate deployment to production while strictly avoiding risky branch operations.",
+              "task_id": "deploy-1",
               "workspace_id": "frontend",
-              "project_version": "v3.0.1",
+              "project_version": "v3.0.0",
               "embedding_backend": "hash",
               "embedding_model": "hash-384"
             }
           ],
           "top_graph": [
             {
-              "rule_id": "rule_10c2211d16ab4834b8dcd26b0e20379c",
-              "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
+              "rule_id": "rule_b48a16f020fa4a8bbc5b1aa5e3d30145",
+              "text": "Never use git push -f on the frontend branch in production.",
               "scope": "project",
               "state": "proposed",
               "confidence": 0.99,
               "support_count": 1,
               "contradiction_count": 0,
-              "score": 1.6092000000000002,
+              "score": 1.28736,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 1,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [
+                "rule_3625eb0fa5b0440b9f8d54dabc36fe6f"
+              ],
               "fallback_action": "",
-              "provenance_score": 0.55
+              "provenance_score": 0.4
             },
             {
-              "rule_id": "rule_29dcb5cced1a4a7fb203443de0a5c063",
-              "text": "Allow hotfix branch exceptions during production recovery if approval and audit logging are successfully completed.",
+              "rule_id": "rule_1538ebb2843c49f5b3a76f65725d2030",
+              "text": "Always validate and resolve peer dependency conflicts immediately following major tool or package upgrades.",
               "scope": "project",
               "state": "proposed",
               "confidence": 0.99,
               "support_count": 1,
               "contradiction_count": 0,
-              "score": 1.6092000000000002,
+              "score": 0.96552,
               "evidence_count": 1,
               "conflict_count": 0,
+              "governed_exception_for_count": 0,
+              "governed_by_exception_count": 0,
+              "governed_exception_for": [],
+              "governed_by_exceptions": [],
               "fallback_action": "",
-              "provenance_score": 0.55
+              "provenance_score": 0.4
             }
           ]
         }
       ],
       "rules": [
         {
-          "id": "rule_7d643549c9254891ba030466c05757cc",
-          "text": "Post-tool-upgrade dependency validation must be a mandatory step in the build workflow.",
+          "id": "rule_1538ebb2843c49f5b3a76f65725d2030",
+          "text": "Always validate and resolve peer dependency conflicts immediately following major tool or package upgrades.",
           "layer": "project",
           "scope": "project",
           "source": "hippocampus",
@@ -1575,20 +2149,20 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487544.0253046,
-          "updated_at": 1776487544.0253046,
-          "last_validated_at": 1776487544.0253046,
-          "valid_from": 1776487544.0253046,
+          "created_at": 1776493615.3260071,
+          "updated_at": 1776493615.3260071,
+          "last_validated_at": 1776493615.3260071,
+          "valid_from": 1776493615.3260071,
           "valid_to": null,
           "evidence_episode_ids": [
-            "d686c7b1-f392-4c61-8c65-6c931123d74d"
+            "7816688d-51dd-4706-8b54-23638bdb83a6"
           ],
           "superseded_by": null,
           "expires_at": null
         },
         {
-          "id": "rule_1d2262f9f50944bcb3074bf8c970a9d2",
-          "text": "Always verify major version compatibility between core frameworks (like Vite) and their associated plugins before running dependency installation commands.",
+          "id": "rule_38d9e9ff3b4840718db1d1180f3aa946",
+          "text": "Always verify major version compatibility between core dependencies and plugins before running installation commands.",
           "layer": "project",
           "scope": "project",
           "source": "hippocampus",
@@ -1596,19 +2170,19 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487557.7192204,
-          "updated_at": 1776487557.7192204,
-          "last_validated_at": 1776487557.7192204,
-          "valid_from": 1776487557.7192204,
+          "created_at": 1776493628.0277252,
+          "updated_at": 1776493628.0277252,
+          "last_validated_at": 1776493628.0277252,
+          "valid_from": 1776493628.0277252,
           "valid_to": null,
           "evidence_episode_ids": [
-            "b4b6929b-416a-4b2e-af86-89722cbbf8b0"
+            "fd379733-8b8d-4382-ab93-f8d963c9fee9"
           ],
           "superseded_by": null,
           "expires_at": null
         },
         {
-          "id": "rule_ee2068002a5a481b8c4e9e41ce15ebad",
+          "id": "rule_b48a16f020fa4a8bbc5b1aa5e3d30145",
           "text": "Never use git push -f on the frontend branch in production.",
           "layer": "project",
           "scope": "project",
@@ -1617,19 +2191,19 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487571.7200284,
-          "updated_at": 1776487571.7200284,
-          "last_validated_at": 1776487571.7200284,
-          "valid_from": 1776487571.7200284,
+          "created_at": 1776493641.4479985,
+          "updated_at": 1776493641.4479985,
+          "last_validated_at": 1776493641.4479985,
+          "valid_from": 1776493641.4479985,
           "valid_to": null,
           "evidence_episode_ids": [
-            "3181ebfb-913d-4ba9-af24-74ba87cbf1ac"
+            "4a6f0a8a-7f39-48ab-882f-1dce8bf23d9d"
           ],
           "superseded_by": null,
           "expires_at": null
         },
         {
-          "id": "rule_58d026262438406cb33f06fb69c64226",
+          "id": "rule_0063130b583640c1b10da3becd64ebe4",
           "text": "Do not perform risky branch operations during a production rollout.",
           "layer": "project",
           "scope": "project",
@@ -1638,19 +2212,19 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487584.189024,
-          "updated_at": 1776487584.189024,
-          "last_validated_at": 1776487584.189024,
-          "valid_from": 1776487584.189024,
+          "created_at": 1776493654.5202816,
+          "updated_at": 1776493654.5202816,
+          "last_validated_at": 1776493654.5202816,
+          "valid_from": 1776493654.5202816,
           "valid_to": null,
           "evidence_episode_ids": [
-            "339f08e3-a123-4b2d-8614-e1741f3d3fc6"
+            "50187abb-e1ec-4d6f-9edb-f4f3d03e5a24"
           ],
           "superseded_by": null,
           "expires_at": null
         },
         {
-          "id": "rule_10c2211d16ab4834b8dcd26b0e20379c",
+          "id": "rule_3625eb0fa5b0440b9f8d54dabc36fe6f",
           "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
           "layer": "project",
           "scope": "project",
@@ -1659,20 +2233,20 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487598.36695,
-          "updated_at": 1776487598.4232924,
-          "last_validated_at": 1776487598.4232924,
-          "valid_from": 1776487598.36695,
+          "created_at": 1776493667.7138398,
+          "updated_at": 1776493667.7265024,
+          "last_validated_at": 1776493667.7265024,
+          "valid_from": 1776493667.7138398,
           "valid_to": null,
           "evidence_episode_ids": [
-            "75fccf29-7b6e-41d6-be15-3a892a20a755"
+            "c5e866e7-343f-4812-9324-6dd0c8fa4d15"
           ],
           "superseded_by": null,
           "expires_at": null
         },
         {
-          "id": "rule_29dcb5cced1a4a7fb203443de0a5c063",
-          "text": "Allow hotfix branch exceptions during production recovery if approval and audit logging are successfully completed.",
+          "id": "rule_bdf575bde0ae4ce9bfe8f5fec0f5a7ea",
+          "text": "Allow hotfix deployment during production recovery only if explicit approval and audit logging are performed.",
           "layer": "project",
           "scope": "project",
           "source": "hippocampus",
@@ -1680,31 +2254,31 @@
           "support_count": 1,
           "contradiction_count": 0,
           "state": "proposed",
-          "created_at": 1776487612.126057,
-          "updated_at": 1776487612.126057,
-          "last_validated_at": 1776487612.126057,
-          "valid_from": 1776487612.126057,
+          "created_at": 1776493689.2009873,
+          "updated_at": 1776493689.2009873,
+          "last_validated_at": 1776493689.2009873,
+          "valid_from": 1776493689.2009873,
           "valid_to": null,
           "evidence_episode_ids": [
-            "2ba578e0-a4eb-42c6-9911-9bdf31fbbe97"
+            "a7877495-b4a2-4f21-95f7-2ee9236380d8"
           ],
           "superseded_by": null,
           "expires_at": null
         }
       ],
       "attention_state": {
-        "stress_level": 0.74,
-        "global_gain": 1.74,
+        "stress_level": 0.7458333333333333,
+        "global_gain": 1.746,
         "failure_streak": 6.0,
-        "task_weight": 0.1519999999999999,
-        "novelty_weight": 0.163,
-        "unresolved_weight": 0.274,
-        "recency_weight": 0.11299999999999999,
-        "severity_weight": 0.298
+        "task_weight": 0.15083333333333337,
+        "novelty_weight": 0.16270833333333334,
+        "unresolved_weight": 0.27458333333333335,
+        "recency_weight": 0.11270833333333333,
+        "severity_weight": 0.2991666666666667
       },
       "contradiction_suite": {
         "calls": 12,
-        "token_total": 14486,
+        "token_total": 14522,
         "stable_rules": 1,
         "reinforced_rules": 1,
         "challenged_rules": 0,
@@ -1713,7 +2287,7 @@
         "task_results": [
           {
             "task_id": "policy-neg-1",
-            "elapsed_seconds": 15.025,
+            "elapsed_seconds": 13.2,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -1723,7 +2297,7 @@
           },
           {
             "task_id": "policy-neg-2",
-            "elapsed_seconds": 12.405,
+            "elapsed_seconds": 13.004,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -1733,7 +2307,7 @@
           },
           {
             "task_id": "policy-neg-3",
-            "elapsed_seconds": 14.162,
+            "elapsed_seconds": 12.558,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -1743,7 +2317,7 @@
           },
           {
             "task_id": "hotfix-pos-1",
-            "elapsed_seconds": 13.663,
+            "elapsed_seconds": 12.729,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -1753,7 +2327,7 @@
           },
           {
             "task_id": "hotfix-pos-2",
-            "elapsed_seconds": 14.629,
+            "elapsed_seconds": 12.825,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -1763,7 +2337,7 @@
           },
           {
             "task_id": "hotfix-pos-3",
-            "elapsed_seconds": 14.339,
+            "elapsed_seconds": 13.281,
             "consolidate": {
               "encoded": 1,
               "failed": 0,
@@ -1774,7 +2348,7 @@
         ],
         "rules": [
           {
-            "id": "rule_d96f295095784385966f73560a52e6a0",
+            "id": "rule_7c9134fb13a944fe913315212e6a80a5",
             "text": "Never use git push -f on the frontend branch in production.",
             "layer": "project",
             "scope": "project",
@@ -1783,21 +2357,21 @@
             "support_count": 3,
             "contradiction_count": 0,
             "state": "stable",
-            "created_at": 1776487627.8977044,
-            "updated_at": 1776487654.241834,
-            "last_validated_at": 1776487654.241834,
-            "valid_from": 1776487627.8977044,
+            "created_at": 1776493703.0480661,
+            "updated_at": 1776493728.5978746,
+            "last_validated_at": 1776493728.5978746,
+            "valid_from": 1776493703.0480661,
             "valid_to": null,
             "evidence_episode_ids": [
-              "645c7748-cc66-4534-a68d-a9702c94e1ea",
-              "9f0f9a7a-463f-4808-855a-26ae1ed59d54",
-              "d1a92de8-146e-43bd-809a-bd634ba0fce7"
+              "79d98ebe-0e36-4cf3-bcf5-9d5f70cc7119",
+              "ac183bc5-46cd-4da7-b5e5-6c2af548e14d",
+              "acf0dbb1-54af-44b2-aef8-f8e7e9bcee40"
             ],
             "superseded_by": null,
             "expires_at": null
           },
           {
-            "id": "rule_19009d16d4514135ab8ee2c2e2e34229",
+            "id": "rule_97d90b5362f14e20bbaed8c0a5d26ed8",
             "text": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
             "layer": "project",
             "scope": "project",
@@ -1806,20 +2380,272 @@
             "support_count": 3,
             "contradiction_count": 0,
             "state": "reinforced",
-            "created_at": 1776487668.1056457,
-            "updated_at": 1776487697.087035,
-            "last_validated_at": 1776487697.087035,
-            "valid_from": 1776487668.1056457,
+            "created_at": 1776493741.3050275,
+            "updated_at": 1776493767.395242,
+            "last_validated_at": 1776493767.395242,
+            "valid_from": 1776493741.3050275,
             "valid_to": null,
             "evidence_episode_ids": [
-              "b7ed5682-4da4-40ec-a9fa-829dda45124d",
-              "bfd8caf8-769e-4e50-9391-d17247cde352",
-              "f42a0991-1b44-4e81-8e43-b8634c8f1cf1"
+              "73e957cd-abe0-42f9-9428-3f2daa08ecdd",
+              "cc344429-d31f-402d-911b-163ad894ef1b",
+              "f1664331-747e-41aa-bc59-01c07f7d7a73"
             ],
             "superseded_by": null,
             "expires_at": null
           }
         ]
+      },
+      "approved_override_suite": {
+        "calls": 19,
+        "token_total": 22754,
+        "stable_rules": 0,
+        "reinforced_rules": 2,
+        "governed_exception_edges": 0,
+        "resolved": true,
+        "task_results": [
+          {
+            "task_id": "tenant-default-1",
+            "elapsed_seconds": 12.725,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "tenant-exception-1",
+            "elapsed_seconds": 13.429,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "tenant-exception-2",
+            "elapsed_seconds": 12.621,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "migration-default-1",
+            "elapsed_seconds": 19.199,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "migration-exception-1",
+            "elapsed_seconds": 13.135,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "migration-exception-2",
+            "elapsed_seconds": 11.934,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "security-default-1",
+            "elapsed_seconds": 12.213,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "security-exception-1",
+            "elapsed_seconds": 12.828,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          },
+          {
+            "task_id": "security-exception-2",
+            "elapsed_seconds": 13.102,
+            "consolidate": {
+              "encoded": 1,
+              "failed": 0,
+              "challenged": 0,
+              "pending_approval": 0
+            }
+          }
+        ],
+        "rules": [
+          {
+            "id": "rule_8662cd19ffc24e2a971021f371018e89",
+            "text": "Never rename ERP customer codes after onboarding.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493780.591468,
+            "updated_at": 1776493780.591468,
+            "last_validated_at": 1776493780.591468,
+            "valid_from": 1776493780.591468,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "4951e965-8ea1-49c6-8e69-62d5bd951590"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_d7e838e0c97c4b03952db35539870e81",
+            "text": "Allow customer code rename for Tenant A only with finance approval and audit logging.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493793.867304,
+            "updated_at": 1776493793.867304,
+            "last_validated_at": 1776493793.867304,
+            "valid_from": 1776493793.867304,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "c1127eee-2770-464e-a80f-48881e5941ee"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_a5db105d043a4aef9cf41411350a9464",
+            "text": "Allow code rename overrides for Tenant A only after obtaining finance signoff and completing audit logging.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493806.631816,
+            "updated_at": 1776493806.631816,
+            "last_validated_at": 1776493806.631816,
+            "valid_from": 1776493806.631816,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "04c8dbe5-80cc-4121-8ae4-7cf51f425c69"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_641fd324095d432db3e8b9025eb03cf1",
+            "text": "Never run destructive schema migration during business hours.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493825.8318934,
+            "updated_at": 1776493825.8318934,
+            "last_validated_at": 1776493825.8318934,
+            "valid_from": 1776493825.8318934,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "f43c2f8f-1ce4-4215-971d-015da79a1fc0"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_e6eee0fb8a534f26bf265523b2d5134b",
+            "text": "Allow destructive schema migration during recovery windows only with DBA approval and a documented rollback plan.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 2,
+            "contradiction_count": 0,
+            "state": "reinforced",
+            "created_at": 1776493838.9515307,
+            "updated_at": 1776493850.8980765,
+            "last_validated_at": 1776493850.8980765,
+            "valid_from": 1776493838.9515307,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "4f534db0-b2d0-49ba-b124-5b667daad276",
+              "c4325587-3d67-473a-aa43-9eeec5189e3a"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_6946cbd1fc93485b97770b23d3117369",
+            "text": "Never disable MFA in production.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 1,
+            "contradiction_count": 0,
+            "state": "proposed",
+            "created_at": 1776493863.1172106,
+            "updated_at": 1776493863.1172106,
+            "last_validated_at": 1776493863.1172106,
+            "valid_from": 1776493863.1172106,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "fe709f09-f5de-46b9-b894-d7b958600f76"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          },
+          {
+            "id": "rule_e6e6f111a9284e2baabc5d206b7dbcd3",
+            "text": "Allow temporary MFA bypass only with human approval, an incident ticket, and a documented expiry window.",
+            "layer": "project",
+            "scope": "project",
+            "source": "hippocampus",
+            "confidence": 0.99,
+            "support_count": 2,
+            "contradiction_count": 0,
+            "state": "reinforced",
+            "created_at": 1776493875.9429343,
+            "updated_at": 1776493889.0439959,
+            "last_validated_at": 1776493889.0439959,
+            "valid_from": 1776493875.9429343,
+            "valid_to": null,
+            "evidence_episode_ids": [
+              "bdcf89ab-089e-4e64-b180-91468ae56baf",
+              "fd45b76b-50ec-4b77-aa77-c782f31f2bcd"
+            ],
+            "superseded_by": null,
+            "expires_at": null
+          }
+        ],
+        "sample_relations": []
       }
     }
   ]

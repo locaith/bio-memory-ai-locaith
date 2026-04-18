@@ -386,10 +386,34 @@ def test_retrieval_service_builds_lineage_and_safety_guard():
         scope="project",
         confidence=0.85,
         evidence_episode_ids=[episode["episode_id"]],
+        promotion_threshold=2,
+    )
+    persona.add_rule(
+        "Never use git push -f on the frontend branch.",
+        scope="project",
+        confidence=0.85,
+        evidence_episode_ids=[episode["episode_id"]],
+        promotion_threshold=2,
     )
     rule = persona.get_rule_records()[rule_id]
     graph.add_belief_rule(rule)
     graph.add_episode_evidence(rule_id, episode["episode_id"], confidence=0.9)
+    override_rule_id = persona.add_rule(
+        "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
+        scope="project",
+        confidence=0.88,
+        evidence_episode_ids=[episode["episode_id"]],
+        promotion_threshold=2,
+    )
+    persona.add_rule(
+        "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
+        scope="project",
+        confidence=0.88,
+        evidence_episode_ids=[episode["episode_id"]],
+        promotion_threshold=2,
+    )
+    graph.add_belief_rule(persona.get_rule_records()[override_rule_id])
+    graph.add_governed_exception(override_rule_id, rule_id)
     l2.store_exception(
         "Exception: emergency hotfix branches may force push only with explicit approval.",
         exception_for="git",
@@ -408,6 +432,10 @@ def test_retrieval_service_builds_lineage_and_safety_guard():
     assert lineage["beliefs"]
     assert lineage["episodes"]
     assert lineage["exceptions"]
+    assert "Default rules:" in lineage["safety_guard"]
+    assert "Approved overrides:" in lineage["safety_guard"]
+    belief_bundle = graph.belief_query(rule_id=override_rule_id)
+    assert belief_bundle["governed_exception_for"]
 
 
 def test_retrieval_service_adds_fallback_action_for_challenged_beliefs():

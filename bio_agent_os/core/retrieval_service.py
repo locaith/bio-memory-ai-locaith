@@ -55,10 +55,15 @@ class RetrievalService:
             for item in l2_results
             if item.get("memory_type") == "exception"
         ][:3]
-        belief_lines = [
+        default_rule_lines = [
             f"- [{item['scope']}] {item['text']} (confidence={item['confidence']:.2f})"
             for item in graph_results
-            if item.get("state") in {"stable", "reinforced"}
+            if item.get("state") in {"stable", "reinforced"} and not item.get("governed_exception_for")
+        ][:3]
+        approved_override_lines = [
+            f"- [{item['scope']}] {item['text']} (approved override, confidence={item['confidence']:.2f})"
+            for item in graph_results
+            if item.get("state") in {"stable", "reinforced"} and item.get("governed_exception_for")
         ][:3]
         challenged_lines = [
             f"- [{item['scope']}] {item['text']} (state=challenged, confidence={item['confidence']:.2f})"
@@ -79,16 +84,20 @@ class RetrievalService:
                 for item in fallback_candidates[:3]
             ]
 
-        if not exception_lines and not belief_lines and not challenged_lines:
+        if not exception_lines and not default_rule_lines and not approved_override_lines and not challenged_lines:
             return ""
 
         lines = ["Safety guardrails for this request:"]
         if exception_lines:
             lines.append("Critical exceptions:")
             lines.extend(exception_lines)
-        if belief_lines:
-            lines.append("Belief constraints:")
-            lines.extend(belief_lines)
+        if default_rule_lines:
+            lines.append("Default rules:")
+            lines.extend(default_rule_lines)
+        if approved_override_lines:
+            lines.append("Approved overrides:")
+            lines.extend(approved_override_lines)
+            lines.append("- Apply these only when the stated approval and audit conditions are satisfied.")
         if challenged_lines:
             lines.append("Challenged beliefs to treat as uncertain:")
             lines.extend(challenged_lines)

@@ -232,6 +232,18 @@ class Hippocampus:
                 return f"Allow use git push on the {workspace} branch during approved hotfix response with explicit approval and audit logging."
             if any(token in lowered for token in ["never", "forbid", "forbidden", "avoid", "prohibit", "do not"]):
                 return f"Never use git push -f on the {workspace} branch in production."
+        if "customer code" in lowered and "tenant a" in lowered and any(token in lowered for token in ["allow", "approval", "audit", "signoff"]):
+            return "Allow customer code rename for Tenant A only with finance approval and audit logging."
+        if "customer code" in lowered and any(token in lowered for token in ["never", "do not", "forbid", "forbidden"]):
+            return "Never rename ERP customer codes after onboarding."
+        if "migration" in lowered and any(token in lowered for token in ["allow", "approval", "rollback", "recovery window", "dba"]):
+            return "Allow destructive schema migration during recovery windows only with DBA approval and a documented rollback plan."
+        if "migration" in lowered and any(token in lowered for token in ["never", "do not", "forbid", "forbidden", "business hours"]):
+            return "Never run destructive schema migration during business hours."
+        if "mfa" in lowered and any(token in lowered for token in ["allow", "approval", "incident", "expiry", "rollback"]):
+            return "Allow temporary MFA bypass only with human approval, an incident ticket, and a documented expiry window."
+        if "mfa" in lowered and any(token in lowered for token in ["never", "do not", "forbid", "forbidden", "disable"]):
+            return "Never disable MFA in production."
         return raw_rule
 
     def _promotion_threshold(self, metadata: Dict[str, Any], identity_rule: str, scope: str) -> int:
@@ -482,6 +494,11 @@ class Hippocampus:
                         self.graph.add_supersedes(rule_id, deprecated_id)
                     for challenged_id in reconcile_stats["challenged_ids"]:
                         self.graph.add_conflict(challenged_id, rule_id)
+                    for governed_pair in reconcile_stats.get("governed_pairs", []):
+                        self.graph.add_governed_exception(
+                            governed_pair["exception_rule_id"],
+                            governed_pair["default_rule_id"],
+                        )
 
                 if self.l2:
                     topic = metadata.get("topic", "general")
