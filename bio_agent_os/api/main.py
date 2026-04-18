@@ -20,6 +20,7 @@ from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
 from bio_agent_os.core.retrieval_service import RetrievalService
+from bio_agent_os.core.runtime import build_runtime
 from bio_agent_os.core.router import IntentRouter
 from bio_agent_os.memory.episodes import EpisodeStore
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
@@ -50,35 +51,22 @@ retrieval_service: Optional[RetrievalService] = None
 def init_components():
     global engine, persona, router_ai, l1, l2, kg, episodes, hippo, gc, graph_builder, health_monitor, dream_journal, audit_log, approval_queue, retrieval_service
 
-    from dotenv import load_dotenv
-
-    load_dotenv()
-
-    engine = LLMEngine.from_env()
-    persona = Persona(name=AGENT_NAME, storage_dir=STORAGE_DIR)
-    router_ai = IntentRouter(engine=engine)
-    l1 = L1WorkingMemory(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
-    l2 = L2SemanticMemory(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
-    kg = KnowledgeGraph(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
-    episodes = EpisodeStore(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
-    dream_journal = DreamJournal(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
-    audit_log = AuditLog(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
-    approval_queue = ApprovalQueue(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
-    retrieval_service = RetrievalService(l2=l2, graph=kg, episodes=episodes, persona=persona)
-    hippo = Hippocampus(
-        engine=engine,
-        l1=l1,
-        persona=persona,
-        l2=l2,
-        episodes=episodes,
-        graph=kg,
-        dream_journal=dream_journal,
-        audit_log=audit_log,
-        approval_queue=approval_queue,
-    )
-    gc = GarbageCollector(l1=l1, l2=l2)
-    graph_builder = GraphBuilder(engine=engine, graph=kg)
-    health_monitor = MemoryHealthMonitor(l1=l1, l2=l2, persona=persona, episodes=episodes, graph=kg)
+    runtime = build_runtime(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
+    engine = runtime.engine
+    persona = runtime.persona
+    router_ai = runtime.router_ai
+    l1 = runtime.l1
+    l2 = runtime.l2
+    kg = runtime.kg
+    episodes = runtime.episodes
+    hippo = runtime.hippo
+    gc = runtime.gc
+    graph_builder = runtime.graph_builder
+    health_monitor = runtime.health_monitor
+    dream_journal = runtime.dream_journal
+    audit_log = runtime.audit_log
+    approval_queue = runtime.approval_queue
+    retrieval_service = runtime.retrieval_service
 
     print(
         "[Bio-Agent OS] Initialized "

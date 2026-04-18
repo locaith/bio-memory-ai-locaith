@@ -5,6 +5,7 @@ from pathlib import Path
 
 from bio_agent_os import (
     ApprovalQueue,
+    AsyncSQLiteStore,
     ContradictionResolver,
     EpisodeStore,
     L1WorkingMemory,
@@ -15,6 +16,12 @@ from bio_agent_os import (
 )
 from bio_agent_os.background_jobs.hippocampus import CompiledMemory
 from bio_agent_os.background_jobs.hippocampus import Hippocampus
+from bio_agent_os.core.db_adapter import (
+    SQLiteAdapter,
+    _translate_insert_or_replace,
+    _translate_qmark_placeholders,
+    resolve_database_backend,
+)
 from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 
@@ -30,6 +37,29 @@ def test_l1_memory():
     assert l1.count == 1
     assert "Login endpoint" in l1.build_context_string()
     assert l1.get_focus_set(1)[0]["attention_score"] > 0.0
+
+
+def test_database_backend_defaults_to_sqlite():
+    adapter = resolve_database_backend(storage_dir="test_data", db_name="adapter_test.db")
+    assert isinstance(adapter, SQLiteAdapter)
+
+
+def test_postgres_placeholder_translation():
+    translated = _translate_qmark_placeholders("SELECT * FROM table WHERE id = ? AND scope = ?")
+    assert translated == "SELECT * FROM table WHERE id = %s AND scope = %s"
+
+
+def test_insert_or_replace_translation():
+    translated = _translate_insert_or_replace(
+        "INSERT OR REPLACE INTO sample_table (rule_id, text, updated_at) VALUES (?, ?, ?)"
+    )
+    assert "ON CONFLICT (rule_id) DO UPDATE SET" in translated
+    assert "text=EXCLUDED.text" in translated
+
+
+def test_async_sqlite_store_helpers():
+    assert AsyncSQLiteStore.sanitize_identifier("Bio Agent OS") == "bio_agent_os"
+    assert AsyncSQLiteStore.loads_json("", default=[]) == []
 
 
 def test_l2_semantic_memory():

@@ -1,0 +1,13 @@
+.git
+.github
+.pytest_cache
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+test_data
+real_eval_runs
+real_eval_metrics
+benchmark_reports
+docs/Wiki_Home.md

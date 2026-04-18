@@ -1,9 +1,9 @@
-<p align="center">
+﻿<p align="center">
   <img src="docs/images/openclaw_integration.png" alt="OpenClaw + Bio-Agent OS Integration" width="100%"/>
 </p>
 
 <p align="center">
-  <h1 align="center">🧠 Bio-Agent OS v0.4.0</h1>
+  <h1 align="center">🧠 Bio-Agent OS v0.6.0</h1>
   <p align="center"><strong>The Biological Memory Upgrade for OpenClaw, ERP AI & Autonomous Agents</strong></p>
   <p align="center"><em>"Biết nhớ · Biết quên · Biết tư duy"</em></p>
   <p align="center">Researched & Developed by <strong>Dev Tuan Anh Ha</strong> (<a href="https://locaith.com">Locaith Solution Tech</a>) | 🇻🇳 Make in Vietnam</p>
@@ -474,6 +474,84 @@ The **Bio-Agent OS** system is researched and developed by **Dev Tuan Anh Ha** (
 - 🔵 **Facebook**: [Locaith Fanpage](https://www.facebook.com/profile.php?id=61560965389617)
 
 <p align="center">
-  <strong>Bio-Agent OS v0.4.0</strong> — The Art of Governing Superintelligence<br>
+  <strong>Bio-Agent OS v0.6.0</strong> — The Art of Governing Superintelligence<br>
   <em>Designed with 🧠 by Locaith Solution Tech | 🇻🇳 Make in Vietnam</em>
 </p>
+---
+
+## Ecosystem Upgrade: SDK, CLI, Docker, and Database Backends
+
+Bio-Agent OS now includes an ecosystem layer in addition to the core memory architecture:
+
+- Python SDK via `BioAgentSDK`
+- CLI via `bio-agent-os`
+- Docker and devcontainer files for reproducible environments
+- adapter-based database routing for local SQLite and PostgreSQL-ready deployments
+- async SQLite path with `aiosqlite` for concurrent app workloads
+
+### Database backend selection
+
+Local default:
+
+```env
+BIO_AGENT_DB_BACKEND=sqlite
+BIO_AGENT_DATABASE_URL=
+```
+
+PostgreSQL abstraction:
+
+```env
+BIO_AGENT_DB_BACKEND=postgres
+BIO_AGENT_DATABASE_URL=postgresql://postgres:postgres@db:5432/bio_agent_os
+```
+
+Async SQLite dependency:
+
+```bash
+pip install -e ".[async-sqlite]"
+```
+
+### CLI quick examples
+
+```bash
+bio-agent-os serve-api --host 0.0.0.0 --port 8055
+bio-agent-os status
+bio-agent-os ingest "build failed with peer dependency mismatch" --source openclaw --workspace-id frontend
+bio-agent-os chat "what did you learn from the last deployment?" --mode deploy --workspace-id frontend
+bio-agent-os dream
+```
+
+### Python SDK quick example
+
+```python
+import asyncio
+from bio_agent_os import BioAgentSDK
+
+async def main():
+    sdk = BioAgentSDK(agent_name="openclaw-brain", storage_dir="data")
+    await sdk.ingest(
+        "approved hotfix runbook says allow force push on hotfix branches only with explicit approval and audit logging",
+        source="openclaw",
+        workspace_id="frontend",
+        project_version="v3.0.1",
+    )
+    await sdk.sleep()
+    result = await sdk.chat(
+        "Can we use force push here?",
+        mode="deploy",
+        risk_level="high",
+        stress_state="failure",
+        workspace_id="frontend",
+        project_version="v3.0.1",
+    )
+    print(result["response"])
+
+asyncio.run(main())
+```
+
+### Container quick start
+
+```bash
+copy .env.example .env
+docker compose up --build
+```

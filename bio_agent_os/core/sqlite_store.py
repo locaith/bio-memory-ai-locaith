@@ -1,56 +1,44 @@
 """
-Shared SQLite utilities for production-safe local persistence.
+Shared persistence facade.
+
+The name stays `SQLiteStore` for backward compatibility, but the implementation
+can route to SQLite or PostgreSQL through adapter resolution.
 """
 
 import json
-import os
-import sqlite3
-import threading
 from typing import Any, Iterable, Optional
+
+from bio_agent_os.core.db_adapter import resolve_database_backend
 
 
 class SQLiteStore:
-    _locks: dict[str, threading.Lock] = {}
-
-    def __init__(self, storage_dir: str = "data", db_name: str = "bio_agent_os.db"):
+    def __init__(
+        self,
+        storage_dir: str = "data",
+        db_name: str = "bio_agent_os.db",
+        backend: Optional[str] = None,
+        database_url: Optional[str] = None,
+    ):
         self.storage_dir = storage_dir
-        self.db_path = os.path.join(storage_dir, db_name)
-        os.makedirs(storage_dir, exist_ok=True)
-        if self.db_path not in self._locks:
-            self._locks[self.db_path] = threading.Lock()
-        self._lock = self._locks[self.db_path]
-
-    def connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path, timeout=30, check_same_thread=False)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA journal_mode=WAL;")
-        connection.execute("PRAGMA synchronous=NORMAL;")
-        return connection
+        self.db_name = db_name
+        self.adapter = resolve_database_backend(
+            storage_dir=storage_dir,
+            db_name=db_name,
+            backend=backend,
+            database_url=database_url,
+        )
 
     def execute(self, sql: str, parameters: Optional[Iterable[Any]] = None):
-        with self._lock:
-            with self.connect() as connection:
-                cursor = connection.execute(sql, tuple(parameters or []))
-                connection.commit()
-                return cursor
+        self.adapter.execute(sql, parameters)
 
     def executemany(self, sql: str, rows: Iterable[Iterable[Any]]):
-        with self._lock:
-            with self.connect() as connection:
-                connection.executemany(sql, rows)
-                connection.commit()
+        self.adapter.executemany(sql, rows)
 
-    def fetchall(self, sql: str, parameters: Optional[Iterable[Any]] = None) -> list[sqlite3.Row]:
-        with self._lock:
-            with self.connect() as connection:
-                cursor = connection.execute(sql, tuple(parameters or []))
-                return cursor.fetchall()
+    def fetchall(self, sql: str, parameters: Optional[Iterable[Any]] = None) -> list[dict[str, Any]]:
+        return self.adapter.fetchall(sql, parameters)
 
-    def fetchone(self, sql: str, parameters: Optional[Iterable[Any]] = None) -> Optional[sqlite3.Row]:
-        with self._lock:
-            with self.connect() as connection:
-                cursor = connection.execute(sql, tuple(parameters or []))
-                return cursor.fetchone()
+    def fetchone(self, sql: str, parameters: Optional[Iterable[Any]] = None) -> Optional[dict[str, Any]]:
+        return self.adapter.fetchone(sql, parameters)
 
     @staticmethod
     def dumps_json(value: Any) -> str:
