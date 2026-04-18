@@ -367,7 +367,15 @@ def get_belief_timeline(active_only: bool = False):
     edges = sorted(
         [
             edge for edge in kg._edges
-            if edge["relation"] in {"supports", "conflicts_with", "supersedes"}
+            if edge["relation"] in {
+                "supports",
+                "conflicts_with",
+                "supersedes",
+                "governed_exception_for",
+                "approved_by_policy",
+                "requires_human_approval",
+                "expires_override_at",
+            }
         ],
         key=lambda item: item["properties"].get("valid_from") or item.get("created_at") or 0,
     )

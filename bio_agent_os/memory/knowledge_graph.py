@@ -221,6 +221,35 @@ class KnowledgeGraph:
             properties={"valid_from": time.time(), "valid_to": None},
         )
 
+    def add_approved_by_policy(self, exception_rule_id: str, policy_rule_id: str) -> bool:
+        return self.add_relation(
+            exception_rule_id,
+            "approved_by_policy",
+            policy_rule_id,
+            weight=1.0,
+            properties={"valid_from": time.time(), "valid_to": None},
+        )
+
+    def add_requires_human_approval(self, rule_id: str, requirement_name: str = "human_approval") -> bool:
+        self.add_entity(requirement_name, entity_type="approval_requirement")
+        return self.add_relation(
+            rule_id,
+            "requires_human_approval",
+            requirement_name,
+            weight=1.0,
+            properties={"valid_from": time.time(), "valid_to": None},
+        )
+
+    def add_expires_override_at(self, rule_id: str, expiry_label: str) -> bool:
+        self.add_entity(expiry_label, entity_type="expiry_window")
+        return self.add_relation(
+            rule_id,
+            "expires_override_at",
+            expiry_label,
+            weight=1.0,
+            properties={"valid_from": time.time(), "valid_to": None},
+        )
+
     def query_relations(self, entity_name: str) -> List[Dict[str, Any]]:
         self.load()
         key = self._node_key(entity_name)
@@ -244,6 +273,9 @@ class KnowledgeGraph:
         ]
         supersedes_edges = [edge for edge in self._edges if edge["relation"] == "supersedes"]
         governed_exception_edges = [edge for edge in self._edges if edge["relation"] == "governed_exception_for"]
+        approved_by_policy_edges = [edge for edge in self._edges if edge["relation"] == "approved_by_policy"]
+        requires_human_approval_edges = [edge for edge in self._edges if edge["relation"] == "requires_human_approval"]
+        expires_override_edges = [edge for edge in self._edges if edge["relation"] == "expires_override_at"]
         conflict_edges = [edge for edge in self._edges if edge["relation"] == "conflicts_with"]
         support_edges = [edge for edge in self._edges if edge["relation"] == "supports"]
         return {
@@ -254,6 +286,9 @@ class KnowledgeGraph:
             "conflict_edges": len(conflict_edges),
             "supersedes_edges": len(supersedes_edges),
             "governed_exception_edges": len(governed_exception_edges),
+            "approved_by_policy_edges": len(approved_by_policy_edges),
+            "requires_human_approval_edges": len(requires_human_approval_edges),
+            "expires_override_edges": len(expires_override_edges),
         }
 
     def belief_query(self, rule_id: Optional[str] = None, active_only: bool = False) -> Dict[str, Any]:
@@ -278,6 +313,9 @@ class KnowledgeGraph:
                 "superseded_by": [],
                 "governed_exception_for": [],
                 "governed_by_exceptions": [],
+                "approved_by_policy": [],
+                "requires_human_approval": [],
+                "expires_override_at": [],
             }
 
         supports = [edge for edge in self._edges if edge["relation"] == "supports" and edge["target"] == rule_id]
@@ -293,6 +331,15 @@ class KnowledgeGraph:
         governed_by_exceptions = [
             edge for edge in self._edges if edge["relation"] == "governed_exception_for" and edge["target"] == rule_id
         ]
+        approved_by_policy = [
+            edge for edge in self._edges if edge["relation"] == "approved_by_policy" and edge["source"] == rule_id
+        ]
+        requires_human_approval = [
+            edge for edge in self._edges if edge["relation"] == "requires_human_approval" and edge["source"] == rule_id
+        ]
+        expires_override_at = [
+            edge for edge in self._edges if edge["relation"] == "expires_override_at" and edge["source"] == rule_id
+        ]
 
         return {
             "rule": selected,
@@ -302,6 +349,9 @@ class KnowledgeGraph:
             "superseded_by": superseded_by,
             "governed_exception_for": governed_exception_for,
             "governed_by_exceptions": governed_by_exceptions,
+            "approved_by_policy": approved_by_policy,
+            "requires_human_approval": requires_human_approval,
+            "expires_override_at": expires_override_at,
         }
 
     def retrieve_beliefs(
@@ -356,6 +406,18 @@ class KnowledgeGraph:
                 edge for edge in self._edges
                 if edge["relation"] == "governed_exception_for" and edge["target"] == node["name"]
             ]
+            approved_by_policy = [
+                edge for edge in self._edges
+                if edge["relation"] == "approved_by_policy" and edge["source"] == node["name"]
+            ]
+            requires_human_approval = [
+                edge for edge in self._edges
+                if edge["relation"] == "requires_human_approval" and edge["source"] == node["name"]
+            ]
+            expires_override_at = [
+                edge for edge in self._edges
+                if edge["relation"] == "expires_override_at" and edge["source"] == node["name"]
+            ]
 
             results.append(
                 {
@@ -373,6 +435,9 @@ class KnowledgeGraph:
                     "governed_by_exception_count": len(governed_by_exceptions),
                     "governed_exception_for": [edge["target"] for edge in governed_exception_for],
                     "governed_by_exceptions": [edge["source"] for edge in governed_by_exceptions],
+                    "approved_by_policy": [edge["target"] for edge in approved_by_policy],
+                    "requires_human_approval": [edge["target"] for edge in requires_human_approval],
+                    "expires_override_at": [edge["target"] for edge in expires_override_at],
                     "fallback_action": (
                         "Treat as non-authoritative. Prefer procedural/exception memory and require explicit approval before destructive actions."
                         if state == "challenged"

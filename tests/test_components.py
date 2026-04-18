@@ -414,6 +414,9 @@ def test_retrieval_service_builds_lineage_and_safety_guard():
     )
     graph.add_belief_rule(persona.get_rule_records()[override_rule_id])
     graph.add_governed_exception(override_rule_id, rule_id)
+    graph.add_approved_by_policy(override_rule_id, rule_id)
+    graph.add_requires_human_approval(override_rule_id)
+    graph.add_expires_override_at(override_rule_id, "temporary_override_window")
     l2.store_exception(
         "Exception: emergency hotfix branches may force push only with explicit approval.",
         exception_for="git",
@@ -432,10 +435,14 @@ def test_retrieval_service_builds_lineage_and_safety_guard():
     assert lineage["beliefs"]
     assert lineage["episodes"]
     assert lineage["exceptions"]
+    assert lineage["override_chains"]
     assert "Default rules:" in lineage["safety_guard"]
     assert "Approved overrides:" in lineage["safety_guard"]
     belief_bundle = graph.belief_query(rule_id=override_rule_id)
     assert belief_bundle["governed_exception_for"]
+    assert belief_bundle["approved_by_policy"]
+    assert belief_bundle["requires_human_approval"]
+    assert belief_bundle["expires_override_at"]
 
 
 def test_retrieval_service_adds_fallback_action_for_challenged_beliefs():

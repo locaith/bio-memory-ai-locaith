@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -491,7 +491,7 @@
           <section class="panel section">
             <div class="section-head">
               <h3>Lineage</h3>
-              <span class="muted">episode → belief → exception → guard</span>
+              <span class="muted">episode -> default rule -> approved override -> guard</span>
             </div>
             <div class="lineage-grid">
               <div class="lane">
@@ -507,8 +507,8 @@
                 <div class="scroll" id="exceptionLane"></div>
               </div>
               <div class="lane">
-                <h4>Conflicts</h4>
-                <div class="scroll" id="conflictLane"></div>
+                <h4>Overrides</h4>
+                <div class="scroll" id="overrideLane"></div>
               </div>
             </div>
           </section>
@@ -559,7 +559,7 @@
       episodeLane: document.getElementById("episodeLane"),
       beliefLane: document.getElementById("beliefLane"),
       exceptionLane: document.getElementById("exceptionLane"),
-      conflictLane: document.getElementById("conflictLane"),
+      overrideLane: document.getElementById("overrideLane"),
       approvalList: document.getElementById("approvalList"),
       logList: document.getElementById("logList"),
     };
@@ -651,7 +651,7 @@
 
     function renderLineage(payload) {
       dom.safetyGuard.textContent = payload.safety_guard || "No safety guard generated for this query.";
-      dom.guardMeta.textContent = `${(payload.graph_results || []).length} beliefs · ${(payload.exceptions || []).length} exceptions`;
+      dom.guardMeta.textContent = `${(payload.graph_results || []).length} beliefs · ${(payload.exceptions || []).length} exceptions · ${(payload.override_chains || []).length} overrides`;
 
       renderItems(
         dom.episodeLane,
@@ -693,16 +693,18 @@
       );
 
       renderItems(
-        dom.conflictLane,
-        payload.graph_conflicts || [],
+        dom.overrideLane,
+        payload.override_chains || [],
         (item) => `
           <div class="item">
-            <span class="pill">${escapeHtml(item.reason || "conflict")}</span>
-            <strong>${escapeHtml(item.rule_id)}</strong>
-            <p>graph=${Number(item.graph_score || 0).toFixed(2)} · l2=${Number(item.l2_score || 0).toFixed(2)}</p>
+            <span class="pill">approved override</span>
+            <strong>${escapeHtml(item.override_text)}</strong>
+            <p>default=${escapeHtml((item.default_rules || []).map(rule => rule.properties?.text || rule.name).join(" | ") || "none")}</p>
+            <p>policy=${escapeHtml((item.approved_by_policy || []).join(", ") || "none")} · human_approval=${escapeHtml((item.requires_human_approval || []).join(", ") || "none")} · expires=${escapeHtml((item.expires_override_at || []).join(", ") || "none")}</p>
+            <p>evidence=${escapeHtml((item.evidence_episode_ids || []).join(", ") || "none")}</p>
           </div>
         `,
-        "No graph/L2 conflicts were dropped for this query."
+        "No approved override lineage matched this query."
       );
     }
 
@@ -755,3 +757,5 @@
   </script>
 </body>
 </html>
+
+

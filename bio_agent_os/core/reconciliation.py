@@ -38,6 +38,13 @@ POSITIVE_MARKERS = {
     "luôn",
 }
 
+DOMAIN_ONTOLOGY = {
+    "tenant_code": {"tenant", "customer", "code", "rename", "onboarding", "finance", "signoff"},
+    "migration": {"migration", "schema", "destructive", "rollback", "dba", "business", "hours", "recovery"},
+    "security_override": {"mfa", "incident", "ticket", "expiry", "rollback", "bypass", "security", "human"},
+    "git_hotfix": {"git", "push", "branch", "hotfix", "audit", "approval", "production", "force"},
+}
+
 
 class ContradictionResolver:
     def __init__(self, persona: Persona, approval_queue: Optional[ApprovalQueue] = None):
@@ -64,6 +71,14 @@ class ContradictionResolver:
             normalized = normalized.replace(marker, " ")
         tokens = [token for token in normalized.split() if len(token) > 2]
         return set(tokens)
+
+    def _ontology_domains(self, text: str) -> set[str]:
+        tokens = self._semantic_core(text)
+        matched = {
+            name for name, markers in DOMAIN_ONTOLOGY.items()
+            if len(tokens & markers) >= 2
+        }
+        return matched
 
     def _is_conflict(self, left: Dict, right: Dict) -> bool:
         if left["scope"] != right["scope"]:
@@ -117,12 +132,31 @@ class ContradictionResolver:
         left_core = self._semantic_core(left["text"])
         right_core = self._semantic_core(right["text"])
         overlap = len(left_core & right_core) / max(1, min(len(left_core), len(right_core)))
-        if overlap < 0.45:
+        shared_domains = self._ontology_domains(left["text"]) & self._ontology_domains(right["text"])
+        if overlap < 0.45 and not shared_domains:
             return False
         return (
             (self._is_conditional_exception(left) and self._is_general_negative_policy(right))
             or (self._is_conditional_exception(right) and self._is_general_negative_policy(left))
         )
+
+    def _override_metadata(self, exception_rule: Dict) -> Dict[str, object]:
+        normalized = self._normalize_text(exception_rule["text"])
+        requires_human_approval = any(
+            token in normalized for token in ["approval", "approved", "human", "signoff", "dba", "incident ticket"]
+        )
+        expiry_label = ""
+        if any(token in normalized for token in ["expiry", "temporary", "window", "recovery window", "business hours"]):
+            if "business hours" in normalized:
+                expiry_label = "outside_business_hours"
+            elif "recovery" in normalized:
+                expiry_label = "recovery_window_only"
+            else:
+                expiry_label = "temporary_override_window"
+        return {
+            "requires_human_approval": requires_human_approval,
+            "expiry_label": expiry_label,
+        }
 
     def fallback_action(self, rule: Dict, conflicting_rules: List[Dict]) -> Dict[str, object]:
         is_destructive = any(
@@ -171,12 +205,17 @@ class ContradictionResolver:
                 conditional_rule_id = rule_id if self._is_conditional_exception(target) else other_id
                 default_rule_id = other_id if conditional_rule_id == rule_id else rule_id
                 if self.persona.govern_exception_rule(conditional_rule_id):
+                    metadata = self._override_metadata(
+                        self.persona.get_rule_records()[conditional_rule_id]
+                    )
                     stats["governed"] += 1
                     stats["governed_ids"].append(conditional_rule_id)
                     stats["governed_pairs"].append(
                         {
                             "exception_rule_id": conditional_rule_id,
                             "default_rule_id": default_rule_id,
+                            "requires_human_approval": metadata["requires_human_approval"],
+                            "expiry_label": metadata["expiry_label"],
                         }
                     )
                     target = self.persona.get_rule_records()[rule_id]

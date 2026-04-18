@@ -61,7 +61,12 @@ class RetrievalService:
             if item.get("state") in {"stable", "reinforced"} and not item.get("governed_exception_for")
         ][:3]
         approved_override_lines = [
-            f"- [{item['scope']}] {item['text']} (approved override, confidence={item['confidence']:.2f})"
+            (
+                f"- [{item['scope']}] {item['text']} "
+                f"(approved override, confidence={item['confidence']:.2f}, "
+                f"requires_approval={'yes' if item.get('requires_human_approval') else 'no'}, "
+                f"expires={','.join(item.get('expires_override_at') or ['none'])})"
+            )
             for item in graph_results
             if item.get("state") in {"stable", "reinforced"} and item.get("governed_exception_for")
         ][:3]
@@ -198,11 +203,30 @@ class RetrievalService:
     def build_lineage(self, query: str, retrieval_state: Dict[str, object], top_k: int = 5) -> Dict[str, object]:
         bundle = self.hybrid_retrieve(query, retrieval_state, top_k=top_k)
         linked_episode_ids: List[str] = []
+        override_chains: List[Dict[str, object]] = []
         for graph_item in bundle["graph_results"]:
             belief_bundle = self.graph.belief_query(rule_id=str(graph_item["rule_id"]))
             linked_episode_ids.extend(
                 [edge["source"] for edge in belief_bundle.get("supports", []) if edge.get("source")]
             )
+            if belief_bundle.get("governed_exception_for"):
+                default_rule_ids = [edge["target"] for edge in belief_bundle.get("governed_exception_for", [])]
+                default_rules = []
+                for default_rule_id in default_rule_ids:
+                    default_bundle = self.graph.belief_query(rule_id=default_rule_id)
+                    if default_bundle.get("rule"):
+                        default_rules.append(default_bundle["rule"])
+                override_chains.append(
+                    {
+                        "override_rule_id": graph_item["rule_id"],
+                        "override_text": graph_item["text"],
+                        "default_rules": default_rules,
+                        "approved_by_policy": [edge["target"] for edge in belief_bundle.get("approved_by_policy", [])],
+                        "requires_human_approval": [edge["target"] for edge in belief_bundle.get("requires_human_approval", [])],
+                        "expires_override_at": [edge["target"] for edge in belief_bundle.get("expires_override_at", [])],
+                        "evidence_episode_ids": [edge["source"] for edge in belief_bundle.get("supports", []) if edge.get("source")],
+                    }
+                )
         deduped_episode_ids = sorted(set(linked_episode_ids))
         lineage_episodes = self.episodes.get_many(deduped_episode_ids)
         exception_items = [item for item in bundle["l2_results"] if item.get("memory_type") == "exception"]
@@ -211,5 +235,6 @@ class RetrievalService:
             "episodes": lineage_episodes,
             "beliefs": bundle["graph_results"],
             "exceptions": exception_items,
+            "override_chains": override_chains,
             "persona_snapshot": self.persona.get_layer_records(),
         }

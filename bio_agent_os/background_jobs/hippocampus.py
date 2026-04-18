@@ -499,6 +499,17 @@ class Hippocampus:
                             governed_pair["exception_rule_id"],
                             governed_pair["default_rule_id"],
                         )
+                        self.graph.add_approved_by_policy(
+                            governed_pair["exception_rule_id"],
+                            governed_pair["default_rule_id"],
+                        )
+                        if governed_pair.get("requires_human_approval"):
+                            self.graph.add_requires_human_approval(governed_pair["exception_rule_id"])
+                        if governed_pair.get("expiry_label"):
+                            self.graph.add_expires_override_at(
+                                governed_pair["exception_rule_id"],
+                                str(governed_pair["expiry_label"]),
+                            )
 
                 if self.l2:
                     topic = metadata.get("topic", "general")
