@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <h1 align="center">🧠 Bio-Agent OS v0.6.0</h1>
+  <h1 align="center">🧠 Bio-Agent OS v0.6.1</h1>
   <p align="center"><strong>The Biological Memory Upgrade for OpenClaw, ERP AI & Autonomous Agents</strong></p>
   <p align="center"><em>"Biết nhớ · Biết quên · Biết tư duy"</em></p>
   <p align="center">Researched & Developed by <strong>Dev Tuan Anh Ha</strong> (<a href="https://locaith.com">Locaith Solution Tech</a>) | 🇻🇳 Make in Vietnam</p>
@@ -75,9 +75,15 @@ Dưới đây là biểu đồ mô phỏng hiệu suất và lượng Token sụ
 pip install bio-agent-os[gemini]
 ```
 
+Hoặc dùng package riêng cho OpenClaw:
+
+```bash
+pip install bio-agent-os-openclaw
+```
+
 ### ✅ Trạng thái bản hiện tại
 
-- `v0.6.0` đã có hybrid contradiction detector với NLI cache.
+- `v0.6.1` đã có hybrid contradiction detector với NLI cache.
 - `detector_benchmark` hiện mở rộng lên `8` cặp đa domain: deploy, security, tenant, migration, neutral architecture.
 - Kết quả real eval gần nhất với `gemma4:e2b`:
   - heuristic detector: `4/8`
@@ -122,22 +128,40 @@ asyncio.run(main())
 Từ bản hiện tại, adapter đã được đóng gói thành plugin target pip-installable.
 
 ```bash
-pip install -e ".[ollama]"
+pip install bio-agent-os-openclaw
+bio-agent-os-openclaw install-openclaw-plugin
 ```
 
-OpenClaw config:
+OpenClaw config mẫu đúng format hiện tại nằm ở:
+
+- `examples/openclaw/openclaw.bio-agent-os.json`
+
+Chỉ cần bật memory slot:
 
 ```yaml
-memory_plugin: "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
+plugins:
+  slots:
+    memory: "bio-agent-os-openclaw"
 ```
 
-Nếu framework của bạn hỗ trợ truyền tham số:
+Nếu bạn muốn copy nguyên config đầy đủ:
 
 ```yaml
-memory_plugin: "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
-memory_plugin_kwargs:
-  agent_name: "openclaw-brain"
-  storage_dir: "./data"
+plugins:
+  enabled: true
+  load:
+    paths:
+      - "~/.openclaw/extensions/bio-agent-os-openclaw"
+  slots:
+    memory: "bio-agent-os-openclaw"
+  entries:
+    bio-agent-os-openclaw:
+      enabled: true
+      config:
+        apiBaseUrl: "http://127.0.0.1:8055"
+        agentName: "openclaw-brain"
+        workspaceId: "main"
+        projectVersion: "v1"
 ```
 
 Plugin này sẽ:
@@ -147,11 +171,15 @@ Plugin này sẽ:
 
 ### 🛠️ SWE-Agent Plugin
 
+Config overlay mẫu đúng format SWE-Agent nằm ở:
+
+- `examples/swe-agent/bio_memory_overlay.yaml`
+
 ```yaml
-memory_plugin: "bio_agent_os.plugins.swe_agent:build_swe_agent_plugin"
+sweagent run --config config/default.yaml --config examples/swe-agent/bio_memory_overlay.yaml
 ```
 
-Mục tiêu tương tự: dùng cùng lõi bio-memory nhưng bọc thành plugin target riêng cho SWE-Agent.
+Mục tiêu tương tự: dùng cùng lõi bio-memory nhưng bọc thành đường sidecar/config riêng cho SWE-Agent.
 
 ### 🔌 Cấu hình đa nền tảng model: Local AI, Gemini, Claude, GPT, Grok
 
@@ -351,9 +379,15 @@ Below is a simulated graph representing the horrific token bloat and performance
 pip install bio-agent-os[gemini]
 ```
 
+Or use the dedicated OpenClaw package:
+
+```bash
+pip install bio-agent-os-openclaw
+```
+
 ### ✅ Current release state
 
-- `v0.6.0` now includes hybrid contradiction detection with persistent NLI caching.
+- `v0.6.1` now includes hybrid contradiction detection with persistent NLI caching.
 - `detector_benchmark` now spans `8` cross-domain pairs: deploy, security, tenant, migration, and neutral architecture cases.
 - Latest real eval with `gemma4:e2b`:
   - heuristic detector: `4/8`
@@ -398,22 +432,40 @@ asyncio.run(main())
 The adapter is now packaged as a pip-installable plugin target.
 
 ```bash
-pip install -e ".[ollama]"
+pip install bio-agent-os-openclaw
+bio-agent-os-openclaw install-openclaw-plugin
 ```
 
-OpenClaw config:
+The current-format OpenClaw example lives at:
+
+- `examples/openclaw/openclaw.bio-agent-os.json`
+
+Minimal slot selection:
 
 ```yaml
-memory_plugin: "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
+plugins:
+  slots:
+    memory: "bio-agent-os-openclaw"
 ```
 
-If your host supports plugin kwargs:
+Full example:
 
 ```yaml
-memory_plugin: "bio_agent_os.plugins.openclaw:build_openclaw_plugin"
-memory_plugin_kwargs:
-  agent_name: "openclaw-brain"
-  storage_dir: "./data"
+plugins:
+  enabled: true
+  load:
+    paths:
+      - "~/.openclaw/extensions/bio-agent-os-openclaw"
+  slots:
+    memory: "bio-agent-os-openclaw"
+  entries:
+    bio-agent-os-openclaw:
+      enabled: true
+      config:
+        apiBaseUrl: "http://127.0.0.1:8055"
+        agentName: "openclaw-brain"
+        workspaceId: "main"
+        projectVersion: "v1"
 ```
 
 This plugin target handles:
@@ -423,11 +475,15 @@ This plugin target handles:
 
 ### 🛠️ SWE-Agent Plugin
 
+The current-format SWE-Agent overlay lives at:
+
+- `examples/swe-agent/bio_memory_overlay.yaml`
+
 ```yaml
-memory_plugin: "bio_agent_os.plugins.swe_agent:build_swe_agent_plugin"
+sweagent run --config config/default.yaml --config examples/swe-agent/bio_memory_overlay.yaml
 ```
 
-This exposes the same bio-memory core behind a SWE-Agent-specific plugin target.
+This exposes the same bio-memory core behind a SWE-Agent sidecar/config path.
 
 ### 🔌 Multi-provider setup: Local AI, Gemini, Claude, GPT, Grok
 
@@ -583,7 +639,7 @@ The **Bio-Agent OS** system is researched and developed by **Dev Tuan Anh Ha** (
 - 🔵 **Facebook**: [Locaith Fanpage](https://www.facebook.com/profile.php?id=61560965389617)
 
 <p align="center">
-  <strong>Bio-Agent OS v0.6.0</strong> — The Art of Governing Superintelligence<br>
+  <strong>Bio-Agent OS v0.6.1</strong> — The Art of Governing Superintelligence<br>
   <em>Designed with 🧠 by Locaith Solution Tech | 🇻🇳 Make in Vietnam</em>
 </p>
 ---
@@ -716,3 +772,15 @@ The package now exports plugin entry points through `bio_agent_os.plugins`:
 
 - `openclaw = bio_agent_os.plugins.openclaw:build_openclaw_plugin`
 - `swe-agent = bio_agent_os.plugins.swe_agent:build_swe_agent_plugin`
+
+### Separate package for OpenClaw
+
+The repository now also includes a dedicated Python package at:
+
+- `packages/bio-agent-os-openclaw`
+
+It provides:
+
+- `bio-agent-os-openclaw install-openclaw-plugin`
+- `bio-agent-os-openclaw print-openclaw-config`
+- `bio-agent-os-openclaw print-swe-agent-config`

@@ -1,0 +1,16 @@
+agent:
+  templates:
+    instance_template: |-
+      <uploaded_files>
+      {{working_dir}}
+      </uploaded_files>
+      I've uploaded a python code repository in the directory {{working_dir}}. Consider the following PR description:
+      <pr_description>
+      {{problem_statement}}
+      </pr_description>
+      Bio-Agent OS sidecar is available at ${BIO_AGENT_API_BASE_URL}. Reuse long-term project memory before making risky changes.
+  tools:
+    env_variables:
+      BIO_AGENT_API_BASE_URL: http://127.0.0.1:8055
+      BIO_AGENT_AGENT_NAME: swe-agent-brain
+      BIO_AGENT_WORKSPACE_ID: repo-main

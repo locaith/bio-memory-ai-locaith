@@ -5,7 +5,7 @@ Portable bio-inspired memory infrastructure for coding agents, ERP agents,
 and long-running autonomous systems.
 """
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 __author__ = "Locaith Solution Tech"
 
 from bio_agent_os.core.async_sqlite_store import AsyncSQLiteStore

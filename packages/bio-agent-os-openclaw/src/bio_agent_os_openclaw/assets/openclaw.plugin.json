@@ -1,0 +1,28 @@
+{
+  "id": "bio-agent-os-openclaw",
+  "name": "Bio-Agent OS OpenClaw Bridge",
+  "description": "Bridge plugin scaffold for running Bio-Agent OS as an external sidecar service with OpenClaw.",
+  "kind": "memory",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "apiBaseUrl": {
+        "type": "string",
+        "description": "Bio-Agent OS API base URL"
+      },
+      "agentName": {
+        "type": "string",
+        "description": "Bio-Agent OS agent name"
+      },
+      "workspaceId": {
+        "type": "string",
+        "description": "Logical workspace identifier"
+      },
+      "projectVersion": {
+        "type": "string",
+        "description": "Project version label"
+      }
+    }
+  }
+}

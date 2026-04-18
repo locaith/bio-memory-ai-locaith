@@ -1,0 +1,24 @@
+{
+  "plugins": {
+    "enabled": true,
+    "load": {
+      "paths": [
+        "~/.openclaw/extensions/bio-agent-os-openclaw"
+      ]
+    },
+    "slots": {
+      "memory": "bio-agent-os-openclaw"
+    },
+    "entries": {
+      "bio-agent-os-openclaw": {
+        "enabled": true,
+        "config": {
+          "apiBaseUrl": "http://127.0.0.1:8055",
+          "agentName": "openclaw-brain",
+          "workspaceId": "main",
+          "projectVersion": "v1"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "bio-agent-os-openclaw",
+  "version": "0.6.1",
+  "type": "module",
+  "openclaw": {
+    "extensions": ["./index.js"],
+    "install": {
+      "localPath": "~/.openclaw/extensions/bio-agent-os-openclaw",
+      "defaultChoice": "local"
+    }
+  }
+}
