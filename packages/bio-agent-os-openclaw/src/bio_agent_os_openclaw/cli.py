@@ -17,7 +17,7 @@ except ModuleNotFoundError:  # pragma: no cover - direct source execution helper
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="bio-agent-os-openclaw")
+    parser = argparse.ArgumentParser(prog="bio-locaith-openclaw")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     install_parser = subparsers.add_parser("install-openclaw-plugin")

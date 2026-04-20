@@ -1,4 +1,4 @@
-# bio-agent-os-openclaw
+# bio-locaith-openclaw
 
 Thin packaging layer for using Bio-Agent OS with OpenClaw.
 
@@ -11,13 +11,13 @@ What it provides:
 Install locally:
 
 ```bash
-pip install bio-agent-os-openclaw
+pip install bio-locaith-openclaw
 ```
 
 Scaffold the bridge assets:
 
 ```bash
-bio-agent-os-openclaw install-openclaw-plugin
+bio-locaith-openclaw install-openclaw-plugin
 ```
 
 Then use the config examples in `examples/openclaw/` and `examples/swe-agent/`.

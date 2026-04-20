@@ -1,7 +1,7 @@
 {
-  "id": "bio-agent-os-openclaw",
-  "name": "Bio-Agent OS OpenClaw Bridge",
-  "description": "Bridge plugin scaffold for running Bio-Agent OS as an external sidecar service with OpenClaw.",
+  "id": "bio-locaith-openclaw",
+  "name": "Bio Locaith OpenClaw Memory",
+  "description": "OpenClaw memory plugin for running Bio-Agent OS as an external sidecar service with Locaith branding.",
   "kind": "memory",
   "configSchema": {
     "type": "object",

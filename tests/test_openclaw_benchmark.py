@@ -4,6 +4,7 @@ import pytest
 
 from bio_agent_os import ContradictionResolver, EpisodeStore, GarbageCollector, Hippocampus, L1WorkingMemory, L2SemanticMemory, Persona
 from bio_agent_os.adapters.openclaw_adapter import OpenClawBioAdapter
+from bio_agent_os.core.retrieval_service import RetrievalService
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 
 
@@ -122,6 +123,32 @@ async def test_openclaw_benchmark_mini():
 
 
 @pytest.mark.asyncio
+async def test_openclaw_adapter_skips_noise_observations():
+    for file_path in (
+        Path("test_data/noise-agent_core_identity.json"),
+        Path("test_data/noise-agent_episodes.json"),
+        Path("test_data/noise-agent_l1_memory.json"),
+    ):
+        if file_path.exists():
+            file_path.unlink()
+
+    engine = FakeEngine()
+    l1 = L1WorkingMemory(agent_name="noise-agent", storage_dir="test_data")
+    l1.clear()
+    persona = Persona(name="noise-agent", storage_dir="test_data")
+    episodes = EpisodeStore(agent_name="noise-agent", storage_dir="test_data")
+    hippo = Hippocampus(engine=engine, l1=l1, persona=persona, episodes=episodes)
+    gc = GarbageCollector(l1=l1)
+    adapter = OpenClawBioAdapter(hippocampus=hippo, garbage_collector=gc, persona=persona)
+
+    accepted = await adapter.ingest_observation("cron", "Tool output cron")
+
+    assert accepted is False
+    assert l1.count == 0
+    assert episodes.count == 0
+
+
+@pytest.mark.asyncio
 async def test_openclaw_long_session_benchmark():
     for file_path in (
         Path("test_data/long-session-agent_core_identity.json"),
@@ -151,6 +178,80 @@ async def test_openclaw_long_session_benchmark():
     assert len(rules) >= 1
     strongest = max(rules.values(), key=lambda rule: rule["support_count"])
     assert strongest["support_count"] >= 2
+
+
+@pytest.mark.asyncio
+async def test_openclaw_chat_session_recalls_rule_after_high_signal_turns():
+    for file_path in (
+        Path("test_data/chat-memory-agent_core_identity.json"),
+        Path("test_data/chat-memory-agent_episodes.json"),
+        Path("test_data/chat-memory-agent_l1_memory.json"),
+        Path("test_data/chat-memory-agent_knowledge_graph.json"),
+    ):
+        if file_path.exists():
+            file_path.unlink()
+
+    engine = FakeEngine()
+    l1 = L1WorkingMemory(agent_name="chat-memory-agent", storage_dir="test_data")
+    l1.clear()
+    l2 = L2SemanticMemory(agent_name="chat-memory-agent", storage_dir="test_data")
+    persona = Persona(name="chat-memory-agent", storage_dir="test_data")
+    episodes = EpisodeStore(agent_name="chat-memory-agent", storage_dir="test_data")
+    graph = KnowledgeGraph(agent_name="chat-memory-agent", storage_dir="test_data")
+    retrieval_service = RetrievalService(l2=l2, graph=graph, episodes=episodes, persona=persona)
+    hippo = Hippocampus(engine=engine, l1=l1, l2=l2, persona=persona, episodes=episodes, graph=graph)
+    gc = GarbageCollector(l1=l1)
+    adapter = OpenClawBioAdapter(
+        hippocampus=hippo,
+        garbage_collector=gc,
+        persona=persona,
+        retrieval_service=retrieval_service,
+    )
+
+    turns = [
+        "Approved hotfix rule: allow force push on the frontend branch only with explicit approval and audit logging.",
+        "Repeat the hotfix policy: allow force push on the frontend branch only with explicit approval and audit logging.",
+        "Final reminder for the emergency runbook: allow force push on the frontend branch only with explicit approval and audit logging.",
+    ]
+    for idx, turn in enumerate(turns):
+        await adapter.ingest_observation(
+            "chat_turn",
+            turn,
+            task_id="chat-policy",
+            workspace_id="workspace-chat",
+            project_version="v3.0.0",
+            source_refs=[{"kind": "chat", "turn": idx}],
+        )
+
+    rules = persona.get_rule_records()
+    assert rules
+    assert any("Allow use git push on the frontend branch" in rule["text"] for rule in rules.values())
+
+    retrieval_state = {
+        "mode": "deploy",
+        "stress_state": "normal",
+        "risk_level": "high",
+        "task_id": "chat-policy",
+        "workspace_id": "workspace-chat",
+        "project_version": "v3.0.0",
+        "prefer_exception": True,
+        "preferred_scope": "project",
+    }
+    bundle = retrieval_service.hybrid_retrieve(
+        "What is the approved frontend hotfix force-push policy?",
+        retrieval_state,
+        top_k=5,
+    )
+
+    assert bundle["graph_results"]
+    assert any("Allow use git push on the frontend branch" in item["text"] for item in bundle["graph_results"])
+
+    prompt_context = adapter.inject_contextual_memory_to_openclaw(
+        query="What is the approved frontend hotfix force-push policy?",
+        retrieval_state=retrieval_state,
+    )
+    assert "OpenClaw Safety Guard:" in prompt_context
+    assert "Allow use git push on the frontend branch" in prompt_context
 
 
 @pytest.mark.asyncio

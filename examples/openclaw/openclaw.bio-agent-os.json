@@ -3,14 +3,14 @@
     "enabled": true,
     "load": {
       "paths": [
-        "~/.openclaw/extensions/bio-agent-os-openclaw"
+        "~/.openclaw/extensions/bio-locaith-openclaw"
       ]
     },
     "slots": {
-      "memory": "bio-agent-os-openclaw"
+      "memory": "bio-locaith-openclaw"
     },
     "entries": {
-      "bio-agent-os-openclaw": {
+      "bio-locaith-openclaw": {
         "enabled": true,
         "config": {
           "apiBaseUrl": "http://127.0.0.1:8055",

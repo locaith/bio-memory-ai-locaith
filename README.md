@@ -78,7 +78,7 @@ pip install bio-agent-os[gemini]
 Hoặc dùng package riêng cho OpenClaw:
 
 ```bash
-pip install bio-agent-os-openclaw
+pip install bio-locaith-openclaw
 ```
 
 ### ✅ Trạng thái bản hiện tại
@@ -132,8 +132,8 @@ if __name__ == "__main__":
 Từ bản hiện tại, adapter đã được đóng gói thành plugin target pip-installable.
 
 ```bash
-pip install bio-agent-os-openclaw
-bio-agent-os-openclaw install-openclaw-plugin
+pip install bio-locaith-openclaw
+bio-locaith-openclaw install-openclaw-plugin
 ```
 
 OpenClaw config mẫu đúng format hiện tại nằm ở:
@@ -145,7 +145,7 @@ Chỉ cần bật memory slot:
 ```yaml
 plugins:
   slots:
-    memory: "bio-agent-os-openclaw"
+    memory: "bio-locaith-openclaw"
 ```
 
 Nếu bạn muốn copy nguyên config đầy đủ:
@@ -155,11 +155,11 @@ plugins:
   enabled: true
   load:
     paths:
-      - "~/.openclaw/extensions/bio-agent-os-openclaw"
+      - "~/.openclaw/extensions/bio-locaith-openclaw"
   slots:
-    memory: "bio-agent-os-openclaw"
+    memory: "bio-locaith-openclaw"
   entries:
-    bio-agent-os-openclaw:
+    bio-locaith-openclaw:
       enabled: true
       config:
         apiBaseUrl: "http://127.0.0.1:8055"
@@ -190,9 +190,9 @@ Mục tiêu tương tự: dùng cùng lõi bio-memory nhưng bọc thành đư�
 Bio-Agent OS đã được một agent OpenClaw cài và nối thành công vào hệ BioLoca trên máy khác, theo đúng flow vận hành thực tế:
 
 1. clone repo `locaith/bio-memory-ai-locaith`
-2. cài `bio-agent-os` và package `bio-agent-os-openclaw`
+2. cài `bio-agent-os` và package `bio-locaith-openclaw`
 3. khởi chạy Bio-Agent OS API sidecar trên cổng `8055`
-4. trỏ plugin `bio-agent-os-openclaw` vào `openclaw.json`
+4. trỏ plugin `bio-locaith-openclaw` vào `openclaw.json`
 5. restart OpenClaw gateway để nhận memory slot mới
 
 Điểm quan trọng ở đây không phải benchmark giả lập, mà là OpenClaw đã tự báo cáo lại rằng nó load được lớp trí nhớ sinh học này như một memory backend thật trong workflow BioLoca.
@@ -972,7 +972,7 @@ pip install bio-agent-os[gemini]
 Or use the dedicated OpenClaw package:
 
 ```bash
-pip install bio-agent-os-openclaw
+pip install bio-locaith-openclaw
 ```
 
 ### ✅ Current release state
@@ -1023,8 +1023,8 @@ if __name__ == "__main__":
 The adapter is now packaged as a pip-installable plugin target.
 
 ```bash
-pip install bio-agent-os-openclaw
-bio-agent-os-openclaw install-openclaw-plugin
+pip install bio-locaith-openclaw
+bio-locaith-openclaw install-openclaw-plugin
 ```
 
 The current-format OpenClaw example lives at:
@@ -1036,7 +1036,7 @@ Minimal slot selection:
 ```yaml
 plugins:
   slots:
-    memory: "bio-agent-os-openclaw"
+    memory: "bio-locaith-openclaw"
 ```
 
 Full example:
@@ -1046,11 +1046,11 @@ plugins:
   enabled: true
   load:
     paths:
-      - "~/.openclaw/extensions/bio-agent-os-openclaw"
+      - "~/.openclaw/extensions/bio-locaith-openclaw"
   slots:
-    memory: "bio-agent-os-openclaw"
+    memory: "bio-locaith-openclaw"
   entries:
-    bio-agent-os-openclaw:
+    bio-locaith-openclaw:
       enabled: true
       config:
         apiBaseUrl: "http://127.0.0.1:8055"
@@ -1081,9 +1081,9 @@ This exposes the same bio-memory core behind a SWE-Agent sidecar/config path.
 Bio-Agent OS has already been installed and wired by an OpenClaw agent into a separate BioLoca environment using the real deployment path:
 
 1. clone `locaith/bio-memory-ai-locaith`
-2. install `bio-agent-os` and `bio-agent-os-openclaw`
+2. install `bio-agent-os` and `bio-locaith-openclaw`
 3. launch the Bio-Agent OS API sidecar on port `8055`
-4. point the `bio-agent-os-openclaw` plugin entry from `openclaw.json`
+4. point the `bio-locaith-openclaw` plugin entry from `openclaw.json`
 5. restart the OpenClaw gateway so the new memory slot is loaded
 
 The important result is not just a local demo. OpenClaw itself reported that it successfully loaded Bio-Agent OS as a working biological-memory backend inside the BioLoca workflow.
@@ -1392,13 +1392,13 @@ The package now exports plugin entry points through `bio_agent_os.plugins`:
 
 The repository now also includes a dedicated Python package at:
 
-- `packages/bio-agent-os-openclaw`
+- `packages/bio-agent-os-openclaw` providing the `bio-locaith-openclaw` branded OpenClaw package
 
 It provides:
 
-- `bio-agent-os-openclaw install-openclaw-plugin`
-- `bio-agent-os-openclaw print-openclaw-config`
-- `bio-agent-os-openclaw print-swe-agent-config`
+- `bio-locaith-openclaw install-openclaw-plugin`
+- `bio-locaith-openclaw print-openclaw-config`
+- `bio-locaith-openclaw print-swe-agent-config`
 
 ---
 
@@ -2125,10 +2125,10 @@ The package now exports plugin entry points through `bio_agent_os.plugins`:
 
 The repository now also includes a dedicated Python package at:
 
-- `packages/bio-agent-os-openclaw`
+- `packages/bio-agent-os-openclaw` providing the `bio-locaith-openclaw` branded OpenClaw package
 
 It provides:
 
-- `bio-agent-os-openclaw install-openclaw-plugin`
-- `bio-agent-os-openclaw print-openclaw-config`
-- `bio-agent-os-openclaw print-swe-agent-config`
+- `bio-locaith-openclaw install-openclaw-plugin`
+- `bio-locaith-openclaw print-openclaw-config`
+- `bio-locaith-openclaw print-swe-agent-config`

@@ -1,11 +1,11 @@
 {
-  "name": "bio-agent-os-openclaw",
+  "name": "bio-locaith-openclaw",
   "version": "0.6.1",
   "type": "module",
   "openclaw": {
     "extensions": ["./index.js"],
     "install": {
-      "localPath": "~/.openclaw/extensions/bio-agent-os-openclaw",
+      "localPath": "~/.openclaw/extensions/bio-locaith-openclaw",
       "defaultChoice": "local"
     }
   }

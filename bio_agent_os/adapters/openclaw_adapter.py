@@ -2,7 +2,8 @@
 OpenClaw integration adapter.
 """
 
-from typing import Dict, List, Optional
+import re
+from typing import Any, Dict, List, Optional
 
 from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.hippocampus import Hippocampus
@@ -33,6 +34,87 @@ class OpenClawBioAdapter:
         self.retrieval_service = retrieval_service
         self.action_counter = 0
 
+    _RISK_MARKERS = (
+        "error",
+        "failed",
+        "failure",
+        "panic",
+        "invalid config",
+        "invalid",
+        "exception",
+        "hotfix",
+        "policy",
+        "approval",
+        "audit logging",
+        "force push",
+        "git push -f",
+        "migration",
+        "tenant",
+        "mfa",
+        "production",
+        "deploy",
+    )
+    _NOISE_PATTERNS = (
+        re.compile(r"^\s*(ok|done|pong|heartbeat|keep-?alive|refresh(ed)?)\s*$", re.IGNORECASE),
+        re.compile(r"^\s*tool (call|output)\s+cron\s*$", re.IGNORECASE),
+        re.compile(r"^\s*cron\s*$", re.IGNORECASE),
+    )
+
+    def _contains_risk_marker(self, text: str) -> bool:
+        lowered = text.lower()
+        return any(marker in lowered for marker in self._RISK_MARKERS)
+
+    def _is_noise_observation(self, action_type: str, observation_output: str) -> bool:
+        text = " ".join(observation_output.split()).strip()
+        if not text:
+            return True
+        if self._contains_risk_marker(text):
+            return False
+        if any(pattern.match(text) for pattern in self._NOISE_PATTERNS):
+            return True
+        lowered_action = action_type.strip().lower()
+        if lowered_action in {"cron", "heartbeat", "keepalive", "health"} and len(text) < 160:
+            return True
+        return False
+
+    def _is_high_signal_observation(self, observation_output: str) -> bool:
+        lowered = observation_output.lower()
+        signal_markers = (
+            "policy",
+            "hotfix",
+            "approval",
+            "audit logging",
+            "force push",
+            "git push -f",
+            "never ",
+            "do not ",
+            "forbid",
+            "allow ",
+            "migration",
+            "tenant",
+            "mfa",
+            "production",
+            "deploy",
+        )
+        return any(marker in lowered for marker in signal_markers)
+
+    def _observation_type(self, action_type: str, observation_output: str) -> str:
+        lowered = observation_output.lower()
+        if self._is_high_signal_observation(observation_output):
+            if "hotfix" in lowered or "git push -f" in lowered or "force push" in lowered:
+                return "policy_hotfix"
+            if "migration" in lowered:
+                return "migration_policy"
+            if "tenant" in lowered:
+                return "tenant_exception"
+            if "mfa" in lowered:
+                return "security_override"
+            return "policy_event"
+        if any(token in lowered for token in ["error", "failed", "exception", "panic", "invalid config"]):
+            return "tool_error"
+        normalized = action_type.strip().lower().replace(" ", "_")
+        return normalized or "event"
+
     async def ingest_observation(
         self,
         action_type: str,
@@ -40,8 +122,11 @@ class OpenClawBioAdapter:
         task_id: Optional[str] = None,
         workspace_id: Optional[str] = None,
         project_version: Optional[str] = None,
-        source_refs: Optional[List[str]] = None,
+        source_refs: Optional[List[Any]] = None,
     ) -> bool:
+        if self._is_noise_observation(action_type, observation_output):
+            return False
+
         if len(observation_output) > 2000:
             observation_output = (
                 observation_output[:1000]
@@ -60,11 +145,14 @@ class OpenClawBioAdapter:
             task_id=task_id,
             workspace_id=workspace_id,
             project_version=project_version,
-            source_refs=source_refs,
+            source_refs=source_refs or [{"kind": "openclaw", "action": action_type}],
+            observation_type=self._observation_type(action_type, observation_output),
         )
         self.action_counter += 1
 
-        if self.action_counter >= 10:
+        if self._is_high_signal_observation(observation_output):
+            await self.trigger_micro_sleep()
+        elif self.action_counter >= 10:
             await self.trigger_micro_sleep()
 
         return True

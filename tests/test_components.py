@@ -121,6 +121,91 @@ def test_embedder_falls_back_to_hash_when_provider_embedding_fails():
     assert embedder.effective_backend == "gemini->hash"
 
 
+@pytest.mark.asyncio
+async def test_sensitive_rule_pending_approval_still_persists_l2_memory():
+    class ApprovalSensitiveEngine:
+        backend = "test"
+        model_id = "approval-sensitive"
+
+        async def generate_structured(self, prompt, schema, temperature=0.1, effort=None):
+            if schema.__name__ == "MemoryLabel":
+                return {
+                    "topic": "git",
+                    "importance_score": 9,
+                    "is_junk_or_transient": False,
+                    "user_state": "urgent",
+                }
+            if schema.__name__ == "CompiledMemory":
+                return {
+                    "episodic_summary": "Approved hotfix policy recorded.",
+                    "semantic_memory": "Approved hotfixes can override the default frontend branch rule.",
+                    "procedural_memory": "Require approval and audit logging before any frontend hotfix force push.",
+                    "exception_memory": "Exception: approved frontend hotfixes may use git push -f with audit logging.",
+                    "identity_rule": "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
+                    "confidence": 0.94,
+                    "scope": "project",
+                }
+            raise ValueError(schema.__name__)
+
+    for file_path in (
+        Path("test_data/pending-approval-agent_core_identity.json"),
+        Path("test_data/pending-approval-agent_episodes.json"),
+        Path("test_data/pending-approval-agent_l1_memory.json"),
+        Path("test_data/pending-approval-agent_l2_memory.json"),
+        Path("test_data/pending-approval-agent_approvals.json"),
+    ):
+        if file_path.exists():
+            file_path.unlink()
+
+    engine = ApprovalSensitiveEngine()
+    l1 = L1WorkingMemory(agent_name="pending-approval-agent", storage_dir="test_data")
+    l1.clear()
+    l2 = L2SemanticMemory(agent_name="pending-approval-agent", storage_dir="test_data")
+    persona = Persona(name="pending-approval-agent", storage_dir="test_data")
+    approvals = ApprovalQueue(agent_name="pending-approval-agent", storage_dir="test_data")
+    episodes = EpisodeStore(agent_name="pending-approval-agent", storage_dir="test_data")
+    hippo = Hippocampus(
+        engine=engine,
+        l1=l1,
+        l2=l2,
+        persona=persona,
+        episodes=episodes,
+        approval_queue=approvals,
+    )
+
+    await hippo.label_and_store(
+        "Approved hotfixes may use git push -f on the frontend branch only with explicit approval and audit logging.",
+        source="openclaw-user",
+        task_id="approval-task",
+        workspace_id="frontend",
+        project_version="v3.1.0",
+        observation_type="policy_hotfix",
+    )
+    l1.increment_nights()
+    l1.increment_nights()
+    l1.increment_nights()
+    result = await hippo.consolidate()
+
+    assert result["pending_approval"] == 1
+    assert persona.rule_count == 0
+    assert approvals.pending_count == 1
+    assert l2.count >= 3
+    results = l2.search(
+        "frontend hotfix force push approval and audit logging",
+        top_k=5,
+        retrieval_state={
+            "mode": "deploy",
+            "stress_state": "normal",
+            "risk_level": "high",
+            "task_id": "approval-task",
+            "workspace_id": "frontend",
+            "project_version": "v3.1.0",
+            "prefer_exception": True,
+        },
+    )
+    assert any(item["memory_type"] == "exception" for item in results)
+
+
 class FakeNLIEngine:
     is_ready = True
 

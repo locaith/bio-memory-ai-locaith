@@ -6,7 +6,9 @@ from importlib import resources
 from pathlib import Path
 
 
-PLUGIN_DIR_NAME = "bio-agent-os-openclaw"
+PRIMARY_PLUGIN_ID = "bio-locaith-openclaw"
+LEGACY_PLUGIN_ID = "bio-agent-os-openclaw"
+PLUGIN_DIR_NAME = PRIMARY_PLUGIN_ID
 
 
 def default_openclaw_target() -> Path:
@@ -33,9 +35,9 @@ def render_openclaw_config(plugin_path: str | None = None) -> str:
         "plugins": {
             "enabled": True,
             "load": {"paths": [resolved]},
-            "slots": {"memory": "bio-agent-os-openclaw"},
+            "slots": {"memory": PRIMARY_PLUGIN_ID},
             "entries": {
-                "bio-agent-os-openclaw": {
+                PRIMARY_PLUGIN_ID: {
                     "enabled": True,
                     "config": {
                         "apiBaseUrl": "http://127.0.0.1:8055",

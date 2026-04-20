@@ -402,61 +402,7 @@ class Hippocampus:
                                 "episode_id": episode_id,
                             },
                         )
-                    if self.l2:
-                        topic = metadata.get("topic", "general")
-                        mode_hints = self._mode_hints(metadata, content)
-                        shared_kwargs = {
-                            "importance": metadata.get("importance_score", 5),
-                            "source_rule_id": None,
-                            "scope": scope,
-                            "mode_hints": mode_hints,
-                            "risk_level": self._risk_level(metadata),
-                            "stress_state": self._stress_state(metadata, content),
-                            "task_id": entry.get("task_id"),
-                            "workspace_id": entry.get("workspace_id"),
-                            "project_version": entry.get("project_version"),
-                        }
-                        self.l2.store(
-                            content=compiled["semantic_memory"],
-                            tags=[topic, "semantic"],
-                            memory_type="semantic",
-                            **shared_kwargs,
-                        )
-                        self.l2.store(
-                            content=compiled["procedural_memory"],
-                            tags=[topic, "procedural"],
-                            memory_type="procedural",
-                            **shared_kwargs,
-                        )
-                        self.l2.store(
-                            content=compiled["episodic_summary"],
-                            importance=max(1.0, metadata.get("importance_score", 5) - 1),
-                            tags=[topic, "episodic"],
-                            source_rule_id=None,
-                            memory_type="episodic",
-                            scope=scope,
-                            mode_hints=mode_hints,
-                            risk_level=self._risk_level(metadata),
-                            stress_state=self._stress_state(metadata, content),
-                            task_id=entry.get("task_id"),
-                            workspace_id=entry.get("workspace_id"),
-                            project_version=entry.get("project_version"),
-                        )
-                        exception_memory = compiled.get("exception_memory", "").strip()
-                        if exception_memory:
-                            self.l2.store_exception(
-                                content=exception_memory,
-                                exception_for=topic,
-                                tags=[topic],
-                                source_rule_id=None,
-                                scope=scope,
-                                mode_hints=mode_hints,
-                                risk_level=self._risk_level(metadata),
-                                stress_state=self._stress_state(metadata, content),
-                                task_id=entry.get("task_id"),
-                                workspace_id=entry.get("workspace_id"),
-                                project_version=entry.get("project_version"),
-                            )
+                    self._store_compiled_memories(compiled, metadata, entry, scope, rule_id=None)
                     stats["encoded"] += 1
                     continue
                 if self.approval_queue and self.approval_queue.requires_approval(identity_rule, scope=scope, confidence=confidence):
@@ -472,6 +418,7 @@ class Hippocampus:
                     )
                     self.l1.mark_encoded(entry["timestamp"])
                     self._log.append(f"Queued human approval for sensitive rule: {identity_rule[:120]}")
+                    self._store_compiled_memories(compiled, metadata, entry, scope, rule_id=None)
                     if self.audit_log:
                         self.audit_log.append(
                             "approval_required",
@@ -479,6 +426,7 @@ class Hippocampus:
                             {"request_id": request["request_id"], "rule_text": identity_rule, "scope": scope},
                         )
                     stats["pending_approval"] += 1
+                    stats["encoded"] += 1
                     continue
 
                 rule_id = self.persona.add_rule(
@@ -537,61 +485,7 @@ class Hippocampus:
                                 float(governed_pair["valid_to"]),
                             )
 
-                if self.l2:
-                    topic = metadata.get("topic", "general")
-                    mode_hints = self._mode_hints(metadata, content)
-                    shared_kwargs = {
-                        "importance": metadata.get("importance_score", 5),
-                        "source_rule_id": rule_id,
-                        "scope": scope,
-                        "mode_hints": mode_hints,
-                        "risk_level": self._risk_level(metadata),
-                        "stress_state": self._stress_state(metadata, content),
-                        "task_id": entry.get("task_id"),
-                        "workspace_id": entry.get("workspace_id"),
-                        "project_version": entry.get("project_version"),
-                    }
-                    self.l2.store(
-                        content=compiled["semantic_memory"],
-                        tags=[topic, "semantic"],
-                        memory_type="semantic",
-                        **shared_kwargs,
-                    )
-                    self.l2.store(
-                        content=compiled["procedural_memory"],
-                        tags=[topic, "procedural"],
-                        memory_type="procedural",
-                        **shared_kwargs,
-                    )
-                    self.l2.store(
-                        content=compiled["episodic_summary"],
-                        importance=max(1.0, metadata.get("importance_score", 5) - 1),
-                        tags=[topic, "episodic"],
-                        source_rule_id=rule_id,
-                        memory_type="episodic",
-                        scope=scope,
-                        mode_hints=mode_hints,
-                        risk_level=self._risk_level(metadata),
-                        stress_state=self._stress_state(metadata, content),
-                        task_id=entry.get("task_id"),
-                        workspace_id=entry.get("workspace_id"),
-                        project_version=entry.get("project_version"),
-                    )
-                    exception_memory = compiled.get("exception_memory", "").strip()
-                    if exception_memory:
-                        self.l2.store_exception(
-                            content=exception_memory,
-                            exception_for=topic,
-                            tags=[topic],
-                            source_rule_id=rule_id,
-                            scope=scope,
-                            mode_hints=mode_hints,
-                            risk_level=self._risk_level(metadata),
-                            stress_state=self._stress_state(metadata, content),
-                            task_id=entry.get("task_id"),
-                            workspace_id=entry.get("workspace_id"),
-                            project_version=entry.get("project_version"),
-                        )
+                self._store_compiled_memories(compiled, metadata, entry, scope, rule_id=rule_id)
 
                 self.l1.mark_encoded(entry["timestamp"])
                 self._log.append(f"Compiled rule: {identity_rule[:120]}")
@@ -653,6 +547,72 @@ class Hippocampus:
         if any(token in lowered for token in ["failed", "panic", "critical", "error", "exception"]):
             return "failure"
         return metadata.get("user_state", "normal") or "normal"
+
+    def _store_compiled_memories(
+        self,
+        compiled: Dict[str, Any],
+        metadata: Dict[str, Any],
+        entry: Dict[str, Any],
+        scope: str,
+        rule_id: Optional[str],
+    ) -> None:
+        if not self.l2:
+            return
+        topic = metadata.get("topic", "general")
+        content = entry["content"]
+        mode_hints = self._mode_hints(metadata, content)
+        shared_kwargs = {
+            "importance": metadata.get("importance_score", 5),
+            "source_rule_id": rule_id,
+            "scope": scope,
+            "mode_hints": mode_hints,
+            "risk_level": self._risk_level(metadata),
+            "stress_state": self._stress_state(metadata, content),
+            "task_id": entry.get("task_id"),
+            "workspace_id": entry.get("workspace_id"),
+            "project_version": entry.get("project_version"),
+        }
+        self.l2.store(
+            content=compiled["semantic_memory"],
+            tags=[topic, "semantic"],
+            memory_type="semantic",
+            **shared_kwargs,
+        )
+        self.l2.store(
+            content=compiled["procedural_memory"],
+            tags=[topic, "procedural"],
+            memory_type="procedural",
+            **shared_kwargs,
+        )
+        self.l2.store(
+            content=compiled["episodic_summary"],
+            importance=max(1.0, metadata.get("importance_score", 5) - 1),
+            tags=[topic, "episodic"],
+            source_rule_id=rule_id,
+            memory_type="episodic",
+            scope=scope,
+            mode_hints=mode_hints,
+            risk_level=self._risk_level(metadata),
+            stress_state=self._stress_state(metadata, content),
+            task_id=entry.get("task_id"),
+            workspace_id=entry.get("workspace_id"),
+            project_version=entry.get("project_version"),
+        )
+        exception_memory = compiled.get("exception_memory", "").strip()
+        if exception_memory:
+            self.l2.store_exception(
+                content=exception_memory,
+                exception_for=topic,
+                tags=[topic],
+                source_rule_id=rule_id,
+                scope=scope,
+                mode_hints=mode_hints,
+                risk_level=self._risk_level(metadata),
+                stress_state=self._stress_state(metadata, content),
+                task_id=entry.get("task_id"),
+                workspace_id=entry.get("workspace_id"),
+                project_version=entry.get("project_version"),
+            )
 
     async def dream(self) -> Dict[str, int]:
         self._log.append("----- dream cycle started -----")
