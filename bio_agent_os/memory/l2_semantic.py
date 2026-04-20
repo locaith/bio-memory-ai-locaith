@@ -91,7 +91,7 @@ class L2SemanticMemory:
             "task_id": task_id,
             "workspace_id": workspace_id,
             "project_version": project_version,
-            "embedding_backend": self.embedder.backend,
+            "embedding_backend": self.embedder.effective_backend,
             "embedding_model": self.embedder.model_id,
         }
 
@@ -269,7 +269,7 @@ class L2SemanticMemory:
                     "task_id": payload.get("task_id"),
                     "workspace_id": payload.get("workspace_id"),
                     "project_version": payload.get("project_version"),
-                    "embedding_backend": payload.get("embedding_backend", self.embedder.backend),
+                    "embedding_backend": payload.get("embedding_backend", self.embedder.effective_backend),
                     "embedding_model": payload.get("embedding_model", self.embedder.model_id),
                 }
             )

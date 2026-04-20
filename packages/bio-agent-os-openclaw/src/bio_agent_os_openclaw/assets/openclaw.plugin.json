@@ -22,6 +22,27 @@
       "projectVersion": {
         "type": "string",
         "description": "Project version label"
+      },
+      "autoRecall": {
+        "type": "boolean"
+      },
+      "autoCapture": {
+        "type": "boolean"
+      },
+      "sleepEvery": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500
+      },
+      "mode": {
+        "type": "string",
+        "enum": ["assist", "shadow"]
+      },
+      "riskLevel": {
+        "type": "string"
+      },
+      "stressState": {
+        "type": "string"
       }
     }
   }

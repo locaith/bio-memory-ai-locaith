@@ -15,6 +15,8 @@ class Embedder:
         self._client = None
         self._model = None
         self._dimensions = self._default_dimensions()
+        self._fallback_backend = "hash"
+        self._fallback_active = False
         self._init_backend()
 
     def _detect_backend(self) -> str:
@@ -77,24 +79,39 @@ class Embedder:
     def dimensions(self) -> int:
         return self._dimensions
 
+    @property
+    def effective_backend(self) -> str:
+        if self._fallback_active:
+            return f"{self.backend}->{self._fallback_backend}"
+        return self.backend
+
+    def _activate_hash_fallback(self) -> List[float]:
+        self._fallback_active = True
+        self._dimensions = self._default_dimensions() if self._fallback_backend != "hash" else self._dimensions
+        return []
+
     def embed(self, text: str) -> List[float]:
-        if self.backend == "sentence-transformers" and self._model is not None:
-            vector = self._model.encode(text, normalize_embeddings=True)
-            values = [float(value) for value in vector.tolist()]
-            self._dimensions = len(values)
-            return values
-        if self.backend == "openai" and self._client is not None:
-            response = self._client.embeddings.create(model=self.model_id, input=text)
-            values = [float(value) for value in response.data[0].embedding]
-            self._dimensions = len(values)
-            return values
-        if self.backend == "gemini" and self._client is not None:
-            response = self._client.models.embed_content(model=self.model_id, contents=text)
-            values = getattr(response, "embeddings", None) or []
-            if values:
-                vector = [float(value) for value in values[0].values]
-                self._dimensions = len(vector)
-                return vector
+        if not self._fallback_active:
+            try:
+                if self.backend == "sentence-transformers" and self._model is not None:
+                    vector = self._model.encode(text, normalize_embeddings=True)
+                    values = [float(value) for value in vector.tolist()]
+                    self._dimensions = len(values)
+                    return values
+                if self.backend == "openai" and self._client is not None:
+                    response = self._client.embeddings.create(model=self.model_id, input=text)
+                    values = [float(value) for value in response.data[0].embedding]
+                    self._dimensions = len(values)
+                    return values
+                if self.backend == "gemini" and self._client is not None:
+                    response = self._client.models.embed_content(model=self.model_id, contents=text)
+                    values = getattr(response, "embeddings", None) or []
+                    if values:
+                        vector = [float(value) for value in values[0].values]
+                        self._dimensions = len(vector)
+                        return vector
+            except Exception:
+                self._activate_hash_fallback()
         return self._hash_embed(text)
 
     def _hash_embed(self, text: str) -> List[float]:

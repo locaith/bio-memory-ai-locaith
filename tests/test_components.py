@@ -27,6 +27,7 @@ from bio_agent_os.core.db_adapter import (
 )
 from bio_agent_os.core.migration import SQLiteToPostgresMigrator, map_sqlite_type
 from bio_agent_os.core.llm_engine import LLMEngine
+from bio_agent_os.core.embedder import Embedder
 from bio_agent_os.core.reconciliation import RuleRelationDecision
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 from bio_agent_os.plugins.openclaw import OpenClawMemoryPlugin, build_openclaw_plugin
@@ -95,6 +96,29 @@ def test_rest_client_headers():
     headers = client._headers()
     assert headers["Authorization"] == "Bearer secret"
     assert headers["Content-Type"] == "application/json"
+
+
+def test_embedder_falls_back_to_hash_when_provider_embedding_fails():
+    embedder = Embedder.__new__(Embedder)
+    embedder.backend = "gemini"
+    embedder.model_id = "broken-model"
+    embedder._client = object()
+    embedder._model = None
+    embedder._dimensions = 384
+    embedder._fallback_backend = "hash"
+    embedder._fallback_active = False
+
+    class FailingModels:
+        def embed_content(self, model, contents):
+            raise RuntimeError("embedding unavailable")
+
+    class FailingClient:
+        models = FailingModels()
+
+    embedder._client = FailingClient()
+    vector = Embedder.embed(embedder, "fallback me")
+    assert len(vector) == 384
+    assert embedder.effective_backend == "gemini->hash"
 
 
 class FakeNLIEngine:
