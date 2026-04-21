@@ -23,6 +23,7 @@ from bio_agent_os.core.retrieval_service import RetrievalService
 from bio_agent_os.core.runtime import build_runtime
 from bio_agent_os.core.router import IntentRouter
 from bio_agent_os.memory.episodes import EpisodeStore
+from bio_agent_os.memory.exact_memory import ExactMemoryStore
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 from bio_agent_os.memory.l1_working import L1WorkingMemory
 from bio_agent_os.memory.l2_semantic import L2SemanticMemory
@@ -38,6 +39,7 @@ l1: Optional[L1WorkingMemory] = None
 l2: Optional[L2SemanticMemory] = None
 kg: Optional[KnowledgeGraph] = None
 episodes: Optional[EpisodeStore] = None
+exact_memory: Optional[ExactMemoryStore] = None
 hippo: Optional[Hippocampus] = None
 gc: Optional[GarbageCollector] = None
 graph_builder: Optional[GraphBuilder] = None
@@ -49,7 +51,7 @@ retrieval_service: Optional[RetrievalService] = None
 
 
 def init_components():
-    global engine, persona, router_ai, l1, l2, kg, episodes, hippo, gc, graph_builder, health_monitor, dream_journal, audit_log, approval_queue, retrieval_service
+    global engine, persona, router_ai, l1, l2, kg, episodes, exact_memory, hippo, gc, graph_builder, health_monitor, dream_journal, audit_log, approval_queue, retrieval_service
 
     runtime = build_runtime(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     engine = runtime.engine
@@ -59,6 +61,7 @@ def init_components():
     l2 = runtime.l2
     kg = runtime.kg
     episodes = runtime.episodes
+    exact_memory = runtime.exact_memory
     hippo = runtime.hippo
     gc = runtime.gc
     graph_builder = runtime.graph_builder
@@ -126,25 +129,40 @@ async def chat(request: Request):
     l1_context = l1.build_context_string(n=5)
     identity_prompt = persona.get_identity_prompt()
     retrieval_state = retrieval_service.build_retrieval_state(data)
+    retrieval_state["query"] = message
 
     l2_context = ""
     safety_guard = ""
     graph_context = ""
     if intent.value in ("knowledge", "recall", "task"):
         retrieval_bundle = retrieval_service.hybrid_retrieve(message, retrieval_state, top_k=5)
+        exact_facts = retrieval_bundle.get("exact_facts", {})
         l2_results = retrieval_bundle["l2_results"]
         graph_results = retrieval_bundle["graph_results"]
         safety_guard = retrieval_bundle["safety_guard"]
+        context_sections = []
+        if exact_facts.get("facts"):
+            exact_context = "Exact memory:\n" + "\n".join(
+                f"- [{item['fact_kind']}/{item['state']}] {item['fact_value']} "
+                f"(reinforced={item['reinforcement_count']}, confidence={item['confidence']:.2f})"
+                for item in exact_facts["facts"][:3]
+            )
+            if exact_facts.get("status") == "conflicting":
+                exact_context += "\n- Exact memory is conflicting. Do not guess; cite the recent evidence or ask for confirmation."
+            context_sections.append(exact_context)
         if l2_results:
-            l2_context = "\nRelevant long-term memory:\n" + "\n".join(
+            l2_context = "Relevant long-term memory:\n" + "\n".join(
                 f"- [{item['memory_type']}/{item['scope']}] {item['content']} (score={item['score']:.3f})"
                 for item in l2_results
             )
+            context_sections.append(l2_context)
         if graph_results:
             graph_context = "\nRelevant belief graph:\n" + "\n".join(
                 f"- [{item['scope']}/{item['state']}] {item['text']} (score={item['score']:.3f})"
                 for item in graph_results
             )
+        if context_sections:
+            l2_context = "\n" + "\n\n".join(context_sections)
 
     full_prompt = (
         f"{identity_prompt}\n\n"
@@ -298,6 +316,7 @@ def get_state():
         "l1": {"count": l1.count, "entries": l1.get_recent(10), "focus_set": l1.get_focus_set(10)},
         "l2": {"count": l2.count},
         "episodes": {"count": episodes.count, "recent": episodes.get_recent(10)},
+        "exact_memory": {"count": exact_memory.count, "recent": exact_memory.recent(10)},
         "knowledge_graph": {"nodes": kg.node_count, "edges": kg.edge_count},
         "belief_graph": kg.belief_summary(),
         "approvals": {"pending": approval_queue.pending_count, "recent": approval_queue.list(limit=10)},
@@ -316,6 +335,32 @@ def get_health():
     return health_monitor.status()
 
 
+@app.get("/api/episodes")
+def get_episodes(
+    limit: int = 10,
+    task_id: Optional[str] = None,
+    workspace_id: Optional[str] = None,
+    project_version: Optional[str] = None,
+    query: Optional[str] = None,
+):
+    if query:
+        items = episodes.search_text(
+            query=query,
+            limit=limit,
+            task_id=task_id,
+            workspace_id=workspace_id,
+            project_version=project_version,
+        )
+    else:
+        items = episodes.query(
+            task_id=task_id,
+            workspace_id=workspace_id,
+            project_version=project_version,
+            limit=limit,
+        )
+    return {"count": len(items), "episodes": items}
+
+
 @app.get("/api/status")
 def get_status():
     return {
@@ -324,6 +369,31 @@ def get_status():
         "model": engine.model_id,
         "health": health_monitor.status(),
     }
+
+
+@app.get("/api/exact-memories")
+def get_exact_memories(
+    limit: int = 10,
+    query: Optional[str] = None,
+    workspace_id: Optional[str] = None,
+    project_version: Optional[str] = None,
+    task_id: Optional[str] = None,
+):
+    if query:
+        return exact_memory.recall(
+            query=query,
+            workspace_id=workspace_id,
+            project_version=project_version,
+            task_id=task_id,
+            limit=limit,
+        )
+    return {"count": exact_memory.count, "records": exact_memory.recent(limit)}
+
+
+@app.post("/api/exact-memories/reindex")
+def reindex_exact_memories(limit: int = 1200):
+    imported = exact_memory.reindex_from_episodes(episodes, limit=limit)
+    return {"status": "ok", "imported": imported, "count": exact_memory.count}
 
 
 @app.get("/api/graph")
@@ -406,6 +476,34 @@ async def lineage(request: Request):
         return {"error": "Empty query"}
     retrieval_state = retrieval_service.build_retrieval_state(data)
     return {"query": query, "retrieval_state": retrieval_state, **retrieval_service.build_lineage(query, retrieval_state, top_k=int(data.get("top_k", 5)))}
+
+
+@app.get("/api/lineage")
+def lineage_get(
+    query: str,
+    mode: str = "implement",
+    stress_state: str = "normal",
+    risk_level: str = "medium",
+    task_id: Optional[str] = None,
+    workspace_id: Optional[str] = None,
+    project_version: Optional[str] = None,
+    top_k: int = 5,
+):
+    data = {
+        "query": query,
+        "mode": mode,
+        "stress_state": stress_state,
+        "risk_level": risk_level,
+        "task_id": task_id,
+        "workspace_id": workspace_id,
+        "project_version": project_version,
+    }
+    retrieval_state = retrieval_service.build_retrieval_state(data)
+    return {
+        "query": query,
+        "retrieval_state": retrieval_state,
+        **retrieval_service.build_lineage(query, retrieval_state, top_k=top_k),
+    }
 
 
 @app.get("/api/approvals")

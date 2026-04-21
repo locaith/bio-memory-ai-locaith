@@ -3,6 +3,7 @@ Episode storage for Bio-Agent OS V2.
 """
 
 import os
+import re
 import time
 import uuid
 from typing import Any, Dict, List, Optional
@@ -121,6 +122,20 @@ class EpisodeStore:
                 normalized.append({"ref": str(ref)})
         return normalized
 
+    def _tokenize(self, text: str) -> set[str]:
+        cleaned = re.sub(r"[^a-z0-9\u00c0-\u024f\s]", " ", str(text).lower())
+        return {token for token in cleaned.split() if token}
+
+    def _infer_anchor_kind(self, text: str) -> Optional[str]:
+        lowered = str(text).lower()
+        if any(marker in lowered for marker in ["ký tự đặc biệt", "ky tu dac biet", "special character"]):
+            return "special_character"
+        if "ký tự" in lowered and "mật mã" in lowered:
+            return "special_character"
+        if any(marker in lowered for marker in ["mật mã", "mat ma", "secret code", "code word", "passphrase", "password"]):
+            return "verification_code"
+        return None
+
     def add(
         self,
         raw_payload: str,
@@ -232,6 +247,58 @@ class EpisodeStore:
             parameters,
         )
         return [self._row_to_record(row) for row in reversed(rows)]
+
+    def search_text(
+        self,
+        query: str,
+        limit: int = 10,
+        task_id: Optional[str] = None,
+        workspace_id: Optional[str] = None,
+        project_version: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        if not query.strip():
+            return []
+        candidates = self.query(
+            task_id=task_id,
+            workspace_id=workspace_id,
+            project_version=project_version,
+            limit=max(limit * 12, 60),
+        )
+        query_terms = self._tokenize(query)
+        normalized_query = " ".join(query_terms)
+        desired_anchor_kind = self._infer_anchor_kind(query)
+        now = time.time()
+        results: List[Dict[str, Any]] = []
+        for record in candidates:
+            text = str(record.get("raw_payload", "")).strip()
+            if not text:
+                continue
+            metadata = record.get("metadata", {})
+            anchor_kind = metadata.get("anchor_kind")
+            anchor_value = metadata.get("anchor_value")
+            text_terms = self._tokenize(text)
+            overlap = len(query_terms & text_terms)
+            is_matching_anchor = bool(
+                metadata.get("is_anchor_memory")
+                and desired_anchor_kind
+                and anchor_kind == desired_anchor_kind
+            )
+            if query_terms and overlap == 0 and normalized_query not in text.lower() and not is_matching_anchor:
+                continue
+            recency_hours = max((now - float(record.get("timestamp", now))) / 3600.0, 0.0)
+            recency_bonus = max(0.0, 1.5 - min(recency_hours / 24.0, 1.5))
+            anchor_bonus = 0.8 if metadata.get("is_anchor_memory") else 0.0
+            if anchor_value:
+                anchor_bonus += 0.4
+            if desired_anchor_kind and anchor_kind == desired_anchor_kind:
+                anchor_bonus += 1.4
+            elif desired_anchor_kind and anchor_kind and anchor_kind != desired_anchor_kind:
+                anchor_bonus -= 0.6
+            exact_bonus = 0.6 if normalized_query and normalized_query in " ".join(text_terms) else 0.0
+            score = overlap * 0.7 + recency_bonus + anchor_bonus + exact_bonus
+            results.append({**record, "score": round(score, 3)})
+        results.sort(key=lambda item: (-float(item["score"]), -float(item["timestamp"])))
+        return results[:limit]
 
     @property
     def count(self) -> int:

@@ -28,6 +28,7 @@ from bio_agent_os.memory.l1_working import L1WorkingMemory
 from bio_agent_os.memory.l2_semantic import L2SemanticMemory
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 from bio_agent_os.memory.episodes import EpisodeStore
+from bio_agent_os.memory.exact_memory import ExactMemoryStore
 from bio_agent_os.background_jobs.hippocampus import Hippocampus
 from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.graph_builder import GraphBuilder
@@ -47,6 +48,7 @@ __all__ = [
     "BioAgentSDK",
     "ApprovalQueue",
     "DreamJournal",
+    "ExactMemoryStore",
     "EpisodeStore",
     "GarbageCollector",
     "GraphBuilder",

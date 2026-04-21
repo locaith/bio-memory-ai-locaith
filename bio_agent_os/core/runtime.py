@@ -20,6 +20,7 @@ from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
 from bio_agent_os.core.retrieval_service import RetrievalService
 from bio_agent_os.core.router import IntentRouter
+from bio_agent_os.memory.exact_memory import ExactMemoryStore
 from bio_agent_os.memory.episodes import EpisodeStore
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 from bio_agent_os.memory.l1_working import L1WorkingMemory
@@ -37,6 +38,7 @@ class BioAgentRuntime:
     l2: L2SemanticMemory
     kg: KnowledgeGraph
     episodes: EpisodeStore
+    exact_memory: ExactMemoryStore
     hippo: Hippocampus
     gc: GarbageCollector
     graph_builder: GraphBuilder
@@ -56,6 +58,9 @@ def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
     l2 = L2SemanticMemory(agent_name=agent_name, storage_dir=storage_dir)
     kg = KnowledgeGraph(agent_name=agent_name, storage_dir=storage_dir)
     episodes = EpisodeStore(agent_name=agent_name, storage_dir=storage_dir)
+    exact_memory = ExactMemoryStore(agent_name=agent_name, storage_dir=storage_dir)
+    if exact_memory.count == 0 or os.getenv("BIO_AGENT_REINDEX_EXACT_MEMORY", "0") == "1":
+        exact_memory.reindex_from_episodes(episodes)
     dream_journal = DreamJournal(agent_name=agent_name, storage_dir=storage_dir)
     audit_log = AuditLog(agent_name=agent_name, storage_dir=storage_dir)
     approval_queue = ApprovalQueue(agent_name=agent_name, storage_dir=storage_dir)
@@ -63,6 +68,7 @@ def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
         l2=l2,
         graph=kg,
         episodes=episodes,
+        exact_memory=exact_memory,
         persona=persona,
         approval_queue=approval_queue,
     )
@@ -72,6 +78,7 @@ def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
         persona=persona,
         l2=l2,
         episodes=episodes,
+        exact_memory=exact_memory,
         graph=kg,
         dream_journal=dream_journal,
         audit_log=audit_log,
@@ -80,7 +87,14 @@ def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
     )
     gc = GarbageCollector(l1=l1, l2=l2)
     graph_builder = GraphBuilder(engine=engine, graph=kg)
-    health_monitor = MemoryHealthMonitor(l1=l1, l2=l2, persona=persona, episodes=episodes, graph=kg)
+    health_monitor = MemoryHealthMonitor(
+        l1=l1,
+        l2=l2,
+        persona=persona,
+        episodes=episodes,
+        graph=kg,
+        exact_memory=exact_memory,
+    )
     return BioAgentRuntime(
         agent_name=agent_name,
         storage_dir=storage_dir,
@@ -91,6 +105,7 @@ def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
         l2=l2,
         kg=kg,
         episodes=episodes,
+        exact_memory=exact_memory,
         hippo=hippo,
         gc=gc,
         graph_builder=graph_builder,

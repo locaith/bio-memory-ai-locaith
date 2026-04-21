@@ -59,6 +59,37 @@ class L2SemanticMemory:
     def _normalize_mode_hints(self, mode_hints: Optional[List[str]]) -> List[str]:
         return sorted({str(mode).strip().lower() for mode in (mode_hints or []) if str(mode).strip()})
 
+    def _memory_decay_lambda(self, payload: Dict[str, Any]) -> float:
+        memory_type = str(payload.get("memory_type", "semantic")).lower()
+        if memory_type == "anchor":
+            return self.decay_lambda * 0.08
+        if memory_type == "procedural":
+            return self.decay_lambda * 0.45
+        if memory_type == "semantic":
+            return self.decay_lambda * 0.70
+        if memory_type == "exception":
+            return self.decay_lambda * 0.35
+        return self.decay_lambda
+
+    def _is_anchor_query(self, query: str) -> bool:
+        lowered = query.lower()
+        markers = [
+            "mật mã",
+            "mat ma",
+            "ký tự đặc biệt",
+            "ky tu dac biet",
+            "ký tự mật mã",
+            "secret code",
+            "code word",
+            "passphrase",
+            "password",
+            "what did we choose",
+            "what was the chosen",
+            "what is the special character",
+            "ký tự",
+        ]
+        return any(marker in lowered for marker in markers)
+
     def _build_payload(
         self,
         content: str,
@@ -197,6 +228,8 @@ class L2SemanticMemory:
             boost += 0.15
         if prefer_exception and payload.get("memory_type") == "exception":
             boost += 0.6
+        if self._is_anchor_query(str(retrieval_state.get("query", ""))) and payload.get("memory_type") == "anchor":
+            boost += 1.0
 
         if mode == "debug":
             if payload.get("memory_type") in {"exception", "procedural"}:
@@ -238,7 +271,7 @@ class L2SemanticMemory:
             importance = float(payload["importance"])
             timestamp = float(payload["timestamp"])
             days_elapsed = (now - timestamp) / 86400
-            decay = math.exp(-self.decay_lambda * days_elapsed)
+            decay = math.exp(-self._memory_decay_lambda(payload) * days_elapsed)
 
             semantic_score = 0.6
             if "vector" in payload:
@@ -250,6 +283,13 @@ class L2SemanticMemory:
             overlap = len(query_terms & (content_terms | tag_terms))
             if query_terms:
                 lexical_bonus = min(0.2, overlap / max(len(query_terms), 1) * 0.2)
+            if self._is_anchor_query(query) and payload.get("memory_type") == "anchor":
+                normalized_query = " ".join(sorted(query_terms))
+                normalized_content = " ".join(sorted(content_terms))
+                if overlap >= 2:
+                    lexical_bonus += 0.6
+                if normalized_query and normalized_query in normalized_content:
+                    lexical_bonus += 0.4
 
             state_boost = self._state_boost(payload, retrieval_state)
             final_score = (semantic_score + lexical_bonus) * importance * decay * state_boost
@@ -323,7 +363,9 @@ class L2SemanticMemory:
 
         for point in points:
             days_elapsed = (now - point.payload["timestamp"]) / 86400
-            decay_score = point.payload["importance"] * math.exp(-self.decay_lambda * days_elapsed)
+            decay_score = point.payload["importance"] * math.exp(
+                -self._memory_decay_lambda(point.payload) * days_elapsed
+            )
             if decay_score < threshold:
                 to_delete.append(point.id)
 

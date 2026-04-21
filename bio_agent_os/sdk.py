@@ -19,6 +19,7 @@ class BioAgentSDK:
 
         intent = self.runtime.router_ai.quick_classify(message)
         retrieval_state = self.runtime.retrieval_service.build_retrieval_state(context)
+        retrieval_state["query"] = message
         l1_context = self.runtime.l1.build_context_string(n=5)
         identity_prompt = self.runtime.persona.get_identity_prompt()
 

@@ -15,6 +15,7 @@ from bio_agent_os.core.llm_engine import LLMEngine
 from bio_agent_os.core.memory_health import MemoryHealthMonitor
 from bio_agent_os.core.persona import Persona
 from bio_agent_os.core.reconciliation import ContradictionResolver
+from bio_agent_os.memory.exact_memory import ExactMemoryStore
 from bio_agent_os.memory.episodes import EpisodeStore
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 from bio_agent_os.memory.l1_working import L1WorkingMemory
@@ -46,6 +47,7 @@ class Hippocampus:
         persona: Persona,
         l2: Optional[L2SemanticMemory] = None,
         episodes: Optional[EpisodeStore] = None,
+        exact_memory: Optional[ExactMemoryStore] = None,
         graph: Optional[KnowledgeGraph] = None,
         dream_journal: Optional[DreamJournal] = None,
         audit_log: Optional[AuditLog] = None,
@@ -57,6 +59,7 @@ class Hippocampus:
         self.persona = persona
         self.l2 = l2
         self.episodes = episodes
+        self.exact_memory = exact_memory
         self.graph = graph
         self.dream_journal = dream_journal
         self.audit_log = audit_log
@@ -70,6 +73,51 @@ class Hippocampus:
         )
         self._log: List[str] = []
         self._allowed_scopes = {"core", "project", "agent", "user", "session", "organization"}
+
+    def _extract_anchor_fact(self, raw_data: str) -> Dict[str, str]:
+        text = " ".join(raw_data.split())
+        patterns = [
+            (
+                "special_character",
+                r"(?:ký tự đặc biệt|ky tu dac biet|special character)[^:]*?(?:là|la|is)\s+(.+?)(?:[.!?\n]|$)",
+            ),
+            (
+                "verification_code",
+                r"(?:ký tự mật mã|ky tu mat ma|mật mã|mat ma|secret code|code word|passphrase|password)[^:]*?(?:là|la|is)\s+(.+?)(?:[.!?\n]|$)",
+            ),
+            (
+                "special_character",
+                r"(?:ghi nhớ chính xác|ghi nho chinh xac|remember exactly)\s*[:\-]\s*(.+?)(?:[.!?\n]|$)",
+            ),
+        ]
+        for kind, pattern in patterns:
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if not match:
+                continue
+            value = re.sub(r"[*`_]+", "", match.group(1)).strip(" .,:;!?-")
+            value = re.sub(r"\s+", " ", value)
+            if value and len(value) <= 96 and len(value.split()) <= 6 and "," not in value and ":" not in value:
+                return {"anchor_kind": kind, "anchor_value": value}
+        return {}
+
+    def _apply_anchor_overrides(
+        self,
+        raw_data: str,
+        metadata: Dict[str, Any],
+        observation_type: str,
+    ) -> Dict[str, Any]:
+        lowered = raw_data.lower()
+        extracted = self._extract_anchor_fact(raw_data)
+        if extracted or any(marker in lowered for marker in ["remember exactly", "ghi nhớ chính xác"]):
+            metadata["topic"] = "verification_anchor"
+            metadata["importance_score"] = max(int(metadata.get("importance_score", 5)), 9)
+            metadata["is_junk_or_transient"] = False
+            metadata["is_anchor_memory"] = True
+            metadata["retain_verbatim"] = True
+            metadata.update(extracted)
+            if observation_type in {"chat_input", "chat_output"} and "urgent" not in str(metadata.get("user_state", "")):
+                metadata["user_state"] = metadata.get("user_state") or "focused"
+        return metadata
 
     @property
     def logs(self) -> List[str]:
@@ -118,6 +166,7 @@ class Hippocampus:
     ) -> Dict[str, Any]:
         compaction = self.compactor.compact(raw_data)
         metadata = await self.label(compaction["content"], source)
+        metadata = self._apply_anchor_overrides(raw_data, metadata, observation_type)
         metadata.update(
             {
                 "was_compacted": compaction["was_compacted"],
@@ -147,6 +196,33 @@ class Hippocampus:
                 project_version=project_version,
                 source_refs=source_refs,
             )
+        if self.exact_memory:
+            exact_candidate = {}
+            if metadata.get("anchor_kind") and metadata.get("anchor_value"):
+                exact_candidate = {
+                    "fact_kind": str(metadata.get("anchor_kind")),
+                    "fact_value": str(metadata.get("anchor_value")),
+                }
+            else:
+                exact_candidate = self.exact_memory.extract_candidate(raw_data, metadata=metadata)
+        else:
+            exact_candidate = {}
+        if self.exact_memory and exact_candidate.get("fact_kind") and exact_candidate.get("fact_value"):
+            exact_record = self.exact_memory.remember(
+                fact_kind=str(exact_candidate.get("fact_kind")),
+                fact_value=str(exact_candidate.get("fact_value")),
+                confidence=max(0.55, min(metadata.get("importance_score", 5) / 10.0, 0.99)),
+                source=source,
+                task_id=task_id,
+                workspace_id=workspace_id,
+                project_version=project_version,
+                episode_id=episode["episode_id"] if episode else None,
+                source_refs=episode.get("source_refs", []) if episode else (source_refs or []),
+                metadata=metadata,
+            )
+            if exact_record:
+                metadata["exact_memory_state"] = exact_record.get("state", "active")
+                metadata["exact_memory_value"] = exact_record.get("fact_value")
         entry = self.l1.add(
             content=compaction["content"],
             source=source,
@@ -155,7 +231,7 @@ class Hippocampus:
             task_id=task_id,
             workspace_id=workspace_id,
             project_version=project_version,
-        )
+            )
         if self.audit_log:
             self.audit_log.append(
                 "memory_ingest",
@@ -170,6 +246,26 @@ class Hippocampus:
                     "workspace_id": workspace_id,
                     "project_version": project_version,
                 },
+            )
+        if self.l2 and metadata.get("is_anchor_memory") and metadata.get("anchor_kind") and metadata.get("anchor_value"):
+            anchor_kind = metadata.get("anchor_kind", "verification_code")
+            anchor_value = metadata.get("anchor_value")
+            anchor_content = raw_data.strip()
+            if anchor_value:
+                anchor_content = f"Latest {anchor_kind}: {anchor_value}"
+            self.l2.store(
+                content=anchor_content,
+                importance=max(9.0, float(metadata.get("importance_score", 9))),
+                tags=[metadata.get("topic", "verification_anchor"), "anchor", "verbatim", anchor_kind],
+                source_rule_id=episode["episode_id"] if episode else None,
+                memory_type="anchor",
+                scope="project",
+                mode_hints=["implement", "debug", "refactor", "deploy"],
+                risk_level="medium",
+                stress_state="focused",
+                task_id=task_id,
+                workspace_id=workspace_id,
+                project_version=project_version,
             )
         return entry
 

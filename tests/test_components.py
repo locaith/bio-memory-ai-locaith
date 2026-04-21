@@ -10,6 +10,7 @@ from bio_agent_os import (
     AsyncSQLiteStore,
     BioAgentRESTClient,
     ContradictionResolver,
+    ExactMemoryStore,
     EpisodeStore,
     L1WorkingMemory,
     L2SemanticMemory,
@@ -328,6 +329,134 @@ def test_episode_store():
     assert record["workspace_id"] == "workspace-main"
     assert record["project_version"] == "v2.1.0"
     assert len(record["source_refs"]) == 2
+
+
+def test_exact_memory_prefers_user_anchor_over_conflicting_assistant_guess():
+    memory = ExactMemoryStore(agent_name="exact_anchor_agent", storage_dir="test_data")
+    memory.remember(
+        fact_kind="special_character",
+        fact_value="Sentinel",
+        confidence=0.55,
+        source="Jarvis-Bio",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "assistant", "channel": "telegram"}],
+        metadata={"retain_verbatim": True},
+    )
+    memory.remember(
+        fact_kind="special_character",
+        fact_value="Milky Way",
+        confidence=0.95,
+        source="openclaw-user",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "user", "channel": "web"}],
+        metadata={"retain_verbatim": True},
+    )
+
+    result = memory.recall(
+        "What was the special character we chose?",
+        workspace_id="main",
+        project_version="v1",
+    )
+
+    assert result["status"] == "resolved"
+    assert result["answer_candidate"] == "Milky Way"
+    assert result["facts"][0]["fact_value"] == "Milky Way"
+
+
+def test_exact_memory_returns_conflict_for_two_close_user_values():
+    memory = ExactMemoryStore(agent_name="exact_conflict_agent", storage_dir="test_data")
+    memory.remember(
+        fact_kind="verification_code",
+        fact_value="Orion",
+        confidence=0.9,
+        source="openclaw-user",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "user", "channel": "web"}],
+        metadata={"retain_verbatim": True},
+    )
+    memory.remember(
+        fact_kind="verification_code",
+        fact_value="Aurora",
+        confidence=0.9,
+        source="openclaw-user",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "user", "channel": "telegram"}],
+        metadata={"retain_verbatim": True},
+    )
+
+    result = memory.recall(
+        "What is the secret code?",
+        workspace_id="main",
+        project_version="v1",
+    )
+
+    assert result["status"] == "conflicting"
+    assert result["answer_candidate"] is None
+    assert len(result["facts"]) >= 2
+
+
+def test_exact_memory_backfills_from_episodes_without_llm():
+    episodes = EpisodeStore(agent_name="exact_backfill_agent", storage_dir="test_data")
+    episodes.add(
+        raw_payload="The special character we chose in webchat is Milky Way.",
+        actor="openclaw-user",
+        source="openclaw-user",
+        observation_type="chat_input",
+        confidence=0.9,
+        task_id="session-a",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "user", "channel": "web"}],
+    )
+    memory = ExactMemoryStore(agent_name="exact_backfill_agent", storage_dir="test_data")
+    imported = memory.backfill_from_episodes(episodes, limit=50)
+    result = memory.recall(
+        "What was the special character we chose?",
+        workspace_id="main",
+        project_version="v1",
+    )
+
+    assert imported >= 1
+    assert result["answer_candidate"] == "Milky Way"
+
+
+def test_retrieval_service_surfaces_exact_facts_for_anchor_query():
+    l2 = L2SemanticMemory(agent_name="retrieval_exact_agent", storage_dir="test_data")
+    graph = KnowledgeGraph(agent_name="retrieval_exact_agent", storage_dir="test_data")
+    episodes = EpisodeStore(agent_name="retrieval_exact_agent", storage_dir="test_data")
+    exact_memory = ExactMemoryStore(agent_name="retrieval_exact_agent", storage_dir="test_data")
+    persona = Persona(name="retrieval_exact_agent", storage_dir="test_data")
+    queue = ApprovalQueue(agent_name="retrieval_exact_agent", storage_dir="test_data")
+    exact_memory.remember(
+        fact_kind="special_character",
+        fact_value="Milky Way",
+        confidence=0.95,
+        source="openclaw-user",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "user"}],
+        metadata={"retain_verbatim": True},
+    )
+
+    service = RetrievalService(
+        l2=l2,
+        graph=graph,
+        episodes=episodes,
+        exact_memory=exact_memory,
+        persona=persona,
+        approval_queue=queue,
+    )
+    state = service.build_retrieval_state(
+        {"query": "What was the special character we chose?", "workspace_id": "main", "project_version": "v1"}
+    )
+    bundle = service.hybrid_retrieve("What was the special character we chose?", state, top_k=3)
+
+    assert bundle["exact_facts"]["status"] == "resolved"
+    assert bundle["exact_facts"]["answer_candidate"] == "Milky Way"
 
 
 def test_contradiction_resolver_deprecates_weaker_rule():
@@ -811,6 +940,81 @@ def test_retrieval_service_surfaces_stable_rules_and_pending_approvals():
     assert any("Never use git push -f" in item["text"] for item in bundle["stable_persona_rules"])
     assert bundle["pending_approvals"]
     assert any("approved hotfix response" in item["rule_text"] for item in bundle["pending_approvals"])
+
+
+def test_episode_store_search_text_finds_recent_anchor_memory():
+    storage_dir = "test_data"
+    episodes = EpisodeStore(agent_name="anchor_episode_agent", storage_dir=storage_dir)
+    episodes.add(
+        raw_payload="Ký tự đặc biệt bạn vừa chọn bên webchat là Dải Ngân Hà.",
+        actor="assistant",
+        source="webchat",
+        observation_type="chat_output",
+        workspace_id="memory-sync",
+        project_version="v1",
+        metadata={"is_anchor_memory": True, "topic": "verification_anchor"},
+    )
+    episodes.add(
+        raw_payload="Sentinel code is the number 3 for a different policy flow.",
+        actor="assistant",
+        source="telegram",
+        observation_type="chat_output",
+        workspace_id="memory-sync",
+        project_version="v1",
+        metadata={"topic": "security"},
+    )
+
+    matches = episodes.search_text(
+        "Ký tự mật mã cuối cùng là gì?",
+        limit=3,
+        workspace_id="memory-sync",
+        project_version="v1",
+    )
+    assert matches
+    assert "Dải Ngân Hà" in matches[0]["raw_payload"]
+
+
+def test_retrieval_service_surfaces_anchor_episodes_for_verbatim_queries():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    storage_dir = "test_data"
+    persona = Persona(name="anchor_query_agent", storage_dir=storage_dir)
+    episodes = EpisodeStore(agent_name="anchor_query_agent", storage_dir=storage_dir)
+    l2 = L2SemanticMemory(agent_name="anchor_query_agent", storage_dir=storage_dir)
+    graph = KnowledgeGraph(agent_name="anchor_query_agent", storage_dir=storage_dir)
+
+    episodes.add(
+        raw_payload="Ký tự đặc biệt bạn vừa chọn bên webchat là Dải Ngân Hà.",
+        actor="assistant",
+        source="webchat",
+        observation_type="chat_output",
+        workspace_id="memory-sync",
+        project_version="v1",
+        metadata={"is_anchor_memory": True, "topic": "verification_anchor"},
+    )
+    l2.store(
+        content="Sentinel verification code is 3.",
+        importance=9.0,
+        tags=["anchor", "verification_anchor"],
+        memory_type="anchor",
+        scope="project",
+        task_id="telegram-thread",
+        workspace_id="memory-sync",
+        project_version="v1",
+    )
+
+    service = RetrievalService(l2=l2, graph=graph, episodes=episodes, persona=persona)
+    retrieval_state = service.build_retrieval_state(
+        {
+            "query": "Ký tự mật mã cuối cùng là gì?",
+            "mode": "implement",
+            "workspace_id": "memory-sync",
+            "project_version": "v1",
+        }
+    )
+    bundle = service.hybrid_retrieve("Ký tự mật mã cuối cùng là gì?", retrieval_state, top_k=5)
+
+    assert bundle["anchor_episodes"]
+    assert "Dải Ngân Hà" in bundle["anchor_episodes"][0]["raw_payload"]
 
 
 def test_l1_stress_decay_drops_when_failures_are_old():

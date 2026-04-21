@@ -323,6 +323,34 @@ function formatRecallContext(bundle) {
     lines.push("");
     lines.push(bundle.safety_guard);
   }
+  const exactFacts = bundle.exact_facts && Array.isArray(bundle.exact_facts.facts) ? bundle.exact_facts.facts : [];
+  if (exactFacts.length > 0) {
+    lines.push("");
+    lines.push("Exact memory:");
+    if (bundle.exact_facts?.status === "resolved" && bundle.exact_facts?.answer_candidate) {
+      lines.push(`- Resolved exact answer candidate: ${bundle.exact_facts.answer_candidate}`);
+    }
+    for (const item of exactFacts.slice(0, 3)) {
+      lines.push(
+        `- [${item.fact_kind}/${item.state}] ${item.fact_value} ` +
+          `(reinforced=${Number(item.reinforcement_count || 0)}, confidence=${Number(item.confidence || 0).toFixed(2)})`,
+      );
+    }
+    if (bundle.exact_facts?.status === "conflicting") {
+      lines.push("- Exact memory is conflicting. Do not guess. Cite the recent evidence or ask for confirmation.");
+    } else {
+      lines.push("- Prefer these exact facts over semantic paraphrases for chosen codes, passphrases, and special characters.");
+    }
+  }
+  const anchorEpisodes = Array.isArray(bundle.anchor_episodes) ? bundle.anchor_episodes : [];
+  if (anchorEpisodes.length > 0) {
+    lines.push("");
+    lines.push("Verified recent episodes:");
+    for (const item of anchorEpisodes.slice(0, 4)) {
+      lines.push(`- [${item.source || item.actor || "unknown"}] ${truncateText(item.raw_payload || "", 220)}`);
+    }
+    lines.push("- Prefer these exact recent episodes over approximate semantic guesses for chosen codes, passphrases, or special characters.");
+  }
   const stableRules = Array.isArray(bundle.stable_persona_rules) ? bundle.stable_persona_rules : [];
   if (stableRules.length > 0) {
     lines.push("");
@@ -444,7 +472,7 @@ function biomemoryUsage() {
   ].join("\n");
 }
 
-function buildIngestPayload({ cfg, text, source, observationType, sessionKey, role }) {
+function buildIngestPayload({ cfg, text, source, observationType, sessionKey, role, channel }) {
   return {
     text,
     source,
@@ -457,6 +485,7 @@ function buildIngestPayload({ cfg, text, source, observationType, sessionKey, ro
         kind: "openclaw",
         plugin: PRIMARY_PLUGIN_ID,
         role,
+        channel: normalizeText(channel) || "default",
         sessionKey: sessionKey || "openclaw-session",
       },
     ],
@@ -672,6 +701,7 @@ const bioLocaithOpenClaw = definePluginEntry({
                   observationType: inferObservationType(captureUser, "user"),
                   sessionKey: event?.sessionKey,
                   role: "user",
+                  channel: event?.channel,
                 }),
               ),
             );
@@ -687,6 +717,7 @@ const bioLocaithOpenClaw = definePluginEntry({
                   observationType: inferObservationType(captureAssistant, "assistant"),
                   sessionKey: event?.sessionKey,
                   role: "assistant",
+                  channel: event?.channel,
                 }),
               ),
             );

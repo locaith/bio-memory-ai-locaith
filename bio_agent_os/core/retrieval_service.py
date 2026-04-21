@@ -7,12 +7,29 @@ from typing import Any, Dict, List, Optional
 
 from bio_agent_os.core.approval_queue import ApprovalQueue
 from bio_agent_os.core.persona import Persona
+from bio_agent_os.memory.exact_memory import ExactMemoryStore
 from bio_agent_os.memory.episodes import EpisodeStore
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 from bio_agent_os.memory.l2_semantic import L2SemanticMemory
 
 
 class RetrievalService:
+    ANCHOR_QUERY_MARKERS = {
+        "mật mã",
+        "mat ma",
+        "ký tự đặc biệt",
+        "ky tu dac biet",
+        "ký tự mật mã",
+        "secret code",
+        "code word",
+        "passphrase",
+        "password",
+        "special character",
+        "what did we choose",
+        "bạn vừa chọn",
+        "ban vua chon",
+    }
+
     def __init__(
         self,
         l2: L2SemanticMemory,
@@ -20,16 +37,22 @@ class RetrievalService:
         episodes: EpisodeStore,
         persona: Persona,
         approval_queue: Optional[ApprovalQueue] = None,
+        exact_memory: Optional[ExactMemoryStore] = None,
     ):
         self.l2 = l2
         self.graph = graph
         self.episodes = episodes
+        self.exact_memory = exact_memory
         self.persona = persona
         self.approval_queue = approval_queue
 
     def _tokenize(self, text: str) -> set[str]:
         cleaned = re.sub(r"[^a-z0-9\u00c0-\u024f\s]", " ", text.lower())
         return {token for token in cleaned.split() if token}
+
+    def _is_anchor_query(self, query: str) -> bool:
+        lowered = query.lower()
+        return any(marker in lowered for marker in self.ANCHOR_QUERY_MARKERS)
 
     def _scope_bonus(self, scope: str, retrieval_state: Dict[str, object]) -> float:
         normalized_scope = (scope or "").strip().lower()
@@ -145,6 +168,54 @@ class RetrievalService:
         candidates.sort(key=lambda item: (-float(item["score"]), -float(item["confidence"]), -float(item["created_at"] or 0.0)))
         return candidates[:limit]
 
+    def relevant_anchor_episodes(
+        self,
+        query: str,
+        retrieval_state: Dict[str, object],
+        limit: int = 4,
+    ) -> List[Dict[str, Any]]:
+        if not self._is_anchor_query(query):
+            return []
+        matches = self.episodes.search_text(
+            query,
+            limit=limit,
+            task_id=retrieval_state.get("task_id"),
+            workspace_id=retrieval_state.get("workspace_id"),
+            project_version=retrieval_state.get("project_version"),
+        )
+        results = []
+        for record in matches:
+            results.append(
+                {
+                    "episode_id": record.get("episode_id"),
+                    "timestamp": record.get("timestamp"),
+                    "source": record.get("source"),
+                    "actor": record.get("actor"),
+                    "observation_type": record.get("observation_type"),
+                    "raw_payload": record.get("raw_payload"),
+                    "score": record.get("score", 0.0),
+                    "source_refs": record.get("source_refs", []),
+                    "metadata": record.get("metadata", {}),
+                }
+            )
+        return results
+
+    def relevant_exact_facts(
+        self,
+        query: str,
+        retrieval_state: Dict[str, object],
+        limit: int = 3,
+    ) -> Dict[str, Any]:
+        if not self.exact_memory:
+            return {"kind": None, "status": "none", "facts": [], "answer_candidate": None}
+        return self.exact_memory.recall(
+            query=query,
+            workspace_id=retrieval_state.get("workspace_id"),
+            project_version=retrieval_state.get("project_version"),
+            task_id=retrieval_state.get("task_id"),
+            limit=limit,
+        )
+
     def build_retrieval_state(self, data: Dict[str, object]) -> Dict[str, object]:
         mode = str(data.get("mode", "implement"))
         stress_state = str(data.get("stress_state", "normal"))
@@ -154,6 +225,7 @@ class RetrievalService:
             "mode": mode,
             "stress_state": stress_state,
             "risk_level": risk_level,
+            "query": data.get("query", ""),
             "task_id": data.get("task_id"),
             "workspace_id": data.get("workspace_id"),
             "project_version": data.get("project_version"),
@@ -322,14 +394,24 @@ class RetrievalService:
         return {"graph_results": resolved_graph, "dropped_graph": dropped_graph}
 
     def hybrid_retrieve(self, query: str, retrieval_state: Dict[str, object], top_k: int = 5) -> Dict[str, object]:
+        exact_facts = self.relevant_exact_facts(query, retrieval_state, limit=min(top_k, 3))
         l2_results = self.l2.search(query, top_k=top_k, retrieval_state=retrieval_state)
         graph_results = self.graph.retrieve_beliefs(query, top_k=top_k, retrieval_state=retrieval_state)
         stable_persona_rules = self.relevant_stable_persona_rules(query, retrieval_state, limit=min(top_k, 5))
         pending_approvals = self.relevant_pending_approvals(query, retrieval_state, limit=min(top_k, 5))
+        anchor_episodes = self.relevant_anchor_episodes(query, retrieval_state, limit=min(top_k, 4))
         resolved = self._resolve_graph_l2_conflicts(l2_results, graph_results, retrieval_state)
         graph_results = resolved["graph_results"]
         safety_guard = self.build_safety_guard(query, l2_results, graph_results)
+        if exact_facts.get("status") == "conflicting":
+            warning = (
+                "Exact memory conflict detected for this request. "
+                "Do not guess. Ask for confirmation or cite the most recent supporting episode explicitly."
+            )
+            safety_guard = f"{safety_guard}\n\n{warning}".strip() if safety_guard else warning
         return {
+            "exact_facts": exact_facts,
+            "anchor_episodes": anchor_episodes,
             "l2_results": l2_results,
             "graph_results": graph_results,
             "graph_conflicts": resolved["dropped_graph"],
@@ -342,6 +424,10 @@ class RetrievalService:
         bundle = self.hybrid_retrieve(query, retrieval_state, top_k=top_k)
         linked_episode_ids: List[str] = []
         override_chains: List[Dict[str, object]] = []
+        exact_fact_episodes: List[str] = []
+        exact_facts = bundle.get("exact_facts", {})
+        for fact in exact_facts.get("facts", []):
+            exact_fact_episodes.extend(fact.get("evidence_episode_ids", []))
         for graph_item in bundle["graph_results"]:
             belief_bundle = self.graph.belief_query(rule_id=str(graph_item["rule_id"]))
             linked_episode_ids.extend(
@@ -379,8 +465,11 @@ class RetrievalService:
                         "evidence_episode_ids": [edge["source"] for edge in belief_bundle.get("supports", []) if edge.get("source")],
                     }
                 )
-        deduped_episode_ids = sorted(set(linked_episode_ids))
+        deduped_episode_ids = sorted(set(linked_episode_ids + exact_fact_episodes))
         lineage_episodes = self.episodes.get_many(deduped_episode_ids)
+        for anchor in bundle.get("anchor_episodes", []):
+            if not any(item.get("episode_id") == anchor.get("episode_id") for item in lineage_episodes):
+                lineage_episodes.append(anchor)
         exception_items = [item for item in bundle["l2_results"] if item.get("memory_type") == "exception"]
         return {
             **bundle,

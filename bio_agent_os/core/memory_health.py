@@ -5,6 +5,7 @@ Memory health and dream reports.
 from typing import Any, Dict, List
 
 from bio_agent_os.core.persona import Persona
+from bio_agent_os.memory.exact_memory import ExactMemoryStore
 from bio_agent_os.memory.episodes import EpisodeStore
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 from bio_agent_os.memory.l1_working import L1WorkingMemory
@@ -19,12 +20,14 @@ class MemoryHealthMonitor:
         persona: Persona,
         episodes: EpisodeStore,
         graph: KnowledgeGraph,
+        exact_memory: ExactMemoryStore | None = None,
     ):
         self.l1 = l1
         self.l2 = l2
         self.persona = persona
         self.episodes = episodes
         self.graph = graph
+        self.exact_memory = exact_memory
 
     def snapshot(self) -> Dict[str, Any]:
         rules = list(self.persona.get_rule_records().values())
@@ -45,6 +48,7 @@ class MemoryHealthMonitor:
             "l1_raw": raw_l1,
             "l1_encoded": encoded_l1,
             "l2_total": self.l2.count,
+            "exact_memory_total": self.exact_memory.count if self.exact_memory else 0,
             "episodes_total": self.episodes.count,
             "rules_total": len(rules),
             "rules_active": len(active_rules),
