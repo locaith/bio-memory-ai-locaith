@@ -356,9 +356,15 @@
     }
 
     .approval-list,
-    .log-list {
+    .log-list,
+    .confidence-grid,
+    .revalidation-list {
       display: grid;
       gap: 10px;
+    }
+
+    .confidence-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .approval-actions {
@@ -388,6 +394,10 @@
         grid-template-columns: 1fr;
       }
 
+      .confidence-grid {
+        grid-template-columns: 1fr;
+      }
+
       .main {
         grid-template-rows: auto auto auto;
       }
@@ -414,6 +424,7 @@
         <div id="healthBadge" class="health-badge">Loading</div>
         <div class="metric"><span>L1 working entries</span><strong id="l1Count">0</strong></div>
         <div class="metric"><span>L2 long-term entries</span><strong id="l2Count">0</strong></div>
+        <div class="metric"><span>Exact facts</span><strong id="exactCount">0</strong></div>
         <div class="metric"><span>Episodes</span><strong id="episodeCount">0</strong></div>
         <div class="metric"><span>Stable rules</span><strong id="ruleCount">0</strong></div>
       </div>
@@ -517,6 +528,22 @@
         <div class="stack">
           <section class="panel section">
             <div class="section-head">
+              <h3>Confidence Dashboard</h3>
+              <span class="muted">exact vs semantic vs procedural</span>
+            </div>
+            <div class="confidence-grid" id="confidenceGrid"></div>
+          </section>
+
+          <section class="panel section">
+            <div class="section-head">
+              <h3>Revalidation Loop</h3>
+              <span class="muted">curiosity when exact facts conflict</span>
+            </div>
+            <div class="scroll revalidation-list" id="revalidationList"></div>
+          </section>
+
+          <section class="panel section">
+            <div class="section-head">
               <h3>Approval Queue</h3>
               <span class="muted">human gate for sensitive rules</span>
             </div>
@@ -543,6 +570,7 @@
       approvalSummary: document.getElementById("approvalSummary"),
       l1Count: document.getElementById("l1Count"),
       l2Count: document.getElementById("l2Count"),
+      exactCount: document.getElementById("exactCount"),
       episodeCount: document.getElementById("episodeCount"),
       ruleCount: document.getElementById("ruleCount"),
       currentState: document.getElementById("currentState"),
@@ -560,6 +588,8 @@
       beliefLane: document.getElementById("beliefLane"),
       exceptionLane: document.getElementById("exceptionLane"),
       overrideLane: document.getElementById("overrideLane"),
+      confidenceGrid: document.getElementById("confidenceGrid"),
+      revalidationList: document.getElementById("revalidationList"),
       approvalList: document.getElementById("approvalList"),
       logList: document.getElementById("logList"),
     };
@@ -607,6 +637,7 @@
       dom.healthBadge.textContent = health;
       dom.l1Count.textContent = state.l1?.count ?? 0;
       dom.l2Count.textContent = state.l2?.count ?? 0;
+      dom.exactCount.textContent = state.exact_memory?.count ?? 0;
       dom.episodeCount.textContent = state.episodes?.count ?? 0;
       dom.ruleCount.textContent = state.persona?.rule_count ?? 0;
       dom.currentState.textContent = `mode=${dom.modeInput.value} · risk=${dom.riskInput.value}`;
@@ -619,6 +650,36 @@
         (item) => `<div class="item"><strong>${escapeHtml(item)}</strong></div>`,
         "No recent logs."
       );
+
+      const dashboard = health.snapshot?.confidence_dashboard || {};
+      const exact = dashboard.exact || {};
+      const semantic = dashboard.semantic || {};
+      const procedural = dashboard.procedural || {};
+      dom.confidenceGrid.innerHTML = [
+        {
+          title: "Exact",
+          value: Number(exact.average_confidence || 0).toFixed(2),
+          detail: `${exact.active || 0} active · ${exact.conflicting || 0} conflicting · ${exact.total || 0} total`,
+        },
+        {
+          title: "Semantic",
+          value: Number(semantic.average_confidence || 0).toFixed(2),
+          detail: `${semantic.count || 0} entries · stale ${semantic.stale_count || 0}`,
+        },
+        {
+          title: "Procedural",
+          value: Number(procedural.average_confidence || 0).toFixed(2),
+          detail: `${procedural.count || 0} entries · stale ${procedural.stale_count || 0}`,
+        },
+      ].map((item) => `
+        <div class="item">
+          <span class="pill">${escapeHtml(item.title)}</span>
+          <strong>${escapeHtml(item.value)}</strong>
+          <p>${escapeHtml(item.detail)}</p>
+        </div>
+      `).join("");
+
+      renderRevalidation(health.snapshot?.revalidation?.clusters || []);
     }
 
     function renderApprovals(payload) {
@@ -721,6 +782,39 @@
       );
     }
 
+    function renderRevalidation(clusters) {
+      renderItems(
+        dom.revalidationList,
+        clusters || [],
+        (cluster, index) => `
+          <div class="item">
+            <span class="pill">${escapeHtml(cluster.fact_kind || "exact-fact")} · ${escapeHtml(cluster.status || "conflict")}</span>
+            <strong>${escapeHtml((cluster.facts || []).map((fact) => fact.fact_value).join(" vs "))}</strong>
+            <p>${escapeHtml(cluster.workspace_id || "no-workspace")} · ${escapeHtml(cluster.project_version || "no-version")}</p>
+            <div class="approval-actions">
+              ${((cluster.facts || []).slice(0, 3)).map((fact) => `
+                <button
+                  class="secondary"
+                  data-revalidate="1"
+                  data-kind="${escapeHtml(cluster.fact_kind || "")}"
+                  data-value="${escapeHtml(fact.fact_value || "")}"
+                >
+                  Canonical: ${escapeHtml(fact.fact_value || "")}
+                </button>
+              `).join("")}
+            </div>
+          </div>
+        `,
+        "No exact fact conflicts are waiting for revalidation."
+      );
+
+      dom.revalidationList.querySelectorAll("button[data-revalidate]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          await resolveExactConflict(button.dataset.kind || "", button.dataset.value || "");
+        });
+      });
+    }
+
     async function refreshState() {
       const state = await fetchJson("/api/state");
       const health = await fetchJson("/api/health");
@@ -754,6 +848,20 @@
       await Promise.all([refreshState(), refreshApprovals(), refreshLineage()]);
     }
 
+    async function resolveExactConflict(factKind, factValue) {
+      await fetchJson("/api/revalidation/resolve", {
+        method: "POST",
+        body: JSON.stringify({
+          fact_kind: factKind,
+          fact_value: factValue,
+          workspace_id: dom.workspaceInput.value.trim() || null,
+          project_version: dom.versionInput.value.trim() || null,
+          reviewer: "dashboard",
+        }),
+      });
+      await Promise.all([refreshState(), refreshApprovals(), refreshLineage()]);
+    }
+
     async function bootstrap() {
       await Promise.all([refreshState(), refreshApprovals(), refreshLineage()]);
     }
@@ -764,6 +872,7 @@
     });
 
     window.resolveApproval = resolveApproval;
+    window.resolveExactConflict = resolveExactConflict;
     bootstrap();
     setInterval(refreshState, 6000);
     setInterval(refreshApprovals, 8000);

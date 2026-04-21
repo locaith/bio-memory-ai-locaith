@@ -347,6 +347,60 @@ class L2SemanticMemory:
             query_vector=query_vector,
         )
 
+    def all_entries(self, limit: int = 2000) -> List[Dict[str, Any]]:
+        if self._fallback:
+            return list(self._entries)[:limit]
+        entries: List[Dict[str, Any]] = []
+        offset = None
+        while len(entries) < limit:
+            batch_limit = min(256, limit - len(entries))
+            points, offset = self.client.scroll(
+                collection_name=self.collection_name,
+                limit=batch_limit,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
+            )
+            if not points:
+                break
+            entries.extend(dict(point.payload) for point in points)
+            if offset is None:
+                break
+        return entries[:limit]
+
+    def confidence_dashboard(self, limit: int = 2000) -> Dict[str, Any]:
+        entries = self.all_entries(limit=limit)
+        if not entries:
+            return {"total": 0, "by_type": []}
+        now = time.time()
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
+        for entry in entries:
+            grouped.setdefault(str(entry.get("memory_type", "semantic")), []).append(entry)
+        by_type = []
+        for memory_type, items in grouped.items():
+            confidence_scores = []
+            stale_count = 0
+            for item in items:
+                days_elapsed = max((now - float(item.get("timestamp", now))) / 86400.0, 0.0)
+                decay = math.exp(-self._memory_decay_lambda(item) * days_elapsed)
+                confidence_score = min(1.0, (float(item.get("importance", 5.0)) / 10.0) * decay * 1.15)
+                confidence_scores.append(confidence_score)
+                if confidence_score < 0.4:
+                    stale_count += 1
+            by_type.append(
+                {
+                    "memory_type": memory_type,
+                    "count": len(items),
+                    "average_confidence": round(sum(confidence_scores) / max(len(confidence_scores), 1), 3),
+                    "stale_count": stale_count,
+                }
+            )
+        by_type.sort(key=lambda item: (-item["average_confidence"], -item["count"]))
+        return {
+            "total": len(entries),
+            "by_type": by_type,
+        }
+
     def prune_decayed(self, threshold: float = 1.0) -> int:
         if self._fallback:
             before = len(self._entries)

@@ -20,15 +20,22 @@ class BioAgentSDK:
         intent = self.runtime.router_ai.quick_classify(message)
         retrieval_state = self.runtime.retrieval_service.build_retrieval_state(context)
         retrieval_state["query"] = message
+        exact_query_kind = self.runtime.exact_memory.infer_query_kind(message) if self.runtime.exact_memory else None
         l1_context = self.runtime.l1.build_context_string(n=5)
         identity_prompt = self.runtime.persona.get_identity_prompt()
 
         l2_context = ""
         graph_context = ""
         safety_guard = ""
-        if intent.value in {"knowledge", "recall", "task"}:
+        direct_exact_response = None
+        if intent.value in {"knowledge", "recall", "task"} or exact_query_kind:
             bundle = self.runtime.retrieval_service.hybrid_retrieve(message, retrieval_state, top_k=int(context.get("top_k", 5)))
             safety_guard = bundle["safety_guard"]
+            direct_exact_response = self.runtime.retrieval_service.direct_exact_response(
+                message,
+                bundle.get("exact_facts", {}),
+                bundle.get("revalidation", {}),
+            )
             if bundle["l2_results"]:
                 l2_context = "\nRelevant long-term memory:\n" + "\n".join(
                     f"- [{item['memory_type']}/{item['scope']}] {item['content']} (score={item['score']:.3f})"
@@ -40,17 +47,20 @@ class BioAgentSDK:
                     for item in bundle["graph_results"]
                 )
 
-        prompt = (
-            f"{identity_prompt}\n\n"
-            f"{safety_guard}\n\n"
-            f"Recent working memory:\n{l1_context}\n"
-            f"{l2_context}\n\n"
-            f"{graph_context}\n\n"
-            f"User message: {message}\n\n"
-            "If a safety guard conflicts with a general plan, follow the safety guard. "
-            "Reply concisely and practically."
-        )
-        response = await self.runtime.engine.generate(prompt)
+        if direct_exact_response:
+            response = direct_exact_response
+        else:
+            prompt = (
+                f"{identity_prompt}\n\n"
+                f"{safety_guard}\n\n"
+                f"Recent working memory:\n{l1_context}\n"
+                f"{l2_context}\n\n"
+                f"{graph_context}\n\n"
+                f"User message: {message}\n\n"
+                "If a safety guard conflicts with a general plan, follow the safety guard. "
+                "Reply concisely and practically."
+            )
+            response = await self.runtime.engine.generate(prompt)
         await self.runtime.hippo.label_and_store(
             message,
             source="user",
@@ -73,6 +83,7 @@ class BioAgentSDK:
             "response": response,
             "intent": intent.value,
             "safety_guard": safety_guard,
+            "direct_memory_response": bool(direct_exact_response),
             "l1_count": self.runtime.l1.count,
             "core_rules": self.runtime.persona.rule_count,
         }

@@ -1,0 +1,81 @@
+{
+  "run_token": "20260421195331",
+  "generated_at": "2026-04-21T19:56:22",
+  "channel_consistency_rate": 1.0,
+  "exact_resolution_rate": 1.0,
+  "openclaw_consistency_rate": 1.0,
+  "hops": [
+    {
+      "source_channel": "api",
+      "target_channel": "telegram",
+      "subject": "special character for cross channel web 20260421195331",
+      "expected_value": "Milky Way",
+      "response": "The special character for cross channel web 20260421195331 is Milky Way.",
+      "exact_status": "resolved",
+      "success": true,
+      "strict_success": true,
+      "asserted_value": "Milky Way",
+      "latency_s": 7.094
+    },
+    {
+      "source_channel": "api",
+      "target_channel": "openclaw",
+      "subject": "special character for cross channel web 20260421195331",
+      "expected_value": "Milky Way",
+      "response": "The special character for cross channel web 20260421195331 is **Milky Way**.",
+      "exact_status": "resolved",
+      "success": true,
+      "strict_success": true,
+      "asserted_value": "Milky Way",
+      "latency_s": 36.247
+    },
+    {
+      "source_channel": "api",
+      "target_channel": "web",
+      "subject": "special character for cross channel telegram 20260421195331",
+      "expected_value": "Orion Bloom",
+      "response": "The special character for cross channel telegram 20260421195331 is Orion Bloom.",
+      "exact_status": "resolved",
+      "success": true,
+      "strict_success": true,
+      "asserted_value": "Orion Bloom",
+      "latency_s": 7.593
+    },
+    {
+      "source_channel": "api",
+      "target_channel": "openclaw",
+      "subject": "special character for cross channel telegram 20260421195331",
+      "expected_value": "Orion Bloom",
+      "response": "Based on the provided memory context, the special character for **cross channel telegram 20260421195331** is **Orion Bloom**.",
+      "exact_status": "resolved",
+      "success": true,
+      "strict_success": true,
+      "asserted_value": "Orion Bloom",
+      "latency_s": 39.225
+    },
+    {
+      "source_channel": "api",
+      "target_channel": "web",
+      "subject": "special character for cross channel openclaw 20260421195331",
+      "expected_value": "Solar Tide",
+      "response": "The special character for cross channel openclaw 20260421195331 is Solar Tide.",
+      "exact_status": "resolved",
+      "success": true,
+      "strict_success": true,
+      "asserted_value": "Solar Tide",
+      "latency_s": 8.393
+    },
+    {
+      "source_channel": "api",
+      "target_channel": "telegram",
+      "subject": "special character for cross channel openclaw 20260421195331",
+      "expected_value": "Solar Tide",
+      "response": "The special character for cross channel openclaw 20260421195331 is Solar Tide.",
+      "exact_status": "resolved",
+      "success": true,
+      "strict_success": true,
+      "asserted_value": "Solar Tide",
+      "latency_s": 7.866
+    }
+  ]
+}

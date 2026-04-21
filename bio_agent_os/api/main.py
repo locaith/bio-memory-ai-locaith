@@ -130,13 +130,15 @@ async def chat(request: Request):
     identity_prompt = persona.get_identity_prompt()
     retrieval_state = retrieval_service.build_retrieval_state(data)
     retrieval_state["query"] = message
+    exact_query_kind = exact_memory.infer_query_kind(message) if exact_memory else None
 
     l2_context = ""
     safety_guard = ""
     graph_context = ""
-    if intent.value in ("knowledge", "recall", "task"):
+    if intent.value in ("knowledge", "recall", "task") or exact_query_kind:
         retrieval_bundle = retrieval_service.hybrid_retrieve(message, retrieval_state, top_k=5)
         exact_facts = retrieval_bundle.get("exact_facts", {})
+        revalidation = retrieval_bundle.get("revalidation", {})
         l2_results = retrieval_bundle["l2_results"]
         graph_results = retrieval_bundle["graph_results"]
         safety_guard = retrieval_bundle["safety_guard"]
@@ -163,19 +165,25 @@ async def chat(request: Request):
             )
         if context_sections:
             l2_context = "\n" + "\n\n".join(context_sections)
+        direct_exact_response = retrieval_service.direct_exact_response(message, exact_facts, revalidation)
+    else:
+        direct_exact_response = None
 
-    full_prompt = (
-        f"{identity_prompt}\n\n"
-        f"{safety_guard}\n\n"
-        f"Recent working memory:\n{l1_context}\n"
-        f"{l2_context}\n\n"
-        f"{graph_context}\n\n"
-        f"User message: {message}\n\n"
-        "If a safety guard conflicts with a general plan, follow the safety guard. "
-        "Reply concisely and practically."
-    )
+    if direct_exact_response:
+        response = direct_exact_response
+    else:
+        full_prompt = (
+            f"{identity_prompt}\n\n"
+            f"{safety_guard}\n\n"
+            f"Recent working memory:\n{l1_context}\n"
+            f"{l2_context}\n\n"
+            f"{graph_context}\n\n"
+            f"User message: {message}\n\n"
+            "If a safety guard conflicts with a general plan, follow the safety guard. "
+            "Reply concisely and practically."
+        )
 
-    response = await engine.generate(full_prompt)
+        response = await engine.generate(full_prompt)
     await hippo.label_and_store(
         message,
         source="user",
@@ -215,6 +223,7 @@ async def chat(request: Request):
         "l1_count": l1.count,
         "core_rules": persona.rule_count,
         "safety_guard": safety_guard,
+        "direct_memory_response": bool(direct_exact_response),
     }
 
 
@@ -335,6 +344,11 @@ def get_health():
     return health_monitor.status()
 
 
+@app.get("/api/confidence-dashboard")
+def get_confidence_dashboard():
+    return health_monitor.confidence_dashboard()
+
+
 @app.get("/api/episodes")
 def get_episodes(
     limit: int = 10,
@@ -394,6 +408,29 @@ def get_exact_memories(
 def reindex_exact_memories(limit: int = 1200):
     imported = exact_memory.reindex_from_episodes(episodes, limit=limit)
     return {"status": "ok", "imported": imported, "count": exact_memory.count}
+
+
+@app.get("/api/revalidation")
+def get_revalidation(limit: int = 12):
+    summary = health_monitor.revalidation_summary()
+    return {**summary, "clusters": summary.get("clusters", [])[:limit]}
+
+
+@app.post("/api/revalidation/resolve")
+async def resolve_revalidation(request: Request):
+    payload = await request.json()
+    fact_kind = payload.get("fact_kind", "")
+    fact_value = payload.get("fact_value", "")
+    if not fact_kind or not fact_value:
+        return {"error": "fact_kind and fact_value are required"}
+    result = exact_memory.resolve_conflict(
+        fact_kind=fact_kind,
+        fact_value=fact_value,
+        workspace_id=payload.get("workspace_id"),
+        project_version=payload.get("project_version"),
+        reviewer=payload.get("reviewer", "human"),
+    )
+    return {"status": "ok", **result}
 
 
 @app.get("/api/graph")

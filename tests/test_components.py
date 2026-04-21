@@ -399,6 +399,38 @@ def test_exact_memory_returns_conflict_for_two_close_user_values():
     assert len(result["facts"]) >= 2
 
 
+def test_exact_memory_confidence_dashboard_and_revalidation_clusters():
+    memory = ExactMemoryStore(agent_name="exact_dashboard_agent", storage_dir="test_data")
+    memory.remember(
+        fact_kind="special_character",
+        fact_value="Milky Way",
+        confidence=0.95,
+        source="openclaw-user",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "user", "channel": "web"}],
+        metadata={"retain_verbatim": True},
+    )
+    memory.remember(
+        fact_kind="special_character",
+        fact_value="Dải Ngân Hà",
+        confidence=0.82,
+        source="Jarvis-Bio",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "assistant", "channel": "telegram"}],
+        metadata={"retain_verbatim": True},
+    )
+
+    dashboard = memory.confidence_dashboard()
+    clusters = memory.conflict_clusters()
+
+    assert dashboard["total"] >= 2
+    assert any(item["kind"] == "special_character" for item in dashboard["by_kind"])
+    assert len(clusters) >= 1
+    assert clusters[0]["fact_kind"] == "special_character"
+
+
 def test_exact_memory_backfills_from_episodes_without_llm():
     episodes = EpisodeStore(agent_name="exact_backfill_agent", storage_dir="test_data")
     episodes.add(
@@ -422,6 +454,44 @@ def test_exact_memory_backfills_from_episodes_without_llm():
 
     assert imported >= 1
     assert result["answer_candidate"] == "Milky Way"
+
+
+def test_exact_memory_keeps_subject_qualified_anchor_keys_separate():
+    memory = ExactMemoryStore(agent_name="exact_subject_agent", storage_dir="test_data")
+    first = memory.extract_candidate("The special character for cross channel web alpha-1 is Milky Way.")
+    second = memory.extract_candidate("The special character for cross channel telegram alpha-1 is Orion Bloom.")
+
+    assert first["fact_kind"] == "special_character_for_cross_channel_web_alpha_1"
+    assert second["fact_kind"] == "special_character_for_cross_channel_telegram_alpha_1"
+
+    memory.remember(
+        fact_kind=first["fact_kind"],
+        fact_value=first["fact_value"],
+        confidence=0.95,
+        source="openclaw-user",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "user", "channel": "web"}],
+        metadata={"retain_verbatim": True, "anchor_subject": "cross channel web alpha-1"},
+    )
+    memory.remember(
+        fact_kind=second["fact_kind"],
+        fact_value=second["fact_value"],
+        confidence=0.95,
+        source="openclaw-user",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "user", "channel": "telegram"}],
+        metadata={"retain_verbatim": True, "anchor_subject": "cross channel telegram alpha-1"},
+    )
+
+    web_result = memory.recall("What is the special character for cross channel web alpha-1?", workspace_id="main", project_version="v1")
+    telegram_result = memory.recall("What is the special character for cross channel telegram alpha-1?", workspace_id="main", project_version="v1")
+
+    assert web_result["status"] == "resolved"
+    assert telegram_result["status"] == "resolved"
+    assert web_result["answer_candidate"] == "Milky Way"
+    assert telegram_result["answer_candidate"] == "Orion Bloom"
 
 
 def test_retrieval_service_surfaces_exact_facts_for_anchor_query():
@@ -457,6 +527,86 @@ def test_retrieval_service_surfaces_exact_facts_for_anchor_query():
 
     assert bundle["exact_facts"]["status"] == "resolved"
     assert bundle["exact_facts"]["answer_candidate"] == "Milky Way"
+
+
+def test_retrieval_service_direct_exact_response_and_revalidation():
+    l2 = L2SemanticMemory(agent_name="retrieval_direct_agent", storage_dir="test_data")
+    graph = KnowledgeGraph(agent_name="retrieval_direct_agent", storage_dir="test_data")
+    episodes = EpisodeStore(agent_name="retrieval_direct_agent", storage_dir="test_data")
+    exact_memory = ExactMemoryStore(agent_name="retrieval_direct_agent", storage_dir="test_data")
+    persona = Persona(name="retrieval_direct_agent", storage_dir="test_data")
+    queue = ApprovalQueue(agent_name="retrieval_direct_agent", storage_dir="test_data")
+
+    exact_memory.remember(
+        fact_kind="special_character",
+        fact_value="Milky Way",
+        confidence=0.95,
+        source="openclaw-user",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "user", "channel": "web"}],
+        metadata={"retain_verbatim": True},
+    )
+    exact_memory.remember(
+        fact_kind="special_character",
+        fact_value="Dải Ngân Hà",
+        confidence=0.82,
+        source="Jarvis-Bio",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "assistant", "channel": "telegram"}],
+        metadata={"retain_verbatim": True},
+    )
+
+    service = RetrievalService(
+        l2=l2,
+        graph=graph,
+        episodes=episodes,
+        exact_memory=exact_memory,
+        persona=persona,
+        approval_queue=queue,
+    )
+    state = service.build_retrieval_state(
+        {"query": "What was the special character we chose?", "workspace_id": "main", "project_version": "v1"}
+    )
+    bundle = service.hybrid_retrieve("What was the special character we chose?", state, top_k=3)
+    response = service.direct_exact_response(
+        "What was the special character we chose?",
+        bundle["exact_facts"],
+        bundle["revalidation"],
+    )
+
+    assert bundle["exact_facts"]["status"] == "resolved"
+    assert response == "The special character is Milky Way."
+
+
+def test_memory_health_dashboard_separates_exact_semantic_and_procedural():
+    l1 = L1WorkingMemory(agent_name="health_dash_agent", storage_dir="test_data")
+    l1.clear()
+    l2 = L2SemanticMemory(agent_name="health_dash_agent", storage_dir="test_data")
+    l2.store("Generic architecture rule", importance=7.0, memory_type="semantic")
+    l2.store("Step 1 then step 2", importance=8.0, memory_type="procedural")
+    persona = Persona(name="health_dash_agent", storage_dir="test_data")
+    episodes = EpisodeStore(agent_name="health_dash_agent", storage_dir="test_data")
+    graph = KnowledgeGraph(agent_name="health_dash_agent", storage_dir="test_data")
+    exact_memory = ExactMemoryStore(agent_name="health_dash_agent", storage_dir="test_data")
+    exact_memory.remember(
+        fact_kind="special_character",
+        fact_value="Milky Way",
+        confidence=0.9,
+        source="openclaw-user",
+        workspace_id="main",
+        project_version="v1",
+        source_refs=[{"role": "user"}],
+        metadata={"retain_verbatim": True},
+    )
+
+    monitor = MemoryHealthMonitor(l1=l1, l2=l2, persona=persona, episodes=episodes, graph=graph, exact_memory=exact_memory)
+    dashboard = monitor.confidence_dashboard()
+
+    assert dashboard["exact"]["total"] >= 1
+    assert dashboard["semantic"]["count"] >= 1
+    assert dashboard["procedural"]["count"] >= 1
 
 
 def test_contradiction_resolver_deprecates_weaker_rule():

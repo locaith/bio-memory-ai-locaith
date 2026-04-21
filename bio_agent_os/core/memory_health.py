@@ -57,6 +57,44 @@ class MemoryHealthMonitor:
             "rules_low_confidence": len(low_confidence_rules),
             "average_rule_confidence": round(avg_confidence, 3),
             "belief_graph": self.graph.belief_summary(),
+            "confidence_dashboard": self.confidence_dashboard(),
+            "revalidation": self.revalidation_summary(),
+        }
+
+    def confidence_dashboard(self) -> Dict[str, Any]:
+        exact_dashboard = self.exact_memory.confidence_dashboard() if self.exact_memory else {
+            "total": 0,
+            "active": 0,
+            "conflicting": 0,
+            "average_confidence": 0.0,
+            "by_kind": [],
+        }
+        l2_dashboard = self.l2.confidence_dashboard()
+        procedural = next((item for item in l2_dashboard.get("by_type", []) if item.get("memory_type") == "procedural"), None)
+        semantic = next((item for item in l2_dashboard.get("by_type", []) if item.get("memory_type") == "semantic"), None)
+        return {
+            "exact": exact_dashboard,
+            "semantic": semantic or {"memory_type": "semantic", "count": 0, "average_confidence": 0.0, "stale_count": 0},
+            "procedural": procedural or {"memory_type": "procedural", "count": 0, "average_confidence": 0.0, "stale_count": 0},
+            "l2": l2_dashboard,
+            "persona": {
+                "stable_rules": len([rule for rule in self.persona.get_rule_records().values() if rule["state"] in {"stable", "reinforced"}]),
+                "challenged_rules": len([rule for rule in self.persona.get_rule_records().values() if rule["state"] == "challenged"]),
+                "average_confidence": round(
+                    (
+                        sum(rule["confidence"] for rule in self.persona.get_rule_records().values())
+                        / max(len(self.persona.get_rule_records()), 1)
+                    ) if self.persona.get_rule_records() else 0.0,
+                    3,
+                ),
+            },
+        }
+
+    def revalidation_summary(self) -> Dict[str, Any]:
+        clusters = self.exact_memory.conflict_clusters(limit=12) if self.exact_memory else []
+        return {
+            "count": len(clusters),
+            "clusters": clusters,
         }
 
     def status(self) -> Dict[str, Any]:
@@ -70,6 +108,8 @@ class MemoryHealthMonitor:
             issues.append("Rule confidence is trending low.")
         if snapshot["belief_graph"]["support_edges"] < snapshot["rules_active"]:
             issues.append("Some active beliefs do not have enough explicit evidence links.")
+        if snapshot.get("revalidation", {}).get("count", 0) > 0:
+            issues.append("Some exact facts need revalidation before they should be trusted across channels.")
 
         health = "healthy"
         if issues:

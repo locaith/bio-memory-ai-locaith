@@ -76,6 +76,25 @@ class Hippocampus:
 
     def _extract_anchor_fact(self, raw_data: str) -> Dict[str, str]:
         text = " ".join(raw_data.split())
+        subject_patterns = [
+            (
+                "special_character",
+                r"(?:special character|ky tu dac biet|ký tự đặc biệt)\s+(?:for|of)\s+(?P<subject>[^.!?\n:=]{2,90}?)\s+(?:is|was|la|là|=)\s+(?P<value>[^.!?\n]{1,120})",
+            ),
+            (
+                "verification_code",
+                r"(?:secret code|code word|passphrase|password|verification code|mat ma|mật mã)\s+(?:for|of)\s+(?P<subject>[^.!?\n:=]{2,90}?)\s+(?:is|was|la|là|=)\s+(?P<value>[^.!?\n]{1,120})",
+            ),
+        ]
+        for kind, pattern in subject_patterns:
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if not match:
+                continue
+            subject = re.sub(r"\s+", " ", match.group("subject")).strip(" .,:;!?-")
+            value = re.sub(r"[*`_]+", "", match.group("value")).strip(" .,:;!?-")
+            value = re.sub(r"\s+", " ", value)
+            if subject and value and len(value) <= 96 and len(value.split()) <= 6 and "," not in value and ":" not in value:
+                return {"anchor_kind": kind, "anchor_subject": subject, "anchor_value": value}
         patterns = [
             (
                 "special_character",

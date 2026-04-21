@@ -216,6 +216,41 @@ class RetrievalService:
             limit=limit,
         )
 
+    def revalidation_packet(self, query: str, retrieval_state: Dict[str, object]) -> Dict[str, Any]:
+        if not self.exact_memory:
+            return {"status": "none", "question": None, "candidates": [], "kind": None}
+        return self.exact_memory.build_revalidation_packet(
+            query=query,
+            workspace_id=retrieval_state.get("workspace_id"),
+            project_version=retrieval_state.get("project_version"),
+            task_id=retrieval_state.get("task_id"),
+        )
+
+    def should_direct_answer_exact(self, query: str, exact_facts: Dict[str, Any]) -> bool:
+        if not exact_facts or not exact_facts.get("kind"):
+            return False
+        lowered = query.strip().lower()
+        starters = ("what ", "which ", "whats ", "what's ", "ky ", "ký ", "mat ", "mật ", "pass", "secret", "code", "password")
+        return lowered.startswith(starters) or lowered.endswith(("la gi?", "là gì?", "is what?", "is it?"))
+
+    def direct_exact_response(self, query: str, exact_facts: Dict[str, Any], revalidation: Optional[Dict[str, Any]] = None) -> Optional[str]:
+        if not self.should_direct_answer_exact(query, exact_facts):
+            return None
+        kind = str(exact_facts.get("kind") or "exact_fact").replace("_", " ")
+        is_vietnamese = any(token in query.lower() for token in ["ký", "ky ", "mật", "mat ", "là gì", "la gi", "chúng ta", "chon", "chọn"])
+        if exact_facts.get("status") == "resolved" and exact_facts.get("answer_candidate"):
+            if is_vietnamese:
+                return f"{kind.capitalize()} là {exact_facts['answer_candidate']}."
+            return f"The {kind} is {exact_facts['answer_candidate']}."
+        if exact_facts.get("status") == "conflicting":
+            packet = revalidation or {"question": f"I have conflicting exact memories for {kind}. Please confirm the canonical value."}
+            if is_vietnamese:
+                candidates = [item.get("fact_value") for item in packet.get("candidates", []) if item.get("fact_value")]
+                if candidates:
+                    return f"Tôi đang có xung đột ở trí nhớ chính xác cho {kind}: {'; '.join(candidates)}. Bạn hãy xác nhận giá trị nào là canonical."
+            return str(packet.get("question"))
+        return None
+
     def build_retrieval_state(self, data: Dict[str, object]) -> Dict[str, object]:
         mode = str(data.get("mode", "implement"))
         stress_state = str(data.get("stress_state", "normal"))
@@ -395,6 +430,8 @@ class RetrievalService:
 
     def hybrid_retrieve(self, query: str, retrieval_state: Dict[str, object], top_k: int = 5) -> Dict[str, object]:
         exact_facts = self.relevant_exact_facts(query, retrieval_state, limit=min(top_k, 3))
+        revalidation = self.revalidation_packet(query, retrieval_state)
+        exact_directive = self.direct_exact_response(query, exact_facts, revalidation)
         l2_results = self.l2.search(query, top_k=top_k, retrieval_state=retrieval_state)
         graph_results = self.graph.retrieve_beliefs(query, top_k=top_k, retrieval_state=retrieval_state)
         stable_persona_rules = self.relevant_stable_persona_rules(query, retrieval_state, limit=min(top_k, 5))
@@ -411,6 +448,8 @@ class RetrievalService:
             safety_guard = f"{safety_guard}\n\n{warning}".strip() if safety_guard else warning
         return {
             "exact_facts": exact_facts,
+            "exact_directive": exact_directive,
+            "revalidation": revalidation,
             "anchor_episodes": anchor_episodes,
             "l2_results": l2_results,
             "graph_results": graph_results,

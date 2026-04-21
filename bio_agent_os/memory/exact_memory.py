@@ -19,6 +19,7 @@ from bio_agent_os.core.sqlite_store import SQLiteStore
 
 
 class ExactMemoryStore:
+    ANCHOR_BASE_KINDS = {"special_character", "verification_code"}
     SUBJECT_CUES = {
         "character",
         "symbol",
@@ -112,11 +113,58 @@ class ExactMemoryStore:
         normalized = self._normalize_text(value).replace(" ", "_")
         return normalized or "unknown"
 
+    def _base_fact_kind(self, fact_kind: str) -> str:
+        normalized = self._normalize_kind(fact_kind)
+        for base_kind in self.ANCHOR_BASE_KINDS:
+            if normalized == base_kind or normalized.startswith(f"{base_kind}_for_"):
+                return base_kind
+        return normalized
+
     def _subject_key(self, subject: str) -> str:
         key = self._normalize_text(subject)
         key = re.sub(r"\b(?:the|we|chosen|choose|selected|select|current|last|cuoi|cuối|la|là|is|was)\b", " ", key)
         key = re.sub(r"\s+", " ", key).strip()
         return key.replace(" ", "_") or "exact_fact"
+
+    def _qualify_fact_kind(self, fact_kind: str, subject: str = "") -> str:
+        normalized_kind = self._normalize_kind(fact_kind)
+        base_kind = self._base_fact_kind(normalized_kind)
+        if base_kind not in self.ANCHOR_BASE_KINDS:
+            return normalized_kind
+        subject_key = self._subject_key(subject)
+        if not subject_key or subject_key == "exact_fact":
+            return base_kind
+        return f"{base_kind}_for_{subject_key}"
+
+    def _extract_anchor_subject(self, text: str, fact_kind: str = "") -> str:
+        normalized_text = " ".join(str(text or "").split())
+        if not normalized_text:
+            return ""
+        base_kind = self._base_fact_kind(fact_kind or "unknown")
+        subject_patterns: List[str] = []
+        if base_kind == "special_character":
+            subject_patterns.extend(
+                [
+                    r"(?:special character|ky tu dac biet|ký tự đặc biệt)\s+(?:for|of)\s+(?P<subject>[^.!?\n:=]{2,90}?)(?:\s+(?:is|was|la|là|=)\s+|\??$|$)",
+                    r"(?P<subject>[^.!?\n:=]{2,90}?)\s+(?:special character|ky tu dac biet|ký tự đặc biệt)\s+(?:is|was|la|là|=)\s+",
+                ]
+            )
+        if base_kind == "verification_code":
+            subject_patterns.extend(
+                [
+                    r"(?:secret code|code word|passphrase|password|verification code|mat ma|mật mã)\s+(?:for|of)\s+(?P<subject>[^.!?\n:=]{2,90}?)(?:\s+(?:is|was|la|là|=)\s+|\??$|$)",
+                    r"(?P<subject>[^.!?\n:=]{2,90}?)\s+(?:secret code|code word|passphrase|password|verification code|mat ma|mật mã)\s+(?:is|was|la|là|=)\s+",
+                ]
+            )
+        subject_patterns.append(r"(?:for|of)\s+(?P<subject>[^.!?\n:=]{2,90}?)(?:\s+(?:is|was|la|là|=)\s+|\??$|$)")
+        for pattern in subject_patterns:
+            match = re.search(pattern, normalized_text, flags=re.IGNORECASE)
+            if not match:
+                continue
+            subject = re.sub(r"\s+", " ", match.group("subject")).strip(" .,:;!?-")
+            if subject:
+                return subject
+        return ""
 
     def _looks_like_exact_subject(self, subject: str, metadata: Optional[Dict[str, Any]] = None) -> bool:
         normalized = self._normalize_text(subject)
@@ -150,7 +198,7 @@ class ExactMemoryStore:
             "guardrail",
         ]):
             return False
-        if fact_kind in {"special_character", "verification_code"} and (len(tokens) > 6 or "," in value or ":" in value):
+        if self._base_fact_kind(fact_kind) in {"special_character", "verification_code"} and (len(tokens) > 6 or "," in value or ":" in value):
             return False
         return True
 
@@ -177,6 +225,14 @@ class ExactMemoryStore:
             return "assistant"
         return "system"
 
+    def _channels(self, source_refs: List[Dict[str, Any]]) -> List[str]:
+        channels = []
+        for ref in source_refs:
+            channel = self._normalize_text(ref.get("channel", ""))
+            if channel and channel not in channels:
+                channels.append(channel)
+        return channels or ["default"]
+
     def _authority_score(
         self,
         source: str,
@@ -200,11 +256,35 @@ class ExactMemoryStore:
     def extract_candidate(self, raw_payload: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
         if metadata and metadata.get("anchor_kind") and metadata.get("anchor_value"):
             fact_kind = self._normalize_kind(metadata.get("anchor_kind"))
+            anchor_subject = str(metadata.get("anchor_subject") or "").strip()
+            if not anchor_subject:
+                anchor_subject = self._extract_anchor_subject(raw_payload, fact_kind)
+            fact_kind = self._qualify_fact_kind(fact_kind, anchor_subject)
             fact_value = " ".join(str(metadata.get("anchor_value", "")).split()).strip()
             if self._is_plausible_value(fact_kind, fact_value):
                 return {"fact_kind": fact_kind, "fact_value": fact_value}
             return {}
         text = " ".join(str(raw_payload or "").split())
+        subject_anchor_patterns = [
+            (
+                "special_character",
+                r"(?:special character|ky tu dac biet|ký tự đặc biệt)\s+(?:for|of)\s+(?P<subject>[^.!?\n:=]{2,90}?)\s+(?:is|was|la|là|=)\s+(?P<value>[^.!?\n]{1,120})",
+            ),
+            (
+                "verification_code",
+                r"(?:secret code|code word|passphrase|password|verification code|mat ma|mật mã)\s+(?:for|of)\s+(?P<subject>[^.!?\n:=]{2,90}?)\s+(?:is|was|la|là|=)\s+(?P<value>[^.!?\n]{1,120})",
+            ),
+        ]
+        for kind, pattern in subject_anchor_patterns:
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if not match:
+                continue
+            subject = re.sub(r"\s+", " ", match.group("subject")).strip(" .,:;!?-")
+            value = re.sub(r"[*`_]+", "", match.group("value")).strip(" .,:;!?-")
+            value = re.sub(r"\s+", " ", value)
+            fact_kind = self._qualify_fact_kind(kind, subject)
+            if subject and value and self._is_plausible_value(fact_kind, value):
+                return {"fact_kind": fact_kind, "fact_value": value}
         original_patterns = [
             (
                 "special_character",
@@ -355,6 +435,34 @@ class ExactMemoryStore:
             - state_penalty
         )
 
+    def _witness_preference(self, record: Dict[str, Any]) -> float:
+        role = self._source_role(str(record.get("source", "")), list(record.get("source_refs", [])))
+        if role == "user":
+            return 0.22
+        if role == "assistant":
+            return 0.04
+        return 0.0
+
+    def _should_resolve_by_authority(self, top: Dict[str, Any], second: Dict[str, Any]) -> bool:
+        top_role = self._source_role(str(top.get("source", "")), list(top.get("source_refs", [])))
+        second_role = self._source_role(str(second.get("source", "")), list(second.get("source_refs", [])))
+        top_authority = float(top.get("authority_score", 0.0))
+        second_authority = float(second.get("authority_score", 0.0))
+        top_score = float(top.get("score", 0.0))
+        second_score = float(second.get("score", 0.0))
+        if top_role == "user" and second_role == "assistant" and (top_score - second_score) >= 0.08:
+            return True
+        if (top_authority - second_authority) >= 0.18 and (top_score - second_score) >= 0.08:
+            return True
+        return False
+
+    def _all_records(self, limit: int = 2000) -> List[Dict[str, Any]]:
+        rows = self._store.fetchall(
+            f"SELECT * FROM {self._table} ORDER BY last_seen_at DESC LIMIT ?",
+            [limit],
+        )
+        return [self._row_to_record(row) for row in rows]
+
     def remember(
         self,
         fact_kind: str,
@@ -368,13 +476,14 @@ class ExactMemoryStore:
         source_refs: Optional[List[Dict[str, Any]]] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        kind = self._normalize_kind(fact_kind)
+        meta = dict(metadata or {})
+        anchor_subject = str(meta.get("anchor_subject") or "").strip()
+        kind = self._qualify_fact_kind(fact_kind, anchor_subject)
         value = " ".join(str(fact_value or "").split()).strip()
         normalized_value = self._normalize_value(value)
         if not kind or not normalized_value or not self._is_plausible_value(kind, value):
             return {}
 
-        meta = dict(metadata or {})
         refs = [ref for ref in (source_refs or []) if isinstance(ref, dict)]
         now = time.time()
         authority = self._authority_score(source, refs, meta)
@@ -465,11 +574,14 @@ class ExactMemoryStore:
     def infer_query_kind(self, query: str) -> Optional[str]:
         normalized = self._normalize_text(query)
         if any(marker in normalized for marker in ["special character", "ky tu dac biet"]):
-            return "special_character"
+            subject = self._extract_anchor_subject(query, "special_character")
+            return self._qualify_fact_kind("special_character", subject)
         if "ky tu" in normalized and "mat ma" in normalized:
-            return "special_character"
+            subject = self._extract_anchor_subject(query, "special_character")
+            return self._qualify_fact_kind("special_character", subject)
         if any(marker in normalized for marker in ["mat ma", "secret code", "code word", "passphrase", "password"]):
-            return "verification_code"
+            subject = self._extract_anchor_subject(query, "verification_code")
+            return self._qualify_fact_kind("verification_code", subject)
         generic_patterns = [
             r"what(?:\s+was|\s+is)?\s+(?:the\s+)?(?P<subject>[^?]+)",
             r"(?P<subject>.+?)\s+(?:la gi|là gì)\b",
@@ -507,6 +619,7 @@ class ExactMemoryStore:
                 score += 0.12
             if project_version and record.get("project_version") == project_version:
                 score += 0.08
+            score += self._witness_preference(record)
             item = {**record, "score": round(score, 3)}
             scored.append(item)
         scored.sort(key=lambda item: (-float(item["score"]), -float(item["last_seen_at"])))
@@ -517,12 +630,15 @@ class ExactMemoryStore:
         answer_candidate = top[0]["fact_value"]
         status = "resolved"
         if len(top) >= 2 and top[0]["normalized_value"] != top[1]["normalized_value"]:
-            if abs(float(top[0]["score"]) - float(top[1]["score"])) < 0.35:
+            if abs(float(top[0]["score"]) - float(top[1]["score"])) < 0.35 and not self._should_resolve_by_authority(top[0], top[1]):
                 status = "conflicting"
                 answer_candidate = None
         if top[0].get("state") == "conflicting" and len(top) > 1:
-            status = "conflicting"
-            answer_candidate = None
+            if self._should_resolve_by_authority(top[0], top[1]):
+                status = "resolved"
+            else:
+                status = "conflicting"
+                answer_candidate = None
 
         return {
             "kind": fact_kind,
@@ -530,6 +646,162 @@ class ExactMemoryStore:
             "answer_candidate": answer_candidate,
             "facts": top[:limit],
         }
+
+    def confidence_dashboard(self, limit: int = 2000) -> Dict[str, Any]:
+        records = self._all_records(limit=limit)
+        if not records:
+            return {"total": 0, "average_confidence": 0.0, "active": 0, "conflicting": 0, "by_kind": []}
+        active = [record for record in records if record.get("state") == "active"]
+        conflicting = [record for record in records if record.get("state") == "conflicting"]
+        weighted_confidence = []
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
+        for record in records:
+            weighted = min(
+                1.0,
+                float(record.get("confidence", 0.5)) * 0.7
+                + float(record.get("authority_score", 0.65)) * 0.25
+                + min(int(record.get("reinforcement_count", 1)), 6) * 0.03,
+            )
+            weighted_confidence.append(weighted)
+            grouped.setdefault(str(record.get("fact_kind", "unknown")), []).append({**record, "weighted_confidence": weighted})
+        by_kind = []
+        for kind, items in grouped.items():
+            by_kind.append(
+                {
+                    "kind": kind,
+                    "count": len(items),
+                    "active": sum(1 for item in items if item.get("state") == "active"),
+                    "conflicting": sum(1 for item in items if item.get("state") == "conflicting"),
+                    "average_confidence": round(
+                        sum(float(item["weighted_confidence"]) for item in items) / max(len(items), 1),
+                        3,
+                    ),
+                }
+            )
+        by_kind.sort(key=lambda item: (-item["conflicting"], -item["average_confidence"], -item["count"]))
+        return {
+            "total": len(records),
+            "active": len(active),
+            "conflicting": len(conflicting),
+            "average_confidence": round(sum(weighted_confidence) / max(len(weighted_confidence), 1), 3),
+            "by_kind": by_kind,
+        }
+
+    def conflict_clusters(self, limit: int = 20) -> List[Dict[str, Any]]:
+        records = self._all_records(limit=5000)
+        grouped: Dict[tuple[str, str, str], List[Dict[str, Any]]] = {}
+        for record in records:
+            key = (
+                str(record.get("fact_kind", "unknown")),
+                str(record.get("workspace_id") or ""),
+                str(record.get("project_version") or ""),
+            )
+            grouped.setdefault(key, []).append(record)
+        clusters: List[Dict[str, Any]] = []
+        now = time.time()
+        for (fact_kind, workspace_id, project_version), items in grouped.items():
+            distinct_values = {}
+            for item in items:
+                distinct_values[item.get("normalized_value")] = item
+            if len(distinct_values) < 2:
+                continue
+            scored = []
+            for item in items:
+                score = round(self._strength(item, now=now) + self._witness_preference(item), 3)
+                scored.append({**item, "score": score, "channels": self._channels(item.get("source_refs", []))})
+            scored.sort(key=lambda item: (-float(item["score"]), -float(item["last_seen_at"])))
+            leader = scored[0]
+            status = "conflicting"
+            if len(scored) >= 2 and self._should_resolve_by_authority(scored[0], scored[1]):
+                status = "needs_confirmation"
+            clusters.append(
+                {
+                    "fact_kind": fact_kind,
+                    "workspace_id": workspace_id or None,
+                    "project_version": project_version or None,
+                    "status": status,
+                    "leader": {
+                        "fact_value": leader.get("fact_value"),
+                        "score": leader.get("score"),
+                        "authority_score": leader.get("authority_score"),
+                    },
+                    "facts": scored[:4],
+                }
+            )
+        clusters.sort(
+            key=lambda item: (
+                0 if item["status"] == "conflicting" else 1,
+                -max(float(fact.get("score", 0.0)) for fact in item.get("facts", []) or [0.0]),
+            )
+        )
+        return clusters[:limit]
+
+    def build_revalidation_packet(
+        self,
+        query: str,
+        workspace_id: Optional[str] = None,
+        project_version: Optional[str] = None,
+        task_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        recall = self.recall(
+            query=query,
+            workspace_id=workspace_id,
+            project_version=project_version,
+            task_id=task_id,
+            limit=3,
+        )
+        if recall.get("status") != "conflicting":
+            return {"status": "none", "question": None, "candidates": [], "kind": recall.get("kind")}
+        candidates = [
+            {
+                "fact_value": fact.get("fact_value"),
+                "channels": self._channels(fact.get("source_refs", [])),
+                "authority_score": fact.get("authority_score"),
+                "score": fact.get("score"),
+            }
+            for fact in recall.get("facts", [])
+        ]
+        kind = str(recall.get("kind") or "exact_fact")
+        human_kind = kind.replace("_", " ")
+        values = "; ".join(item["fact_value"] for item in candidates[:3])
+        question = (
+            f"I have conflicting exact memories for {human_kind}: {values}. "
+            f"Please confirm which value should remain canonical."
+        )
+        return {
+            "status": "conflicting",
+            "kind": kind,
+            "question": question,
+            "candidates": candidates,
+        }
+
+    def resolve_conflict(
+        self,
+        fact_kind: str,
+        fact_value: str,
+        workspace_id: Optional[str] = None,
+        project_version: Optional[str] = None,
+        reviewer: str = "human",
+    ) -> Dict[str, Any]:
+        kind = self._normalize_kind(fact_kind)
+        normalized_value = self._normalize_value(fact_value)
+        candidates = self._fetch_kind_candidates(kind, workspace_id, project_version)
+        chosen = None
+        now = time.time()
+        for record in candidates:
+            if record.get("normalized_value") == normalized_value:
+                chosen = record
+                record["state"] = "active"
+                record["valid_to"] = None
+                metadata = dict(record.get("metadata", {}))
+                metadata["resolved_by"] = reviewer
+                metadata["resolved_at"] = now
+                record["metadata"] = metadata
+            else:
+                record["state"] = "superseded"
+                record["valid_to"] = now
+            self._persist(record)
+        return {"resolved": bool(chosen), "fact_kind": kind, "fact_value": fact_value}
 
     def backfill_from_episodes(self, episodes, limit: int = 800) -> int:
         imported = 0
