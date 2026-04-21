@@ -1055,14 +1055,18 @@ plugins:
       config:
         apiBaseUrl: "http://127.0.0.1:8055"
         agentName: "openclaw-brain"
+        storageDir: "~/.bio-agent-os/openclaw-brain"
         workspaceId: "main"
         projectVersion: "v1"
+        autoStartSidecar: true
+        sidecarLogFile: "~/.openclaw/logs/bio-locaith-sidecar.log"
 ```
 
 This plugin target handles:
 - ingesting tool observations into episode memory
 - triggering micro-sleep consolidation
 - injecting `self-model + safety guard + governed exceptions` back into the OpenClaw prompt/controller
+- auto-starting the Bio-Agent OS sidecar in the background when `127.0.0.1:8055` is not already running
 
 ### 🛠️ SWE-Agent Plugin
 

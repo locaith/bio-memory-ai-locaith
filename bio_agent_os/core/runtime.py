@@ -59,7 +59,13 @@ def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
     dream_journal = DreamJournal(agent_name=agent_name, storage_dir=storage_dir)
     audit_log = AuditLog(agent_name=agent_name, storage_dir=storage_dir)
     approval_queue = ApprovalQueue(agent_name=agent_name, storage_dir=storage_dir)
-    retrieval_service = RetrievalService(l2=l2, graph=kg, episodes=episodes, persona=persona)
+    retrieval_service = RetrievalService(
+        l2=l2,
+        graph=kg,
+        episodes=episodes,
+        persona=persona,
+        approval_queue=approval_queue,
+    )
     hippo = Hippocampus(
         engine=engine,
         l1=l1,

@@ -276,7 +276,10 @@ class Persona:
             rule["evidence_episode_ids"] = sorted(
                 set(rule["evidence_episode_ids"] + (evidence_episode_ids or []))
             )
-            if rule["support_count"] >= promotion_threshold:
+            if source == "human-approved":
+                rule["state"] = "stable"
+                rule["confidence"] = max(rule["confidence"], 0.95)
+            elif rule["support_count"] >= promotion_threshold:
                 rule["state"] = "stable"
             elif rule["support_count"] >= 2:
                 rule["state"] = "reinforced"
@@ -297,7 +300,7 @@ class Persona:
             "confidence": max(0.0, min(confidence, 0.99)),
             "support_count": 1,
             "contradiction_count": 0,
-            "state": "stable" if resolved_layer == "core" and source == "human-approved" else "proposed",
+            "state": "stable" if source == "human-approved" else "proposed",
             "created_at": now,
             "updated_at": now,
             "last_validated_at": now,

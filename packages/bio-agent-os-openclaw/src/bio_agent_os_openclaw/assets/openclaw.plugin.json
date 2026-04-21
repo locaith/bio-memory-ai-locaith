@@ -43,6 +43,29 @@
       },
       "stressState": {
         "type": "string"
+      },
+      "autoStartSidecar": {
+        "type": "boolean"
+      },
+      "storageDir": {
+        "type": "string"
+      },
+      "sidecarCommand": {
+        "type": "string"
+      },
+      "sidecarArgs": {
+        "type": "string"
+      },
+      "sidecarWorkingDir": {
+        "type": "string"
+      },
+      "sidecarStartupTimeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 120000
+      },
+      "sidecarLogFile": {
+        "type": "string"
       }
     }
   }

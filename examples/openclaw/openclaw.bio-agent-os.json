@@ -15,8 +15,11 @@
         "config": {
           "apiBaseUrl": "http://127.0.0.1:8055",
           "agentName": "openclaw-brain",
+          "storageDir": "~/.bio-agent-os/openclaw-brain",
           "workspaceId": "main",
-          "projectVersion": "v1"
+          "projectVersion": "v1",
+          "autoStartSidecar": true,
+          "sidecarLogFile": "~/.openclaw/logs/bio-locaith-sidecar.log"
         }
       }
     }

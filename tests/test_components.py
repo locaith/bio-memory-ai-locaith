@@ -644,6 +644,22 @@ def test_approval_queue_for_sensitive_rules():
     assert resolved["status"] == "approved"
 
 
+def test_human_approved_project_rule_becomes_stable():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    persona = Persona(name="human_approved_project_rule", storage_dir="test_data")
+    rule_id = persona.add_rule(
+        "Do not execute dependency updates or reinstalls unless vite and vite-plugin-react share the same major version number in package.json.",
+        scope="project",
+        confidence=0.99,
+        source="human-approved",
+        evidence_episode_ids=["ep-approved"],
+    )
+
+    rule = persona.get_rule_records()[rule_id]
+    assert rule["state"] == "stable"
+    assert rule["layer"] == "project"
+
+
 def test_retrieval_service_builds_lineage_and_safety_guard():
     os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
     storage_dir = "test_data"
@@ -736,6 +752,65 @@ def test_retrieval_service_builds_lineage_and_safety_guard():
     assert belief_bundle["requires_human_approval"]
     assert belief_bundle["expires_override_at"]
     assert belief_bundle["approved_by_policy"][0]["target"].startswith("policy::")
+
+
+def test_retrieval_service_surfaces_stable_rules_and_pending_approvals():
+    os.environ["BIO_AGENT_SECRET_KEY"] = "locaith_secret_key_testing_12345"
+    storage_dir = "test_data"
+    persona = Persona(name="test_agent_pending_prompt", storage_dir=storage_dir)
+    episodes = EpisodeStore(agent_name="test_agent_pending_prompt", storage_dir=storage_dir)
+    l2 = L2SemanticMemory(agent_name="test_agent_pending_prompt", storage_dir=storage_dir)
+    graph = KnowledgeGraph(agent_name="test_agent_pending_prompt", storage_dir=storage_dir)
+    approvals = ApprovalQueue(agent_name="test_agent_pending_prompt", storage_dir=storage_dir)
+
+    episode = episodes.add(
+        raw_payload="Approved hotfix allows force push only with explicit approval and audit logging.",
+        actor="agent",
+        source="chat",
+        topic="git",
+        confidence=0.92,
+        workspace_id="frontend",
+        project_version="v6.1.0",
+    )
+    rule_id = persona.add_rule(
+        "Never use git push -f on the frontend branch in production.",
+        scope="project",
+        confidence=0.86,
+        evidence_episode_ids=[episode["episode_id"]],
+        promotion_threshold=2,
+    )
+    persona.add_rule(
+        "Never use git push -f on the frontend branch in production.",
+        scope="project",
+        confidence=0.86,
+        evidence_episode_ids=[episode["episode_id"]],
+        promotion_threshold=2,
+    )
+    graph.add_belief_rule(persona.get_rule_records()[rule_id])
+    approvals.submit(
+        "promote_sensitive_rule",
+        "Allow use git push on the frontend branch during approved hotfix response with explicit approval and audit logging.",
+        scope="project",
+        confidence=0.95,
+        metadata={"source": "hippocampus", "evidence_episode_ids": [episode["episode_id"]]},
+    )
+
+    service = RetrievalService(
+        l2=l2,
+        graph=graph,
+        episodes=episodes,
+        persona=persona,
+        approval_queue=approvals,
+    )
+    retrieval_state = service.build_retrieval_state(
+        {"mode": "deploy", "risk_level": "high", "workspace_id": "frontend", "project_version": "v6.1.0"}
+    )
+    bundle = service.hybrid_retrieve("What is the frontend hotfix force-push rule?", retrieval_state, top_k=5)
+
+    assert bundle["stable_persona_rules"]
+    assert any("Never use git push -f" in item["text"] for item in bundle["stable_persona_rules"])
+    assert bundle["pending_approvals"]
+    assert any("approved hotfix response" in item["rule_text"] for item in bundle["pending_approvals"])
 
 
 def test_l1_stress_decay_drops_when_failures_are_old():

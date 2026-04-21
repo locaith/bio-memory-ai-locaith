@@ -3,8 +3,9 @@ Hybrid retrieval, safety guards, and lineage view service.
 """
 
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
+from bio_agent_os.core.approval_queue import ApprovalQueue
 from bio_agent_os.core.persona import Persona
 from bio_agent_os.memory.episodes import EpisodeStore
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
@@ -18,15 +19,131 @@ class RetrievalService:
         graph: KnowledgeGraph,
         episodes: EpisodeStore,
         persona: Persona,
+        approval_queue: Optional[ApprovalQueue] = None,
     ):
         self.l2 = l2
         self.graph = graph
         self.episodes = episodes
         self.persona = persona
+        self.approval_queue = approval_queue
 
     def _tokenize(self, text: str) -> set[str]:
         cleaned = re.sub(r"[^a-z0-9\u00c0-\u024f\s]", " ", text.lower())
         return {token for token in cleaned.split() if token}
+
+    def _scope_bonus(self, scope: str, retrieval_state: Dict[str, object]) -> float:
+        normalized_scope = (scope or "").strip().lower()
+        preferred_scope = str(retrieval_state.get("preferred_scope", "project")).lower()
+        risk_level = str(retrieval_state.get("risk_level", "medium")).lower()
+        if normalized_scope == preferred_scope:
+            return 0.35
+        if normalized_scope == "core":
+            return 0.30
+        if normalized_scope == "project" and preferred_scope in {"project", "organization"}:
+            return 0.20
+        if normalized_scope == "organization" and risk_level == "high":
+            return 0.20
+        if normalized_scope == "adaptive":
+            return 0.05
+        return 0.0
+
+    def _rank_text_candidate(
+        self,
+        query_terms: set[str],
+        text: str,
+        scope: str,
+        base_confidence: float,
+        support_count: int,
+        retrieval_state: Dict[str, object],
+    ) -> float:
+        text_terms = self._tokenize(text)
+        overlap = len(query_terms & text_terms)
+        return (
+            float(overlap) * 0.45
+            + float(base_confidence)
+            + min(float(support_count) * 0.05, 0.25)
+            + self._scope_bonus(scope, retrieval_state)
+        )
+
+    def relevant_stable_persona_rules(
+        self,
+        query: str,
+        retrieval_state: Dict[str, object],
+        limit: int = 3,
+    ) -> List[Dict[str, Any]]:
+        query_terms = self._tokenize(query)
+        candidates: List[Dict[str, Any]] = []
+        for rule_id, rule in self.persona.get_rule_records().items():
+            if rule.get("state") not in {"stable", "reinforced"}:
+                continue
+            text = str(rule.get("text", "")).strip()
+            if not text:
+                continue
+            overlap_terms = query_terms & self._tokenize(text)
+            score = self._rank_text_candidate(
+                query_terms,
+                text,
+                str(rule.get("scope", "project")),
+                float(rule.get("confidence", 0.0)),
+                int(rule.get("support_count", 0)),
+                retrieval_state,
+            )
+            if query_terms and not overlap_terms and str(rule.get("scope", "project")) != "core":
+                continue
+            candidates.append(
+                {
+                    "rule_id": rule_id,
+                    "text": text,
+                    "layer": rule.get("layer", "adaptive"),
+                    "scope": rule.get("scope", "project"),
+                    "state": rule.get("state", "stable"),
+                    "confidence": float(rule.get("confidence", 0.0)),
+                    "support_count": int(rule.get("support_count", 0)),
+                    "score": round(score, 3),
+                }
+            )
+        candidates.sort(key=lambda item: (-float(item["score"]), -float(item["confidence"]), -int(item["support_count"])))
+        return candidates[:limit]
+
+    def relevant_pending_approvals(
+        self,
+        query: str,
+        retrieval_state: Dict[str, object],
+        limit: int = 3,
+    ) -> List[Dict[str, Any]]:
+        if not self.approval_queue:
+            return []
+        query_terms = self._tokenize(query)
+        candidates: List[Dict[str, Any]] = []
+        for request in self.approval_queue.list(status="pending", limit=200):
+            rule_text = str(request.get("rule_text", "")).strip()
+            if not rule_text:
+                continue
+            overlap_terms = query_terms & self._tokenize(rule_text)
+            score = self._rank_text_candidate(
+                query_terms,
+                rule_text,
+                str(request.get("scope", "project")),
+                float(request.get("confidence", 0.0)),
+                1,
+                retrieval_state,
+            )
+            if query_terms and not overlap_terms:
+                continue
+            candidates.append(
+                {
+                    "request_id": request.get("request_id"),
+                    "action_type": request.get("action_type"),
+                    "rule_text": rule_text,
+                    "scope": request.get("scope", "project"),
+                    "confidence": float(request.get("confidence", 0.0)),
+                    "created_at": request.get("created_at"),
+                    "metadata": request.get("metadata", {}),
+                    "score": round(score, 3),
+                }
+            )
+        candidates.sort(key=lambda item: (-float(item["score"]), -float(item["confidence"]), -float(item["created_at"] or 0.0)))
+        return candidates[:limit]
 
     def build_retrieval_state(self, data: Dict[str, object]) -> Dict[str, object]:
         mode = str(data.get("mode", "implement"))
@@ -207,6 +324,8 @@ class RetrievalService:
     def hybrid_retrieve(self, query: str, retrieval_state: Dict[str, object], top_k: int = 5) -> Dict[str, object]:
         l2_results = self.l2.search(query, top_k=top_k, retrieval_state=retrieval_state)
         graph_results = self.graph.retrieve_beliefs(query, top_k=top_k, retrieval_state=retrieval_state)
+        stable_persona_rules = self.relevant_stable_persona_rules(query, retrieval_state, limit=min(top_k, 5))
+        pending_approvals = self.relevant_pending_approvals(query, retrieval_state, limit=min(top_k, 5))
         resolved = self._resolve_graph_l2_conflicts(l2_results, graph_results, retrieval_state)
         graph_results = resolved["graph_results"]
         safety_guard = self.build_safety_guard(query, l2_results, graph_results)
@@ -214,6 +333,8 @@ class RetrievalService:
             "l2_results": l2_results,
             "graph_results": graph_results,
             "graph_conflicts": resolved["dropped_graph"],
+            "stable_persona_rules": stable_persona_rules,
+            "pending_approvals": pending_approvals,
             "safety_guard": safety_guard,
         }
 

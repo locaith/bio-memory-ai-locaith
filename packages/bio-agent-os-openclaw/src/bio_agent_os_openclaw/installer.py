@@ -18,12 +18,17 @@ def default_openclaw_target() -> Path:
 def install_openclaw_plugin(target: str | None = None) -> Path:
     destination = Path(target) if target else default_openclaw_target()
     destination.mkdir(parents=True, exist_ok=True)
-    try:
-        assets = resources.files("bio_agent_os_openclaw").joinpath("assets")
+    source_assets = Path(__file__).resolve().parent / "assets"
+    if source_assets.exists():
+        assets = source_assets
         asset_iter = list(assets.iterdir())
-    except ModuleNotFoundError:  # pragma: no cover - direct source execution helper
-        assets = Path(__file__).resolve().parent / "assets"
-        asset_iter = list(assets.iterdir())
+    else:
+        try:
+            assets = resources.files("bio_agent_os_openclaw").joinpath("assets")
+            asset_iter = list(assets.iterdir())
+        except ModuleNotFoundError:  # pragma: no cover - direct source execution helper
+            assets = source_assets
+            asset_iter = list(assets.iterdir())
     for asset in asset_iter:
         shutil.copyfile(asset, destination / asset.name)
     return destination
@@ -42,8 +47,11 @@ def render_openclaw_config(plugin_path: str | None = None) -> str:
                     "config": {
                         "apiBaseUrl": "http://127.0.0.1:8055",
                         "agentName": "openclaw-brain",
+                        "storageDir": "~/.bio-agent-os/openclaw-brain",
                         "workspaceId": "main",
                         "projectVersion": "v1",
+                        "autoStartSidecar": True,
+                        "sidecarLogFile": "~/.openclaw/logs/bio-locaith-sidecar.log",
                     },
                 }
             },
