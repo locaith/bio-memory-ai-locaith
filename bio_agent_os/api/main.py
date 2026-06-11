@@ -6,9 +6,22 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+
+from bio_agent_os.api.schemas import (
+    ApprovalDecisionRequest,
+    ChatRequest,
+    IngestRequest,
+    RetrieveRequest,
+    RevalidationResolveRequest,
+)
+from bio_agent_os.api.security import (
+    APISecurityConfig,
+    AuthMiddleware,
+    RateLimitMiddleware,
+)
 
 from bio_agent_os.background_jobs.garbage_collector import GarbageCollector
 from bio_agent_os.background_jobs.graph_builder import GraphBuilder
@@ -77,8 +90,17 @@ def init_components():
     )
 
 
+SECURITY_CONFIG = APISecurityConfig.from_env()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if SECURITY_CONFIG.api_key is None:
+        print(
+            "[Bio-Agent OS] WARNING: BIO_AGENT_API_KEY is not set — the API is "
+            "unauthenticated. Safe for loopback-only development; set a key "
+            "before exposing the server to a network."
+        )
     init_components()
     yield
 
@@ -90,10 +112,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Middleware execution order (outermost first): CORS -> rate limit -> auth,
+# so CORS preflights are answered before auth and throttled clients are
+# rejected before hitting auth comparisons.
+app.add_middleware(AuthMiddleware, config=SECURITY_CONFIG)
+app.add_middleware(RateLimitMiddleware, config=SECURITY_CONFIG)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=SECURITY_CONFIG.cors_origins,
+    allow_credentials=SECURITY_CONFIG.cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -112,23 +139,17 @@ def serve_dashboard():
 
 
 @app.post("/api/chat")
-async def chat(request: Request):
-    data = await request.json()
-    message = data.get("message", "").strip()
-    task_id = data.get("task_id")
-    workspace_id = data.get("workspace_id")
-    project_version = data.get("project_version")
-    source_refs = data.get("source_refs")
-    mode = data.get("mode", "implement")
-    stress_state = data.get("stress_state", "normal")
-    risk_level = data.get("risk_level", "medium")
-    if not message:
-        return {"error": "Empty message"}
+async def chat(payload: ChatRequest):
+    message = payload.message
+    task_id = payload.task_id
+    workspace_id = payload.workspace_id
+    project_version = payload.project_version
+    source_refs = payload.source_refs
 
     intent = router_ai.quick_classify(message)
     l1_context = l1.build_context_string(n=5)
     identity_prompt = persona.get_identity_prompt()
-    retrieval_state = retrieval_service.build_retrieval_state(data)
+    retrieval_state = retrieval_service.build_retrieval_state(payload.model_dump())
     retrieval_state["query"] = message
     exact_query_kind = exact_memory.infer_query_kind(message) if exact_memory else None
 
@@ -211,9 +232,9 @@ async def chat(request: Request):
             "task_id": task_id,
             "workspace_id": workspace_id,
             "project_version": project_version,
-            "mode": mode,
-            "stress_state": stress_state,
-            "risk_level": risk_level,
+            "mode": payload.mode,
+            "stress_state": payload.stress_state,
+            "risk_level": payload.risk_level,
         },
     )
 
@@ -228,19 +249,15 @@ async def chat(request: Request):
 
 
 @app.post("/api/ingest")
-async def ingest(request: Request):
-    data = await request.json()
-    text = data.get("text", "")
-    chunk_size = data.get("chunk_size", 2000)
-    source = data.get("source", "ingest")
-    task_id = data.get("task_id")
-    workspace_id = data.get("workspace_id")
-    project_version = data.get("project_version")
-    source_refs = data.get("source_refs")
-    observation_type = data.get("observation_type", "ingest")
-
-    if not text:
-        return {"error": "Empty text"}
+async def ingest(payload: IngestRequest):
+    text = payload.text
+    chunk_size = payload.chunk_size
+    source = payload.source
+    task_id = payload.task_id
+    workspace_id = payload.workspace_id
+    project_version = payload.project_version
+    source_refs = payload.source_refs
+    observation_type = payload.observation_type
 
     chunks = [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
     stats = {"chunks": len(chunks), "labeled": 0, "graph_entities": 0, "graph_relations": 0}
@@ -351,11 +368,11 @@ def get_confidence_dashboard():
 
 @app.get("/api/episodes")
 def get_episodes(
-    limit: int = 10,
-    task_id: Optional[str] = None,
-    workspace_id: Optional[str] = None,
-    project_version: Optional[str] = None,
-    query: Optional[str] = None,
+    limit: int = Query(10, ge=1, le=200),
+    task_id: Optional[str] = Query(None, max_length=128),
+    workspace_id: Optional[str] = Query(None, max_length=128),
+    project_version: Optional[str] = Query(None, max_length=128),
+    query: Optional[str] = Query(None, max_length=20_000),
 ):
     if query:
         items = episodes.search_text(
@@ -387,11 +404,11 @@ def get_status():
 
 @app.get("/api/exact-memories")
 def get_exact_memories(
-    limit: int = 10,
-    query: Optional[str] = None,
-    workspace_id: Optional[str] = None,
-    project_version: Optional[str] = None,
-    task_id: Optional[str] = None,
+    limit: int = Query(10, ge=1, le=200),
+    query: Optional[str] = Query(None, max_length=20_000),
+    workspace_id: Optional[str] = Query(None, max_length=128),
+    project_version: Optional[str] = Query(None, max_length=128),
+    task_id: Optional[str] = Query(None, max_length=128),
 ):
     if query:
         return exact_memory.recall(
@@ -405,30 +422,25 @@ def get_exact_memories(
 
 
 @app.post("/api/exact-memories/reindex")
-def reindex_exact_memories(limit: int = 1200):
+def reindex_exact_memories(limit: int = Query(1200, ge=1, le=10_000)):
     imported = exact_memory.reindex_from_episodes(episodes, limit=limit)
     return {"status": "ok", "imported": imported, "count": exact_memory.count}
 
 
 @app.get("/api/revalidation")
-def get_revalidation(limit: int = 12):
+def get_revalidation(limit: int = Query(12, ge=1, le=200)):
     summary = health_monitor.revalidation_summary()
     return {**summary, "clusters": summary.get("clusters", [])[:limit]}
 
 
 @app.post("/api/revalidation/resolve")
-async def resolve_revalidation(request: Request):
-    payload = await request.json()
-    fact_kind = payload.get("fact_kind", "")
-    fact_value = payload.get("fact_value", "")
-    if not fact_kind or not fact_value:
-        return {"error": "fact_kind and fact_value are required"}
+async def resolve_revalidation(payload: RevalidationResolveRequest):
     result = exact_memory.resolve_conflict(
-        fact_kind=fact_kind,
-        fact_value=fact_value,
-        workspace_id=payload.get("workspace_id"),
-        project_version=payload.get("project_version"),
-        reviewer=payload.get("reviewer", "human"),
+        fact_kind=payload.fact_kind,
+        fact_value=payload.fact_value,
+        workspace_id=payload.workspace_id,
+        project_version=payload.project_version,
+        reviewer=payload.reviewer,
     )
     return {"status": "ok", **result}
 
@@ -478,53 +490,51 @@ def get_belief_timeline(active_only: bool = False):
 
 
 @app.get("/api/dreams")
-def get_dream_reports(limit: int = 10):
+def get_dream_reports(limit: int = Query(10, ge=1, le=200)):
     return {"count": dream_journal.count, "reports": dream_journal.recent(limit)}
 
 
 @app.get("/api/audit")
-def get_audit(limit: int = 50, event_type: Optional[str] = None):
+def get_audit(limit: int = Query(50, ge=1, le=500), event_type: Optional[str] = Query(None, max_length=64)):
     return {"count": audit_log.count, "events": audit_log.recent(limit=limit, event_type=event_type)}
 
 
 @app.get("/api/replay")
-def replay_memory(since: float = 0.0, until: Optional[float] = None):
+def replay_memory(since: float = Query(0.0, ge=0.0), until: Optional[float] = Query(None, ge=0.0)):
     return {"events": audit_log.replay(since=since, until=until)}
 
 
 @app.post("/api/retrieve")
-async def retrieve(request: Request):
-    data = await request.json()
-    query = data.get("query", "").strip()
-    if not query:
-        return {"error": "Empty query"}
-    retrieval_state = retrieval_service.build_retrieval_state(data)
-    if "prefer_exception" in data:
-        retrieval_state["prefer_exception"] = bool(data.get("prefer_exception"))
-    bundle = retrieval_service.hybrid_retrieve(query, retrieval_state, top_k=int(data.get("top_k", 5)))
+async def retrieve(payload: RetrieveRequest):
+    query = payload.query
+    retrieval_state = retrieval_service.build_retrieval_state(payload.model_dump())
+    if payload.prefer_exception is not None:
+        retrieval_state["prefer_exception"] = payload.prefer_exception
+    bundle = retrieval_service.hybrid_retrieve(query, retrieval_state, top_k=payload.top_k)
     return {"query": query, "retrieval_state": retrieval_state, **bundle}
 
 
 @app.post("/api/lineage")
-async def lineage(request: Request):
-    data = await request.json()
-    query = data.get("query", "").strip()
-    if not query:
-        return {"error": "Empty query"}
-    retrieval_state = retrieval_service.build_retrieval_state(data)
-    return {"query": query, "retrieval_state": retrieval_state, **retrieval_service.build_lineage(query, retrieval_state, top_k=int(data.get("top_k", 5)))}
+async def lineage(payload: RetrieveRequest):
+    query = payload.query
+    retrieval_state = retrieval_service.build_retrieval_state(payload.model_dump())
+    return {
+        "query": query,
+        "retrieval_state": retrieval_state,
+        **retrieval_service.build_lineage(query, retrieval_state, top_k=payload.top_k),
+    }
 
 
 @app.get("/api/lineage")
 def lineage_get(
-    query: str,
-    mode: str = "implement",
-    stress_state: str = "normal",
-    risk_level: str = "medium",
-    task_id: Optional[str] = None,
-    workspace_id: Optional[str] = None,
-    project_version: Optional[str] = None,
-    top_k: int = 5,
+    query: str = Query(min_length=1, max_length=20_000),
+    mode: str = Query("implement", max_length=32),
+    stress_state: str = Query("normal", max_length=32),
+    risk_level: str = Query("medium", max_length=32),
+    task_id: Optional[str] = Query(None, max_length=128),
+    workspace_id: Optional[str] = Query(None, max_length=128),
+    project_version: Optional[str] = Query(None, max_length=128),
+    top_k: int = Query(5, ge=1, le=50),
 ):
     data = {
         "query": query,
@@ -544,17 +554,16 @@ def lineage_get(
 
 
 @app.get("/api/approvals")
-def get_approvals(status: Optional[str] = None):
+def get_approvals(status: Optional[str] = Query(None, max_length=32)):
     return {"pending": approval_queue.pending_count, "requests": approval_queue.list(status=status, limit=200)}
 
 
 @app.post("/api/approvals/{request_id}/approve")
-async def approve_request(request_id: str, request: Request):
-    payload = await request.json()
-    reviewer = payload.get("reviewer", "human")
+async def approve_request(request_id: str, payload: Optional[ApprovalDecisionRequest] = None):
+    reviewer = payload.reviewer if payload else "human"
     resolved = approval_queue.resolve(request_id, "approved", reviewer=reviewer)
     if not resolved:
-        return {"error": "Approval request not found"}
+        raise HTTPException(status_code=404, detail="Approval request not found")
 
     if resolved["action_type"] == "promote_sensitive_rule":
         metadata = resolved.get("metadata", {})
@@ -576,12 +585,11 @@ async def approve_request(request_id: str, request: Request):
 
 
 @app.post("/api/approvals/{request_id}/reject")
-async def reject_request(request_id: str, request: Request):
-    payload = await request.json()
-    reviewer = payload.get("reviewer", "human")
+async def reject_request(request_id: str, payload: Optional[ApprovalDecisionRequest] = None):
+    reviewer = payload.reviewer if payload else "human"
     resolved = approval_queue.resolve(request_id, "rejected", reviewer=reviewer)
     if not resolved:
-        return {"error": "Approval request not found"}
+        raise HTTPException(status_code=404, detail="Approval request not found")
     return {"status": "rejected", "request": resolved}
 
 
@@ -594,5 +602,6 @@ def reset():
 if __name__ == "__main__":
     import uvicorn
 
+    host = os.getenv("HOST", "127.0.0.1")
     port = int(os.getenv("PORT", "8055"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host=host, port=port)

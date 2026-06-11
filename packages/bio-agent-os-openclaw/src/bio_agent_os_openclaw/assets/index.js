@@ -132,6 +132,7 @@ function safeConfig(api) {
     path.join(os.homedir(), ".openclaw", "logs", "bio-locaith-sidecar.log");
   return {
     apiBaseUrl,
+    apiKey: normalizeText(raw.apiKey) || normalizeText(process.env.BIO_AGENT_API_KEY) || "",
     agentName,
     workspaceId: normalizeText(raw.workspaceId) || "main",
     projectVersion: normalizeText(raw.projectVersion) || "v1",
@@ -251,10 +252,17 @@ function inferRetrievalMode(prompt) {
   return "implement";
 }
 
-async function postJson(url, payload) {
+function buildHeaders(apiKey, base = {}) {
+  if (normalizeText(apiKey)) {
+    return { ...base, authorization: `Bearer ${normalizeText(apiKey)}` };
+  }
+  return base;
+}
+
+async function postJson(url, payload, apiKey = "") {
   const response = await fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: buildHeaders(apiKey, { "content-type": "application/json" }),
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
@@ -263,8 +271,8 @@ async function postJson(url, payload) {
   return await response.json();
 }
 
-async function getJson(url) {
-  const response = await fetch(url);
+async function getJson(url, apiKey = "") {
+  const response = await fetch(url, { headers: buildHeaders(apiKey) });
   if (!response.ok) {
     throw new Error(`${response.status} ${response.statusText}`);
   }
@@ -283,6 +291,7 @@ function spawnSidecarProcess(cfg, logger) {
       STORAGE_DIR: cfg.storageDir,
       HOST: parsed.host,
       PORT: String(parsed.port),
+      ...(cfg.apiKey ? { BIO_AGENT_API_KEY: cfg.apiKey } : {}),
     },
     stdio: ["ignore", logFd, logFd],
     windowsHide: true,
@@ -305,7 +314,7 @@ async function waitForSidecarReady(cfg) {
   let lastError = null;
   while (Date.now() < deadline) {
     try {
-      return await getJson(`${cfg.apiBaseUrl}/api/status`);
+      return await getJson(`${cfg.apiBaseUrl}/api/status`, cfg.apiKey);
     } catch (error) {
       lastError = error;
       await sleep(750);
@@ -514,6 +523,7 @@ const bioLocaithOpenClaw = definePluginEntry({
     additionalProperties: false,
     properties: {
       apiBaseUrl: { type: "string" },
+      apiKey: { type: "string" },
       agentName: { type: "string" },
       workspaceId: { type: "string" },
       projectVersion: { type: "string" },
@@ -540,7 +550,7 @@ const bioLocaithOpenClaw = definePluginEntry({
 
     const ensureSidecarReady = async () => {
       try {
-        return await getJson(`${cfg.apiBaseUrl}/api/status`);
+        return await getJson(`${cfg.apiBaseUrl}/api/status`, cfg.apiKey);
       } catch (error) {
         if (!cfg.autoStartSidecar) {
           throw error;
@@ -609,7 +619,9 @@ const bioLocaithOpenClaw = definePluginEntry({
             normalizeText(event?.input) ||
             normalizeText(event?.message),
         );
-        const retrievalQuery = latestUserMessage || prompt;
+        // Retrieval queries do not need the full prompt; truncate so the
+        // sidecar's input bounds are never exceeded.
+        const retrievalQuery = (latestUserMessage || prompt).slice(0, 4000);
         try {
           const mode = inferRetrievalMode(retrievalQuery);
           const stressState = mode === "debug" ? "failure" : cfg.stressState;
@@ -625,7 +637,7 @@ const bioLocaithOpenClaw = definePluginEntry({
               risk_level: riskLevel,
               prefer_exception: true,
               top_k: 5,
-            }),
+            }, cfg.apiKey),
           );
           const context = formatRecallContext(bundle);
           api.logger.info(
@@ -656,16 +668,16 @@ const bioLocaithOpenClaw = definePluginEntry({
           if (action === "status") {
             const [statusPayload, statePayload, approvalsPayload] = await withSidecarRetry(() =>
               Promise.all([
-                getJson(`${cfg.apiBaseUrl}/api/status`),
-                getJson(`${cfg.apiBaseUrl}/api/state`),
-                getJson(`${cfg.apiBaseUrl}/api/approvals?status=pending`),
+                getJson(`${cfg.apiBaseUrl}/api/status`, cfg.apiKey),
+                getJson(`${cfg.apiBaseUrl}/api/state`, cfg.apiKey),
+                getJson(`${cfg.apiBaseUrl}/api/approvals?status=pending`, cfg.apiKey),
               ]),
             );
             return { text: formatBioMemoryStatus(statusPayload, statePayload, approvalsPayload) };
           }
           if (action === "approvals" || action === "pending") {
             const approvalsPayload = await withSidecarRetry(() =>
-              getJson(`${cfg.apiBaseUrl}/api/approvals?status=pending`),
+              getJson(`${cfg.apiBaseUrl}/api/approvals?status=pending`, cfg.apiKey),
             );
             return { text: formatApprovalsStatus(approvalsPayload) };
           }
@@ -682,6 +694,7 @@ const bioLocaithOpenClaw = definePluginEntry({
               postJson(
                 `${cfg.apiBaseUrl}/api/approvals/${requestId}/${action}`,
                 { reviewer },
+                cfg.apiKey,
               ),
             );
             return { text: formatApprovalDecisionResult(action, payload) };
@@ -721,6 +734,7 @@ const bioLocaithOpenClaw = definePluginEntry({
                   role: "user",
                   channel: event?.channel,
                 }),
+                cfg.apiKey,
               ),
             );
           }
@@ -737,6 +751,7 @@ const bioLocaithOpenClaw = definePluginEntry({
                   role: "assistant",
                   channel: event?.channel,
                 }),
+                cfg.apiKey,
               ),
             );
           }
@@ -744,7 +759,7 @@ const bioLocaithOpenClaw = definePluginEntry({
           api.logger.info(`${PRIMARY_PLUGIN_ID}: capture ok | turn=${captureCount}`);
           const fastSleep = isHighSignalMemory(captureUser) || isHighSignalMemory(captureAssistant);
           if (fastSleep || captureCount % cfg.sleepEvery === 0) {
-            await withSidecarRetry(() => postJson(`${cfg.apiBaseUrl}/api/sleep`, {}));
+            await withSidecarRetry(() => postJson(`${cfg.apiBaseUrl}/api/sleep`, {}, cfg.apiKey));
             api.logger.info(`${PRIMARY_PLUGIN_ID}: triggered sleep${fastSleep ? " (high-signal)" : ""}`);
           }
         } catch (error) {

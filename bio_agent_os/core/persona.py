@@ -4,6 +4,7 @@ Self-model and persona memory for Bio-Agent OS V2.
 
 import base64
 import json
+import logging
 import os
 import time
 import uuid
@@ -13,7 +14,14 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+from bio_agent_os.core.secret_store import (
+    LEGACY_DEFAULT_SECRET,
+    LEGACY_SALT,
+    resolve_secret_material,
+)
 from bio_agent_os.core.sqlite_store import SQLiteStore
+
+logger = logging.getLogger("bio_agent_os.persona")
 
 
 RULE_STATES = {
@@ -47,11 +55,11 @@ class Persona:
         self._legacy_filepath = os.path.join(storage_dir, f"{name}_core_identity.json")
         self._store = SQLiteStore(storage_dir=storage_dir)
         self._table = f"{self._store.sanitize_identifier(name)}_persona_rules"
-        self._crypto_key = os.getenv(
-            "BIO_AGENT_SECRET_KEY",
-            "default-insecure-key-change-in-prod-erp",
-        )
-        self._fernet = self._setup_cipher()
+        self._crypto_secret, self._crypto_salt = resolve_secret_material(storage_dir)
+        self._fernet = self._build_cipher(self._crypto_secret, self._crypto_salt)
+        self._legacy_ciphers: Optional[List[Fernet]] = None
+        self._needs_reencrypt = False
+        self._undecryptable_ids: List[str] = []
         self._ensure_table()
         self._migrate_legacy_json()
         self.load()
@@ -82,24 +90,51 @@ class Persona:
             """
         )
 
-    def _setup_cipher(self) -> Fernet:
+    @staticmethod
+    def _build_cipher(secret: str, salt: bytes) -> Fernet:
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
-            salt=b"locaith-bio-memory",
+            salt=salt,
             iterations=480000,
         )
-        key = base64.urlsafe_b64encode(kdf.derive(self._crypto_key.encode("utf-8")))
+        key = base64.urlsafe_b64encode(kdf.derive(secret.encode("utf-8")))
         return Fernet(key)
+
+    def _get_legacy_ciphers(self) -> List[Fernet]:
+        # Built lazily: each PBKDF2 derivation is intentionally slow, and the
+        # fallbacks are only needed when a database predates per-install keys.
+        if self._legacy_ciphers is None:
+            candidates = []
+            if (self._crypto_secret, self._crypto_salt) != (LEGACY_DEFAULT_SECRET, LEGACY_SALT):
+                candidates.append(self._build_cipher(self._crypto_secret, LEGACY_SALT))
+                candidates.append(self._build_cipher(LEGACY_DEFAULT_SECRET, LEGACY_SALT))
+            self._legacy_ciphers = candidates
+        return self._legacy_ciphers
 
     def _encrypt(self, text: str) -> str:
         return self._fernet.encrypt(text.encode("utf-8")).decode("utf-8")
 
-    def _decrypt(self, token: str) -> str:
+    def _decrypt(self, token: str, context: str = "") -> Optional[str]:
+        raw = token.encode("utf-8")
         try:
-            return self._fernet.decrypt(token.encode("utf-8")).decode("utf-8")
+            return self._fernet.decrypt(raw).decode("utf-8")
         except Exception:
-            return token
+            pass
+        for cipher in self._get_legacy_ciphers():
+            try:
+                text = cipher.decrypt(raw).decode("utf-8")
+                self._needs_reencrypt = True
+                return text
+            except Exception:
+                continue
+        logger.warning(
+            "Could not decrypt persona rule%s with the active or legacy keys; "
+            "the rule is kept on disk but excluded from memory. "
+            "Check BIO_AGENT_SECRET_KEY.",
+            f" {context}" if context else "",
+        )
+        return None
 
     def _normalize(self, text: str) -> str:
         return " ".join(text.lower().strip().split())
@@ -138,7 +173,9 @@ class Persona:
         now = time.time()
         for rule_id, raw_rule in raw_rules.items():
             if isinstance(raw_rule, str):
-                text = self._decrypt(raw_rule) if is_encrypted else raw_rule
+                text = self._decrypt(raw_rule, context=rule_id) if is_encrypted else raw_rule
+                if text is None:
+                    continue
                 rule = {
                     "id": rule_id,
                     "text": text,
@@ -163,7 +200,9 @@ class Persona:
                 rule = dict(raw_rule)
                 text_value = rule.get("text", "")
                 if is_encrypted:
-                    text_value = self._decrypt(text_value)
+                    text_value = self._decrypt(text_value, context=rule_id)
+                    if text_value is None:
+                        continue
                 confidence = float(rule.get("confidence", 0.7))
                 rule = {
                     "id": rule.get("id", rule_id),
@@ -227,10 +266,13 @@ class Persona:
                 rows,
             )
 
-    def _row_to_rule(self, row) -> Dict[str, Any]:
+    def _row_to_rule(self, row) -> Optional[Dict[str, Any]]:
+        text = self._decrypt(row["encrypted_text"], context=row["rule_id"])
+        if text is None:
+            return None
         rule = {
             "id": row["rule_id"],
-            "text": self._decrypt(row["encrypted_text"]),
+            "text": text,
             "layer": row["layer"],
             "scope": row["scope"],
             "source": row["source"],
@@ -448,7 +490,16 @@ class Persona:
                     self._store.dumps_json(rule.get("challenge_reasons", [])),
                 )
             )
-        self._store.execute(f"DELETE FROM {self._table}")
+        if self._undecryptable_ids:
+            # Rows that failed decryption stay on disk untouched so a key fix
+            # can still recover them.
+            placeholders = ", ".join("?" for _ in self._undecryptable_ids)
+            self._store.execute(
+                f"DELETE FROM {self._table} WHERE rule_id NOT IN ({placeholders})",
+                tuple(self._undecryptable_ids),
+            )
+        else:
+            self._store.execute(f"DELETE FROM {self._table}")
         if rows:
             self._store.executemany(
                 f"""
@@ -466,8 +517,12 @@ class Persona:
         rows = self._store.fetchall(f"SELECT * FROM {self._table}")
         loaded_rules: Dict[str, Dict[str, Any]] = {}
         now = time.time()
+        skipped: List[str] = []
         for row in rows:
             rule = self._row_to_rule(row)
+            if rule is None:
+                skipped.append(row["rule_id"])
+                continue
             rule.setdefault("layer", "adaptive")
             rule.setdefault("scope", "project")
             rule.setdefault("source", "legacy")
@@ -489,6 +544,12 @@ class Persona:
                 rule["state"] = "proposed"
             loaded_rules[rule["id"]] = rule
         self._rules = loaded_rules
+        self._undecryptable_ids = skipped
+        if self._needs_reencrypt and self._rules:
+            # Rules decrypted via a legacy key are rewritten with the
+            # per-install key so the fallback path only runs once.
+            self._needs_reencrypt = False
+            self.save()
 
     def __repr__(self) -> str:
         return f"Persona(name='{self.name}', rules={self.rule_count}, encrypted=True)"

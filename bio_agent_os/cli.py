@@ -27,7 +27,11 @@ def _base_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     serve = subparsers.add_parser("serve-api", help="Run FastAPI server", parents=[common])
-    serve.add_argument("--host", default=os.getenv("HOST", "0.0.0.0"))
+    serve.add_argument(
+        "--host",
+        default=os.getenv("HOST", "127.0.0.1"),
+        help="Bind address. Defaults to loopback; set BIO_AGENT_API_KEY before exposing other interfaces.",
+    )
     serve.add_argument("--port", type=int, default=int(os.getenv("PORT", "8055")))
 
     chat = subparsers.add_parser("chat", help="Send one chat turn", parents=[common])
@@ -60,10 +64,12 @@ def _base_parser() -> argparse.ArgumentParser:
 
     rstatus = subparsers.add_parser("remote-status", help="Read status from a running Bio-Agent OS server")
     rstatus.add_argument("--base-url", default=os.getenv("BIO_AGENT_BASE_URL", "http://127.0.0.1:8055"))
+    rstatus.add_argument("--api-key", default=os.getenv("BIO_AGENT_API_KEY"))
 
     rchat = subparsers.add_parser("remote-chat", help="Send one chat turn to a running Bio-Agent OS server")
     rchat.add_argument("message")
     rchat.add_argument("--base-url", default=os.getenv("BIO_AGENT_BASE_URL", "http://127.0.0.1:8055"))
+    rchat.add_argument("--api-key", default=os.getenv("BIO_AGENT_API_KEY"))
     rchat.add_argument("--task-id")
     rchat.add_argument("--workspace-id")
     rchat.add_argument("--project-version")
@@ -82,6 +88,13 @@ def main():
     args = parser.parse_args()
 
     if args.command == "serve-api":
+        loopback_hosts = {"127.0.0.1", "localhost", "::1"}
+        if args.host not in loopback_hosts and not os.getenv("BIO_AGENT_API_KEY"):
+            print(
+                "[bio-agent-os] WARNING: serving on a non-loopback interface "
+                f"({args.host}) without BIO_AGENT_API_KEY — the API will accept "
+                "unauthenticated requests from the network."
+            )
         uvicorn.run("bio_agent_os.api.main:app", host=args.host, port=args.port, reload=False)
         return
 
@@ -146,12 +159,12 @@ def main():
         return
 
     if args.command == "remote-status":
-        client = BioAgentRESTClient(base_url=args.base_url)
+        client = BioAgentRESTClient(base_url=args.base_url, api_key=args.api_key)
         _print(asyncio.run(client.status()))
         return
 
     if args.command == "remote-chat":
-        client = BioAgentRESTClient(base_url=args.base_url)
+        client = BioAgentRESTClient(base_url=args.base_url, api_key=args.api_key)
         _print(
             asyncio.run(
                 client.chat(

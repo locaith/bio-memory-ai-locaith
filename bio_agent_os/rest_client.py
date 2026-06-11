@@ -4,13 +4,14 @@ REST client for remote Bio-Agent OS servers.
 
 from __future__ import annotations
 
+import os
 from typing import Any, Optional
 
 
 class BioAgentRESTClient:
     def __init__(self, base_url: str = "http://127.0.0.1:8055", api_key: Optional[str] = None):
         self.base_url = base_url.rstrip("/")
-        self.api_key = api_key
+        self.api_key = api_key if api_key is not None else os.getenv("BIO_AGENT_API_KEY")
         self._httpx = None
 
     def _headers(self) -> dict[str, str]:

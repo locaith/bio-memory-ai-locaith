@@ -11,6 +11,10 @@
         "type": "string",
         "description": "Bio-Agent OS API base URL"
       },
+      "apiKey": {
+        "type": "string",
+        "description": "Bearer token matching the sidecar's BIO_AGENT_API_KEY (falls back to the BIO_AGENT_API_KEY environment variable)"
+      },
       "agentName": {
         "type": "string",
         "description": "Bio-Agent OS agent name"
