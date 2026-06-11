@@ -198,3 +198,104 @@ def test_api_rate_limit_returns_429(monkeypatch):
         assert "retry-after" in {key.lower() for key in blocked.headers.keys()}
         # Health stays reachable for monitoring even when throttled.
         assert client.get("/api/health").status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Multi-tenancy
+# ---------------------------------------------------------------------------
+
+ADMIN = {"Authorization": "Bearer admin-key-123"}
+TENANT_A = {"Authorization": "Bearer tenant-a-key"}
+TENANT_MULTI = {"Authorization": "Bearer tenant-multi-key"}
+
+TENANT_ENV = {
+    "BIO_AGENT_API_KEY": "admin-key-123",
+    "BIO_AGENT_TENANT_KEYS": "tenant-a-key=ws-a,tenant-multi-key=ws-a|ws-b",
+}
+
+
+def test_tenant_key_authenticates_but_cannot_reach_control_plane(monkeypatch):
+    with _build_client(monkeypatch, **TENANT_ENV) as client:
+        assert client.get("/api/status", headers=TENANT_A).status_code == 200
+        for path in ("/api/state", "/api/graph", "/api/audit", "/api/approvals"):
+            assert client.get(path, headers=TENANT_A).status_code == 403
+        assert client.post("/api/sleep", headers=TENANT_A).status_code == 403
+        assert client.post("/api/reset", headers=TENANT_A).status_code == 403
+        # The admin key still has full access.
+        assert client.get("/api/state", headers=ADMIN).status_code == 200
+
+
+def test_tenant_workspace_enforcement(monkeypatch):
+    with _build_client(monkeypatch, **TENANT_ENV) as client:
+        # Foreign workspace is rejected.
+        denied = client.post(
+            "/api/retrieve",
+            json={"query": "deploy policy", "workspace_id": "ws-b"},
+            headers=TENANT_A,
+        )
+        assert denied.status_code == 403
+
+        # Omitted workspace defaults to the tenant's only workspace.
+        ok = client.post("/api/retrieve", json={"query": "deploy policy"}, headers=TENANT_A)
+        assert ok.status_code == 200
+        assert ok.json()["retrieval_state"]["workspace_id"] == "ws-a"
+        assert ok.json()["retrieval_state"]["allowed_workspaces"] == ["ws-a"]
+
+        # A multi-workspace tenant must pick a workspace explicitly.
+        ambiguous = client.post(
+            "/api/retrieve", json={"query": "deploy policy"}, headers=TENANT_MULTI
+        )
+        assert ambiguous.status_code == 403
+        explicit = client.post(
+            "/api/retrieve",
+            json={"query": "deploy policy", "workspace_id": "ws-b"},
+            headers=TENANT_MULTI,
+        )
+        assert explicit.status_code == 200
+
+        # Unfiltered exact-memory listing is admin-only; scoped recall works.
+        assert client.get("/api/exact-memories", headers=TENANT_A).status_code == 403
+        assert (
+            client.get("/api/exact-memories", params={"query": "code"}, headers=TENANT_A).status_code
+            == 200
+        )
+
+
+def test_l2_results_are_isolated_per_tenant(monkeypatch):
+    with _build_client(monkeypatch, **TENANT_ENV) as client:
+        import bio_agent_os.api.main as main_module
+
+        main_module.l2.store(
+            content="Tenant A deploys with blue-green strategy.",
+            importance=8.0,
+            workspace_id="ws-a",
+        )
+        main_module.l2.store(
+            content="Tenant B secret rollout password is hunter2.",
+            importance=8.0,
+            workspace_id="ws-b",
+        )
+        main_module.l2.store(
+            content="Global memory without workspace tag.",
+            importance=8.0,
+        )
+
+        response = client.post(
+            "/api/retrieve",
+            json={"query": "deploys rollout strategy password", "top_k": 10},
+            headers=TENANT_A,
+        )
+        assert response.status_code == 200
+        contents = [item["content"] for item in response.json()["l2_results"]]
+        assert any("blue-green" in content for content in contents)
+        assert all("hunter2" not in content for content in contents)
+        assert all("Global memory" not in content for content in contents)
+
+        # The admin key sees everything.
+        admin_response = client.post(
+            "/api/retrieve",
+            json={"query": "deploys rollout strategy password", "top_k": 10},
+            headers=ADMIN,
+        )
+        admin_contents = [item["content"] for item in admin_response.json()["l2_results"]]
+        assert any("hunter2" in content for content in admin_contents)

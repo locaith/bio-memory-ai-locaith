@@ -6,7 +6,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
@@ -126,6 +126,40 @@ app.add_middleware(
 )
 
 
+def _workspace_scope(request: Request):
+    """None means unrestricted (admin key or auth disabled)."""
+    return getattr(request.state, "workspace_scope", None)
+
+
+def _require_admin(request: Request):
+    if _workspace_scope(request) is not None:
+        raise HTTPException(status_code=403, detail="This endpoint requires the admin API key.")
+
+
+def _enforce_workspace(request: Request, workspace_id: Optional[str]) -> Optional[str]:
+    """Resolve the effective workspace for a request, honouring tenant scope."""
+    scope = _workspace_scope(request)
+    if scope is None:
+        return workspace_id
+    if workspace_id:
+        if workspace_id in scope:
+            return workspace_id
+        raise HTTPException(status_code=403, detail="Workspace not permitted for this API key.")
+    if len(scope) == 1:
+        return next(iter(scope))
+    raise HTTPException(
+        status_code=403,
+        detail="This API key spans multiple workspaces; set workspace_id explicitly.",
+    )
+
+
+def _apply_scope_to_retrieval_state(request: Request, retrieval_state: dict) -> dict:
+    scope = _workspace_scope(request)
+    if scope is not None:
+        retrieval_state["allowed_workspaces"] = sorted(scope)
+    return retrieval_state
+
+
 @app.get("/", response_class=HTMLResponse)
 def serve_dashboard():
     html_path = os.path.join(os.path.dirname(__file__), "..", "..", "index.html")
@@ -139,10 +173,10 @@ def serve_dashboard():
 
 
 @app.post("/api/chat")
-async def chat(payload: ChatRequest):
+async def chat(payload: ChatRequest, request: Request):
     message = payload.message
     task_id = payload.task_id
-    workspace_id = payload.workspace_id
+    workspace_id = _enforce_workspace(request, payload.workspace_id)
     project_version = payload.project_version
     source_refs = payload.source_refs
 
@@ -150,6 +184,8 @@ async def chat(payload: ChatRequest):
     l1_context = l1.build_context_string(n=5)
     identity_prompt = persona.get_identity_prompt()
     retrieval_state = retrieval_service.build_retrieval_state(payload.model_dump())
+    retrieval_state["workspace_id"] = workspace_id
+    _apply_scope_to_retrieval_state(request, retrieval_state)
     retrieval_state["query"] = message
     exact_query_kind = exact_memory.infer_query_kind(message) if exact_memory else None
 
@@ -249,12 +285,12 @@ async def chat(payload: ChatRequest):
 
 
 @app.post("/api/ingest")
-async def ingest(payload: IngestRequest):
+async def ingest(payload: IngestRequest, request: Request):
     text = payload.text
     chunk_size = payload.chunk_size
     source = payload.source
     task_id = payload.task_id
-    workspace_id = payload.workspace_id
+    workspace_id = _enforce_workspace(request, payload.workspace_id)
     project_version = payload.project_version
     source_refs = payload.source_refs
     observation_type = payload.observation_type
@@ -291,7 +327,8 @@ async def ingest(payload: IngestRequest):
 
 
 @app.post("/api/sleep")
-async def trigger_sleep():
+async def trigger_sleep(request: Request):
+    _require_admin(request)
     gc_result = gc.run()
     encode_result = await hippo.consolidate()
     return {
@@ -305,7 +342,8 @@ async def trigger_sleep():
 
 
 @app.post("/api/dream")
-async def trigger_dream():
+async def trigger_dream(request: Request):
+    _require_admin(request)
     gc_result = gc.run()
     dream_result = await hippo.dream()
     return {
@@ -318,7 +356,8 @@ async def trigger_dream():
 
 
 @app.get("/api/reflect")
-async def reflect():
+async def reflect(request: Request):
+    _require_admin(request)
     deterministic = health_monitor.reflect()
     try:
         reflection_text = await engine.generate(health_monitor.reflection_prompt(), temperature=0.2)
@@ -334,7 +373,8 @@ async def reflect():
 
 
 @app.get("/api/state")
-def get_state():
+def get_state(request: Request):
+    _require_admin(request)
     return {
         "agent_name": AGENT_NAME,
         "backend": engine.backend,
@@ -362,18 +402,21 @@ def get_health():
 
 
 @app.get("/api/confidence-dashboard")
-def get_confidence_dashboard():
+def get_confidence_dashboard(request: Request):
+    _require_admin(request)
     return health_monitor.confidence_dashboard()
 
 
 @app.get("/api/episodes")
 def get_episodes(
+    request: Request,
     limit: int = Query(10, ge=1, le=200),
     task_id: Optional[str] = Query(None, max_length=128),
     workspace_id: Optional[str] = Query(None, max_length=128),
     project_version: Optional[str] = Query(None, max_length=128),
     query: Optional[str] = Query(None, max_length=20_000),
 ):
+    workspace_id = _enforce_workspace(request, workspace_id)
     if query:
         items = episodes.search_text(
             query=query,
@@ -404,12 +447,14 @@ def get_status():
 
 @app.get("/api/exact-memories")
 def get_exact_memories(
+    request: Request,
     limit: int = Query(10, ge=1, le=200),
     query: Optional[str] = Query(None, max_length=20_000),
     workspace_id: Optional[str] = Query(None, max_length=128),
     project_version: Optional[str] = Query(None, max_length=128),
     task_id: Optional[str] = Query(None, max_length=128),
 ):
+    workspace_id = _enforce_workspace(request, workspace_id)
     if query:
         return exact_memory.recall(
             query=query,
@@ -418,27 +463,32 @@ def get_exact_memories(
             task_id=task_id,
             limit=limit,
         )
+    # The unfiltered listing spans every workspace, so it stays admin-only.
+    _require_admin(request)
     return {"count": exact_memory.count, "records": exact_memory.recent(limit)}
 
 
 @app.post("/api/exact-memories/reindex")
-def reindex_exact_memories(limit: int = Query(1200, ge=1, le=10_000)):
+def reindex_exact_memories(request: Request, limit: int = Query(1200, ge=1, le=10_000)):
+    _require_admin(request)
     imported = exact_memory.reindex_from_episodes(episodes, limit=limit)
     return {"status": "ok", "imported": imported, "count": exact_memory.count}
 
 
 @app.get("/api/revalidation")
-def get_revalidation(limit: int = Query(12, ge=1, le=200)):
+def get_revalidation(request: Request, limit: int = Query(12, ge=1, le=200)):
+    _require_admin(request)
     summary = health_monitor.revalidation_summary()
     return {**summary, "clusters": summary.get("clusters", [])[:limit]}
 
 
 @app.post("/api/revalidation/resolve")
-async def resolve_revalidation(payload: RevalidationResolveRequest):
+async def resolve_revalidation(payload: RevalidationResolveRequest, request: Request):
+    workspace_id = _enforce_workspace(request, payload.workspace_id)
     result = exact_memory.resolve_conflict(
         fact_kind=payload.fact_kind,
         fact_value=payload.fact_value,
-        workspace_id=payload.workspace_id,
+        workspace_id=workspace_id,
         project_version=payload.project_version,
         reviewer=payload.reviewer,
     )
@@ -446,7 +496,8 @@ async def resolve_revalidation(payload: RevalidationResolveRequest):
 
 
 @app.get("/api/graph")
-def get_graph():
+def get_graph(request: Request):
+    _require_admin(request)
     return {
         "nodes": kg._nodes,
         "edges": kg._edges,
@@ -455,17 +506,16 @@ def get_graph():
 
 
 @app.get("/api/beliefs")
-def get_beliefs(active_only: bool = False):
+def get_beliefs(request: Request, active_only: bool = False):
+    _require_admin(request)
     return kg.belief_query(active_only=active_only)
 
 
-@app.get("/api/beliefs/{rule_id}")
-def get_belief(rule_id: str):
-    return kg.belief_query(rule_id=rule_id)
-
-
+# NOTE: declared before /api/beliefs/{rule_id} so "timeline" is not
+# swallowed by the path parameter.
 @app.get("/api/beliefs/timeline")
-def get_belief_timeline(active_only: bool = False):
+def get_belief_timeline(request: Request, active_only: bool = False):
+    _require_admin(request)
     result = kg.belief_query(active_only=active_only)
     rules = sorted(
         result.get("rules", []),
@@ -489,25 +539,44 @@ def get_belief_timeline(active_only: bool = False):
     return {"rules": rules, "edges": edges}
 
 
+@app.get("/api/beliefs/{rule_id}")
+def get_belief(rule_id: str, request: Request):
+    _require_admin(request)
+    return kg.belief_query(rule_id=rule_id)
+
+
 @app.get("/api/dreams")
-def get_dream_reports(limit: int = Query(10, ge=1, le=200)):
+def get_dream_reports(request: Request, limit: int = Query(10, ge=1, le=200)):
+    _require_admin(request)
     return {"count": dream_journal.count, "reports": dream_journal.recent(limit)}
 
 
 @app.get("/api/audit")
-def get_audit(limit: int = Query(50, ge=1, le=500), event_type: Optional[str] = Query(None, max_length=64)):
+def get_audit(
+    request: Request,
+    limit: int = Query(50, ge=1, le=500),
+    event_type: Optional[str] = Query(None, max_length=64),
+):
+    _require_admin(request)
     return {"count": audit_log.count, "events": audit_log.recent(limit=limit, event_type=event_type)}
 
 
 @app.get("/api/replay")
-def replay_memory(since: float = Query(0.0, ge=0.0), until: Optional[float] = Query(None, ge=0.0)):
+def replay_memory(
+    request: Request,
+    since: float = Query(0.0, ge=0.0),
+    until: Optional[float] = Query(None, ge=0.0),
+):
+    _require_admin(request)
     return {"events": audit_log.replay(since=since, until=until)}
 
 
 @app.post("/api/retrieve")
-async def retrieve(payload: RetrieveRequest):
+async def retrieve(payload: RetrieveRequest, request: Request):
     query = payload.query
     retrieval_state = retrieval_service.build_retrieval_state(payload.model_dump())
+    retrieval_state["workspace_id"] = _enforce_workspace(request, payload.workspace_id)
+    _apply_scope_to_retrieval_state(request, retrieval_state)
     if payload.prefer_exception is not None:
         retrieval_state["prefer_exception"] = payload.prefer_exception
     bundle = retrieval_service.hybrid_retrieve(query, retrieval_state, top_k=payload.top_k)
@@ -515,9 +584,11 @@ async def retrieve(payload: RetrieveRequest):
 
 
 @app.post("/api/lineage")
-async def lineage(payload: RetrieveRequest):
+async def lineage(payload: RetrieveRequest, request: Request):
     query = payload.query
     retrieval_state = retrieval_service.build_retrieval_state(payload.model_dump())
+    retrieval_state["workspace_id"] = _enforce_workspace(request, payload.workspace_id)
+    _apply_scope_to_retrieval_state(request, retrieval_state)
     return {
         "query": query,
         "retrieval_state": retrieval_state,
@@ -527,6 +598,7 @@ async def lineage(payload: RetrieveRequest):
 
 @app.get("/api/lineage")
 def lineage_get(
+    request: Request,
     query: str = Query(min_length=1, max_length=20_000),
     mode: str = Query("implement", max_length=32),
     stress_state: str = Query("normal", max_length=32),
@@ -542,10 +614,11 @@ def lineage_get(
         "stress_state": stress_state,
         "risk_level": risk_level,
         "task_id": task_id,
-        "workspace_id": workspace_id,
+        "workspace_id": _enforce_workspace(request, workspace_id),
         "project_version": project_version,
     }
     retrieval_state = retrieval_service.build_retrieval_state(data)
+    _apply_scope_to_retrieval_state(request, retrieval_state)
     return {
         "query": query,
         "retrieval_state": retrieval_state,
@@ -554,12 +627,16 @@ def lineage_get(
 
 
 @app.get("/api/approvals")
-def get_approvals(status: Optional[str] = Query(None, max_length=32)):
+def get_approvals(request: Request, status: Optional[str] = Query(None, max_length=32)):
+    _require_admin(request)
     return {"pending": approval_queue.pending_count, "requests": approval_queue.list(status=status, limit=200)}
 
 
 @app.post("/api/approvals/{request_id}/approve")
-async def approve_request(request_id: str, payload: Optional[ApprovalDecisionRequest] = None):
+async def approve_request(
+    request_id: str, request: Request, payload: Optional[ApprovalDecisionRequest] = None
+):
+    _require_admin(request)
     reviewer = payload.reviewer if payload else "human"
     resolved = approval_queue.resolve(request_id, "approved", reviewer=reviewer)
     if not resolved:
@@ -585,7 +662,10 @@ async def approve_request(request_id: str, payload: Optional[ApprovalDecisionReq
 
 
 @app.post("/api/approvals/{request_id}/reject")
-async def reject_request(request_id: str, payload: Optional[ApprovalDecisionRequest] = None):
+async def reject_request(
+    request_id: str, request: Request, payload: Optional[ApprovalDecisionRequest] = None
+):
+    _require_admin(request)
     reviewer = payload.reviewer if payload else "human"
     resolved = approval_queue.resolve(request_id, "rejected", reviewer=reviewer)
     if not resolved:
@@ -594,7 +674,8 @@ async def reject_request(request_id: str, payload: Optional[ApprovalDecisionRequ
 
 
 @app.post("/api/reset")
-def reset():
+def reset(request: Request):
+    _require_admin(request)
     l1.clear()
     return {"status": "reset", "warning": "L1 cleared. Persona, L2, and episodes preserved."}
 

@@ -12,7 +12,14 @@ from bio_agent_os.core.embedder import Embedder
 
 try:
     from qdrant_client import QdrantClient
-    from qdrant_client.models import Distance, PointStruct, VectorParams
+    from qdrant_client.models import (
+        Distance,
+        FieldCondition,
+        Filter,
+        MatchAny,
+        PointStruct,
+        VectorParams,
+    )
 
     QDRANT_AVAILABLE = True
 except ImportError:
@@ -267,7 +274,12 @@ class L2SemanticMemory:
         now = time.time()
         query_terms = {term for term in query.lower().split() if term}
         query_vector = query_vector or self.embedder.embed(query)
+        allowed_workspaces = self._allowed_workspaces(retrieval_state)
         for payload in entries:
+            # Hard tenancy boundary: entries outside the caller's workspace
+            # scope are invisible, not merely down-ranked.
+            if allowed_workspaces is not None and payload.get("workspace_id") not in allowed_workspaces:
+                continue
             importance = float(payload["importance"])
             timestamp = float(payload["timestamp"])
             days_elapsed = (now - timestamp) / 86400
@@ -317,6 +329,15 @@ class L2SemanticMemory:
         results.sort(key=lambda item: item["score"], reverse=True)
         return results[:top_k]
 
+    @staticmethod
+    def _allowed_workspaces(retrieval_state: Optional[Dict[str, Any]]) -> Optional[set]:
+        if not retrieval_state:
+            return None
+        allowed = retrieval_state.get("allowed_workspaces")
+        if allowed is None:
+            return None
+        return {str(workspace) for workspace in allowed}
+
     def search(
         self,
         query: str,
@@ -333,9 +354,24 @@ class L2SemanticMemory:
                 query_vector=query_vector,
             )
 
+        allowed_workspaces = self._allowed_workspaces(retrieval_state)
+        query_filter = None
+        if allowed_workspaces is not None:
+            # Filter at the index so tenant results are not starved by
+            # other tenants' entries occupying the candidate window.
+            query_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="workspace_id",
+                        match=MatchAny(any=sorted(allowed_workspaces)),
+                    )
+                ]
+            )
+
         points_data = self.client.query_points(
             collection_name=self.collection_name,
             query=query_vector,
+            query_filter=query_filter,
             limit=top_k * 3,
         )
         entries = [dict(hit.payload) for hit in points_data.points]
