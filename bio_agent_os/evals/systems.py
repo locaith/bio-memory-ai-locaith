@@ -91,18 +91,35 @@ class NaiveRagSystem:
 
 
 class BioMemorySystem:
-    """The full Bio-Agent OS pipeline, isolated per conversation by workspace."""
+    """
+    The full Bio-Agent OS pipeline, isolated per conversation by workspace.
+
+    LoCoMo sessions happen on different days, so each session boundary maps
+    to one sleep cycle ("night"): garbage collection + consolidation. This
+    matches the production design where consolidation eligibility is
+    measured in nights survived, not turns ingested. ``sleep_every`` adds
+    optional intra-session micro-sleeps on top.
+    """
 
     name = "bio-memory"
 
-    def __init__(self, runtime, workspace_id: str, sleep_every: int = 20, top_k: int = 10):
+    def __init__(self, runtime, workspace_id: str, sleep_every: int = 0, top_k: int = 10):
         self._runtime = runtime
         self._workspace_id = workspace_id
         self._sleep_every = max(0, sleep_every)
         self._top_k = top_k
         self._turn_count = 0
+        self._current_session: int | None = None
+
+    async def _sleep_cycle(self) -> None:
+        self._runtime.gc.run()
+        await self._runtime.hippo.consolidate()
 
     async def ingest_turn(self, turn: LocomoTurn) -> None:
+        if self._current_session is not None and turn.session_id != self._current_session:
+            await self._sleep_cycle()
+        self._current_session = turn.session_id
+
         await self._runtime.hippo.label_and_store(
             format_turn(turn),
             source=turn.speaker,
@@ -111,13 +128,10 @@ class BioMemorySystem:
         )
         self._turn_count += 1
         if self._sleep_every and self._turn_count % self._sleep_every == 0:
-            self._runtime.gc.run()
-            await self._runtime.hippo.consolidate()
+            await self._sleep_cycle()
 
     async def finalize_ingest(self) -> None:
-        if self._sleep_every:
-            self._runtime.gc.run()
-            await self._runtime.hippo.consolidate()
+        await self._sleep_cycle()
 
     def _retrieve_context(self, question: str) -> str:
         retrieval_state = self._runtime.retrieval_service.build_retrieval_state(

@@ -174,8 +174,10 @@ class RetrievalService:
         retrieval_state: Dict[str, object],
         limit: int = 4,
     ) -> List[Dict[str, Any]]:
-        if not self._is_anchor_query(query):
-            return []
+        # Hippocampal recall: recent episodes are retrievable for ANY query,
+        # not only anchor-style ones — they are the sole record of memories
+        # that have not been consolidated into L2 yet. Anchor queries keep
+        # their dedicated boost inside search_text scoring.
         matches = self.episodes.search_text(
             query,
             limit=limit,

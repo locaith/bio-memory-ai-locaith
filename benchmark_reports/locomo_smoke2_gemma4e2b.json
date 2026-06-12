@@ -1,0 +1,545 @@
+{
+  "benchmark": "locomo",
+  "config": {
+    "max_conversations": 1,
+    "max_sessions": 3,
+    "max_questions_per_conversation": 12,
+    "categories": null,
+    "top_k": 10,
+    "sleep_every": 0
+  },
+  "metadata": {
+    "backend": "ollama",
+    "model": "gemma4:e2b",
+    "started_at": "2026-06-12 07:46:58",
+    "dataset": "data\\evals\\locomo10.json",
+    "dataset_url": "https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json"
+  },
+  "conversations_evaluated": [
+    "conv-26"
+  ],
+  "systems": {
+    "no-memory": {
+      "summary": {
+        "questions_total": 12,
+        "questions_answerable": 12,
+        "per_category": {
+          "multi-hop": {
+            "count": 3,
+            "f1": 0.0,
+            "em": 0.0
+          },
+          "temporal": {
+            "count": 7,
+            "f1": 0.0,
+            "em": 0.0
+          },
+          "open-domain": {
+            "count": 1,
+            "f1": 0.0,
+            "em": 0.0
+          },
+          "single-hop": {
+            "count": 1,
+            "f1": 0.0,
+            "em": 0.0
+          }
+        },
+        "f1_answerable": 0.0,
+        "em_answerable": 0.0,
+        "ingest_seconds_total": 0.0,
+        "answer_seconds_total": 26.11
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 58,
+          "questions": [
+            {
+              "question": "When did Caroline go to the LGBTQ support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "7 May 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie paint a sunrise?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What fields would Caroline be likely to pursue in her educaton?",
+              "category": 3,
+              "category_name": "open-domain",
+              "gold": "Psychology, counseling certification",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What did Caroline research?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Adoption agencies",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What is Caroline's identity?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Transgender woman",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie run a charity race?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The sunday before 25 May 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Melanie planning on going camping?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What is Caroline's relationship status?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Single",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline give a speech at a school?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline meet up with her friends, family, and mentors?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "How long has Caroline had her current group of friends for?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "4 years",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What did the charity race raise awareness for?",
+              "category": 4,
+              "category_name": "single-hop",
+              "gold": "mental health",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 0.0,
+          "answer_seconds": 26.11
+        }
+      ]
+    },
+    "naive-rag": {
+      "summary": {
+        "questions_total": 12,
+        "questions_answerable": 12,
+        "per_category": {
+          "multi-hop": {
+            "count": 3,
+            "f1": 0.2222,
+            "em": 0.0
+          },
+          "temporal": {
+            "count": 7,
+            "f1": 0.3673,
+            "em": 0.1429
+          },
+          "open-domain": {
+            "count": 1,
+            "f1": 0.2857,
+            "em": 0.0
+          },
+          "single-hop": {
+            "count": 1,
+            "f1": 1.0,
+            "em": 1.0
+          }
+        },
+        "f1_answerable": 0.377,
+        "em_answerable": 0.1667,
+        "ingest_seconds_total": 3.76,
+        "answer_seconds_total": 71.27
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 58,
+          "questions": [
+            {
+              "question": "When did Caroline go to the LGBTQ support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "7 May 2023",
+              "adversarial_answer": null,
+              "prediction": "May 7, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie paint a sunrise?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "Last year",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What fields would Caroline be likely to pursue in her educaton?",
+              "category": 3,
+              "category_name": "open-domain",
+              "gold": "Psychology, counseling certification",
+              "adversarial_answer": null,
+              "prediction": "Counseling or mental health",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What did Caroline research?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Adoption agencies",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What is Caroline's identity?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Transgender woman",
+              "adversarial_answer": null,
+              "prediction": "Transgender",
+              "f1": 0.6666666666666666,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie run a charity race?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The sunday before 25 May 2023",
+              "adversarial_answer": null,
+              "prediction": "Last Saturday",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Melanie planning on going camping?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What is Caroline's relationship status?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Single",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline give a speech at a school?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline meet up with her friends, family, and mentors?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "How long has Caroline had her current group of friends for?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "4 years",
+              "adversarial_answer": null,
+              "prediction": "4 years",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "What did the charity race raise awareness for?",
+              "category": 4,
+              "category_name": "single-hop",
+              "gold": "mental health",
+              "adversarial_answer": null,
+              "prediction": "Mental health",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 3.76,
+          "answer_seconds": 71.27
+        }
+      ]
+    },
+    "bio-memory": {
+      "summary": {
+        "questions_total": 12,
+        "questions_answerable": 12,
+        "per_category": {
+          "multi-hop": {
+            "count": 3,
+            "f1": 0.0,
+            "em": 0.0
+          },
+          "temporal": {
+            "count": 7,
+            "f1": 0.0,
+            "em": 0.0
+          },
+          "open-domain": {
+            "count": 1,
+            "f1": 0.0,
+            "em": 0.0
+          },
+          "single-hop": {
+            "count": 1,
+            "f1": 1.0,
+            "em": 1.0
+          }
+        },
+        "f1_answerable": 0.0833,
+        "em_answerable": 0.0833,
+        "ingest_seconds_total": 544.95,
+        "answer_seconds_total": 73.8
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 58,
+          "questions": [
+            {
+              "question": "When did Caroline go to the LGBTQ support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "7 May 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie paint a sunrise?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What fields would Caroline be likely to pursue in her educaton?",
+              "category": 3,
+              "category_name": "open-domain",
+              "gold": "Psychology, counseling certification",
+              "adversarial_answer": null,
+              "prediction": "Mental health/counseling",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What did Caroline research?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Adoption agencies",
+              "adversarial_answer": null,
+              "prediction": "No information available",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What is Caroline's identity?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Transgender woman",
+              "adversarial_answer": null,
+              "prediction": "Trans community advocate",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie run a charity race?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The sunday before 25 May 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Melanie planning on going camping?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What is Caroline's relationship status?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Single",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline give a speech at a school?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline meet up with her friends, family, and mentors?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "How long has Caroline had her current group of friends for?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "4 years",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What did the charity race raise awareness for?",
+              "category": 4,
+              "category_name": "single-hop",
+              "gold": "mental health",
+              "adversarial_answer": null,
+              "prediction": "Mental health.",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 544.95,
+          "answer_seconds": 73.8
+        }
+      ]
+    }
+  }
+}

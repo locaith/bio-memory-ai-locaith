@@ -9,6 +9,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from bio_agent_os.core.embedder import Embedder
+from bio_agent_os.core.sqlite_store import SQLiteStore
 
 try:
     from qdrant_client import QdrantClient
@@ -35,6 +36,21 @@ class L2SemanticMemory:
 
         url = os.getenv("QDRANT_URL", None)
         api_key = os.getenv("QDRANT_API_KEY", None)
+        self._remote_index = bool(url)
+
+        # Durable store: long-term memory must survive process restarts even
+        # when the vector index is in-memory (no external Qdrant configured).
+        self._durable = SQLiteStore(storage_dir=storage_dir)
+        self._durable_table = f"{SQLiteStore.sanitize_identifier(agent_name)}_l2_entries"
+        self._durable.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {self._durable_table} (
+                entry_id TEXT PRIMARY KEY,
+                payload_json TEXT NOT NULL,
+                vector_json TEXT NOT NULL
+            )
+            """
+        )
 
         if QDRANT_AVAILABLE:
             if url:
@@ -46,6 +62,9 @@ class L2SemanticMemory:
         else:
             self._fallback = True
             self._entries: List[Dict[str, Any]] = []
+
+        if not self._remote_index:
+            self._rehydrate()
 
     def _ensure_collection(self):
         if not self.client.collection_exists(self.collection_name):
@@ -165,17 +184,58 @@ class L2SemanticMemory:
             project_version=project_version,
         )
 
+        vector = self.embedder.embed(content)
+        self._persist_entry(payload, vector)
+
         if self._fallback:
-            payload["vector"] = self.embedder.embed(content)
+            payload = dict(payload)
+            payload["vector"] = vector
             self._entries.append(payload)
             return
 
         point = PointStruct(
             id=payload["entry_id"],
-            vector=self.embedder.embed(content),
+            vector=vector,
             payload=payload,
         )
         self.client.upsert(collection_name=self.collection_name, points=[point])
+
+    def _persist_entry(self, payload: Dict[str, Any], vector: List[float]) -> None:
+        durable_payload = {key: value for key, value in payload.items() if key != "vector"}
+        self._durable.execute(
+            f"INSERT OR REPLACE INTO {self._durable_table} (entry_id, payload_json, vector_json) VALUES (?, ?, ?)",
+            (
+                str(payload["entry_id"]),
+                self._durable.dumps_json(durable_payload),
+                self._durable.dumps_json(vector),
+            ),
+        )
+
+    def _rehydrate(self) -> None:
+        rows = self._durable.fetchall(f"SELECT * FROM {self._durable_table}")
+        if not rows:
+            return
+        points: List[Any] = []
+        for row in rows:
+            payload = self._durable.loads_json(row["payload_json"], None)
+            vector = self._durable.loads_json(row["vector_json"], None)
+            if not isinstance(payload, dict) or not isinstance(vector, list):
+                continue
+            if len(vector) != self.embedder.dimensions:
+                # Embedding backend changed since this entry was written;
+                # re-embed from content so no memory is silently lost.
+                vector = self.embedder.embed(str(payload.get("content", "")))
+                self._persist_entry(payload, vector)
+            if self._fallback:
+                entry = dict(payload)
+                entry["vector"] = vector
+                self._entries.append(entry)
+            else:
+                points.append(
+                    PointStruct(id=payload["entry_id"], vector=vector, payload=payload)
+                )
+        if points:
+            self.client.upsert(collection_name=self.collection_name, points=points)
 
     def store_exception(
         self,
@@ -437,19 +497,34 @@ class L2SemanticMemory:
             "by_type": by_type,
         }
 
+    def _delete_persisted(self, entry_ids: List[str]) -> None:
+        if not entry_ids:
+            return
+        placeholders = ", ".join("?" for _ in entry_ids)
+        self._durable.execute(
+            f"DELETE FROM {self._durable_table} WHERE entry_id IN ({placeholders})",
+            tuple(str(entry_id) for entry_id in entry_ids),
+        )
+
     def prune_decayed(self, threshold: float = 1.0) -> int:
+        now = time.time()
         if self._fallback:
-            before = len(self._entries)
-            now = time.time()
-            self._entries = [
-                entry for entry in self._entries
-                if entry["importance"] * math.exp(-self.decay_lambda * ((now - entry["timestamp"]) / 86400)) >= threshold
-            ]
-            return before - len(self._entries)
+            kept: List[Dict[str, Any]] = []
+            removed_ids: List[str] = []
+            for entry in self._entries:
+                decay_score = entry["importance"] * math.exp(
+                    -self.decay_lambda * ((now - entry["timestamp"]) / 86400)
+                )
+                if decay_score >= threshold:
+                    kept.append(entry)
+                else:
+                    removed_ids.append(str(entry.get("entry_id")))
+            self._entries = kept
+            self._delete_persisted(removed_ids)
+            return len(removed_ids)
 
         points, _ = self.client.scroll(collection_name=self.collection_name, limit=1000)
         to_delete = []
-        now = time.time()
 
         for point in points:
             days_elapsed = (now - point.payload["timestamp"]) / 86400
@@ -461,6 +536,7 @@ class L2SemanticMemory:
 
         if to_delete:
             self.client.delete(collection_name=self.collection_name, points_selector=to_delete)
+            self._delete_persisted([str(point_id) for point_id in to_delete])
 
         return len(to_delete)
 
