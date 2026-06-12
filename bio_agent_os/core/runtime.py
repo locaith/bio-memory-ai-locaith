@@ -57,7 +57,9 @@ def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
     l1 = L1WorkingMemory(agent_name=agent_name, storage_dir=storage_dir)
     l2 = L2SemanticMemory(agent_name=agent_name, storage_dir=storage_dir)
     kg = KnowledgeGraph(agent_name=agent_name, storage_dir=storage_dir)
-    episodes = EpisodeStore(agent_name=agent_name, storage_dir=storage_dir)
+    # Episodes share L2's embedder so hippocampal recall is dense, not
+    # keyword-only, without loading a second embedding model.
+    episodes = EpisodeStore(agent_name=agent_name, storage_dir=storage_dir, embedder=l2.embedder)
     exact_memory = ExactMemoryStore(agent_name=agent_name, storage_dir=storage_dir)
     if exact_memory.count == 0 or os.getenv("BIO_AGENT_REINDEX_EXACT_MEMORY", "0") == "1":
         exact_memory.reindex_from_episodes(episodes)

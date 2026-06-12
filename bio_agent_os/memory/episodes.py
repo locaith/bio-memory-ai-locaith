@@ -33,9 +33,12 @@ class EpisodeRecord(BaseModel):
 
 
 class EpisodeStore:
-    def __init__(self, agent_name: str = "Bio-AI", storage_dir: str = "data"):
+    def __init__(self, agent_name: str = "Bio-AI", storage_dir: str = "data", embedder=None):
         self.agent_name = agent_name
         self.storage_dir = storage_dir
+        # Optional shared embedder enables dense hippocampal recall; without
+        # it the store falls back to keyword-overlap search.
+        self._embedder = embedder
         self._legacy_filepath = os.path.join(storage_dir, f"{agent_name}_episodes.json")
         self._store = SQLiteStore(storage_dir=storage_dir)
         self._table = f"{self._store.sanitize_identifier(agent_name)}_episodes"
@@ -61,10 +64,16 @@ class EpisodeStore:
                 confidence REAL NOT NULL,
                 tags_json TEXT NOT NULL,
                 source_refs_json TEXT NOT NULL,
-                metadata_json TEXT NOT NULL
+                metadata_json TEXT NOT NULL,
+                vector_json TEXT
             )
             """
         )
+        try:
+            # Migration for tables created before dense recall existed.
+            self._store.execute(f"ALTER TABLE {self._table} ADD COLUMN vector_json TEXT")
+        except Exception:
+            pass
 
     def _migrate_legacy_json(self):
         if not os.path.exists(self._legacy_filepath):
@@ -169,13 +178,20 @@ class EpisodeStore:
             workspace_id=workspace_id,
             project_version=project_version,
         ).model_dump()
+        vector: Optional[List[float]] = None
+        if self._embedder is not None:
+            try:
+                vector = self._embedder.embed(str(raw_payload)[:1500])
+            except Exception:
+                vector = None
         self._store.execute(
             f"""
             INSERT OR REPLACE INTO {self._table} (
                 episode_id, timestamp, task_id, workspace_id, project_version,
                 actor, source, observation_type, raw_payload, inferred_intent,
-                topic, outcome, confidence, tags_json, source_refs_json, metadata_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                topic, outcome, confidence, tags_json, source_refs_json, metadata_json,
+                vector_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 record["episode_id"],
@@ -194,6 +210,7 @@ class EpisodeStore:
                 self._store.dumps_json(record.get("tags", [])),
                 self._store.dumps_json(record.get("source_refs", [])),
                 self._store.dumps_json(record.get("metadata", {})),
+                self._store.dumps_json(vector) if vector else None,
             ],
         )
         return record
@@ -248,6 +265,43 @@ class EpisodeStore:
         )
         return [self._row_to_record(row) for row in reversed(rows)]
 
+    @staticmethod
+    def _cosine(left: List[float], right: List[float]) -> float:
+        if len(left) != len(right):
+            return 0.0
+        return sum(a * b for a, b in zip(left, right))
+
+    def _search_candidates(
+        self,
+        task_id: Optional[str],
+        workspace_id: Optional[str],
+        project_version: Optional[str],
+        limit: int,
+    ) -> List[Dict[str, Any]]:
+        conditions = []
+        parameters: List[Any] = []
+        if task_id is not None:
+            conditions.append("task_id = ?")
+            parameters.append(task_id)
+        if workspace_id is not None:
+            conditions.append("workspace_id = ?")
+            parameters.append(workspace_id)
+        if project_version is not None:
+            conditions.append("project_version = ?")
+            parameters.append(project_version)
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        parameters.append(limit)
+        rows = self._store.fetchall(
+            f"SELECT * FROM {self._table} {where} ORDER BY timestamp DESC LIMIT ?",
+            parameters,
+        )
+        candidates = []
+        for row in rows:
+            record = self._row_to_record(row)
+            record["_vector"] = self._store.loads_json(row["vector_json"], None)
+            candidates.append(record)
+        return candidates
+
     def search_text(
         self,
         query: str,
@@ -258,19 +312,28 @@ class EpisodeStore:
     ) -> List[Dict[str, Any]]:
         if not query.strip():
             return []
-        candidates = self.query(
+        # A wide candidate pool matters for long histories: a recency-capped
+        # pool would make old episodes unfindable regardless of relevance.
+        candidates = self._search_candidates(
             task_id=task_id,
             workspace_id=workspace_id,
             project_version=project_version,
-            limit=max(limit * 12, 60),
+            limit=max(limit * 12, 500),
         )
         query_terms = self._tokenize(query)
         normalized_query = " ".join(query_terms)
         desired_anchor_kind = self._infer_anchor_kind(query)
+        query_vector: Optional[List[float]] = None
+        if self._embedder is not None:
+            try:
+                query_vector = self._embedder.embed(query)
+            except Exception:
+                query_vector = None
         now = time.time()
         results: List[Dict[str, Any]] = []
         for record in candidates:
             text = str(record.get("raw_payload", "")).strip()
+            vector = record.pop("_vector", None)
             if not text:
                 continue
             metadata = record.get("metadata", {})
@@ -283,7 +346,18 @@ class EpisodeStore:
                 and desired_anchor_kind
                 and anchor_kind == desired_anchor_kind
             )
-            if query_terms and overlap == 0 and normalized_query not in text.lower() and not is_matching_anchor:
+            dense = 0.0
+            if query_vector is not None and isinstance(vector, list):
+                dense = max(0.0, self._cosine(query_vector, vector))
+            # Dense similarity rescues paraphrased queries that share no
+            # keywords with the episode text.
+            if (
+                query_terms
+                and overlap == 0
+                and normalized_query not in text.lower()
+                and not is_matching_anchor
+                and dense < 0.4
+            ):
                 continue
             recency_hours = max((now - float(record.get("timestamp", now))) / 3600.0, 0.0)
             recency_bonus = max(0.0, 1.5 - min(recency_hours / 24.0, 1.5))
@@ -295,7 +369,7 @@ class EpisodeStore:
             elif desired_anchor_kind and anchor_kind and anchor_kind != desired_anchor_kind:
                 anchor_bonus -= 0.6
             exact_bonus = 0.6 if normalized_query and normalized_query in " ".join(text_terms) else 0.0
-            score = overlap * 0.7 + recency_bonus + anchor_bonus + exact_bonus
+            score = dense * 3.0 + overlap * 0.7 + recency_bonus + anchor_bonus + exact_bonus
             results.append({**record, "score": round(score, 3)})
         results.sort(key=lambda item: (-float(item["score"]), -float(item["timestamp"])))
         return results[:limit]
