@@ -46,6 +46,12 @@ class BioAgentRESTClient:
     async def ingest(self, text: str, **context: Any) -> dict[str, Any]:
         return await self._request("POST", "/api/ingest", {"text": text, **context})
 
+    async def retrieve(self, query: str, **context: Any) -> dict[str, Any]:
+        return await self._request("POST", "/api/retrieve", {"query": query, **context})
+
+    async def state(self) -> dict[str, Any]:
+        return await self._request("GET", "/api/state")
+
     async def sleep(self) -> dict[str, Any]:
         return await self._request("POST", "/api/sleep", {})
 

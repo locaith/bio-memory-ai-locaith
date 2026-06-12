@@ -185,6 +185,25 @@ sweagent run --config config/default.yaml --config examples/swe-agent/bio_memory
 
 Mục tiêu tương tự: dùng cùng lõi bio-memory nhưng bọc thành đường sidecar/config riêng cho SWE-Agent.
 
+### 🔌 MCP Server: cắm vào Claude Code, Cursor và mọi nền tảng MCP
+
+Bio-Agent OS có sẵn MCP server chuẩn (Model Context Protocol) — nghĩa là bất kỳ nền tảng nào nói được MCP (Claude Code, Cursor, OpenAI Agents SDK, agent tự dựng...) đều lắp được trí nhớ sinh học này bằng đúng một lệnh:
+
+```bash
+pip install bio-agent-os[mcp]
+claude mcp add bio-memory -- bio-agent-os serve-mcp
+```
+
+Agent của bạn lập tức có 5 tool: `store_memory`, `recall`, `list_rules`, `memory_status`, `consolidate`. Mặc định memory chạy embedded ngay trong process (zero setup, lưu tại `STORAGE_DIR`).
+
+Muốn nhiều agent **dùng chung một bộ nhớ** (ví dụ Claude Code + OpenClaw cùng nhớ một thứ)? Trỏ MCP server vào sidecar đang chạy:
+
+```bash
+bio-agent-os serve-mcp --base-url http://127.0.0.1:8055 --api-key $BIO_AGENT_API_KEY --workspace-id main
+```
+
+Tenant key (`BIO_AGENT_TENANT_KEYS`) hoạt động bình thường ở chế độ này — mỗi agent chỉ thấy workspace của mình.
+
 ### 📌 Ghi nhận tích hợp thực tế với OpenClaw / BioLoca
 
 Bio-Agent OS đã được một agent OpenClaw cài và nối thành công vào hệ BioLoca trên máy khác, theo đúng flow vận hành thực tế:
@@ -1079,6 +1098,25 @@ sweagent run --config config/default.yaml --config examples/swe-agent/bio_memory
 ```
 
 This exposes the same bio-memory core behind a SWE-Agent sidecar/config path.
+
+### 🔌 MCP Server: plug into Claude Code, Cursor, and any MCP platform
+
+Bio-Agent OS ships a standard MCP (Model Context Protocol) server — any MCP-capable platform (Claude Code, Cursor, OpenAI Agents SDK, custom agents) can mount this biological memory with a single command:
+
+```bash
+pip install bio-agent-os[mcp]
+claude mcp add bio-memory -- bio-agent-os serve-mcp
+```
+
+Your agent immediately gets five tools: `store_memory`, `recall`, `list_rules`, `memory_status`, `consolidate`. By default memory runs embedded in-process (zero setup, persisted under `STORAGE_DIR`).
+
+Want several agents to **share one memory** (e.g. Claude Code + OpenClaw remembering the same things)? Point the MCP server at a running sidecar:
+
+```bash
+bio-agent-os serve-mcp --base-url http://127.0.0.1:8055 --api-key $BIO_AGENT_API_KEY --workspace-id main
+```
+
+Tenant keys (`BIO_AGENT_TENANT_KEYS`) work in this mode — each agent only sees its own workspaces.
 
 ### 📌 Real OpenClaw / BioLoca integration note
 

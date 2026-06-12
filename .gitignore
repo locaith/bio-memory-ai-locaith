@@ -37,6 +37,7 @@ real_eval_metrics/
 
 # Sensitive Info
 .env
+.bio_agent_secret.json
 
 # OS
 .DS_Store

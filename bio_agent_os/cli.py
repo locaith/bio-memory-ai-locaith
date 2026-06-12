@@ -34,6 +34,23 @@ def _base_parser() -> argparse.ArgumentParser:
     )
     serve.add_argument("--port", type=int, default=int(os.getenv("PORT", "8055")))
 
+    serve_mcp = subparsers.add_parser(
+        "serve-mcp",
+        help="Run the MCP server over stdio (embedded memory, or proxy via --base-url)",
+        parents=[common],
+    )
+    serve_mcp.add_argument(
+        "--base-url",
+        default=os.getenv("BIO_AGENT_BASE_URL", ""),
+        help="Proxy tool calls to a running Bio-Agent OS sidecar instead of hosting memory in-process.",
+    )
+    serve_mcp.add_argument("--api-key", default=os.getenv("BIO_AGENT_API_KEY"))
+    serve_mcp.add_argument(
+        "--workspace-id",
+        default=os.getenv("BIO_AGENT_WORKSPACE_ID"),
+        help="Default workspace for tool calls that omit workspace_id.",
+    )
+
     chat = subparsers.add_parser("chat", help="Send one chat turn", parents=[common])
     chat.add_argument("message")
     chat.add_argument("--task-id")
@@ -98,6 +115,40 @@ def main():
         uvicorn.run("bio_agent_os.api.main:app", host=args.host, port=args.port, reload=False)
         return
 
+    if args.command == "serve-mcp":
+        from bio_agent_os.mcp_server import serve
+
+        serve(
+            agent_name=args.agent_name,
+            storage_dir=args.storage_dir,
+            base_url=args.base_url or None,
+            api_key=args.api_key,
+            default_workspace=args.workspace_id,
+        )
+        return
+
+    if args.command == "remote-status":
+        client = BioAgentRESTClient(base_url=args.base_url, api_key=args.api_key)
+        _print(asyncio.run(client.status()))
+        return
+
+    if args.command == "remote-chat":
+        client = BioAgentRESTClient(base_url=args.base_url, api_key=args.api_key)
+        _print(
+            asyncio.run(
+                client.chat(
+                    args.message,
+                    task_id=args.task_id,
+                    workspace_id=args.workspace_id,
+                    project_version=args.project_version,
+                    mode=args.mode,
+                    risk_level=args.risk_level,
+                    stress_state=args.stress_state,
+                )
+            )
+        )
+        return
+
     sdk = BioAgentSDK(agent_name=args.agent_name, storage_dir=args.storage_dir)
 
     if args.command == "chat":
@@ -155,28 +206,6 @@ def main():
                 "rows_copied": summary.rows_copied,
                 "tables_skipped": summary.tables_skipped,
             }
-        )
-        return
-
-    if args.command == "remote-status":
-        client = BioAgentRESTClient(base_url=args.base_url, api_key=args.api_key)
-        _print(asyncio.run(client.status()))
-        return
-
-    if args.command == "remote-chat":
-        client = BioAgentRESTClient(base_url=args.base_url, api_key=args.api_key)
-        _print(
-            asyncio.run(
-                client.chat(
-                    args.message,
-                    task_id=args.task_id,
-                    workspace_id=args.workspace_id,
-                    project_version=args.project_version,
-                    mode=args.mode,
-                    risk_level=args.risk_level,
-                    stress_state=args.stress_state,
-                )
-            )
         )
         return
 
