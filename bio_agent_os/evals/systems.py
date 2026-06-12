@@ -147,7 +147,7 @@ class BioMemorySystem:
             sections.append(f"Exact fact [{fact.get('fact_kind')}]: {fact.get('fact_value')}")
         for item in bundle.get("l2_results") or []:
             sections.append(f"Memory [{item.get('memory_type')}]: {item.get('content')}")
-        for episode in (bundle.get("anchor_episodes") or [])[:4]:
+        for episode in (bundle.get("anchor_episodes") or [])[:8]:
             sections.append(f"Episode: {str(episode.get('raw_payload', ''))[:400]}")
         return "\n".join(sections)
 
