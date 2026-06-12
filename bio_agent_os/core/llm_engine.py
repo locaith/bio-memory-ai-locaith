@@ -191,7 +191,16 @@ class LLMEngine:
             }
             async with session.post(f"{self.base_url}/api/generate", json=payload) as response:
                 data = await response.json()
-                return data.get("response", "")
+                if response.status != 200:
+                    # Fail loudly: a swallowed 429 here once turned a 3-hour
+                    # eval into 300 empty predictions.
+                    raise RuntimeError(
+                        f"Ollama returned HTTP {response.status}: {str(data)[:200]}"
+                    )
+                text = data.get("response", "")
+                if not text and data.get("error"):
+                    raise RuntimeError(f"Ollama error: {data['error']}")
+                return text
 
     async def _generate_openai_compatible(self, prompt: str, temp: float) -> str:
         response = await self._client.chat.completions.create(
