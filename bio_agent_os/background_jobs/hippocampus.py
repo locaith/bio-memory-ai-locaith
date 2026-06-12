@@ -30,8 +30,19 @@ class MemoryLabel(BaseModel):
 
 
 class CompiledMemory(BaseModel):
-    episodic_summary: str = Field(description="Short factual memory of what happened")
-    semantic_memory: str = Field(description="Generalized knowledge extracted from the event")
+    episodic_summary: str = Field(
+        description=(
+            "Short factual record of what happened, keeping speaker names, "
+            "dates, and concrete details verbatim"
+        )
+    )
+    semantic_memory: str = Field(
+        description=(
+            "Self-contained declarative facts from the event: WHO did WHAT, "
+            "WHEN, WHERE. Keep names, dates, places, and exact values. "
+            "Never replace facts with generic advice"
+        )
+    )
     procedural_memory: str = Field(description="Reusable procedure or workflow guidance")
     exception_memory: str = Field(description="Important exception, caveat, or dangerous special case")
     identity_rule: str = Field(description="Stable rule candidate for the self-model")
@@ -317,14 +328,18 @@ class Hippocampus:
             ]
         )
         base = (
-            "You are a memory compiler for a coding agent.\n"
+            "You are the memory compiler of an AI agent.\n"
             "Transform one event into five outputs:\n"
             "1. episodic summary\n"
             "2. semantic memory\n"
             "3. procedural memory\n"
             "4. exception memory\n"
             "5. identity rule candidate\n"
-            "Keep it compact, reusable, and avoid hype.\n"
+            "Keep it compact and avoid hype.\n"
+            "The semantic memory must preserve the concrete facts of the event "
+            "(who did what, when, where — names, dates, places, exact values) "
+            "so who/what/when questions can be answered later. Generalize in "
+            "the procedural memory, never in the semantic memory.\n"
         )
         if policy_hotfix_mode:
             base += (

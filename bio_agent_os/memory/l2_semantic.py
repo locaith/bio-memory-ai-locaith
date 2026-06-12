@@ -364,7 +364,12 @@ class L2SemanticMemory:
                     lexical_bonus += 0.4
 
             state_boost = self._state_boost(payload, retrieval_state)
-            final_score = (semantic_score + lexical_bonus) * importance * decay * state_boost
+            # Relevance gates, importance modulates: a raw importance
+            # multiplier (1-9) would let an important-but-irrelevant memory
+            # outrank a relevant one, so importance is squashed to a gentle
+            # 0.84-1.16 factor instead.
+            importance_factor = 0.8 + (importance / 25.0)
+            final_score = (semantic_score + lexical_bonus) * importance_factor * decay * state_boost
 
             results.append(
                 {
