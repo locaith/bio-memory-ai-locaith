@@ -187,7 +187,13 @@ class LLMEngine:
                 "model": self.model_id,
                 "prompt": prompt,
                 "stream": False,
-                "options": {"temperature": temp},
+                "options": {
+                    "temperature": temp,
+                    # Bound the KV cache: long-context models (Gemma 4 reports
+                    # 256K) otherwise allocate context at full size per load,
+                    # which can exhaust VRAM+RAM and freeze the host.
+                    "num_ctx": int(os.getenv("OLLAMA_NUM_CTX", "8192")),
+                },
             }
             async with session.post(f"{self.base_url}/api/generate", json=payload) as response:
                 data = await response.json()
