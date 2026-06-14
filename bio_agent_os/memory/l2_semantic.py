@@ -28,11 +28,25 @@ except ImportError:
 
 
 class L2SemanticMemory:
+    # Retrieval-aware forgetting (Feature A, synaptic tag-and-capture).
+    # durability in [1.0, DUR_MAX] only ever SLOWS decay; 1.0 == legacy behavior.
+    # Set DUR_MAX=1.0 to revert Feature A to a no-op exactly.
+    DUR_MAX = float(os.getenv("BIO_DURABILITY_MAX", "4.0"))
+    DUR_GROWTH = 0.6          # log1p growth → Karpicke diminishing returns
+    DISUSE_DAYS = 30.0        # after this, never-helped entries lose prior protection
+    DISUSE_FACTOR = 0.95
+
     def __init__(self, agent_name: str = "Bio-AI", storage_dir: str = "data"):
         self.agent_name = agent_name
         self.collection_name = f"{agent_name}_l2"
         self.decay_lambda = 0.05
         self.embedder = Embedder()
+
+        # Transient synaptic tags: {entry_id: [returned_count, helped_count]}.
+        # Deliberately NOT persisted — a crash before the next sleep means
+        # "reactivation without consolidation", which is biologically correct
+        # and keeps the hot retrieval path free of SQLite writes.
+        self._pending_access: Dict[str, List[int]] = {}
 
         url = os.getenv("QDRANT_URL", None)
         api_key = os.getenv("QDRANT_API_KEY", None)
@@ -97,6 +111,19 @@ class L2SemanticMemory:
             return self.decay_lambda * 0.35
         return self.decay_lambda
 
+    def _effective_lambda(self, payload: Dict[str, Any]) -> float:
+        # Retrieval-aware forgetting: durability divides the per-type lambda,
+        # so a reinforced memory decays *slower*. durability is clamped to
+        # [1.0, DUR_MAX] — it can only ever flatten the curve, never invert
+        # recency ordering (a newer entry always keeps >= an older one's decay
+        # within a type). durability=1.0 → identical to _memory_decay_lambda.
+        base = self._memory_decay_lambda(payload)
+        durability = max(1.0, min(self.DUR_MAX, float(payload.get("durability", 1.0))))
+        return base / durability
+
+    def _effective_decay(self, payload: Dict[str, Any], days_elapsed: float) -> float:
+        return math.exp(-self._effective_lambda(payload) * max(days_elapsed, 0.0))
+
     def _is_anchor_query(self, query: str) -> bool:
         lowered = query.lower()
         markers = [
@@ -139,6 +166,11 @@ class L2SemanticMemory:
             "tags": tags or [],
             "source_rule_id": source_rule_id,
             "timestamp": time.time(),
+            # Retrieval-aware forgetting state (Feature A). durability=1.0 means
+            # "never reinforced" → decay identical to legacy behavior.
+            "access_count": 0,
+            "last_accessed": None,
+            "durability": 1.0,
             "memory_type": memory_type,
             "scope": scope,
             "mode_hints": self._normalize_mode_hints(mode_hints),
@@ -221,6 +253,11 @@ class L2SemanticMemory:
             vector = self._durable.loads_json(row["vector_json"], None)
             if not isinstance(payload, dict) or not isinstance(vector, list):
                 continue
+            # Legacy rows predate retrieval-aware forgetting; default to the
+            # neutral durability so they decay exactly as before.
+            payload.setdefault("access_count", 0)
+            payload.setdefault("last_accessed", None)
+            payload.setdefault("durability", 1.0)
             if len(vector) != self.embedder.dimensions:
                 # Embedding backend changed since this entry was written;
                 # re-embed from content so no memory is silently lost.
@@ -343,7 +380,7 @@ class L2SemanticMemory:
             importance = float(payload["importance"])
             timestamp = float(payload["timestamp"])
             days_elapsed = (now - timestamp) / 86400
-            decay = math.exp(-self._memory_decay_lambda(payload) * days_elapsed)
+            decay = self._effective_decay(payload, days_elapsed)
 
             semantic_score = 0.6
             if "vector" in payload:
@@ -373,6 +410,11 @@ class L2SemanticMemory:
 
             results.append(
                 {
+                    # entry_id is the attribution key for retrieval-aware
+                    # forgetting — without it a caller cannot credit the
+                    # specific stored row that helped.
+                    "entry_id": payload.get("entry_id"),
+                    "durability": float(payload.get("durability", 1.0)),
                     "content": payload["content"],
                     "score": final_score,
                     "importance": importance,
@@ -483,7 +525,7 @@ class L2SemanticMemory:
             stale_count = 0
             for item in items:
                 days_elapsed = max((now - float(item.get("timestamp", now))) / 86400.0, 0.0)
-                decay = math.exp(-self._memory_decay_lambda(item) * days_elapsed)
+                decay = self._effective_decay(item, days_elapsed)
                 confidence_score = min(1.0, (float(item.get("importance", 5.0)) / 10.0) * decay * 1.15)
                 confidence_scores.append(confidence_score)
                 if confidence_score < 0.4:
@@ -511,15 +553,93 @@ class L2SemanticMemory:
             tuple(str(entry_id) for entry_id in entry_ids),
         )
 
+    # --- Retrieval-aware forgetting: synaptic tag-and-capture ---------------
+
+    def note_access(
+        self,
+        entry_ids: List[Optional[str]],
+        helped_ids: Optional[List[Optional[str]]] = None,
+    ) -> None:
+        """
+        Hot-path 'tag' (Stage 1): record that entries were reactivated and,
+        optionally, that some genuinely helped. Pure O(k) dict math — no
+        SQLite write, no LLM. Tags are transient and only become durable at
+        the next sleep (apply_access_consolidation). 'helped' is the
+        success gate: mere return does not reinforce.
+        """
+        helped = {str(eid) for eid in (helped_ids or []) if eid}
+        for eid in entry_ids:
+            if not eid:
+                continue
+            self._pending_access.setdefault(str(eid), [0, 0])[0] += 1
+        for eid in helped:
+            self._pending_access.setdefault(eid, [0, 0])[1] += 1
+
+    def _load_payload(self, entry_id: str):
+        if self._fallback:
+            for entry in self._entries:
+                if str(entry.get("entry_id")) == str(entry_id):
+                    return entry, entry.get("vector")
+            return None, None
+        records = self.client.retrieve(
+            collection_name=self.collection_name,
+            ids=[entry_id],
+            with_payload=True,
+            with_vectors=True,
+        )
+        if not records:
+            return None, None
+        record = records[0]
+        return dict(record.payload), list(record.vector) if record.vector else None
+
+    def _save_payload(self, payload: Dict[str, Any], vector: Optional[List[float]]) -> None:
+        self._persist_entry(payload, vector or [])
+        if not self._fallback and vector:
+            self.client.upsert(
+                collection_name=self.collection_name,
+                points=[PointStruct(id=payload["entry_id"], vector=vector, payload=payload)],
+            )
+
+    def apply_access_consolidation(self) -> Dict[str, int]:
+        """
+        Offline 'capture' (Stage 2), run at sleep: drain transient tags into
+        durable per-entry state. Durability grows with cumulative *helped*
+        accesses (the testing effect), with log1p diminishing returns and a
+        hard DUR_MAX cap. Returned-but-not-helped never reinforces.
+        """
+        if not self._pending_access:
+            return {"reinforced": 0, "tagged": 0}
+        pending = self._pending_access
+        self._pending_access = {}
+        now = time.time()
+        reinforced = 0
+        for entry_id, (_returned, helped) in pending.items():
+            if helped <= 0:
+                continue
+            payload, vector = self._load_payload(entry_id)
+            if payload is None:
+                continue
+            payload["access_count"] = int(payload.get("access_count", 0)) + int(helped)
+            payload["last_accessed"] = now
+            payload["durability"] = min(
+                self.DUR_MAX,
+                1.0 + self.DUR_GROWTH * math.log1p(payload["access_count"]),
+            )
+            self._save_payload(payload, vector)
+            reinforced += 1
+        return {"reinforced": reinforced, "tagged": len(pending)}
+
     def prune_decayed(self, threshold: float = 1.0) -> int:
         now = time.time()
         if self._fallback:
             kept: List[Dict[str, Any]] = []
             removed_ids: List[str] = []
             for entry in self._entries:
-                decay_score = entry["importance"] * math.exp(
-                    -self.decay_lambda * ((now - entry["timestamp"]) / 86400)
-                )
+                # Use the per-type effective decay (durability-aware). This
+                # also fixes a pre-existing bug where the fallback path used
+                # the flat base lambda while the Qdrant path used per-type.
+                days_elapsed = (now - entry["timestamp"]) / 86400
+                decay_score = entry["importance"] * self._effective_decay(entry, days_elapsed)
                 if decay_score >= threshold:
                     kept.append(entry)
                 else:
@@ -533,8 +653,8 @@ class L2SemanticMemory:
 
         for point in points:
             days_elapsed = (now - point.payload["timestamp"]) / 86400
-            decay_score = point.payload["importance"] * math.exp(
-                -self._memory_decay_lambda(point.payload) * days_elapsed
+            decay_score = point.payload["importance"] * self._effective_decay(
+                point.payload, days_elapsed
             )
             if decay_score < threshold:
                 to_delete.append(point.id)

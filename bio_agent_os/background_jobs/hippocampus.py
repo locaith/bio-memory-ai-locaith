@@ -495,6 +495,17 @@ class Hippocampus:
 
     async def consolidate(self) -> Dict[str, int]:
         self._log.append("----- sleep consolidation started -----")
+        # Capture retrieval-induced consolidation before anything else: drain
+        # the transient synaptic tags accumulated since the last sleep into
+        # durable per-entry durability (the testing effect). Runs every sleep,
+        # independent of whether there are new L1 survivors to encode.
+        if self.l2 is not None:
+            capture = self.l2.apply_access_consolidation()
+            if capture.get("reinforced"):
+                self._log.append(
+                    f"Retrieval consolidation reinforced {capture['reinforced']} "
+                    f"L2 memories (tagged={capture['tagged']})."
+                )
         survivors = self.l1.get_survivors()
         stats = {"encoded": 0, "failed": 0, "challenged": 0, "pending_approval": 0, "nli_used": 0}
 

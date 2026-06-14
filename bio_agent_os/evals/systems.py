@@ -133,7 +133,7 @@ class BioMemorySystem:
     async def finalize_ingest(self) -> None:
         await self._sleep_cycle()
 
-    def _retrieve_context(self, question: str) -> str:
+    def _retrieve_context(self, question: str):
         retrieval_state = self._runtime.retrieval_service.build_retrieval_state(
             {"workspace_id": self._workspace_id, "query": question}
         )
@@ -145,18 +145,39 @@ class BioMemorySystem:
         exact = bundle.get("exact_facts") or {}
         for fact in (exact.get("facts") or [])[:3]:
             sections.append(f"Exact fact [{fact.get('fact_kind')}]: {fact.get('fact_value')}")
-        for item in bundle.get("l2_results") or []:
+        l2_results = bundle.get("l2_results") or []
+        for item in l2_results:
             sections.append(f"Memory [{item.get('memory_type')}]: {item.get('content')}")
         for episode in (bundle.get("anchor_episodes") or [])[:8]:
             sections.append(f"Episode: {str(episode.get('raw_payload', ''))[:400]}")
-        return "\n".join(sections)
+        return "\n".join(sections), l2_results
+
+    @staticmethod
+    def _content_tokens(text: str) -> set:
+        return {tok for tok in str(text).lower().split() if len(tok) >= 4}
 
     async def answer(self, question: str) -> str:
-        context = self._retrieve_context(question)
+        context, l2_results = self._retrieve_context(question)
         if not context.strip():
             context = "(no relevant memories found)"
         prompt = (
             f"Recalled memories:\n{context}\n\n"
             f"Question: {question}\n\n{ANSWER_INSTRUCTION}"
         )
-        return await self._runtime.engine.generate(prompt, temperature=0.0)
+        response = await self._runtime.engine.generate(prompt, temperature=0.0)
+
+        # Retrieval-aware forgetting: tag the L2 memories that were returned,
+        # and credit (success-gate) those whose content actually surfaced in
+        # the answer. Lexical-only — no extra LLM call on the hot path.
+        if l2_results:
+            answer_tokens = self._content_tokens(response)
+            abstained = "no information" in response.lower()
+            returned_ids = [item.get("entry_id") for item in l2_results if item.get("entry_id")]
+            helped_ids = []
+            if not abstained and answer_tokens:
+                for item in l2_results:
+                    eid = item.get("entry_id")
+                    if eid and self._content_tokens(item.get("content", "")) & answer_tokens:
+                        helped_ids.append(eid)
+            self._runtime.l2.note_access(returned_ids, helped_ids)
+        return response
