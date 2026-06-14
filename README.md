@@ -40,6 +40,12 @@ Lắp **Bio-Agent OS** vào làm backend Memory là bạn đang trang bị một
 
 Không vẽ biểu đồ mô phỏng — đây là **số đo thật, tái lập được** trên **LoCoMo** (Maharana và cộng sự, 2024), benchmark trí nhớ hội thoại dài hạn chuẩn ngành: 10 hội thoại nhiều phiên (~200–400 lượt mỗi cái), 300 câu hỏi đánh giá, chấm điểm **token-F1 + Exact Match kiểu SQuAD — KHÔNG dùng LLM tự chấm**. Ba hệ thống chạy cùng một model + embedding local.
 
+<p align="center">
+  <img src="docs/images/locomo_benchmark.png" alt="LoCoMo: Bio-Agent OS vs Naive-RAG (sinh từ benchmark_reports/ bằng scripts/plot_locomo.py)" width="100%"/>
+</p>
+
+> Biểu đồ trên được sinh trực tiếp từ các report đã commit bằng `python scripts/plot_locomo.py` — không có số nào vẽ tay.
+
 **Kết quả chính (qwen2.5:7b-instruct, 300 câu hỏi):**
 
 | Hệ thống | F1 | EM | |
@@ -985,6 +991,12 @@ By plugging in **Bio-Agent OS** as the backend Memory, you are equipping OpenCla
 ## 📊 Real Benchmark: LoCoMo (vs Naive-RAG)
 
 No simulated charts — these are **real, reproducible measurements** on **LoCoMo** (Maharana et al., 2024), the industry-standard long-term conversational-memory benchmark: 10 multi-session conversations (~200–400 turns each), 300 evaluation questions, scored with **SQuAD-style token-F1 + Exact Match — NO LLM-as-judge**. All three systems run on the same local model + embeddings.
+
+<p align="center">
+  <img src="docs/images/locomo_benchmark.png" alt="LoCoMo: Bio-Agent OS vs Naive-RAG (generated from benchmark_reports/ by scripts/plot_locomo.py)" width="100%"/>
+</p>
+
+> The chart above is generated directly from the committed reports via `python scripts/plot_locomo.py` — not a single number is hand-drawn.
 
 **Headline results (qwen2.5:7b-instruct, 300 questions):**
 
