@@ -600,6 +600,44 @@ class L2SemanticMemory:
                 points=[PointStruct(id=payload["entry_id"], vector=vector, payload=payload)],
             )
 
+    def durable_entries(self, workspace_id: Optional[str] = None):
+        """
+        (payload, vector) pairs straight from the durable store — the only
+        place vectors are guaranteed available (the Qdrant scroll path uses
+        with_vectors=False). Used by reconsolidation replay.
+        """
+        rows = self._durable.fetchall(f"SELECT * FROM {self._durable_table}")
+        out = []
+        for row in rows:
+            payload = self._durable.loads_json(row["payload_json"], None)
+            vector = self._durable.loads_json(row["vector_json"], None)
+            if not isinstance(payload, dict):
+                continue
+            payload.setdefault("access_count", 0)
+            payload.setdefault("last_accessed", None)
+            payload.setdefault("durability", 1.0)
+            if workspace_id is not None and payload.get("workspace_id") != workspace_id:
+                continue
+            out.append((payload, vector if isinstance(vector, list) else None))
+        return out
+
+    def update_entry(self, payload: Dict[str, Any], vector: Optional[List[float]]) -> None:
+        """Re-persist a mutated payload to the durable store and the index."""
+        self._save_payload(payload, vector)
+
+    def forget(self, entry_ids: List[Optional[str]]) -> int:
+        """Remove entries from both the index and the durable store."""
+        ids = [str(eid) for eid in entry_ids if eid]
+        if not ids:
+            return 0
+        if self._fallback:
+            drop = set(ids)
+            self._entries = [e for e in self._entries if str(e.get("entry_id")) not in drop]
+        else:
+            self.client.delete(collection_name=self.collection_name, points_selector=ids)
+        self._delete_persisted(ids)
+        return len(ids)
+
     def apply_access_consolidation(self) -> Dict[str, int]:
         """
         Offline 'capture' (Stage 2), run at sleep: drain transient tags into

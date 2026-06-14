@@ -2,7 +2,11 @@
 Sleep consolidation and memory compilation.
 """
 
+import math
+import os
 import re
+import time
+from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -82,6 +86,10 @@ class Hippocampus:
             engine=engine,
             detector_mode=detector_mode,
         )
+        # Reconsolidation replay (Phase 4, Feature B). LLM-free core runs in
+        # consolidate(); set BIO_RECONSOLIDATION_ENABLED=0 to revert.
+        self.reconsolidation_enabled = os.getenv("BIO_RECONSOLIDATION_ENABLED", "1") != "0"
+        self.reconsolidation_replay_size = int(os.getenv("BIO_RECONSOLIDATION_R", "24"))
         self._log: List[str] = []
         self._allowed_scopes = {"core", "project", "agent", "user", "session", "organization"}
 
@@ -656,8 +664,152 @@ class Hippocampus:
                 self._log.append(f"Compile failed: {exc}")
                 stats["failed"] += 1
 
+        # Reconsolidation replay: reactivate stored memories, make them labile,
+        # and update them (strengthen corroborated, merge near-duplicates,
+        # weaken contradicted) before re-storage. Runs every sleep so it is
+        # measurable on LoCoMo, which never calls dream().
+        if self.reconsolidation_enabled and self.l2 is not None:
+            recon = self._reconsolidate()
+            stats["reconsolidated"] = recon.get("total", 0)
+            for key in ("strengthened", "merged", "weakened"):
+                stats[key] = len(recon.get(f"{key}_ids", []))
+
         self._log.append("----- sleep consolidation finished -----")
         return stats
+
+    def _reconsolidate(self) -> Dict[str, Any]:
+        """
+        LLM-free reconsolidation. Reactivates a salience-weighted sample of
+        stored L2 memories per workspace and applies labile updates, then
+        records what changed in the dream journal — which the next cycle reads
+        back to stay idempotent (closing the previously write-only loop).
+        """
+        result: Dict[str, Any] = {
+            "strengthened_ids": [],
+            "merged_ids": [],
+            "weakened_ids": [],
+            "ensemble_signatures": [],
+            "total": 0,
+        }
+        entries = self.l2.durable_entries()
+        if not entries:
+            return result
+
+        processed = set()
+        if self.dream_journal:
+            for report in self.dream_journal.recent(limit=20):
+                for sig in report.get("ensemble_signatures", []) or []:
+                    processed.add(sig)
+
+        groups: Dict[Any, List] = defaultdict(list)
+        for payload, vector in entries:
+            groups[payload.get("workspace_id")].append((payload, vector))
+
+        now = time.time()
+        for _workspace, items in groups.items():
+            self._reconsolidate_group(items, now, processed, result)
+
+        result["total"] = (
+            len(result["strengthened_ids"])
+            + len(result["merged_ids"])
+            + len(result["weakened_ids"])
+        )
+        if self.dream_journal and result["total"]:
+            self.dream_journal.append({"type": "reconsolidation", **result})
+            self._log.append(
+                f"Reconsolidation: strengthened={len(result['strengthened_ids'])} "
+                f"merged={len(result['merged_ids'])} weakened={len(result['weakened_ids'])}"
+            )
+        return result
+
+    def _reactivation_score(self, payload: Dict[str, Any], now: float) -> float:
+        age_days = max((now - float(payload.get("timestamp", now))) / 86400.0, 0.0)
+        base_lambda = self.l2._memory_decay_lambda(payload)
+        durability = float(payload.get("durability", 1.0))
+        last = payload.get("last_accessed")
+        recent = 1.0 if (last and (now - float(last)) < 7 * 86400) else 0.0
+        return durability * math.exp(-base_lambda * age_days) * (1.0 + 0.3 * recent)
+
+    def _reconsolidate_group(self, items, now, processed, result) -> None:
+        if len(items) < 2:
+            return
+        # Selective replay: top-R by salience, not a full scan.
+        ranked = sorted(items, key=lambda pv: self._reactivation_score(pv[0], now), reverse=True)
+        replay = ranked[: self.reconsolidation_replay_size]
+
+        merged_ids = set()
+        for i in range(len(replay)):
+            payload_a, vec_a = replay[i]
+            if payload_a["entry_id"] in merged_ids:
+                continue
+            for j in range(i + 1, len(replay)):
+                payload_b, vec_b = replay[j]
+                if payload_b["entry_id"] in merged_ids:
+                    continue
+                if payload_a.get("memory_type") != payload_b.get("memory_type"):
+                    continue
+                if payload_a.get("memory_type") == "anchor":
+                    continue  # anchors are verbatim — never merged
+                if payload_a.get("workspace_id") != payload_b.get("workspace_id"):
+                    continue
+                sig = "::".join(sorted([str(payload_a["entry_id"]), str(payload_b["entry_id"])]))
+                if sig in processed:
+                    continue
+
+                # MERGE near-duplicates.
+                if vec_a and vec_b and self.l2._cosine_similarity(vec_a, vec_b) >= 0.93:
+                    winner, w_vec, loser = (
+                        (payload_a, vec_a, payload_b)
+                        if float(payload_a.get("durability", 1.0)) >= float(payload_b.get("durability", 1.0))
+                        else (payload_b, vec_b, payload_a)
+                    )
+                    winner["access_count"] = max(
+                        int(winner.get("access_count", 0)), int(loser.get("access_count", 0))
+                    )
+                    winner["durability"] = min(
+                        self.l2.DUR_MAX,
+                        max(float(winner.get("durability", 1.0)), float(loser.get("durability", 1.0))),
+                    )
+                    winner["tags"] = sorted(set(winner.get("tags", []) or []) | set(loser.get("tags", []) or []))
+                    # Never present a merged trace as older than its newest source.
+                    winner["timestamp"] = max(float(winner.get("timestamp", now)), float(loser.get("timestamp", now)))
+                    self.l2.update_entry(winner, w_vec)
+                    self.l2.forget([loser["entry_id"]])
+                    merged_ids.add(loser["entry_id"])
+                    result["merged_ids"].append(loser["entry_id"])
+                    result["ensemble_signatures"].append(sig)
+                    continue
+
+                # WEAKEN contradicted (reuse the heuristic NLI-free conflict check).
+                left = {"text": payload_a.get("content", ""), "scope": payload_a.get("scope", "project"), "id": payload_a["entry_id"]}
+                right = {"text": payload_b.get("content", ""), "scope": payload_b.get("scope", "project"), "id": payload_b["entry_id"]}
+                try:
+                    conflict = self.reconciler._is_conflict(left, right)
+                except Exception:
+                    conflict = False
+                if conflict:
+                    # Weaken the less-established trace: lower durability, then
+                    # lower importance as the tie-break (the better-supported
+                    # memory wins the labile re-storage).
+                    key_a = (float(payload_a.get("durability", 1.0)), float(payload_a.get("importance", 5.0)))
+                    key_b = (float(payload_b.get("durability", 1.0)), float(payload_b.get("importance", 5.0)))
+                    weaker, w_vec2 = (payload_a, vec_a) if key_a <= key_b else (payload_b, vec_b)
+                    weaker["durability"] = max(1.0, float(weaker.get("durability", 1.0)) * 0.6)
+                    weaker["importance"] = max(0.0, float(weaker.get("importance", 5.0)) - 1.0)
+                    self.l2.update_entry(weaker, w_vec2)
+                    result["weakened_ids"].append(weaker["entry_id"])
+                    result["ensemble_signatures"].append(sig)
+
+        # STRENGTHEN the surviving co-reactivated ensemble (replay = covert
+        # retrieval). Small, capped boost; success-gated by being in the replay set.
+        for payload, vec in replay:
+            if payload["entry_id"] in merged_ids:
+                continue
+            new_dur = min(self.l2.DUR_MAX, float(payload.get("durability", 1.0)) + 0.1)
+            if new_dur != float(payload.get("durability", 1.0)):
+                payload["durability"] = new_dur
+                self.l2.update_entry(payload, vec)
+                result["strengthened_ids"].append(payload["entry_id"])
 
     def _mode_hints(self, metadata: Dict[str, Any], content: str) -> List[str]:
         lowered = content.lower()
