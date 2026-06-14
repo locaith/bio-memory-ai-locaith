@@ -1,3 +1,8 @@
+> ⚠️ **SUPERSEDED — produced on PRE-FIX code. Do not cite as a current result.**
+> This run predates the ranking, fact-preserving consolidation, and dense
+> hippocampal-recall fixes. Retained only to document the honest development
+> trajectory (F1 0.0 → 0.498). Current headline: `locomo_overnight_qwen7b_v3.md`.
+
 # LoCoMo Benchmark Report
 
 - **backend**: ollama

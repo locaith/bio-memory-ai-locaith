@@ -1,3 +1,9 @@
+> ⚠️ **INVALID — corrupted run. Do not cite.**
+> The Ollama cloud model returned HTTP 429 mid-run and the (then unguarded)
+> client swallowed errors into empty strings, yielding 300 empty predictions
+> and a meaningless F1 of 0.0. Fixed in commit `02bdffd` (fail-fast on HTTP
+> errors). Retained only as evidence of the failure that motivated the fix.
+
 # LoCoMo Benchmark Report
 
 - **backend**: ollama

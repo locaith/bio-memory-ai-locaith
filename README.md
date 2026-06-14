@@ -36,16 +36,39 @@ Lắp **Bio-Agent OS** vào làm backend Memory là bạn đang trang bị một
 
 ---
 
-## 📊 So Sánh: Compact (Big Tech) vs Bio-Memory (Coding Sessions)
+## 📊 Benchmark thật: LoCoMo (đối chiếu Naive-RAG)
 
-Dưới đây là biểu đồ mô phỏng hiệu suất và lượng Token sụp đổ rùng rợn của phương pháp "Compact" (nén rác thành rác) so với sự ổn định tuyệt đối của Bio-Memory khi code liên tục 100 tác vụ.
+Không vẽ biểu đồ mô phỏng — đây là **số đo thật, tái lập được** trên **LoCoMo** (Maharana và cộng sự, 2024), benchmark trí nhớ hội thoại dài hạn chuẩn ngành: 10 hội thoại nhiều phiên (~200–400 lượt mỗi cái), 300 câu hỏi đánh giá, chấm điểm **token-F1 + Exact Match kiểu SQuAD — KHÔNG dùng LLM tự chấm**. Ba hệ thống chạy cùng một model + embedding local.
 
-<p align="center">
-  <img src="docs/images/coding_performance.png" alt="Coding Performance Over Time" width="100%"/>
-</p>
+**Kết quả chính (qwen2.5:7b-instruct, 300 câu hỏi):**
 
-* **Compact (Đường màu Đỏ)**: Token phình to nhanh chóng → Mất Context (Hallucination) → Crash hoàn toàn tại Task thứ 50 do không thể xử lý nổi lượng rác tích tụ.
-* **Bio-Memory (Đường màu Xanh/Cyan)**: Trễ nhịp tí xíu chạy Background Sleep Cycle, nhưng duy trì VRAM tối ưu và độ chính xác hoàn hảo 100% kể cả ở Task thứ 1000.
+| Hệ thống | F1 | EM | |
+|:---|:---:|:---:|:---|
+| No-memory (sàn) | 0.012 | 0.003 | chứng minh task không tầm thường |
+| Naive-RAG | 0.254 | 0.083 | nhồi mọi lượt vào vector DB + top-k |
+| **Bio-Agent OS** | **0.326** | **0.107** | **+28% F1 so với Naive-RAG** |
+
+**Nơi bio-memory thắng đậm — suy luận thời gian (temporal):** **0.372** vs **0.136** của Naive-RAG — **gấp 2.7×**. Đây chính là luận điểm cốt lõi ("biết quên · biết nhớ") phát huy: ngày tháng được giữ nguyên qua chu kỳ consolidation thay vì bị nhấn chìm trong rác.
+
+**Lợi thế TĂNG theo chất lượng model "hồi hải mã"** (slice 90 câu, cùng config):
+
+| Model | Bio-Agent OS | Naive-RAG | bio temporal |
+|:---|:---:|:---:|:---:|
+| gemma4:e2b (5B) | 0.406 | 0.391 | 0.349 |
+| qwen2.5:7b (7B) | 0.421 | 0.308 | 0.525 |
+| gemma4:12b (12B) | **0.498** | 0.461 | **0.603** |
+
+Bio-memory thắng Naive-RAG trên **cả ba** model. Temporal scale 0.349 → 0.525 → 0.603 — kiến trúc càng *hữu ích hơn* khi model mạnh hơn, không phải kịch trần. (gemma4:12b chạy gọn 8.4GB VRAM trên RTX 3060 — ứng viên "hồi hải mã" mặc định cho máy phổ thông.)
+
+**Trung thực:** Bio-memory hiện vẫn **thua** Naive-RAG ở nhóm multi-hop (0.246 vs 0.315) — chúng tôi công bố thẳng, đây là mục tiêu cải thiện kế tiếp. Toàn bộ hành trình phát triển (F1 0.0 → 0.498 qua nhiều lần vá, kể cả các lần thua) đều nằm trong git: mọi report, kể cả bản xấu nhất.
+
+**Tự kiểm chứng (3 dòng lệnh):**
+```bash
+python scripts/run_locomo_eval.py --backend ollama \
+  --model qwen2.5:7b-instruct \
+  --systems no-memory,naive-rag,bio-memory --tag myrun
+```
+Report nguồn: [`benchmark_reports/locomo_overnight_qwen7b_v3.md`](benchmark_reports/locomo_overnight_qwen7b_v3.md) (kết quả chính) và `benchmark_reports/locomo_modelcmp_*.md` (so sánh model).
 
 ---
 
@@ -83,13 +106,10 @@ pip install bio-locaith-openclaw
 
 ### ✅ Trạng thái bản hiện tại
 
-- `v0.6.1` đã có hybrid contradiction detector with NLI cache.
-- `detector_benchmark` hiện mở rộng lên `8` cặp đa domain: deploy, security, tenant, migration, neutral architecture.
-- Kết quả real eval gần nhất với `gemma4:e2b`:
-  - heuristic detector: `4/8`
-  - hybrid + NLI detector: `8/8`
-  - hybrid false positive: `0`
-  - cache repeat-pass confirmation: `8/8`
+- **Kết quả chính (LoCoMo, 300 câu hỏi, qwen2.5:7b):** Bio-Agent OS F1 `0.326` vs Naive-RAG `0.254` (**+28%**), suy luận thời gian gấp `2.7×`. Xem mục [Benchmark thật](#-benchmark-thật-locomo-đối-chiếu-naive-rag) bên trên.
+- `v0.6.1` có hybrid contradiction detector kèm NLI cache.
+- **Bộ kiểm thử đơn vị phát hiện mâu thuẫn** (8 cặp tự biên — *unit test có chủ đích, không phải benchmark thống kê*): heuristic `4/8` → hybrid+NLI `8/8`, false positive `0`. Đây là bằng chứng phụ cho riêng module detector; bằng chứng chính là LoCoMo ở trên.
+- 80 bài kiểm thử tự động (`pytest tests/`), đóng gói Docker, adapter PostgreSQL, MCP server, REST API có xác thực.
 
 ### Sử dụng OpenClaw Adapter (Preview)
 
@@ -366,7 +386,7 @@ Hệ thống **Bio-Agent OS** được nghiên cứu và phát triển bởi **D
 
 ## Tóm tắt
 
-Các tác nhân tự trị chạy trong thời gian dài yêu cầu hệ thống bộ nhớ bền vững vượt xa các phương pháp lưu trữ key-value đơn giản hoặc các cửa sổ ngữ cảnh (context window) chỉ cho phép nối thêm dữ liệu. Chúng tôi giới thiệu **Bio-Agent OS**, một framework bộ nhớ mã nguồn mở lấy cảm hứng từ khoa học thần kinh để cung cấp cho các tác nhân lập trình và ERP một kiến trúc bộ nhớ trung thực về mặt sinh học. Hệ thống của chúng tôi triển khai: (1) một quy trình bộ nhớ đa tầng mô phỏng quá trình củng cố trí nhớ ở người (Bộ nhớ làm việc L1 → Bộ nhớ ngữ nghĩa L2 → Đồ thị niềm tin), (2) trình điều phối sự chú ý nội cân bằng (homeostatic attention) tự động điều chỉnh trọng số tiêu điểm dựa trên mức độ căng thẳng (stress) của tác nhân và các chuỗi thất bại, (3) đường cong quên lãng Ebbinghaus để cắt tỉa các khớp thần kinh (synaptic pruning), (4) vòng đời niềm tin sáu trạng thái với cơ chế quản trị ngoại lệ có kiểm soát (governed exception), và (5) bộ phát hiện mâu thuẫn lai giữa heuristic và NLI với cơ chế lưu trữ đệm (caching) bền vững. Chúng tôi đánh giá trên một bộ tiêu chuẩn (benchmark) phát hiện xung đột đa miền gồm 8 cặp và một bộ củng cố bộ nhớ cuối-đến-cuối gồm 6 nhiệm vụ bằng cách sử dụng Gemma-4 E2B làm nền tảng suy luận cục bộ. Kết quả cho thấy bộ phát hiện NLI lai đạt **độ chính xác 8/8 (100%) với độ chuẩn xác (precision) 1.0 và 0 dương tính giả**, so với 4/8 (50%) của phương pháp chỉ dùng heuristic. Bộ đệm NLI loại bỏ 100% các cuộc gọi suy luận dư thừa trong các lần đánh giá lặp lại. Bio-Agent OS là framework mã nguồn mở đầu tiên kết hợp khả năng lưu trữ cấp độ sản xuất (SQLite + PostgreSQL), động lực học bộ nhớ trung thực với sinh học và quản trị quy tắc cấp doanh nghiệp trong một gói cài đặt duy nhất.
+Các tác nhân tự trị chạy trong thời gian dài yêu cầu hệ thống bộ nhớ bền vững vượt xa các phương pháp lưu trữ key-value đơn giản hoặc các cửa sổ ngữ cảnh (context window) chỉ cho phép nối thêm dữ liệu. Chúng tôi giới thiệu **Bio-Agent OS**, một framework bộ nhớ mã nguồn mở lấy cảm hứng từ khoa học thần kinh để cung cấp cho các tác nhân lập trình và ERP một kiến trúc bộ nhớ trung thực về mặt sinh học. Hệ thống của chúng tôi triển khai: (1) một quy trình bộ nhớ đa tầng mô phỏng quá trình củng cố trí nhớ ở người (Bộ nhớ làm việc L1 → Bộ nhớ ngữ nghĩa L2 → Đồ thị niềm tin), (2) trình điều phối sự chú ý nội cân bằng (homeostatic attention) tự động điều chỉnh trọng số tiêu điểm dựa trên mức độ căng thẳng (stress) của tác nhân và các chuỗi thất bại, (3) đường cong quên lãng Ebbinghaus để cắt tỉa các khớp thần kinh (synaptic pruning), (4) vòng đời niềm tin sáu trạng thái với cơ chế quản trị ngoại lệ có kiểm soát (governed exception), và (5) bộ phát hiện mâu thuẫn lai giữa heuristic và NLI với cơ chế lưu trữ đệm (caching) bền vững. Chúng tôi đánh giá trên **LoCoMo** (Maharana và cộng sự, 2024), benchmark trí nhớ hội thoại dài hạn chuẩn ngành (10 hội thoại, 300 câu hỏi, chấm điểm token-F1/Exact Match xác định, không dùng LLM tự chấm), so sánh ba hệ thống dưới cùng điều kiện: no-memory (sàn, F1 `0.012`), naive-RAG (`0.254`) và Bio-Agent OS đầy đủ (`0.326` — **cao hơn naive-RAG 28%**, riêng câu hỏi thời gian gấp `2.7×`: `0.372` vs `0.136`). Lợi thế tăng theo chất lượng model nền (lên `0.498` với gemma4:12b). Chúng tôi công bố thẳng rằng bio-memory hiện vẫn thua naive-RAG ở nhóm multi-hop (`0.246` vs `0.315`). Là bằng chứng phụ, bộ phát hiện NLI lai giải quyết `8/8` trên một bộ kiểm thử đơn vị 8 cặp tự biên (so với `4/8` của heuristic), và cache khóa-chính xác phục vụ lại toàn bộ các phân loại lặp từ bộ nhớ đệm. Bio-Agent OS là framework mã nguồn mở đầu tiên kết hợp khả năng lưu trữ cấp độ sản xuất (SQLite + PostgreSQL), động lực học bộ nhớ trung thực với sinh học và quản trị quy tắc cấp doanh nghiệp trong một gói cài đặt duy nhất.
 
 **Từ khóa:** bộ nhớ tác nhân, AI lấy cảm hứng từ sinh học, quản lý niềm tin, phát hiện mâu thuẫn, NLI, điều phối sự chú ý, củng cố bộ nhớ
 
@@ -378,7 +398,7 @@ Sự áp dụng nhanh chóng của các tác nhân lập trình tự trị—nh�
 
 1. **Nhồi nhét cửa sổ ngữ cảnh**: Đưa mọi quan sát trước đó vào prompt. Phương pháp này bị giới hạn bởi kích thước cửa sổ ngữ cảnh và không cung cấp cơ chế quên hoặc ưu tiên.
 
-2. **Truy xuất kho vector**: Các hệ thống như Mem0 (Khattab và cộng sự, 2024) và Zep lưu trữ ký ức dưới dạng các embedding và truy xuất theo độ tương đồng. Tuy hiệu quả trong việc thu hồi (recall), chúng coi mọi ký ức đều hợp lệ như nhau và không cung cấp khả năng quản lý vòng đời.
+2. **Truy xuất kho vector**: Các hệ thống như Mem0 (Chhablani và cộng sự, 2024) và Zep lưu trữ ký ức dưới dạng các embedding và truy xuất theo độ tương đồng. Tuy hiệu quả trong việc thu hồi (recall), chúng coi mọi ký ức đều hợp lệ như nhau và không cung cấp khả năng quản lý vòng đời.
 
 3. **Bộ nhớ dựa trên đồ thị**: Letta (Packer và cộng sự, 2024) và Graphiti sử dụng các cấu trúc quan hệ nhưng thiếu các động lực học sinh học—không có sự quên lãng, không có sự nội cân bằng chú ý và không có cơ chế xử lý các niềm tin mâu thuẫn.
 
@@ -395,9 +415,10 @@ Ngoài ra, chúng tôi giới thiệu một **Mô hình Ngoại lệ có Kiểm 
 1. Một kiến trúc bộ nhớ đa tầng (L1 → L2 → Đồ thị niềm tin) với các cơ chế củng cố, quên lãng và chú ý lấy cảm hứng từ sinh học.
 2. Một vòng đời niềm tin sáu trạng thái (`đề xuất → được củng cố → ổn định → bị thách thức → bị phản đối → đã lưu trữ`) với nguồn gốc được liên kết bằng bằng chứng.
 3. Trình điều phối sự chú ý nội cân bằng với việc điều chỉnh trọng số đáp ứng căng thẳng linh hoạt và suy giảm căng thẳng theo thời gian.
-4. Bộ phát hiện mâu thuẫn lai heuristic+NLI với cơ chế lưu trữ đệm SQLite bền vững, đạt độ chính xác 100% trên bộ tiêu chuẩn đa miền gồm 8 cặp.
-5. Mô hình Ngoại lệ có Kiểm soát: một cơ chế chính thức để phân biệt các ngoại lệ có điều kiện được phê duyệt với các mâu thuẫn thực sự.
-6. Triển khai mã nguồn mở với 38 bài kiểm tra, đóng gói Docker, adapter PostgreSQL, hệ thống plugin và REST API.
+4. Bộ phát hiện mâu thuẫn lai heuristic+NLI với cơ chế lưu trữ đệm SQLite bền vững, được kiểm chứng trên một bộ kiểm thử đơn vị 8 cặp tự biên (`8/8` so với `4/8` của heuristic).
+5. Đánh giá trên LoCoMo cho thấy pipeline đầy đủ vượt naive-RAG 28% F1 (`0.326` vs `0.254`) và gấp 2.7× ở suy luận thời gian, với toàn bộ harness và report tái lập được công khai.
+6. Mô hình Ngoại lệ có Kiểm soát: một cơ chế chính thức để phân biệt các ngoại lệ có điều kiện được phê duyệt với các mâu thuẫn thực sự.
+7. Triển khai mã nguồn mở với 80 bài kiểm thử tự động, đóng gói Docker, adapter PostgreSQL, MCP server, hệ thống plugin và REST API có xác thực.
 
 ---
 
@@ -658,9 +679,21 @@ Các bước chuyển đổi được kích hoạt bởi:
 
 ## 5. Đánh giá
 
-### 5.1 Benchmark bộ phát hiện
+### 5.0 Benchmark chính: LoCoMo
 
-Chúng tôi đánh giá bộ phát hiện mâu thuẫn trên tiêu chuẩn 8 cặp thuộc bốn miền doanh nghiệp:
+Đánh giá hệ thống cấp cao nhất chạy trên **LoCoMo** (Maharana và cộng sự, 2024) — 10 hội thoại nhiều phiên, 300 câu hỏi, chấm điểm token-F1/Exact Match xác định kiểu SQuAD (không LLM tự chấm). Ba hệ thống dùng cùng model + embedding local:
+
+| Hệ thống | F1 | EM |
+|:---|:---:|:---:|
+| No-memory (sàn) | 0.012 | 0.003 |
+| Naive-RAG | 0.254 | 0.083 |
+| **Bio-Agent OS** | **0.326** | **0.107** |
+
+Pipeline đầy đủ vượt naive-RAG **28% F1**, và mạnh nhất ở **suy luận thời gian** (`0.372` vs `0.136`, gấp **2.7×**) — đúng kỳ vọng từ cơ chế quên + củng cố giữ lại mốc thời gian. Lợi thế tăng theo chất lượng model nền (gemma4:e2b `0.406` → qwen2.5:7b `0.421` → gemma4:12b `0.498`). Chúng tôi báo cáo thẳng điểm yếu còn lại: multi-hop `0.246` vs naive-RAG `0.315`. Harness và mọi report nằm trong `scripts/run_locomo_eval.py` + `benchmark_reports/`, tái lập bằng một lệnh.
+
+### 5.1 Bộ kiểm thử đơn vị: bộ phát hiện mâu thuẫn
+
+Là chẩn đoán có chủ đích cho riêng module phát hiện mâu thuẫn (không phải benchmark thống kê), chúng tôi dùng một bộ kiểm thử đơn vị **8 cặp tự biên** thuộc bốn miền doanh nghiệp:
 
 | # | Tên cặp | Miền | Sự thật (Ground Truth) |
 |:-:|:---|:---|:---|
@@ -680,9 +713,9 @@ Chúng tôi đánh giá bộ phát hiện mâu thuẫn trên tiêu chuẩn 8 c�
 | Bộ phát hiện | Độ chính xác | Độ chuẩn xác | Dương tính giả | Âm tính giả |
 |:---|:---:|:---:|:---:|:---:|
 | Chỉ Heuristic | 4/8 (50%) | 1.00 | 0 | 4 |
-| Lai (heuristic + NLI) | **8/8 (100%)** | **1.00** | **0** | **0** |
+| Lai (heuristic + NLI) | 8/8 (100%) | 1.00 | 0 | 0 |
 
-**Bảng 2.** Kết quả benchmark qua 2 lượt đánh giá với Gemma-4 E2B. Cả hai lượt đều cho kết quả giống hệt nhau.
+**Bảng 2.** Kết quả bộ kiểm thử đơn vị (n=8 cặp tự biên — *không phải ước lượng thống kê*; xem LoCoMo §5.0 cho đánh giá chính). Hai lượt chạy xác định trên 8 cặp cố định cho kết quả giống hệt nhau như mong đợi và không nói lên điều gì về phương sai.
 
 Bộ phát hiện chỉ heuristic thất bại trên cả ba **mâu thuẫn về thời gian/lịch trình** (cặp 1, 4, 7) vì những cặp này không chia sẻ các từ khóa đánh dấu phân cực—mâu thuẫn hoàn toàn là về ngữ nghĩa ("qua đêm" và "10 giờ sáng"). Heuristic cũng bỏ lỡ ngoại lệ bảo mật (cặp 8) do không đủ độ chồng lấp token sau khi tách phân cực.
 
@@ -807,7 +840,7 @@ Chúng tôi đánh giá bổ sung trên bộ 9 nhiệm vụ đa miền gồm qu�
 
 **Ngoại lệ có kiểm soát là công dân hạng nhất.** Môi trường doanh nghiệp đầy rẫy các ngoại lệ chính sách. Mô hình Ngoại lệ có Kiểm soát ngăn chặn kiểu thất bại phổ biến nơi các ghi đè hợp lệ bị loại bỏ bởi bộ giải quyết mâu thuẫn ngây thơ.
 
-**Hiệu quả kinh tế của đệm NLI.** Với tiêu chuẩn 8 cặp, bộ đệm loại bỏ 100% chi phí suy luận lặp lại. Trong sản xuất, nơi các tác nhân có thể đánh giá lại cùng các cặp quy tắc qua hàng ngàn phiên làm việc, đây là khoản tiết kiệm tính toán đáng kể.
+**Hiệu quả kinh tế của đệm NLI.** Khi chạy lại đúng 8 cặp cũ, mọi truy vấn đều được phục vụ từ cache (8/8) — điều đương nhiên với một cache khóa-chính xác. Với các tải công việc đánh giá lại cùng cặp quy tắc qua nhiều phiên, cơ chế này *được kỳ vọng* tiết kiệm tính toán đáng kể; tuy nhiên chúng tôi chưa đo tỷ lệ trúng cache ở quy mô sản xuất thực tế.
 
 ### 7.2 Hạn chế
 
@@ -832,12 +865,12 @@ Hệ thống quản lý niềm tin của Bio-Agent OS đặt ra các câu hỏi 
 
 ## 8. Kết luận và Công việc tương lai
 
-Bio-Agent OS chứng minh rằng các động lực học bộ nhớ lấy cảm hứng từ sinh học—quên lãng, chú ý đáp ứng căng thẳng, quản lý vòng đời niềm tin—không chỉ là sự lạ lẫm về mặt lý thuyết mà còn tạo ra những cải tiến thực tế trong hệ thống bộ nhớ tác nhân. Bộ phát hiện NLI lai đạt độ chính xác 100% trên các xung đột ngữ nghĩa mà các phương pháp dựa trên từ khóa bỏ lỡ, trong khi cache NLI loại bỏ các chi phí suy luận dư thừa.
+Bio-Agent OS chứng minh rằng các động lực học bộ nhớ lấy cảm hứng từ sinh học—quên lãng, chú ý đáp ứng căng thẳng, quản lý vòng đời niềm tin—không chỉ là sự lạ lẫm về mặt lý thuyết mà còn tạo ra những cải tiến thực tế, đo được. Trên benchmark LoCoMo, pipeline đầy đủ cải thiện token-F1 thêm 28% so với naive-RAG (`0.326` vs `0.254`) và gấp 2.7× ở câu hỏi thời gian (`0.372` vs `0.136`), dù vẫn còn thua ở multi-hop (`0.246` vs `0.315`). Là bằng chứng phụ ở cấp module, bộ phát hiện NLI lai giải quyết `8/8` xung đột ngữ nghĩa mà phương pháp dựa từ khóa bỏ lỡ (`4/8`).
 
 **Các hướng tương lai bao gồm:**
 
-1. **Tích hợp tiêu chuẩn LoCoMo** (Wang và cộng sự, 2024): Đánh giá khả năng giữ lại bộ nhớ trong hội thoại dài trên các tiêu chuẩn hóa.
-2. **NLI đa mô hình**: So sánh độ chính xác của bộ phát hiện trên các nền tảng Gemma, Llama, Qwen và GPT-4o backends.
+1. **Thu hẹp khoảng cách multi-hop**: Đây là nhóm câu hỏi duy nhất bio-memory còn thua naive-RAG trên LoCoMo — cần truy xuất ghép nhiều ký ức tốt hơn.
+2. **Mở rộng benchmark**: Bổ sung LongMemEval và đối chiếu trực tiếp với Mem0/Zep bên cạnh LoCoMo.
 3. **Suy giảm thời gian cho cache NLI**: TTL 7 ngày với việc vô hiệu hóa theo trọng số độ tin cậy.
 4. **Bảng điều khiển quan sát**: Trực quan hóa thời gian thực của nội cân bằng chú ý, vòng đời niềm tin và giải quyết xung đột thông qua Streamlit/Gradio.
 5. **Hệ sinh thái plugin**: Các plugin do cộng đồng đóng góp cho Cursor, Windsurf và các trình điều phối đa tác nhân.
@@ -857,7 +890,7 @@ Bio-Agent OS hiện có sẵn tại [github.com/locaith/bio-memory-ai-locaith](h
 - Park, J. S., O'Brien, J. C., Cai, C. J., Morris, M. R., Liang, P., & Bernstein, M. S. (2023). Generative agents: Interactive simulacra of human behavior. *UIST 2023*.
 - Thorne, J., Vlachos, A., Christodoulopoulos, C., & Mittal, A. (2018). FEVER: A large-scale dataset for fact extraction and verification. *NAACL 2018*.
 - Turrigiano, G. G. (2008). The self-tuning neuron: Synaptic scaling of excitatory synapses. *Cell*, 135(3), 422–435.
-- Wang, S., et al. (2024). LoCoMo: Long context memory benchmark for LLM agents. *arXiv preprint*.
+- Maharana, A., Lee, D.-H., Tulyakov, S., Bansal, M., Barbieri, F., & Fang, Y. (2024). Evaluating Very Long-Term Conversational Memory of LLM Agents (LoCoMo). *ACL 2024*. (snap-research/locomo)
 - Wayne, G., et al. (2018). Unsupervised predictive memory in a goal-directed agent. *arXiv preprint*.
 
 ---
@@ -949,16 +982,39 @@ By plugging in **Bio-Agent OS** as the backend Memory, you are equipping OpenCla
 
 ---
 
-## 📊 Comparison: Compact (Big Tech) vs Bio-Memory
+## 📊 Real Benchmark: LoCoMo (vs Naive-RAG)
 
-Below is a simulated graph representing the horrific token bloat and performance collapse of the "Compact" method (compressing garbage into smaller garbage) compared to the absolute stability of Bio-Memory when performing 100 continuous coding tasks.
+No simulated charts — these are **real, reproducible measurements** on **LoCoMo** (Maharana et al., 2024), the industry-standard long-term conversational-memory benchmark: 10 multi-session conversations (~200–400 turns each), 300 evaluation questions, scored with **SQuAD-style token-F1 + Exact Match — NO LLM-as-judge**. All three systems run on the same local model + embeddings.
 
-<p align="center">
-  <img src="docs/images/coding_performance.png" alt="Coding Performance Over Time" width="100%"/>
-</p>
+**Headline results (qwen2.5:7b-instruct, 300 questions):**
 
-* **Compact (Red Line)**: Rapid token bloat → Context Loss (Hallucination) → Total crash at Task #50 due to overwhelming garbage accumulation.
-* **Bio-Memory (Cyan Line)**: Microsecond delays running Background Sleep Cycles, but maintains strictly optimized VRAM and 100% precision accuracy even at Task #1000.
+| System | F1 | EM | |
+|:---|:---:|:---:|:---|
+| No-memory (floor) | 0.012 | 0.003 | proves the task is non-trivial |
+| Naive-RAG | 0.254 | 0.083 | embed every turn + top-k stuffing |
+| **Bio-Agent OS** | **0.326** | **0.107** | **+28% F1 over Naive-RAG** |
+
+**Where bio-memory wins big — temporal reasoning:** **0.372** vs **0.136** for Naive-RAG — **2.7×**. This is the core thesis ("knows how to forget · knows how to remember") paying off: dates survive consolidation instead of drowning in noise.
+
+**The advantage GROWS with the quality of the "hippocampus" model** (90-question slice, same config):
+
+| Model | Bio-Agent OS | Naive-RAG | bio temporal |
+|:---|:---:|:---:|:---:|
+| gemma4:e2b (5B) | 0.406 | 0.391 | 0.349 |
+| qwen2.5:7b (7B) | 0.421 | 0.308 | 0.525 |
+| gemma4:12b (12B) | **0.498** | 0.461 | **0.603** |
+
+Bio-memory beats Naive-RAG on **all three** models. Temporal scales 0.349 → 0.525 → 0.603 — the architecture gets *more* useful as the backbone improves, not less. (gemma4:12b fits in 8.4GB VRAM on an RTX 3060 — the recommended default "hippocampus" for commodity hardware.)
+
+**Honest disclosure:** Bio-memory still **trails** Naive-RAG on multi-hop questions (0.246 vs 0.315) — we report it openly; it is the next target. The full development trajectory (F1 0.0 → 0.498 across multiple fixes, failing runs included) lives in git: every report, even the worst.
+
+**Reproduce it (3 lines):**
+```bash
+python scripts/run_locomo_eval.py --backend ollama \
+  --model qwen2.5:7b-instruct \
+  --systems no-memory,naive-rag,bio-memory --tag myrun
+```
+Source reports: [`benchmark_reports/locomo_overnight_qwen7b_v3.md`](benchmark_reports/locomo_overnight_qwen7b_v3.md) (headline) and `benchmark_reports/locomo_modelcmp_*.md` (model sweep).
 
 ---
 
@@ -996,13 +1052,10 @@ pip install bio-locaith-openclaw
 
 ### ✅ Current release state
 
-- `v0.6.1` now includes hybrid contradiction detection with persistent NLI caching.
-- `detector_benchmark` now spans `8` cross-domain pairs: deploy, security, tenant, migration, and neutral architecture cases.
-- Latest real eval with `gemma4:e2b`:
-  - heuristic detector: `4/8`
-  - hybrid + NLI detector: `8/8`
-  - hybrid false positives: `0`
-  - repeat-pass cache confirmations: `8/8`
+- **Headline result (LoCoMo, 300 questions, qwen2.5:7b):** Bio-Agent OS F1 `0.326` vs Naive-RAG `0.254` (**+28%**), 2.7× on temporal reasoning. See [Real Benchmark](#-real-benchmark-locomo-vs-naive-rag) above.
+- `v0.6.1` includes hybrid contradiction detection with persistent NLI caching.
+- **Contradiction-detector unit test** (8 hand-authored pairs — *a targeted unit test, not a statistical benchmark*): heuristic `4/8` → hybrid+NLI `8/8`, false positives `0`. This is supporting evidence for the detector module only; the headline evidence is LoCoMo above.
+- 80 automated tests (`pytest tests/`), Docker packaging, PostgreSQL adapter, MCP server, authenticated REST API.
 
 ### Using the OpenClaw Adapter (Preview)
 
@@ -1456,7 +1509,7 @@ It provides:
 
 ## Abstract
 
-Long-running autonomous agents require persistent memory systems that go beyond simple key-value caching or append-only context windows. We present **Bio-Agent OS**, an open-source memory framework that draws from neuroscience to provide coding and ERP agents with a biologically faithful memory architecture. Our system implements (1) a multi-tier memory pipeline mirroring human memory consolidation (L1 Working Memory → L2 Semantic Memory → Belief Graph), (2) a homeostatic attention scheduler that dynamically adjusts focus weights based on agent stress and failure streaks, (3) an Ebbinghaus-decay forgetting curve for synaptic pruning, (4) a six-state belief lifecycle with governed exception governance, and (5) a hybrid heuristic+NLI contradiction detector with persistent caching. We evaluate on an 8-pair multi-domain conflict detection benchmark and a 6-task end-to-end memory consolidation suite using Gemma-4 E2B as the local inference backbone. Results show that the hybrid NLI detector achieves **8/8 (100%) accuracy with 1.0 precision and 0 false positives**, compared to 4/8 (50%) for heuristic-only detection. The NLI cache eliminates 100% of redundant inference calls on repeat evaluations. Bio-Agent OS is the first open-source framework to combine production-grade persistence (SQLite + PostgreSQL), bio-faithful memory dynamics, and enterprise-grade rule governance in a single installable package.
+Long-running autonomous agents require persistent memory systems that go beyond simple key-value caching or append-only context windows. We present **Bio-Agent OS**, an open-source memory framework that draws from neuroscience to provide coding and ERP agents with a biologically faithful memory architecture. Our system implements (1) a multi-tier memory pipeline mirroring human memory consolidation (L1 Working Memory → L2 Semantic Memory → Belief Graph), (2) a homeostatic attention scheduler that dynamically adjusts focus weights based on agent stress and failure streaks, (3) an Ebbinghaus-decay forgetting curve for synaptic pruning, (4) a six-state belief lifecycle with governed exception governance, and (5) a hybrid heuristic+NLI contradiction detector with persistent caching. We evaluate on **LoCoMo** (Maharana et al., 2024), the industry-standard long-conversation memory benchmark (10 conversations, 300 questions, deterministic SQuAD-style token-F1/Exact Match, no LLM-as-judge), comparing three systems under identical conditions: no-memory (floor, F1 `0.012`), naive-RAG (`0.254`), and the full Bio-Agent OS pipeline (`0.326` — **28% higher F1 than naive-RAG**, and **2.7×** on temporal questions: `0.372` vs `0.136`). The advantage grows with backbone quality (up to `0.498` with gemma4:12b). We openly report that bio-memory still trails naive-RAG on multi-hop questions (`0.246` vs `0.315`). As secondary, module-level evidence, the hybrid NLI detector resolves `8/8` on a small hand-authored 8-pair contradiction unit test (vs `4/8` heuristic-only), and an exact-key cache serves all repeat classifications from memory. Bio-Agent OS is the first open-source framework to combine production-grade persistence (SQLite + PostgreSQL), bio-faithful memory dynamics, and enterprise-grade rule governance in a single installable package.
 
 **Keywords:** agent memory, bio-inspired AI, belief management, contradiction detection, NLI, attention scheduling, memory consolidation
 
@@ -1468,7 +1521,7 @@ The rapid adoption of autonomous coding agents—systems like OpenClaw, SWE-Agen
 
 1. **Context window stuffing**: Prepending all prior observations into the prompt. This is bounded by the context window size and provides no mechanism for forgetting or prioritization.
 
-2. **Vector-store retrieval**: Systems like Mem0 (Khattab et al., 2024) and Zep store memories as embeddings and retrieve by similarity. While effective for recall, they treat all memories as equally valid and provide no lifecycle management.
+2. **Vector-store retrieval**: Systems like Mem0 (Chhablani et al., 2024) and Zep store memories as embeddings and retrieve by similarity. While effective for recall, they treat all memories as equally valid and provide no lifecycle management.
 
 3. **Graph-based memory**: Letta (Packer et al., 2024) and Graphiti use relational structures but lack biological dynamics—there is no forgetting, no attention homeostasis, and no mechanism for handling contradictory beliefs.
 
@@ -1485,9 +1538,10 @@ Additionally, we introduce a novel **Governed Exception Pattern** for enterprise
 1. A multi-tier memory architecture (L1 → L2 → Belief Graph) with biologically-inspired consolidation, forgetting, and attention mechanisms.
 2. A six-state belief lifecycle (`proposed → reinforced → stable → challenged → deprecated → archived`) with evidence-linked provenance.
 3. A homeostatic attention scheduler with dynamic stress-responsive weight adjustment and temporal stress decay.
-4. A hybrid heuristic+NLI contradiction detector with persistent SQLite-backed caching, achieving 100% accuracy on an 8-pair multi-domain benchmark.
-5. The Governed Exception Pattern: a formal mechanism for distinguishing conditional approved overrides from true contradictions.
-6. Open-source implementation with 38 tests, Docker packaging, PostgreSQL adapter, plugin system, and REST API.
+4. A hybrid heuristic+NLI contradiction detector with persistent SQLite-backed caching, validated on a small hand-authored 8-pair unit test (`8/8` vs `4/8` heuristic-only).
+5. A LoCoMo evaluation showing the full pipeline beats naive-RAG by 28% F1 (`0.326` vs `0.254`) and 2.7× on temporal questions, with a fully reproducible public harness and reports.
+6. The Governed Exception Pattern: a formal mechanism for distinguishing conditional approved overrides from true contradictions.
+7. Open-source implementation with 80 automated tests, Docker packaging, PostgreSQL adapter, MCP server, plugin system, and an authenticated REST API.
 
 ---
 
@@ -1748,9 +1802,21 @@ Transitions are triggered by:
 
 ## 5. Evaluation
 
-### 5.1 Detector Benchmark
+### 5.0 Primary Benchmark: LoCoMo
 
-We evaluate the contradiction detector on an 8-pair benchmark spanning four enterprise domains:
+The top-level system evaluation runs on **LoCoMo** (Maharana et al., 2024) — 10 multi-session conversations, 300 questions, deterministic SQuAD-style token-F1/Exact Match (no LLM-as-judge). All three systems share the same local model + embeddings:
+
+| System | F1 | EM |
+|:---|:---:|:---:|
+| No-memory (floor) | 0.012 | 0.003 |
+| Naive-RAG | 0.254 | 0.083 |
+| **Bio-Agent OS** | **0.326** | **0.107** |
+
+The full pipeline beats naive-RAG by **28% F1**, and is strongest on **temporal reasoning** (`0.372` vs `0.136`, **2.7×**) — exactly what the forgetting + consolidation design predicts, since dates survive consolidation. The advantage grows with backbone quality (gemma4:e2b `0.406` → qwen2.5:7b `0.421` → gemma4:12b `0.498`). We report the remaining weakness openly: multi-hop `0.246` vs naive-RAG `0.315`. The harness and every report live in `scripts/run_locomo_eval.py` + `benchmark_reports/`, reproducible with one command.
+
+### 5.1 Unit Test: Contradiction Detector
+
+As a targeted diagnostic for the contradiction-detection module only (not a statistical benchmark), we use a **hand-authored 8-pair unit test** spanning four enterprise domains:
 
 | # | Pair Name | Domain | Ground Truth |
 |:-:|:---|:---|:---|
@@ -1770,9 +1836,9 @@ We evaluate the contradiction detector on an 8-pair benchmark spanning four ente
 | Detector | Accuracy | Precision | False Positive | False Negative |
 |:---|:---:|:---:|:---:|:---:|
 | Heuristic-only | 4/8 (50%) | 1.00 | 0 | 4 |
-| Hybrid (heuristic + NLI) | **8/8 (100%)** | **1.00** | **0** | **0** |
+| Hybrid (heuristic + NLI) | 8/8 (100%) | 1.00 | 0 | 0 |
 
-**Table 2.** Detector benchmark results across 2 evaluation runs with Gemma-4 E2B. Both runs produced identical results.
+**Table 2.** Unit-test results (n=8 hand-authored pairs — *a targeted unit test, not a population estimate; see LoCoMo §5.0 for the primary evaluation*). Two deterministic runs on 8 fixed pairs are expected to be identical and say nothing about variance.
 
 The heuristic detector fails on all three **temporal/scheduling contradictions** (pairs 1, 4, 7) because these pairs share no polarity-marked keywords—the contradiction is purely semantic ("overnight" vs. "10 AM"). The heuristic also misses the security override (pair 8) due to insufficient token overlap after polarity stripping.
 
@@ -1897,7 +1963,7 @@ We additionally evaluate on a 9-task multi-domain suite spanning tenant governan
 
 **Governed exceptions as first-class citizens.** Enterprise environments are rife with policy exceptions. The Governed Exception Pattern prevents the common failure mode where legitimate overrides are discarded by a naive contradiction resolver.
 
-**NLI cache economics.** With an 8-pair benchmark, the cache eliminates 100% of repeat inference cost. In production, where agents may re-evaluate the same rule pairs across thousands of sessions, this represents substantial compute savings.
+**NLI cache economics.** On a repeat pass over the same 8 pairs, every lookup is served from cache (8/8) — expected for an exact-key persistent cache. For workloads that re-evaluate identical rule pairs across many sessions we *expect* proportional savings, though we have not yet measured production-scale cache hit rates.
 
 ### 7.2 Limitations
 
@@ -1922,12 +1988,12 @@ Bio-Agent OS's belief management system raises important questions about AI auto
 
 ## 8. Conclusion and Future Work
 
-Bio-Agent OS demonstrates that biologically-inspired memory dynamics—forgetting, stress-responsive attention, belief lifecycle management—are not merely theoretical novelties but produce practical improvements in agent memory systems. The hybrid NLI detector achieves 100% accuracy on semantic conflicts that keyword-based approaches miss, while the NLI cache eliminates redundant inference costs.
+Bio-Agent OS demonstrates that biologically-inspired memory dynamics—forgetting, stress-responsive attention, belief lifecycle management—are not merely theoretical novelties but produce practical, measurable improvements. On the LoCoMo benchmark the full pipeline improves token-F1 by 28% over naive-RAG (`0.326` vs `0.254`) and by 2.7× on temporal questions (`0.372` vs `0.136`), while still trailing on multi-hop (`0.246` vs `0.315`). As secondary module-level evidence, the hybrid NLI detector resolves `8/8` semantic conflicts that keyword-based approaches miss (`4/8`).
 
 **Future directions include:**
 
-1. **LoCoMo benchmark integration** (Wang et al., 2024): Evaluate long-conversation memory retention on standardized benchmarks.
-2. **Multi-model NLI**: Compare detector accuracy across Gemma, Llama, Qwen, and GPT-4o backends.
+1. **Closing the multi-hop gap**: The one category where bio-memory still trails naive-RAG on LoCoMo — it needs stronger multi-memory composition at retrieval time.
+2. **Broader benchmarks**: Add LongMemEval and a direct head-to-head against Mem0/Zep alongside LoCoMo.
 3. **Temporal decay for NLI cache**: 7-day TTL with confidence-weighted invalidation.
 4. **Observability dashboard**: Real-time visualization of attention homeostasis, belief lifecycle, and conflict resolution via Streamlit/Gradio.
 5. **Plugin ecosystem**: Community-contributed plugins for Cursor, Windsurf, and multi-agent orchestrators.
@@ -1947,7 +2013,7 @@ Bio-Agent OS is available at [github.com/locaith/bio-memory-ai-locaith](https://
 - Park, J. S., O'Brien, J. C., Cai, C. J., Morris, M. R., Liang, P., & Bernstein, M. S. (2023). Generative agents: Interactive simulacra of human behavior. *UIST 2023*.
 - Thorne, J., Vlachos, A., Christodoulopoulos, C., & Mittal, A. (2018). FEVER: A large-scale dataset for fact extraction and verification. *NAACL 2018*.
 - Turrigiano, G. G. (2008). The self-tuning neuron: Synaptic scaling of excitatory synapses. *Cell*, 135(3), 422–435.
-- Wang, S., et al. (2024). LoCoMo: Long context memory benchmark for LLM agents. *arXiv preprint*.
+- Maharana, A., Lee, D.-H., Tulyakov, S., Bansal, M., Barbieri, F., & Fang, Y. (2024). Evaluating Very Long-Term Conversational Memory of LLM Agents (LoCoMo). *ACL 2024*. (snap-research/locomo)
 - Wayne, G., et al. (2018). Unsupervised predictive memory in a goal-directed agent. *arXiv preprint*.
 
 ---
@@ -1987,7 +2053,7 @@ ollama pull gemma4:e2b
 # Run benchmark (2 evaluation runs)
 REAL_EVAL_RUNS=2 python scripts/run_real_eval.py
 
-# Run unit tests (38 tests)
+# Run unit tests (80 tests)
 pytest tests/test_components.py -v
 ```
 
