@@ -93,6 +93,23 @@ class Hippocampus:
         self._log: List[str] = []
         self._allowed_scopes = {"core", "project", "agent", "user", "session", "organization"}
 
+    @staticmethod
+    def _is_plausible_anchor_value(value: str) -> bool:
+        # An anchor is stored verbatim and trusted at importance 9, so a bad
+        # capture becomes a confidently-wrong "fact". Reject values that are
+        # negations ("NOT 123456", "không phải mật khẩu") or carry no content —
+        # those are almost never the real secret the user is pinning.
+        lowered = value.strip().lower()
+        if not lowered or not any(ch.isalnum() for ch in lowered):
+            return False
+        if lowered.startswith(("no longer", "không phải", "khong phai")):
+            return False
+        negation_words = {
+            "not", "no", "never", "isn't", "wasn't", "aren't", "don't", "doesn't",
+            "không", "khong", "chẳng", "chang", "đừng", "dung",
+        }
+        return lowered.split()[0] not in negation_words
+
     def _extract_anchor_fact(self, raw_data: str) -> Dict[str, str]:
         text = " ".join(raw_data.split())
         subject_patterns = [
@@ -112,7 +129,7 @@ class Hippocampus:
             subject = re.sub(r"\s+", " ", match.group("subject")).strip(" .,:;!?-")
             value = re.sub(r"[*`_]+", "", match.group("value")).strip(" .,:;!?-")
             value = re.sub(r"\s+", " ", value)
-            if subject and value and len(value) <= 96 and len(value.split()) <= 6 and "," not in value and ":" not in value:
+            if subject and value and len(value) <= 96 and len(value.split()) <= 6 and "," not in value and ":" not in value and self._is_plausible_anchor_value(value):
                 return {"anchor_kind": kind, "anchor_subject": subject, "anchor_value": value}
         patterns = [
             (
@@ -134,7 +151,7 @@ class Hippocampus:
                 continue
             value = re.sub(r"[*`_]+", "", match.group(1)).strip(" .,:;!?-")
             value = re.sub(r"\s+", " ", value)
-            if value and len(value) <= 96 and len(value.split()) <= 6 and "," not in value and ":" not in value:
+            if value and len(value) <= 96 and len(value.split()) <= 6 and "," not in value and ":" not in value and self._is_plausible_anchor_value(value):
                 return {"anchor_kind": kind, "anchor_value": value}
         return {}
 
@@ -146,7 +163,12 @@ class Hippocampus:
     ) -> Dict[str, Any]:
         lowered = raw_data.lower()
         extracted = self._extract_anchor_fact(raw_data)
-        if extracted or any(marker in lowered for marker in ["remember exactly", "ghi nhớ chính xác"]):
+        has_marker = any(
+            marker in lowered
+            for marker in ["remember exactly", "ghi nhớ chính xác", "ghi nho chinh xac"]
+        )
+        if extracted:
+            # A concrete, validated verbatim value → full anchor treatment.
             metadata["topic"] = "verification_anchor"
             metadata["importance_score"] = max(int(metadata.get("importance_score", 5)), 9)
             metadata["is_junk_or_transient"] = False
@@ -155,6 +177,14 @@ class Hippocampus:
             metadata.update(extracted)
             if observation_type in {"chat_input", "chat_output"} and "urgent" not in str(metadata.get("user_state", "")):
                 metadata["user_state"] = metadata.get("user_state") or "focused"
+        elif has_marker:
+            # The user signalled importance but we could NOT extract a verbatim
+            # value to pin. Raise importance modestly, but do NOT fabricate a
+            # verbatim anchor — that is exactly how a hallucinated or negated
+            # "secret" gets stored and later trusted at face value.
+            metadata["topic"] = metadata.get("topic") or "verification_anchor"
+            metadata["importance_score"] = max(int(metadata.get("importance_score", 5)), 7)
+            metadata["is_junk_or_transient"] = False
         return metadata
 
     @property
@@ -535,7 +565,7 @@ class Hippocampus:
                 scope = self._normalize_scope(compiled.get("scope", "project"), metadata)
                 promotion_allowed = self._should_promote_rule(identity_rule, scope, confidence, metadata)
                 if not promotion_allowed:
-                    self.l1.mark_encoded(entry["timestamp"])
+                    self.l1.mark_encoded(entry["entry_id"])
                     self._log.append(
                         "Promotion gate rejected identity rule candidate: "
                         f"{identity_rule[:120]} (scope={scope}, confidence={confidence:.2f})"
@@ -565,7 +595,7 @@ class Hippocampus:
                             "source": "hippocampus",
                         },
                     )
-                    self.l1.mark_encoded(entry["timestamp"])
+                    self.l1.mark_encoded(entry["entry_id"])
                     self._log.append(f"Queued human approval for sensitive rule: {identity_rule[:120]}")
                     self._store_compiled_memories(compiled, metadata, entry, scope, rule_id=None)
                     if self.audit_log:
@@ -756,8 +786,27 @@ class Hippocampus:
                 if sig in processed:
                     continue
 
-                # MERGE near-duplicates.
-                if vec_a and vec_b and self.l2._cosine_similarity(vec_a, vec_b) >= 0.93:
+                # Compute the conflict relation ONCE, up front. A cosine
+                # near-duplicate is only safe to MERGE when we positively know
+                # the two traces do not contradict each other — otherwise an
+                # opposite-meaning pair with high embedding similarity
+                # ("always force push" vs "never force push") would be silently
+                # collapsed into one. Keep both unless proven safe.
+                left = {"text": payload_a.get("content", ""), "scope": payload_a.get("scope", "project"), "id": payload_a["entry_id"]}
+                right = {"text": payload_b.get("content", ""), "scope": payload_b.get("scope", "project"), "id": payload_b["entry_id"]}
+                try:
+                    conflict = bool(self.reconciler._is_conflict(left, right))
+                    conflict_known = True
+                except Exception as exc:
+                    # Never silent: an unverifiable relation means we do nothing
+                    # (neither merge nor weaken) and leave a trace to debug.
+                    conflict, conflict_known = False, False
+                    self._log.append(f"reconsolidation conflict-check failed ({sig}): {exc}")
+
+                high_sim = bool(vec_a and vec_b and self.l2._cosine_similarity(vec_a, vec_b) >= 0.93)
+
+                # MERGE near-duplicates — only when positively NON-conflicting.
+                if high_sim and conflict_known and not conflict:
                     winner, w_vec, loser = (
                         (payload_a, vec_a, payload_b)
                         if float(payload_a.get("durability", 1.0)) >= float(payload_b.get("durability", 1.0))
@@ -780,14 +829,8 @@ class Hippocampus:
                     result["ensemble_signatures"].append(sig)
                     continue
 
-                # WEAKEN contradicted (reuse the heuristic NLI-free conflict check).
-                left = {"text": payload_a.get("content", ""), "scope": payload_a.get("scope", "project"), "id": payload_a["entry_id"]}
-                right = {"text": payload_b.get("content", ""), "scope": payload_b.get("scope", "project"), "id": payload_b["entry_id"]}
-                try:
-                    conflict = self.reconciler._is_conflict(left, right)
-                except Exception:
-                    conflict = False
-                if conflict:
+                # WEAKEN contradicted — only when positively conflicting.
+                if conflict_known and conflict:
                     # Weaken the less-established trace: lower durability, then
                     # lower importance as the tie-break (the better-supported
                     # memory wins the labile re-storage).

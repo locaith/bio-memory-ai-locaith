@@ -374,17 +374,21 @@ class L1WorkingMemory:
             reverse=True,
         )
 
-    def mark_encoded(self, timestamp: float):
+    def mark_encoded(self, entry_id: str):
+        # Match on the stable UUID, not the float timestamp: two events created
+        # in the same millisecond share a timestamp, and float equality would
+        # then mark/skip the wrong survivor (silent data loss at consolidation).
         self.load()
         for entry in self._entries:
-            if entry["timestamp"] == timestamp:
+            if str(entry.get("entry_id")) == str(entry_id):
                 entry["status"] = "encoded"
+                break
         self.save()
 
-    def remove_by_timestamps(self, timestamps: List[float]):
+    def remove_by_ids(self, entry_ids: List[str]):
         self.load()
-        ts_set = set(timestamps)
-        self._entries = [entry for entry in self._entries if entry["timestamp"] not in ts_set]
+        id_set = {str(entry_id) for entry_id in entry_ids}
+        self._entries = [entry for entry in self._entries if str(entry.get("entry_id")) not in id_set]
         self.save()
 
     def clear(self):

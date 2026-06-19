@@ -69,7 +69,7 @@ class GarbageCollector:
         entries = self.l1.get_all()
         initial_count = len(entries)
         survivors = []
-        pruned_timestamps = []
+        pruned_ids = []
 
         for entry in entries:
             nights = entry.get("nights_passed", 0)
@@ -85,7 +85,7 @@ class GarbageCollector:
 
             # Rule 2: Past TTL + junk → delete
             if is_junk:
-                pruned_timestamps.append(entry["timestamp"])
+                pruned_ids.append(entry["entry_id"])
                 continue
 
             # Rule 3: Ebbinghaus decay check
@@ -94,13 +94,13 @@ class GarbageCollector:
 
             if w_t < self.min_weight:
                 # Forgotten — weight too low
-                pruned_timestamps.append(entry["timestamp"])
+                pruned_ids.append(entry["entry_id"])
             else:
                 survivors.append(entry)
 
         # Apply deletions
-        if pruned_timestamps:
-            self.l1.remove_by_timestamps(pruned_timestamps)
+        if pruned_ids:
+            self.l1.remove_by_ids(pruned_ids)
 
         deleted = initial_count - len(survivors)
         self._log.append(
