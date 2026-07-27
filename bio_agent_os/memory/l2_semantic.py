@@ -441,9 +441,18 @@ class L2SemanticMemory:
         if not retrieval_state:
             return None
         allowed = retrieval_state.get("allowed_workspaces")
-        if allowed is None:
-            return None
-        return {str(workspace) for workspace in allowed}
+        if allowed is not None:
+            return {str(workspace) for workspace in allowed}
+        # SECURITY (per-workspace isolation): when there is no explicit tenant
+        # allow-list, fall back to the caller's OWN workspace_id as a hard
+        # boundary — so one workspace's consolidated L2 memories never surface
+        # for another. Previously, without a tenant API key, workspace_id was
+        # ignored here and L2 search spanned ALL workspaces (cross-user leak).
+        # Matches the strict workspace_id filter already used for episodes.
+        workspace_id = retrieval_state.get("workspace_id")
+        if workspace_id:
+            return {str(workspace_id)}
+        return None
 
     def search(
         self,
