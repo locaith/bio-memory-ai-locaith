@@ -666,7 +666,7 @@ class Hippocampus:
 
                 self._store_compiled_memories(compiled, metadata, entry, scope, rule_id=rule_id)
 
-                self.l1.mark_encoded(entry["timestamp"])
+                self.l1.mark_encoded(entry["entry_id"])
                 self._log.append(f"Compiled rule: {identity_rule[:120]}")
                 if self.audit_log:
                     self.audit_log.append(
