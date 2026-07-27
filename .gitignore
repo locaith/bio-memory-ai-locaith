@@ -42,3 +42,12 @@ real_eval_metrics/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local virtualenv (this project also uses .venv)
+.venv/
+
+# Local demo/scratch memory stores (SQLite side files)
+demo_mem_store/
+test_data/
+*.db-wal
+*.db-shm
