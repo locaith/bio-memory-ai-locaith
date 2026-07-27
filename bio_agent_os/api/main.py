@@ -40,6 +40,7 @@ from bio_agent_os.memory.exact_memory import ExactMemoryStore
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 from bio_agent_os.memory.l1_working import L1WorkingMemory
 from bio_agent_os.memory.l2_semantic import L2SemanticMemory
+from bio_agent_os.memory.coverage_index import CoverageIndex
 
 
 AGENT_NAME = os.getenv("AGENT_NAME", "Bio-AI")
@@ -61,10 +62,11 @@ dream_journal: Optional[DreamJournal] = None
 audit_log: Optional[AuditLog] = None
 approval_queue: Optional[ApprovalQueue] = None
 retrieval_service: Optional[RetrievalService] = None
+coverage_index: Optional[CoverageIndex] = None
 
 
 def init_components():
-    global engine, persona, router_ai, l1, l2, kg, episodes, exact_memory, hippo, gc, graph_builder, health_monitor, dream_journal, audit_log, approval_queue, retrieval_service
+    global engine, persona, router_ai, l1, l2, kg, episodes, exact_memory, hippo, gc, graph_builder, health_monitor, dream_journal, audit_log, approval_queue, retrieval_service, coverage_index
 
     runtime = build_runtime(agent_name=AGENT_NAME, storage_dir=STORAGE_DIR)
     engine = runtime.engine
@@ -83,6 +85,7 @@ def init_components():
     audit_log = runtime.audit_log
     approval_queue = runtime.approval_queue
     retrieval_service = runtime.retrieval_service
+    coverage_index = runtime.coverage_index
 
     print(
         "[Bio-Agent OS] Initialized "
@@ -678,6 +681,38 @@ def reset(request: Request):
     _require_admin(request)
     l1.clear()
     return {"status": "reset", "warning": "L1 cleared. Persona, L2, and episodes preserved."}
+
+
+# ── Verified-Coverage Multi-Resolution Index (VCMI) ──────────────────────────
+@app.post("/api/coverage/refresh")
+def coverage_refresh(request: Request, workspace_id: Optional[str] = Query(None, max_length=128)):
+    """Dựng/cập nhật cây chỉ mục nhiều tầng phủ lên kho thô bất tử (episodes)."""
+    workspace_id = _enforce_workspace(request, workspace_id)
+    return coverage_index.refresh(workspace_id=workspace_id)
+
+
+@app.get("/api/coverage")
+def coverage_report(request: Request, workspace_id: Optional[str] = Query(None, max_length=128)):
+    """Bằng chứng ĐO ĐƯỢC 'không sót thông tin': % phủ + danh sách mồ côi."""
+    workspace_id = _enforce_workspace(request, workspace_id)
+    return coverage_index.coverage_report(workspace_id=workspace_id)
+
+
+@app.post("/api/coverage/retrieve")
+def coverage_retrieve(payload: RetrieveRequest, request: Request):
+    """Truy hồi node tóm tắt cấp cao (đã áp suy giảm Ebbinghaus lên thứ hạng)."""
+    workspace_id = _enforce_workspace(request, payload.workspace_id)
+    return {
+        "query": payload.query,
+        "nodes": coverage_index.retrieve(payload.query, workspace_id=workspace_id, top_k=payload.top_k),
+    }
+
+
+@app.get("/api/zoom")
+def coverage_zoom(node_id: str = Query(..., max_length=128)):
+    """Zoom về nguồn: giải một node tóm tắt ra ĐÚNG episode thô nguyên văn."""
+    episodes_raw = coverage_index.zoom(node_id)
+    return {"node_id": node_id, "count": len(episodes_raw), "episodes": episodes_raw}
 
 
 if __name__ == "__main__":

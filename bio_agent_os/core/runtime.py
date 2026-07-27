@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -22,6 +23,7 @@ from bio_agent_os.core.retrieval_service import RetrievalService
 from bio_agent_os.core.router import IntentRouter
 from bio_agent_os.memory.exact_memory import ExactMemoryStore
 from bio_agent_os.memory.episodes import EpisodeStore
+from bio_agent_os.memory.coverage_index import CoverageIndex
 from bio_agent_os.memory.knowledge_graph import KnowledgeGraph
 from bio_agent_os.memory.l1_working import L1WorkingMemory
 from bio_agent_os.memory.l2_semantic import L2SemanticMemory
@@ -47,6 +49,7 @@ class BioAgentRuntime:
     audit_log: AuditLog
     approval_queue: ApprovalQueue
     retrieval_service: RetrievalService
+    coverage_index: Optional[CoverageIndex] = None
 
 
 def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
@@ -89,6 +92,13 @@ def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
     )
     gc = GarbageCollector(l1=l1, l2=l2)
     graph_builder = GraphBuilder(engine=engine, graph=kg)
+    # Verified-Coverage Multi-Resolution Index: cây chỉ mục nhiều tầng phủ lên kho
+    # thô bất tử (episodes), có bất biến độ phủ 100% + zoom về nguồn. Dùng chung
+    # embedder với L2 để truy hồi cấp cao dùng vector, không nạp thêm mô hình.
+    coverage_index = CoverageIndex(
+        agent_name=agent_name, storage_dir=storage_dir,
+        episodes=episodes, embedder=l2.embedder,
+    )
     health_monitor = MemoryHealthMonitor(
         l1=l1,
         l2=l2,
@@ -116,4 +126,5 @@ def build_runtime(agent_name: str, storage_dir: str) -> BioAgentRuntime:
         audit_log=audit_log,
         approval_queue=approval_queue,
         retrieval_service=retrieval_service,
+        coverage_index=coverage_index,
     )
