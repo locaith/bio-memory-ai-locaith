@@ -47,7 +47,9 @@ class RetrievalService:
         self.approval_queue = approval_queue
 
     def _tokenize(self, text: str) -> set[str]:
-        cleaned = re.sub(r"[^a-z0-9\u00c0-\u024f\s]", " ", text.lower())
+        # Unicode word class, not a fixed Latin range: `\u00c0-\u024f` drops Vietnamese
+        # diacritics (Latin Extended Additional, U+1E00\u2013U+1EFF).
+        cleaned = re.sub(r"[^\w\s]", " ", text.lower(), flags=re.UNICODE)
         return {token for token in cleaned.split() if token}
 
     def _is_anchor_query(self, query: str) -> bool:

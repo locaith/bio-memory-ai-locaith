@@ -76,10 +76,15 @@ class CoverageIndex:
                 child_ids_json TEXT NOT NULL,      -- id các node con (level thấp hơn)
                 created_at REAL NOT NULL,
                 last_access REAL NOT NULL,
-                strength REAL NOT NULL             -- độ bền Ebbinghaus (>=1), càng dùng càng bền
+                strength REAL NOT NULL,            -- độ bền Ebbinghaus (>=1), càng dùng càng bền
+                vector_json TEXT                    -- nhúng của summary, tính 1 lần lúc tạo node
             )
             """
         )
+        try:
+            self._store.execute(f"ALTER TABLE {self._table} ADD COLUMN vector_json TEXT")
+        except Exception:
+            pass
         self._store.execute(
             f"CREATE INDEX IF NOT EXISTS idx_{self._table}_ws ON {self._table}(workspace_id, level)"
         )
@@ -178,14 +183,23 @@ class CoverageIndex:
 
     def _insert_node(self, workspace_id, level, summary, covered_ids, child_ids, now):
         node_id = f"n{level}-{uuid.uuid4().hex[:16]}"
+        # Nhúng summary MỘT LẦN lúc tạo node. Nếu để retrieve() nhúng lại từng
+        # node mỗi lần truy vấn thì chi phí là O(số node) lời gọi embedding cho
+        # MỖI câu hỏi — đủ để đẩy độ trễ recall lên nhiều giây.
+        vector = None
+        if self.embedder is not None:
+            try:
+                vector = self.embedder.embed(summary)
+            except Exception:
+                vector = None
         self._store.execute(
             f"""INSERT OR REPLACE INTO {self._table}
                 (node_id, workspace_id, level, summary, covered_ids_json, child_ids_json,
-                 created_at, last_access, strength)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 created_at, last_access, strength, vector_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [node_id, workspace_id, level, summary,
              self._store.dumps_json(covered_ids), self._store.dumps_json(child_ids),
-             now, now, 1.0],
+             now, now, 1.0, self._store.dumps_json(vector) if vector else None],
         )
         return node_id
 
@@ -259,11 +273,9 @@ class CoverageIndex:
             overlap = len(q_terms & set(text.split()))
             dense = 0.0
             if q_vec is not None:
-                try:
-                    v = self.embedder.embed(node["summary"])
+                v = self._store.loads_json(node.get("vector_json"), None)
+                if isinstance(v, list) and len(v) == len(q_vec):
                     dense = max(0.0, sum(a * b for a, b in zip(q_vec, v)))
-                except Exception:
-                    dense = 0.0
             relevance = dense * 3.0 + overlap * 0.7
             # Ebbinghaus: R = exp(-Δt / S). CHỈ tác động thứ hạng, KHÔNG đụng kho thô.
             dt_days = max(0.0, (now - float(node["last_access"])) / 86400.0)

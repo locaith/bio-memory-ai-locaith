@@ -5,6 +5,7 @@ Episode storage for Bio-Agent OS V2.
 import os
 import re
 import time
+import unicodedata
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -44,6 +45,7 @@ class EpisodeStore:
         self._table = f"{self._store.sanitize_identifier(agent_name)}_episodes"
         self._ensure_table()
         self._migrate_legacy_json()
+        self._backfill_norm_text()
 
     def _ensure_table(self):
         self._store.execute(
@@ -72,6 +74,20 @@ class EpisodeStore:
         try:
             # Migration for tables created before dense recall existed.
             self._store.execute(f"ALTER TABLE {self._table} ADD COLUMN vector_json TEXT")
+        except Exception:
+            pass
+        try:
+            # Lowercase/punctuation-stripped mirror of raw_payload. SQLite's
+            # LOWER() is ASCII-only, so Vietnamese text can only be matched
+            # reliably against a pre-normalized column computed in Python.
+            self._store.execute(f"ALTER TABLE {self._table} ADD COLUMN norm_text TEXT")
+        except Exception:
+            pass
+        try:
+            self._store.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_{self._table}_ws_ts "
+                f"ON {self._table}(workspace_id, timestamp)"
+            )
         except Exception:
             pass
 
@@ -132,8 +148,47 @@ class EpisodeStore:
         return normalized
 
     def _tokenize(self, text: str) -> set[str]:
-        cleaned = re.sub(r"[^a-z0-9\u00c0-\u024f\s]", " ", str(text).lower())
-        return {token for token in cleaned.split() if token}
+        return {token for token in self._normalize_text(text).split() if token}
+
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        """Lowercased, punctuation-stripped mirror used for tokenizing and for
+        SQL LIKE sweeps.
+
+        Uses the Unicode word class rather than a fixed `a-z0-9\u00c0-\u024f` range:
+        Vietnamese diacritics live in Latin Extended Additional (U+1E00\u2013U+1EFF),
+        which that range silently DELETES \u2014 turning "h\u1ee3p \u0111\u1ed3ng" into "h p \u0111 ng"
+        and shattering recall for exactly the language this product serves.
+        NFC normalization keeps precomposed and decomposed input comparable.
+        """
+        folded = unicodedata.normalize("NFC", str(text)).lower()
+        cleaned = re.sub(r"[^\w\s]", " ", folded, flags=re.UNICODE)
+        return " ".join(cleaned.split())
+
+    def _backfill_norm_text(self, batch: int = 2000):
+        """Populate norm_text for rows written before the column existed, so a
+        lexical sweep can reach the FULL history rather than only new rows."""
+        try:
+            rows = self._store.fetchall(
+                f"SELECT episode_id, raw_payload FROM {self._table} "
+                f"WHERE norm_text IS NULL LIMIT ?",
+                [batch],
+            )
+        except Exception:
+            return
+        if not rows:
+            return
+        payload = [
+            (self._normalize_text(row["raw_payload"]), row["episode_id"])
+            for row in rows
+        ]
+        try:
+            self._store.executemany(
+                f"UPDATE {self._table} SET norm_text = ? WHERE episode_id = ?",
+                payload,
+            )
+        except Exception:
+            pass
 
     def _infer_anchor_kind(self, text: str) -> Optional[str]:
         lowered = str(text).lower()
@@ -190,8 +245,8 @@ class EpisodeStore:
                 episode_id, timestamp, task_id, workspace_id, project_version,
                 actor, source, observation_type, raw_payload, inferred_intent,
                 topic, outcome, confidence, tags_json, source_refs_json, metadata_json,
-                vector_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                vector_json, norm_text
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 record["episode_id"],
@@ -211,6 +266,7 @@ class EpisodeStore:
                 self._store.dumps_json(record.get("source_refs", [])),
                 self._store.dumps_json(record.get("metadata", {})),
                 self._store.dumps_json(vector) if vector else None,
+                self._normalize_text(raw_payload),
             ],
         )
         return record
@@ -271,14 +327,13 @@ class EpisodeStore:
             return 0.0
         return sum(a * b for a, b in zip(left, right))
 
-    def _search_candidates(
+    def _scope_conditions(
         self,
         task_id: Optional[str],
         workspace_id: Optional[str],
         project_version: Optional[str],
-        limit: int,
-    ) -> List[Dict[str, Any]]:
-        conditions = []
+    ) -> tuple[List[str], List[Any]]:
+        conditions: List[str] = []
         parameters: List[Any] = []
         if task_id is not None:
             conditions.append("task_id = ?")
@@ -289,18 +344,111 @@ class EpisodeStore:
         if project_version is not None:
             conditions.append("project_version = ?")
             parameters.append(project_version)
-        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        parameters.append(limit)
-        rows = self._store.fetchall(
-            f"SELECT * FROM {self._table} {where} ORDER BY timestamp DESC LIMIT ?",
-            parameters,
-        )
+        return conditions, parameters
+
+    def _rows_to_candidates(self, rows) -> List[Dict[str, Any]]:
         candidates = []
         for row in rows:
             record = self._row_to_record(row)
             record["_vector"] = self._store.loads_json(row["vector_json"], None)
             candidates.append(record)
         return candidates
+
+    def _search_candidates(
+        self,
+        task_id: Optional[str],
+        workspace_id: Optional[str],
+        project_version: Optional[str],
+        limit: int,
+    ) -> List[Dict[str, Any]]:
+        """Recency window — the freshest slice of this scope's history."""
+        conditions, parameters = self._scope_conditions(task_id, workspace_id, project_version)
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        parameters.append(limit)
+        rows = self._store.fetchall(
+            f"SELECT * FROM {self._table} {where} ORDER BY timestamp DESC LIMIT ?",
+            parameters,
+        )
+        return self._rows_to_candidates(rows)
+
+    def _lexical_candidates(
+        self,
+        query_terms: set[str],
+        task_id: Optional[str],
+        workspace_id: Optional[str],
+        project_version: Optional[str],
+        limit: int,
+    ) -> List[Dict[str, Any]]:
+        """Sweep the ENTIRE history for episodes containing any significant query
+        term.
+
+        Without this, the candidate pool is a pure recency window, so once a
+        workspace grows past that window its older memories become unreachable
+        even though they are still stored — recall silently contradicting the
+        immortal-ledger guarantee. Matching runs against `norm_text` because
+        SQLite's LOWER() is ASCII-only and cannot fold Vietnamese.
+        """
+        terms = sorted({t for t in query_terms if len(t) >= 2}, key=len, reverse=True)[:8]
+        if not terms:
+            return []
+        conditions, parameters = self._scope_conditions(task_id, workspace_id, project_version)
+        like_clause = " OR ".join(["norm_text LIKE ?"] * len(terms))
+        conditions.append(f"({like_clause})")
+        parameters.extend(f"%{term}%" for term in terms)
+        where = f"WHERE {' AND '.join(conditions)}"
+        parameters.append(limit)
+        rows = self._store.fetchall(
+            f"SELECT * FROM {self._table} {where} ORDER BY timestamp DESC LIMIT ?",
+            parameters,
+        )
+        return self._rows_to_candidates(rows)
+
+    def _anchor_candidates(
+        self,
+        task_id: Optional[str],
+        workspace_id: Optional[str],
+        project_version: Optional[str],
+        limit: int,
+    ) -> List[Dict[str, Any]]:
+        """Pinned/anchor memories stay reachable no matter how old they are."""
+        conditions, parameters = self._scope_conditions(task_id, workspace_id, project_version)
+        conditions.append("metadata_json LIKE ?")
+        parameters.append("%is_anchor_memory%")
+        where = f"WHERE {' AND '.join(conditions)}"
+        parameters.append(limit)
+        rows = self._store.fetchall(
+            f"SELECT * FROM {self._table} {where} ORDER BY timestamp DESC LIMIT ?",
+            parameters,
+        )
+        return self._rows_to_candidates(rows)
+
+    def _candidate_pool(
+        self,
+        query_terms: set[str],
+        task_id: Optional[str],
+        workspace_id: Optional[str],
+        project_version: Optional[str],
+        recent_limit: int,
+        lexical_limit: int = 400,
+        anchor_limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """Recency window ∪ full-history lexical sweep ∪ anchors, deduped."""
+        pool: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for group in (
+            self._search_candidates(task_id, workspace_id, project_version, recent_limit),
+            self._lexical_candidates(
+                query_terms, task_id, workspace_id, project_version, lexical_limit
+            ),
+            self._anchor_candidates(task_id, workspace_id, project_version, anchor_limit),
+        ):
+            for record in group:
+                episode_id = record.get("episode_id")
+                if episode_id in seen:
+                    continue
+                seen.add(episode_id)
+                pool.append(record)
+        return pool
 
     def search_text(
         self,
@@ -312,15 +460,17 @@ class EpisodeStore:
     ) -> List[Dict[str, Any]]:
         if not query.strip():
             return []
-        # A wide candidate pool matters for long histories: a recency-capped
-        # pool would make old episodes unfindable regardless of relevance.
-        candidates = self._search_candidates(
+        query_terms = self._tokenize(query)
+        # A recency-capped pool alone would make old episodes unfindable no
+        # matter how relevant, so the pool also sweeps the FULL history for the
+        # query's terms and always includes anchors.
+        candidates = self._candidate_pool(
+            query_terms=query_terms,
             task_id=task_id,
             workspace_id=workspace_id,
             project_version=project_version,
-            limit=max(limit * 12, 500),
+            recent_limit=max(limit * 12, 500),
         )
-        query_terms = self._tokenize(query)
         normalized_query = " ".join(query_terms)
         desired_anchor_kind = self._infer_anchor_kind(query)
         query_vector: Optional[List[float]] = None

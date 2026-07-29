@@ -94,7 +94,9 @@ class ContradictionResolver:
 
     def _normalize_text(self, text: str) -> str:
         lowered = text.lower().strip()
-        lowered = re.sub(r"[^a-z0-9\u00c0-\u024f\s]", " ", lowered)
+        # Unicode word class, not a fixed Latin range: `\u00c0-\u024f` drops Vietnamese
+        # diacritics (Latin Extended Additional, U+1E00\u2013U+1EFF).
+        lowered = re.sub(r"[^\w\s]", " ", lowered, flags=re.UNICODE)
         lowered = re.sub(r"\s+", " ", lowered)
         return lowered
 

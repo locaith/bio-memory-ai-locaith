@@ -17,6 +17,7 @@ import hashlib
 import logging
 import math
 import os
+from collections import OrderedDict
 from typing import List, Optional
 
 logger = logging.getLogger("bio_agent_os.embedder")
@@ -32,6 +33,13 @@ class Embedder:
         self._fallback_backend = "hash"
         self._fallback_active = False
         self._degraded_warned = False
+        # Small LRU over embeddings. A single recall fans out across episodes,
+        # L2 and the coverage index — all of which embed the SAME query text.
+        # Without this, one recall pays 3 sequential round trips to the
+        # embedding backend (they serialize behind one model), which dominates
+        # recall latency; with it, only the first call is paid.
+        self._cache: "OrderedDict[str, List[float]]" = OrderedDict()
+        self._cache_max = int(os.getenv("EMBEDDING_CACHE_SIZE", "512"))
         self._init_backend()
         if self.backend == "hash" or self._fallback_active:
             logger.warning(
@@ -167,7 +175,36 @@ class Embedder:
         self._dimensions = self._default_dimensions() if self._fallback_backend != "hash" else self._dimensions
         return []
 
+    # getattr guards keep these safe for objects built via Embedder.__new__
+    # (unit tests bypass __init__), matching _activate_hash_fallback's style.
+    def _cache_get(self, key: str) -> Optional[List[float]]:
+        cache = getattr(self, "_cache", None)
+        if not cache:
+            return None
+        cached = cache.get(key)
+        if cached is None:
+            return None
+        cache.move_to_end(key)
+        return list(cached)
+
+    def _cache_put(self, key: str, vector: List[float]) -> None:
+        cache = getattr(self, "_cache", None)
+        if cache is None or not vector:
+            return
+        cache[key] = list(vector)
+        cache.move_to_end(key)
+        while len(cache) > getattr(self, "_cache_max", 512):
+            cache.popitem(last=False)
+
     def embed(self, text: str) -> List[float]:
+        cached = self._cache_get(text)
+        if cached is not None:
+            return cached
+        vector = self._embed_uncached(text)
+        self._cache_put(text, vector)
+        return vector
+
+    def _embed_uncached(self, text: str) -> List[float]:
         if not self._fallback_active:
             try:
                 if self.backend == "sentence-transformers" and self._model is not None:
