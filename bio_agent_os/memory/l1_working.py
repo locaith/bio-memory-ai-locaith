@@ -374,6 +374,21 @@ class L1WorkingMemory:
             reverse=True,
         )
 
+    def purge_workspace(self, workspace_id: str) -> int:
+        """Xoá mọi bản ghi bộ nhớ làm việc của một workspace (verified delete)."""
+        if not workspace_id:
+            return 0
+        row = self._store.fetchone(
+            f"SELECT COUNT(*) AS c FROM {self._table} WHERE workspace_id = ?",
+            [workspace_id],
+        )
+        count = int(row["c"]) if row else 0
+        if count:
+            self._store.execute(
+                f"DELETE FROM {self._table} WHERE workspace_id = ?", [workspace_id]
+            )
+        return count
+
     def update_metadata(self, entry_id: str, metadata: Dict[str, Any]):
         """Replace an entry's metadata and recompute its attention weights.
 

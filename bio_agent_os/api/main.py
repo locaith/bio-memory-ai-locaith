@@ -729,6 +729,40 @@ def coverage_zoom(node_id: str = Query(..., max_length=128)):
     return {"node_id": node_id, "count": len(episodes_raw), "episodes": episodes_raw}
 
 
+@app.delete("/api/workspace/{workspace_id}")
+def purge_workspace(workspace_id: str, request: Request):
+    """Xoá VĨNH VIỄN toàn bộ trí nhớ của một workspace, có kiểm chứng.
+
+    "Kho thô bất tử" nghĩa là thuật toán quên không bao giờ xoá dữ liệu — KHÔNG
+    có nghĩa là chủ dữ liệu không xoá được. Quyền được lãng quên (GDPR) cần một
+    đường xoá dứt khoát, và vận hành cần nó để nạp lại sạch. Trả về số bản đã
+    xoá ở từng tầng cùng số còn lại (phải bằng 0) để việc xoá là kiểm chứng
+    được, không phải chỉ tin.
+    """
+    workspace_id = _enforce_workspace(request, workspace_id)
+    if not workspace_id:
+        raise HTTPException(status_code=400, detail="workspace_id is required.")
+    deleted = {
+        "episodes": episodes.purge_workspace(workspace_id) if episodes else 0,
+        "l1": l1.purge_workspace(workspace_id) if l1 else 0,
+        "l2": l2.purge_workspace(workspace_id) if l2 else 0,
+        "coverage_nodes": coverage_index.purge_workspace(workspace_id) if coverage_index else 0,
+    }
+    remaining = episodes.workspace_count(workspace_id) if episodes else 0
+    audit_log.append(
+        "workspace_purged",
+        f"Purged all memory for workspace {workspace_id}",
+        {**deleted, "remaining_episodes": remaining},
+    )
+    return {
+        "status": "purged",
+        "workspace_id": workspace_id,
+        "deleted": deleted,
+        "remaining_episodes": remaining,
+        "verified": remaining == 0,
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
 

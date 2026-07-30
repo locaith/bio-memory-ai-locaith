@@ -2,11 +2,13 @@
 Episode storage for Bio-Agent OS V2.
 """
 
+import math
 import os
 import re
 import time
 import unicodedata
 import uuid
+from collections import Counter
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -34,6 +36,21 @@ class EpisodeRecord(BaseModel):
 
 
 class EpisodeStore:
+    # Recency is a tiebreaker, not a rival to relevance. At the original 1.5 it
+    # was half the weight of a perfect dense match, so a multi-hop question —
+    # which needs an OLD fact to bridge the second hop — kept losing its
+    # evidence to whatever had been said most recently.
+    RECENCY_WEIGHT = float(os.getenv("BIO_EPISODE_RECENCY_WEIGHT", "0.4"))
+    # Floor for keeping a candidate that shares no keywords with the query. The
+    # bridging fact in a multi-hop chain usually shares no wording with the
+    # question, so a high floor silently deleted exactly those episodes; keep a
+    # low floor so genuinely unrelated content is still excluded (abstention
+    # must stay possible) without discarding weak-but-real semantic matches.
+    MIN_DENSE = float(os.getenv("BIO_EPISODE_MIN_DENSE", "0.15"))
+    # Above this token overlap, two episodes are treated as restating the same
+    # thing. Multi-hop needs k DISTINCT facts, not k phrasings of one.
+    DEDUP_JACCARD = float(os.getenv("BIO_EPISODE_DEDUP_JACCARD", "0.8"))
+
     def __init__(self, agent_name: str = "Bio-AI", storage_dir: str = "data", embedder=None):
         self.agent_name = agent_name
         self.storage_dir = storage_dir
@@ -280,6 +297,34 @@ class EpisodeStore:
             ],
         )
         return record
+
+    def purge_workspace(self, workspace_id: str) -> int:
+        """Xoá VĨNH VIỄN mọi episode của một workspace, trả về số bản đã xoá.
+
+        Kho thô là "bất tử" theo nghĩa không bị thuật toán quên xoá đi — nhưng
+        chủ dữ liệu vẫn phải xoá được khi yêu cầu (quyền được lãng quên), và
+        vận hành cũng cần đường xoá sạch để nạp lại. Đếm trước/sau để việc xoá
+        là KIỂM CHỨNG ĐƯỢC, không phải làm rồi tin.
+        """
+        if not workspace_id:
+            return 0
+        before = self._store.fetchone(
+            f"SELECT COUNT(*) AS c FROM {self._table} WHERE workspace_id = ?",
+            [workspace_id],
+        )
+        count = int(before["c"]) if before else 0
+        if count:
+            self._store.execute(
+                f"DELETE FROM {self._table} WHERE workspace_id = ?", [workspace_id]
+            )
+        return count
+
+    def workspace_count(self, workspace_id: str) -> int:
+        row = self._store.fetchone(
+            f"SELECT COUNT(*) AS c FROM {self._table} WHERE workspace_id = ?",
+            [workspace_id],
+        )
+        return int(row["c"]) if row else 0
 
     def backfill_vectors(self, limit: int = 500) -> int:
         """Embed episodes stored by the deferred-vector write path.
@@ -549,6 +594,12 @@ class EpisodeStore:
                 query_vector = self._embedder.embed(query)
             except Exception:
                 query_vector = None
+        # IDF tính ngay trên tập ứng viên: từ xuất hiện ở khắp nơi ("văn", "bản",
+        # "công", "ty") tự động mất trọng số, từ đặc trưng ("vinaconex", "tuấn")
+        # được đề cao. Không cần từ điển stopword cho tiếng Việt.
+        idf = self._query_idf(query_terms, candidates)
+        total_idf = sum(idf.values()) or 1.0
+
         now = time.time()
         results: List[Dict[str, Any]] = []
         for record in candidates:
@@ -576,11 +627,14 @@ class EpisodeStore:
                 and overlap == 0
                 and normalized_query not in text.lower()
                 and not is_matching_anchor
-                and dense < 0.4
+                and dense < self.MIN_DENSE
             ):
                 continue
             recency_hours = max((now - float(record.get("timestamp", now))) / 3600.0, 0.0)
-            recency_bonus = max(0.0, 1.5 - min(recency_hours / 24.0, 1.5))
+            recency_bonus = max(
+                0.0,
+                self.RECENCY_WEIGHT * (1.0 - min(recency_hours / 24.0, 1.0)),
+            )
             anchor_bonus = 0.8 if metadata.get("is_anchor_memory") else 0.0
             if anchor_value:
                 anchor_bonus += 0.4
@@ -589,10 +643,67 @@ class EpisodeStore:
             elif desired_anchor_kind and anchor_kind and anchor_kind != desired_anchor_kind:
                 anchor_bonus -= 0.6
             exact_bonus = 0.6 if normalized_query and normalized_query in " ".join(text_terms) else 0.0
-            score = dense * 3.0 + overlap * 0.7 + recency_bonus + anchor_bonus + exact_bonus
+            # Điểm từ khoá phải trả lời "mẩu này đáp được bao nhiêu phần câu hỏi",
+            # KHÔNG phải "đếm được bao nhiêu từ trùng". Đếm thô khiến văn bản
+            # càng dài càng thắng: một hợp đồng 150 từ trùng 8 từ phổ thông sẽ
+            # đè bẹp mẩu "sửa người ký là Hà Tuấn Anh" — đúng mẩu trả lời câu hỏi.
+            matched_idf = sum(idf[term] for term in query_terms & text_terms)
+            coverage = matched_idf / total_idf                      # 0..1
+            focus = len(query_terms & text_terms) / max(len(text_terms), 1)  # mẩu này có ĐANG nói về câu hỏi?
+            lexical_bonus = 2.0 * coverage + 0.5 * min(focus / 0.5, 1.0)
+            score = dense * 3.0 + lexical_bonus + recency_bonus + anchor_bonus + exact_bonus
             results.append({**record, "score": round(score, 3)})
         results.sort(key=lambda item: (-float(item["score"]), -float(item["timestamp"])))
-        return results[:limit]
+        return self._select_diverse(results, limit)
+
+    def _query_idf(
+        self, query_terms: set[str], candidates: List[Dict[str, Any]]
+    ) -> Dict[str, float]:
+        """IDF của từng từ trong câu hỏi, đo trên chính tập ứng viên.
+
+        Rẻ (một lượt quét) và không cần danh sách stopword — thứ mà tiếng Việt
+        vốn không có sẵn tốt. Từ nào có trong gần như mọi ứng viên thì gần như
+        không mang thông tin phân biệt, nên trọng số tiến về 0.
+        """
+        if not query_terms:
+            return {}
+        total = max(len(candidates), 1)
+        document_frequency: Counter = Counter()
+        for record in candidates:
+            terms = self._tokenize(record.get("raw_payload", ""))
+            for term in query_terms & terms:
+                document_frequency[term] += 1
+        return {
+            term: math.log(1.0 + total / (1.0 + document_frequency[term]))
+            for term in query_terms
+        }
+
+    def _select_diverse(self, ranked: List[Dict[str, Any]], limit: int) -> List[Dict[str, Any]]:
+        """Fill the k slots with DISTINCT facts, highest-scoring first.
+
+        A plain top-k can spend every slot on rephrasings of one memory, which
+        answers a single-hop question fine but starves a multi-hop chain of the
+        second fact it needs. Anchors are exempt — they are pinned on purpose.
+        """
+        selected: List[Dict[str, Any]] = []
+        selected_terms: List[set] = []
+        for record in ranked:
+            if len(selected) >= limit:
+                break
+            terms = self._tokenize(record.get("raw_payload", ""))
+            is_anchor = bool((record.get("metadata") or {}).get("is_anchor_memory"))
+            if terms and not is_anchor:
+                redundant = False
+                for existing in selected_terms:
+                    union = terms | existing
+                    if union and len(terms & existing) / len(union) > self.DEDUP_JACCARD:
+                        redundant = True
+                        break
+                if redundant:
+                    continue
+            selected.append(record)
+            selected_terms.append(terms)
+        return selected
 
     @property
     def count(self) -> int:

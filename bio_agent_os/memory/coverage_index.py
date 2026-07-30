@@ -203,6 +203,26 @@ class CoverageIndex:
         )
         return node_id
 
+    def purge_workspace(self, workspace_id: str) -> int:
+        """Xoá toàn bộ cây chỉ mục của một workspace (verified delete).
+
+        Chỉ mục là thứ dựng lại được từ kho thô, nên xoá nó là an toàn — và phải
+        xoá cùng lúc với kho thô, nếu không bất biến độ phủ sẽ trỏ vào episode
+        đã biến mất.
+        """
+        if not workspace_id:
+            return 0
+        row = self._store.fetchone(
+            f"SELECT COUNT(*) AS c FROM {self._table} WHERE workspace_id = ?",
+            [workspace_id],
+        )
+        count = int(row["c"]) if row else 0
+        if count:
+            self._store.execute(
+                f"DELETE FROM {self._table} WHERE workspace_id = ?", [workspace_id]
+            )
+        return count
+
     # ── BẤT BIẾN ĐỘ PHỦ (điểm mới, đo được) ──────────────────────────────────
     def coverage_report(self, workspace_id: Optional[str] = None) -> Dict[str, Any]:
         """Kiểm chứng: mọi episode trong kho thô có được ≥1 node lá phủ không?"""

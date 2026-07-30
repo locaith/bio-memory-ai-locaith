@@ -634,6 +634,27 @@ class L2SemanticMemory:
         """Re-persist a mutated payload to the durable store and the index."""
         self._save_payload(payload, vector)
 
+    def purge_workspace(self, workspace_id: str) -> int:
+        """Xoá mọi ký ức ngữ nghĩa của một workspace, cả bản bền và cả index.
+
+        Quét bảng bền rồi gọi `forget` để index và bản bền không bị lệch nhau —
+        một bên còn vector mà bên kia đã xoá thì truy hồi sẽ trả về ký ức của
+        người đã yêu cầu xoá.
+        """
+        if not workspace_id:
+            return 0
+        rows = self._durable.fetchall(
+            f"SELECT entry_id, payload_json FROM {self._durable_table}"
+        )
+        victims: List[str] = []
+        for row in rows:
+            payload = self._durable.loads_json(row["payload_json"], {}) or {}
+            if str(payload.get("workspace_id") or "") == str(workspace_id):
+                victims.append(row["entry_id"])
+        if not victims:
+            return 0
+        return self.forget(victims)
+
     def forget(self, entry_ids: List[Optional[str]]) -> int:
         """Remove entries from both the index and the durable store."""
         ids = [str(eid) for eid in entry_ids if eid]
