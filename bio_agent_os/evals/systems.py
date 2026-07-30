@@ -148,8 +148,12 @@ class BioMemorySystem:
         l2_results = bundle.get("l2_results") or []
         for item in l2_results:
             sections.append(f"Memory [{item.get('memory_type')}]: {item.get('content')}")
-        for episode in (bundle.get("anchor_episodes") or [])[:8]:
-            sections.append(f"Episode: {str(episode.get('raw_payload', ''))[:400]}")
+        # Verbatim episodes, untruncated. Clipping them at 400 chars threw away
+        # the tail of longer turns — where a bridging fact often sits — while
+        # the naive-RAG baseline was handed every turn in full. That handicap
+        # was ours alone, and it hurt exactly the multi-hop chains.
+        for episode in (bundle.get("anchor_episodes") or [])[: self._top_k]:
+            sections.append(f"Episode: {str(episode.get('raw_payload', ''))}")
         return "\n".join(sections), l2_results
 
     @staticmethod

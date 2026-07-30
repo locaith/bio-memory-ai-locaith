@@ -656,6 +656,81 @@ class EpisodeStore:
         results.sort(key=lambda item: (-float(item["score"]), -float(item["timestamp"])))
         return self._select_diverse(results, limit)
 
+    def search_text_expanded(
+        self,
+        query: str,
+        limit: int = 10,
+        task_id: Optional[str] = None,
+        workspace_id: Optional[str] = None,
+        project_version: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Truy hồi hai vòng, có bắc cầu — dành cho câu hỏi nhiều bước.
+
+        Một câu hỏi multi-hop cần hai dữ kiện khác nhau, và dữ kiện thứ hai
+        thường KHÔNG chứa từ nào của câu hỏi: nó chỉ nối với dữ kiện thứ nhất
+        qua một thực thể chung. Truy hồi một vòng theo câu hỏi vì thế không bao
+        giờ nhìn thấy nó — đó là lý do một RAG top-k thuần (vốn quét rộng theo
+        ngữ nghĩa) lại thắng ở đúng hạng mục này.
+
+        Vòng 1 lấy theo câu hỏi. Từ các kết quả mạnh nhất, rút ra những từ đặc
+        trưng KHÔNG có trong câu hỏi — các thực thể bắc cầu. Vòng 2 truy hồi
+        theo chúng. Vài ô cuối được giữ riêng cho kết quả vòng 2 để dữ kiện thứ
+        hai luôn có chỗ, thay vì bị vòng 1 chiếm hết.
+
+        Không thêm lời gọi LLM nào; chỉ một lần nhúng nữa cho truy vấn bắc cầu.
+        """
+        first = self.search_text(
+            query,
+            limit=limit,
+            task_id=task_id,
+            workspace_id=workspace_id,
+            project_version=project_version,
+        )
+        # Chỉ cần MỘT dữ kiện neo là đã bắc cầu được — và đó đúng là ca multi-hop
+        # điển hình: câu hỏi khớp một mẩu, mẩu đó dẫn sang mẩu thứ hai.
+        if limit <= 2 or not first:
+            return first
+
+        query_terms = self._tokenize(query)
+        # Ứng viên bắc cầu: từ đặc trưng trong các kết quả mạnh nhất. Bỏ từ quá
+        # ngắn (hư từ) và từ đã có trong câu hỏi (vòng 1 đã bao phủ).
+        candidate_terms: Counter = Counter()
+        for record in first[:3]:
+            for term in self._tokenize(record.get("raw_payload", "")) - query_terms:
+                if len(term) >= 4 and not term.isdigit():
+                    candidate_terms[term] += 1
+        bridge = [term for term, _ in candidate_terms.most_common(6)]
+        if not bridge:
+            return first
+
+        second = self.search_text(
+            " ".join(bridge),
+            limit=limit,
+            task_id=task_id,
+            workspace_id=workspace_id,
+            project_version=project_version,
+        )
+
+        reserved = max(2, limit // 3)
+        merged = list(first[: limit - reserved])
+        seen = {record.get("episode_id") for record in merged}
+        for record in second:
+            if len(merged) >= limit:
+                break
+            if record.get("episode_id") in seen:
+                continue
+            merged.append(record)
+            seen.add(record.get("episode_id"))
+        # Nếu vòng 2 không đóng góp gì, trả lại phần vòng 1 đã bị giữ chỗ.
+        for record in first:
+            if len(merged) >= limit:
+                break
+            if record.get("episode_id") in seen:
+                continue
+            merged.append(record)
+            seen.add(record.get("episode_id"))
+        return merged
+
     def _query_idf(
         self, query_terms: set[str], candidates: List[Dict[str, Any]]
     ) -> Dict[str, float]:

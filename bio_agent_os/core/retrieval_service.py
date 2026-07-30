@@ -180,7 +180,9 @@ class RetrievalService:
         # not only anchor-style ones — they are the sole record of memories
         # that have not been consolidated into L2 yet. Anchor queries keep
         # their dedicated boost inside search_text scoring.
-        matches = self.episodes.search_text(
+        # Hai vòng có bắc cầu: dữ kiện nối của một chuỗi nhiều bước thường không
+        # chứa từ nào của câu hỏi, nên truy hồi một vòng sẽ bỏ sót nó.
+        matches = self.episodes.search_text_expanded(
             query,
             limit=limit,
             task_id=retrieval_state.get("task_id"),
@@ -440,10 +442,12 @@ class RetrievalService:
         graph_results = self.graph.retrieve_beliefs(query, top_k=top_k, retrieval_state=retrieval_state)
         stable_persona_rules = self.relevant_stable_persona_rules(query, retrieval_state, limit=min(top_k, 5))
         pending_approvals = self.relevant_pending_approvals(query, retrieval_state, limit=min(top_k, 5))
-        # Hippocampal recall capacity: episodes are the only route to
-        # memories that have not consolidated into L2 yet, so they get the
-        # same budget as the semantic results instead of a hard cap of 4.
-        anchor_episodes = self.relevant_anchor_episodes(query, retrieval_state, limit=min(top_k, 8))
+        # Hippocampal recall capacity: episodes are the only route to memories
+        # that have not consolidated into L2 yet, AND the only VERBATIM source —
+        # consolidated summaries are lossy, so a chain of facts has to be
+        # assembled from raw episodes. They get the full budget, not a fraction
+        # of it; a multi-hop chain starves when its slots are rationed.
+        anchor_episodes = self.relevant_anchor_episodes(query, retrieval_state, limit=top_k)
         resolved = self._resolve_graph_l2_conflicts(l2_results, graph_results, retrieval_state)
         graph_results = resolved["graph_results"]
         safety_guard = self.build_safety_guard(query, l2_results, graph_results)
