@@ -374,6 +374,49 @@ class L1WorkingMemory:
             reverse=True,
         )
 
+    def update_metadata(self, entry_id: str, metadata: Dict[str, Any]):
+        """Replace an entry's metadata and recompute its attention weights.
+
+        Used by deferred labeling: ingest writes a cheap placeholder label so the
+        write path costs no LLM call, then consolidation fills in the real label
+        and the salience/attention scores that depend on it.
+        """
+        row = self._store.fetchone(
+            f"SELECT * FROM {self._table} WHERE entry_id = ?", [entry_id]
+        )
+        if not row:
+            return
+        entry = self._row_to_entry(row)
+        entry["metadata"] = metadata
+        severity = self._infer_severity(entry.get("content", ""), metadata)
+        task_relevance = self._infer_task_relevance(metadata)
+        unresolved = self._infer_unresolved_status(entry.get("content", ""), metadata)
+        salience = self._clamp(float(metadata.get("importance_score", 5)) / 10.0)
+        entry.update(
+            {
+                "severity": severity,
+                "task_relevance": task_relevance,
+                "unresolved_status": unresolved,
+                "salience": salience,
+            }
+        )
+        attention = self._compute_attention(entry)
+        self._store.execute(
+            f"""UPDATE {self._table}
+                SET metadata_json = ?, salience = ?, severity = ?,
+                    task_relevance = ?, unresolved_status = ?, attention_score = ?
+                WHERE entry_id = ?""",
+            [
+                self._store.dumps_json(metadata),
+                salience,
+                severity,
+                task_relevance,
+                unresolved,
+                attention,
+                entry_id,
+            ],
+        )
+
     def mark_encoded(self, entry_id: str):
         # Match on the stable UUID, not the float timestamp: two events created
         # in the same millisecond share a timestamp, and float equality would

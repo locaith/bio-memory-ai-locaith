@@ -6,7 +6,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
@@ -288,7 +288,7 @@ async def chat(payload: ChatRequest, request: Request):
 
 
 @app.post("/api/ingest")
-async def ingest(payload: IngestRequest, request: Request):
+async def ingest(payload: IngestRequest, request: Request, background: BackgroundTasks):
     text = payload.text
     chunk_size = payload.chunk_size
     source = payload.source
@@ -299,7 +299,7 @@ async def ingest(payload: IngestRequest, request: Request):
     observation_type = payload.observation_type
 
     chunks = [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
-    stats = {"chunks": len(chunks), "labeled": 0, "graph_entities": 0, "graph_relations": 0}
+    stats = {"chunks": len(chunks), "labeled": 0, "graph_deferred": len(chunks)}
 
     for chunk in chunks:
         await hippo.label_and_store(
@@ -312,9 +312,6 @@ async def ingest(payload: IngestRequest, request: Request):
             observation_type=observation_type,
         )
         stats["labeled"] += 1
-        graph_stats = await graph_builder.process(chunk)
-        stats["graph_entities"] += graph_stats["entities_added"]
-        stats["graph_relations"] += graph_stats["relations_added"]
     audit_log.append(
         "bulk_ingest",
         "Processed ingest request",
@@ -326,7 +323,24 @@ async def ingest(payload: IngestRequest, request: Request):
         },
     )
 
+    # Everything that needs the network runs AFTER the response, so an ingest
+    # costs the caller a SQLite insert and nothing else. Entity/relation
+    # extraction is an LLM call per chunk and embeddings are a round trip each;
+    # inline, they made ingest ~2.8s. Deferring them to the background keeps
+    # recall fresh within seconds without ever blocking a write.
+    background.add_task(episodes.backfill_vectors, 200)
+    background.add_task(_enrich_graph, chunks)
+
     return {"status": "ok", "stats": stats}
+
+
+async def _enrich_graph(chunks: list[str]) -> None:
+    """Build knowledge-graph entities/relations off the request path."""
+    for chunk in chunks:
+        try:
+            await graph_builder.process(chunk)
+        except Exception as exc:  # noqa: BLE001 — enrichment must never break ingest
+            print(f"[Bio-Agent OS] graph enrichment skipped: {exc}")
 
 
 @app.post("/api/sleep")

@@ -39,6 +39,11 @@ def test_dense_recall_matches_paraphrase_without_keyword_overlap():
     store.add(raw_payload="My pottery class made a vase.", workspace_id="ws-d")
     store.add(raw_payload="The weather is windy today.", workspace_id="ws-d")
 
+    # Writes skip embedding to keep the write path off the network; vectors are
+    # materialized just after the response (API background task) or at sleep.
+    # Run that step explicitly here — dense recall is delayed, never lost.
+    assert store.backfill_vectors() == 3
+
     # "canine" shares zero tokens with "puppy" — only dense similarity links them.
     results = store.search_text("canine", limit=2, workspace_id="ws-d")
     assert results

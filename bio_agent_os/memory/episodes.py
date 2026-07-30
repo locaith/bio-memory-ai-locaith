@@ -216,6 +216,7 @@ class EpisodeStore:
         task_id: Optional[str] = None,
         workspace_id: Optional[str] = None,
         project_version: Optional[str] = None,
+        defer_vector: Optional[bool] = None,
     ) -> Dict[str, Any]:
         record = EpisodeRecord(
             raw_payload=raw_payload,
@@ -233,8 +234,17 @@ class EpisodeStore:
             workspace_id=workspace_id,
             project_version=project_version,
         ).model_dump()
+        # Embedding is a network round trip to the embedding backend. Doing it
+        # inline makes every write wait on it (~0.3-0.6s), which is the rest of
+        # the write-path cost once LLM labeling is deferred. Store the episode
+        # now and let `backfill_vectors()` fill vectors during sleep; until then
+        # recall still works through the lexical/norm_text sweep.
+        if defer_vector is None:
+            defer_vector = os.getenv("BIO_AGENT_DEFER_VECTOR", "1").strip().lower() in (
+                "1", "true", "yes", "on",
+            )
         vector: Optional[List[float]] = None
-        if self._embedder is not None:
+        if self._embedder is not None and not defer_vector:
             try:
                 vector = self._embedder.embed(str(raw_payload)[:1500])
             except Exception:
@@ -270,6 +280,66 @@ class EpisodeStore:
             ],
         )
         return record
+
+    def backfill_vectors(self, limit: int = 500) -> int:
+        """Embed episodes stored by the deferred-vector write path.
+
+        Runs during sleep consolidation, off the user's request path.
+        """
+        if self._embedder is None:
+            return 0
+        rows = self._store.fetchall(
+            f"SELECT episode_id, raw_payload FROM {self._table} "
+            f"WHERE vector_json IS NULL LIMIT ?",
+            [limit],
+        )
+        filled = 0
+        for row in rows:
+            try:
+                vector = self._embedder.embed(str(row["raw_payload"])[:1500])
+            except Exception:
+                continue
+            if not vector:
+                continue
+            self._store.execute(
+                f"UPDATE {self._table} SET vector_json = ? WHERE episode_id = ?",
+                [self._store.dumps_json(vector), row["episode_id"]],
+            )
+            filled += 1
+        return filled
+
+    def update_labels(
+        self,
+        episode_id: str,
+        topic: Optional[str] = None,
+        confidence: Optional[float] = None,
+        tags: Optional[List[str]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ):
+        """Fill in labels for an episode written by the deferred-label path."""
+        sets: List[str] = []
+        parameters: List[Any] = []
+        if topic is not None:
+            sets.append("topic = ?")
+            parameters.append(topic)
+            sets.append("inferred_intent = ?")
+            parameters.append(topic)
+        if confidence is not None:
+            sets.append("confidence = ?")
+            parameters.append(float(confidence))
+        if tags is not None:
+            sets.append("tags_json = ?")
+            parameters.append(self._store.dumps_json(tags))
+        if metadata is not None:
+            sets.append("metadata_json = ?")
+            parameters.append(self._store.dumps_json(metadata))
+        if not sets:
+            return
+        parameters.append(episode_id)
+        self._store.execute(
+            f"UPDATE {self._table} SET {', '.join(sets)} WHERE episode_id = ?",
+            parameters,
+        )
 
     def get_recent(self, limit: int = 10) -> List[Dict[str, Any]]:
         rows = self._store.fetchall(

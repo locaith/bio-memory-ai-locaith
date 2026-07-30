@@ -33,6 +33,11 @@ class MemoryLabel(BaseModel):
     user_state: str = Field(description="Observed user or agent state")
 
 
+class MemoryLabelBatch(BaseModel):
+    """Labels for several observations in ONE call, ordered as given."""
+    labels: List[MemoryLabel] = Field(description="One label per numbered observation, same order")
+
+
 class CompiledMemory(BaseModel):
     episodic_summary: str = Field(
         description=(
@@ -222,6 +227,31 @@ class Hippocampus:
                 "user_state": "unknown",
             }
 
+    # Cheap markers for the deferred-label path. Deliberately crude: the point is
+    # that the WRITE path must cost zero LLM calls, and consolidation will
+    # overwrite these with a real label before anything depends on them.
+    _JUNK_MARKERS = (
+        "ok", "oke", "okay", "vâng", "dạ", "ừ", "uh", "thanks", "thank you",
+        "cảm ơn", "cám ơn", "hi", "hello", "chào", "xin chào", "bye",
+    )
+
+    def _cheap_label(self, content: str) -> Dict[str, Any]:
+        text = " ".join(str(content).split())
+        stripped = text.lower().strip(" .!?,:;")
+        is_junk = len(stripped) <= 24 and any(
+            stripped == marker or stripped.startswith(marker + " ") for marker in self._JUNK_MARKERS
+        )
+        # Digits often carry the facts worth keeping (codes, dates, amounts).
+        importance = 3 if is_junk else (7 if any(char.isdigit() for char in text) else 5)
+        return {
+            "topic": "unlabeled",
+            "importance_score": importance,
+            "is_junk_or_transient": is_junk,
+            "user_state": "unknown",
+            # Consolidation looks for this to fill in the real label later.
+            "label_pending": True,
+        }
+
     async def label_and_store(
         self,
         raw_data: str,
@@ -231,9 +261,21 @@ class Hippocampus:
         project_version: Optional[str] = None,
         source_refs: Optional[List[Dict[str, Any]]] = None,
         observation_type: str = "event",
+        defer_label: Optional[bool] = None,
     ) -> Dict[str, Any]:
         compaction = self.compactor.compact(raw_data)
-        metadata = await self.label(compaction["content"], source)
+        # An LLM call per ingested turn is what made writes ~188x slower than
+        # plain RAG in the LoCoMo run (8450s vs 45s ingest). Defer it: store the
+        # raw observation now with a cheap placeholder label, and let sleep
+        # consolidation label the backlog in batches.
+        if defer_label is None:
+            defer_label = os.getenv("BIO_AGENT_DEFER_LABEL", "1").strip().lower() in (
+                "1", "true", "yes", "on",
+            )
+        if defer_label:
+            metadata = self._cheap_label(compaction["content"])
+        else:
+            metadata = await self.label(compaction["content"], source)
         metadata = self._apply_anchor_overrides(raw_data, metadata, observation_type)
         metadata.update(
             {
@@ -531,8 +573,88 @@ class Hippocampus:
             return effort
         return "medium"
 
+    async def relabel_pending(self, batch_size: int = 10, max_batches: int = 20) -> int:
+        """Label the backlog left by the deferred-label write path.
+
+        Batched on purpose: one LLM call covers `batch_size` observations, so the
+        total number of calls drops by roughly that factor versus labeling each
+        turn at ingest time — and none of it sits on the user's request path.
+        Anchor fields detected at write time are preserved.
+        """
+        pending = [
+            entry for entry in self.l1.get_all()
+            if entry.get("metadata", {}).get("label_pending")
+        ]
+        if not pending:
+            return 0
+
+        relabeled = 0
+        for start in range(0, min(len(pending), batch_size * max_batches), batch_size):
+            chunk = pending[start : start + batch_size]
+            listing = "\n".join(
+                f"{index + 1}. {str(entry.get('content', ''))[:600]}"
+                for index, entry in enumerate(chunk)
+            )
+            prompt = (
+                "You are the hippocampus for an AI agent.\n"
+                f"Label each of the following {len(chunk)} observations with topic, "
+                "importance (1-10), whether it is junk/transient, and observed state.\n"
+                "Return exactly one label per observation, in the same order.\n\n"
+                f"{listing}"
+            )
+            try:
+                result = await self.engine.generate_structured(
+                    prompt, schema=MemoryLabelBatch, temperature=0.1
+                )
+                labels = (result or {}).get("labels") or []
+            except Exception as exc:
+                self._log.append(f"Batch label failed: {exc}")
+                continue
+            # A short/long list must not silently shift labels onto the wrong
+            # observations — pair by index and drop the remainder.
+            for entry, label in zip(chunk, labels):
+                metadata = dict(entry.get("metadata", {}))
+                metadata.update(
+                    {
+                        "topic": label.get("topic", metadata.get("topic", "unknown")),
+                        "user_state": label.get("user_state", "unknown"),
+                    }
+                )
+                # Anchors were pinned at write time; never let a batch label
+                # demote them to junk or lower their importance.
+                if metadata.get("is_anchor_memory"):
+                    metadata["is_junk_or_transient"] = False
+                    metadata["importance_score"] = max(
+                        int(metadata.get("importance_score", 9)),
+                        int(label.get("importance_score", 5)),
+                    )
+                else:
+                    metadata["is_junk_or_transient"] = bool(label.get("is_junk_or_transient", False))
+                    metadata["importance_score"] = int(label.get("importance_score", 5))
+                metadata.pop("label_pending", None)
+                self.l1.update_metadata(entry["entry_id"], metadata)
+                if self.episodes and entry.get("episode_id"):
+                    self.episodes.update_labels(
+                        entry["episode_id"],
+                        topic=metadata.get("topic"),
+                        confidence=max(0.1, min(metadata["importance_score"] / 10.0, 0.95)),
+                        tags=[metadata.get("topic", "general")],
+                        metadata=metadata,
+                    )
+                relabeled += 1
+        if relabeled:
+            self._log.append(f"Labeled {relabeled} deferred observations in batches.")
+        return relabeled
+
     async def consolidate(self) -> Dict[str, int]:
         self._log.append("----- sleep consolidation started -----")
+        # Deferred labels must be resolved BEFORE survivors are selected and
+        # compiled: importance drives pruning, decay and promotion decisions.
+        relabeled = await self.relabel_pending()
+        # Same idea for embeddings the write path skipped.
+        vectors_filled = self.episodes.backfill_vectors() if self.episodes else 0
+        if vectors_filled:
+            self._log.append(f"Backfilled {vectors_filled} episode embeddings.")
         # Capture retrieval-induced consolidation before anything else: drain
         # the transient synaptic tags accumulated since the last sleep into
         # durable per-entry durability (the testing effect). Runs every sleep,
@@ -545,7 +667,11 @@ class Hippocampus:
                     f"L2 memories (tagged={capture['tagged']})."
                 )
         survivors = self.l1.get_survivors()
-        stats = {"encoded": 0, "failed": 0, "challenged": 0, "pending_approval": 0, "nli_used": 0}
+        stats = {
+            "encoded": 0, "failed": 0, "challenged": 0,
+            "pending_approval": 0, "nli_used": 0, "relabeled": relabeled,
+            "vectors_filled": vectors_filled,
+        }
 
         if not survivors:
             self._log.append("No survivors to consolidate.")
