@@ -75,19 +75,4 @@ __all__ = [
     "build_openclaw_plugin",
     "build_swe_agent_plugin",
     "build_runtime",
-    "MemoryOS",
-    "AccessContext",
-    "BeliefState",
-    "CognitiveMemory",
-    "EventRecord",
-    "MemoryType",
-    "SecurityLabel",
-    "TrustTier",
 ]
-
-# Bio-Agent OS V1 cognitive foundation upgrade
-from bio_agent_os.cognitive import MemoryOS
-from bio_agent_os.cognitive.models import (
-    AccessContext, BeliefState, CognitiveMemory, EventRecord, MemoryType,
-    SecurityLabel, TrustTier,
-)
