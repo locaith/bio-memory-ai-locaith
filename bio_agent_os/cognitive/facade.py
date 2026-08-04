@@ -30,6 +30,7 @@ from .prospective import ProspectiveMemory
 from .reconstruction import CognitiveReconstruction, CognitiveReconstructor
 from .retrieval import HybridRetrievalEngine, RetrievalResult
 from .self_model import SelfModel
+from .sqlite_utils import resolve_runtime_path
 from .world_model import WorldModel
 from bio_agent_os.context_fabric import (
     AgentCheckpoint, CheckpointManager, ContextBlockStore, ContextCompiler,
@@ -41,7 +42,13 @@ class MemoryOS:
     """High-level facade for Bio-AGI Memory OS v0.8 Alpha."""
 
     def __init__(self, db_path: str | Path = ":memory:"):
-        path = str(db_path)
+        # Six stores below open six connections. With plain ":memory:" SQLite
+        # gives each of them a *private* database, so they cannot see one
+        # another and any consistency test passes while proving nothing. The
+        # path is resolved once here to a shared in-memory URI, and the anchor
+        # held inside sqlite_utils keeps that database alive for the runtime.
+        path = resolve_runtime_path(db_path)
+        self.db_path = path
         self.events = SQLiteEventStore(path)
         self.memories = SQLiteMemoryStore(path)
         self.governance = GovernanceEngine()
