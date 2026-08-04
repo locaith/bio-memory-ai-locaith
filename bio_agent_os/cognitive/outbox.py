@@ -119,7 +119,13 @@ CREATE INDEX IF NOT EXISTS idx_outbox_tenant
     ON projection_outbox(tenant_id, status);
 CREATE INDEX IF NOT EXISTS idx_outbox_event
     ON projection_outbox(event_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_outbox_key
+-- Deliberately NOT unique. `projection_key` is derived from exactly
+-- (event_id, projection_type, projection_version), which the composite UNIQUE
+-- above already enforces. A second unique constraint on the same invariant is
+-- not extra safety: SQLite's ON CONFLICT can name only one target, so the
+-- redundant one turns an intended no-op into an IntegrityError. Kept as a
+-- plain index for lookup by key.
+CREATE INDEX IF NOT EXISTS idx_outbox_key
     ON projection_outbox(projection_key);
 """
 
@@ -209,7 +215,7 @@ class ProjectionOutbox:
             SELECT * FROM projection_outbox
             WHERE available_at <= ?
               AND (status = ?
-                   OR (status = ? AND (locked_at IS NULL OR locked_at < ?)))
+                   OR (status = ? AND (locked_at IS NULL OR locked_at <= ?)))
             ORDER BY created_at
             LIMIT ?
             """,
@@ -222,7 +228,7 @@ class ProjectionOutbox:
                 UPDATE projection_outbox
                 SET status=?, locked_by=?, locked_at=?, attempts=attempts+1
                 WHERE job_id=?
-                  AND (status=? OR (status=? AND (locked_at IS NULL OR locked_at < ?)))
+                  AND (status=? OR (status=? AND (locked_at IS NULL OR locked_at <= ?)))
                 """,
                 (
                     JobStatus.IN_PROGRESS.value, worker_id, now, row["job_id"],
@@ -337,7 +343,7 @@ class ProjectionOutbox:
         """Jobs held by a worker that has stopped renewing its lease."""
         now = time.time() if now is None else now
         rows = self.conn.execute(
-            "SELECT * FROM projection_outbox WHERE status=? AND locked_at < ?",
+            "SELECT * FROM projection_outbox WHERE status=? AND locked_at <= ?",
             (JobStatus.IN_PROGRESS.value, now - lease_seconds),
         ).fetchall()
         return [self._row(r) for r in rows]
