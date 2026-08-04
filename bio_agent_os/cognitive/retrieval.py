@@ -9,7 +9,15 @@ from typing import Any
 
 from .governance import GovernanceEngine
 from .memory_store import SQLiteMemoryStore
-from .models import AccessContext, BeliefState, CognitiveMemory, MemoryType, TrustTier
+from .models import (
+    AccessContext,
+    BeliefState,
+    CognitiveMemory,
+    EpistemicStatus,
+    MemoryType,
+    TrustTier,
+    VerificationStatus,
+)
 
 
 def tokenize(text: str) -> list[str]:
@@ -33,6 +41,8 @@ class RetrievalResult:
 
 
 class HybridRetrievalEngine:
+    """State-, time-, governance- and epistemics-aware retrieval."""
+
     def __init__(self, store: SQLiteMemoryStore, governance: GovernanceEngine | None = None):
         self.store = store
         self.governance = governance or GovernanceEngine()
@@ -40,14 +50,27 @@ class HybridRetrievalEngine:
     @staticmethod
     def classify_query(query: str) -> str:
         q = query.lower()
-        if any(x in q for x in ["hôm qua", "yesterday", "lần trước", "when", "ngày nào"]):
+        if any(x in q for x in ["hôm qua", "yesterday", "lần trước", "when", "ngày nào", "timeline"]):
             return "temporal"
-        if any(x in q for x in ["được phép", "policy", "quy định", "có được", "forbidden"]):
+        if any(x in q for x in ["được phép", "policy", "quy định", "có được", "forbidden", "approval", "allowed", "can we"]):
             return "policy"
-        if any(x in q for x in ["cách sửa", "how to", "procedure", "runbook", "làm thế nào"]):
+        if any(x in q for x in [
+            "cách sửa", "how to", "procedure", "runbook", "làm thế nào", "fix", "repair",
+            "recover", "recovery", "restart", "apply transform", "scale", "khắc phục", "xử lý",
+        ]):
             return "procedural"
         if any(x in q for x in ["tại sao", "why", "nguyên nhân", "cause"]):
             return "causal"
+        if any(x in q for x in ["nếu", "what if", "giả sử", "counterfactual"]):
+            return "counterfactual"
+        if any(x in q for x in ["nhắc", "khi nào cần", "todo", "follow up", "when condition"]):
+            return "prospective"
+        if any(x in q for x in ["ai là", "relationship", "vai trò", "who is"]):
+            return "social"
+        if any(x in q for x in ["ở đâu", "where", "layout", "path", "map"]):
+            return "spatial"
+        if any(x in q for x in ["tôi có thể", "can i", "khả năng của tôi", "capability"]):
+            return "self_model"
         return "factual"
 
     def recall(
@@ -62,7 +85,9 @@ class HybridRetrievalEngine:
         query_type = self.classify_query(query)
         q_counter = Counter(tokenize(query))
         effective_as_of = as_of or datetime.now(timezone.utc).isoformat()
-        candidates = self.store.active(ctx.tenant_id, ctx.workspace_id, as_of=effective_as_of)
+        candidates = self.store.candidate_pool(
+            ctx.tenant_id, query, ctx.workspace_id, as_of=effective_as_of, limit=max(100, limit * 20)
+        )
         results: list[RetrievalResult] = []
         for memory in candidates:
             allowed, access_reasons = self.governance.can_read(memory, ctx)
@@ -79,9 +104,11 @@ class HybridRetrievalEngine:
             score_parts["reinforcement"] = min(memory.reinforcement_count * 0.04, 0.25)
             score_parts["contradiction_penalty"] = -min(memory.contradiction_count * 0.15, 0.75)
             score_parts["state_match"] = self._state_score(memory, state)
+            score_parts["context_match"] = self._context_score(memory, state)
             score_parts["query_type"] = self._type_score(memory, query_type)
             score_parts["temporal"] = self._temporal_score(memory, as_of, query_type)
             score_parts["governance"] = self._governance_score(memory)
+            score_parts["epistemic"] = self._epistemic_score(memory, state)
             total = sum(score_parts.values())
             if total <= 0.05:
                 continue
@@ -93,40 +120,66 @@ class HybridRetrievalEngine:
                         "query_type": query_type,
                         "score_components": {k: round(v, 6) for k, v in score_parts.items()},
                         "source_event_ids": memory.source_event_ids,
+                        "counterevidence_event_ids": memory.counterevidence_event_ids,
                         "valid_from": memory.valid_from,
                         "valid_to": memory.valid_to,
                         "trust_tier": int(memory.trust_tier),
                         "lifecycle_state": memory.lifecycle_state.value,
+                        "epistemic_status": memory.epistemic_status.value,
+                        "verification_status": memory.verification_status.value,
+                        "simulation_id": memory.simulation_id,
                         "governed_exception_for": memory.governed_exception_for,
                         "approved_by": memory.approved_by,
                         "access": "allowed",
+                        "access_reasons": access_reasons,
+                        "candidate_pool_size": len(candidates),
+                        "fts_first_stage": bool(getattr(self.store, "fts_available", False)),
                     },
                 )
             )
         results.sort(key=lambda r: (-r.score, -int(r.memory.trust_tier), -r.memory.confidence))
         selected = results[:limit]
-        for result in selected:
-            self.store.mark_retrieved(result.memory)
+        self.store.mark_retrieved_many([result.memory for result in selected])
         return selected
 
     def _state_score(self, memory: CognitiveMemory, state: dict[str, Any]) -> float:
         score = 0.0
         tags = memory.metadata.get("state", {}) if isinstance(memory.metadata, dict) else {}
-        for key in ("mode", "risk_level", "project_version", "task_type"):
+        for key in ("mode", "risk_level", "project_version", "task_type", "stress_state", "goal"):
             if state.get(key) is not None and tags.get(key) == state.get(key):
                 score += 2.25
-        if state.get("risk_level") == "high" and memory.memory_type in {MemoryType.POLICY, MemoryType.EXCEPTION}:
-            score += 0.35
+        if state.get("risk_level") in {"high", "critical"} and memory.memory_type in {MemoryType.POLICY, MemoryType.EXCEPTION}:
+            score += 0.45
         return score
+
+    @staticmethod
+    def _context_score(memory: CognitiveMemory, state: dict[str, Any]) -> float:
+        if not memory.applicable_context:
+            return 0.0
+        matched = 0
+        mismatched = 0
+        for key, value in memory.applicable_context.items():
+            if key not in state:
+                continue
+            if state[key] == value:
+                matched += 1
+            else:
+                mismatched += 1
+        return matched * 0.35 - mismatched * 0.50
 
     @staticmethod
     def _type_score(memory: CognitiveMemory, query_type: str) -> float:
         mapping = {
-            "temporal": {MemoryType.EPISODIC: 0.70, MemoryType.SEMANTIC: 0.15},
+            "temporal": {MemoryType.EPISODIC: 0.70, MemoryType.AUTOBIOGRAPHICAL: 0.65, MemoryType.SEMANTIC: 0.15},
             "policy": {MemoryType.POLICY: 0.90, MemoryType.EXCEPTION: 1.0, MemoryType.BELIEF: 0.35},
             "procedural": {MemoryType.PROCEDURAL: 0.90, MemoryType.EPISODIC: 0.20},
             "causal": {MemoryType.CAUSAL: 0.90, MemoryType.EPISODIC: 0.25},
-            "factual": {MemoryType.SEMANTIC: 0.50, MemoryType.RELATIONAL: 0.30},
+            "counterfactual": {MemoryType.COUNTERFACTUAL: 0.90, MemoryType.CAUSAL: 0.45},
+            "prospective": {MemoryType.PROSPECTIVE: 1.0},
+            "social": {MemoryType.SOCIAL: 0.90, MemoryType.RELATIONAL: 0.55},
+            "spatial": {MemoryType.SPATIAL: 0.90, MemoryType.RELATIONAL: 0.35},
+            "self_model": {MemoryType.SELF_MODEL: 1.0, MemoryType.AUTOBIOGRAPHICAL: 0.45},
+            "factual": {MemoryType.SEMANTIC: 0.50, MemoryType.WORLD_STATE: 0.45, MemoryType.RELATIONAL: 0.30},
         }
         return mapping.get(query_type, {}).get(memory.memory_type, 0.0)
 
@@ -148,4 +201,27 @@ class HybridRetrievalEngine:
             score -= 0.80
         if memory.memory_type == MemoryType.EXCEPTION:
             score += 0.45 if self.governance.exception_is_active(memory) else -1.50
+        return score
+
+    @staticmethod
+    def _epistemic_score(memory: CognitiveMemory, state: dict[str, Any]) -> float:
+        score = {
+            EpistemicStatus.OBSERVED: 0.18,
+            EpistemicStatus.REPORTED: 0.04,
+            EpistemicStatus.INFERRED: 0.0,
+            EpistemicStatus.HYPOTHESIZED: -0.12,
+            EpistemicStatus.SIMULATED: -0.20,
+            EpistemicStatus.VERIFIED: 0.28,
+        }[memory.epistemic_status]
+        score += {
+            VerificationStatus.UNVERIFIED: 0.0,
+            VerificationStatus.MACHINE_CHECKED: 0.14,
+            VerificationStatus.HUMAN_APPROVED: 0.24,
+            VerificationStatus.REJECTED: -1.20,
+        }[memory.verification_status]
+        if state.get("risk_level") in {"high", "critical"}:
+            if memory.epistemic_status == EpistemicStatus.SIMULATED:
+                score -= 1.25
+            if memory.verification_status == VerificationStatus.UNVERIFIED:
+                score -= 0.55
         return score

@@ -1,0 +1,11 @@
+WARNING: The directory '/home/oai/.cache/pip' or its parent directory is not owned or is not writable by the current user. The cache has been disabled. Check the permissions and owner of that directory. If executing pip with sudo, you should use sudo's -H flag.
+Looking in indexes: https://reader:****@packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/pypi/pypi-public/simple
+Processing /mnt/data/bio-agi-memory-os-v0.8-alpha
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: bio-agi-memory-os
+  Building wheel for bio-agi-memory-os (pyproject.toml): started
+  Building wheel for bio-agi-memory-os (pyproject.toml): finished with status 'done'
+  Created wheel for bio-agi-memory-os: filename=bio_agi_memory_os-0.8.0a1-py3-none-any.whl size=67326 sha256=ae0c3680ab2acd4a60198d229e9ff4555da4d99fac947f1af06aa962aeadd1c4
+  Stored in directory: /tmp/pip-ephem-wheel-cache-uknb13gs/wheels/85/66/46/2ddca0b9a5c1eda88283bda325fcc3d16c422b7b40c0e2f06a
+Successfully built bio-agi-memory-os

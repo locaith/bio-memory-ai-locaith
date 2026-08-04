@@ -1,0 +1,58 @@
+{
+  "environment": {
+    "date": "2026-08-03",
+    "cpu_count": 5,
+    "ram_gib": 5.9,
+    "python": "3.13.5",
+    "os": "Linux x86_64",
+    "backend": "SQLite WAL shared local file",
+    "seed_memories": 10000,
+    "notes": "No Docker, PostgreSQL or Redis available. Distributed result is localhost TCP multi-process simulation, not multi-host production."
+  },
+  "baseline_read_before_v081": [
+    {"workers":1,"queries":400,"qps":29.993,"p50_ms":32.209,"p95_ms":34.812,"p99_ms":44.463,"correct":400,"errors":0},
+    {"workers":2,"queries":400,"qps":54.716,"p50_ms":33.174,"p95_ms":49.538,"p99_ms":91.734,"correct":400,"errors":0},
+    {"workers":4,"queries":400,"qps":117.081,"p50_ms":32.741,"p95_ms":40.123,"p99_ms":47.143,"correct":400,"errors":0},
+    {"workers":8,"queries":400,"qps":115.878,"p50_ms":56.894,"p95_ms":110.355,"p99_ms":157.084,"correct":400,"errors":0}
+  ],
+  "optimized_read_v081": [
+    {"workers":1,"queries":400,"qps":32.508,"p50_ms":30.344,"p95_ms":32.276,"p99_ms":36.194,"correct":400,"errors":0},
+    {"workers":2,"queries":400,"qps":61.462,"p50_ms":31.081,"p95_ms":40.465,"p99_ms":52.963,"correct":400,"errors":0},
+    {"workers":4,"queries":400,"qps":122.376,"p50_ms":31.435,"p95_ms":34.234,"p99_ms":38.225,"correct":400,"errors":0},
+    {"workers":8,"queries":400,"qps":119.386,"p50_ms":51.203,"p95_ms":89.285,"p99_ms":121.385,"correct":400,"errors":0}
+  ],
+  "concurrent_write_v081": [
+    {"workers":1,"attempted":500,"stored":500,"writes_s":7844.600,"batch_p50_ms":1.910,"batch_p95_ms":2.236,"batch_p99_ms":2.236,"errors":0},
+    {"workers":2,"attempted":1000,"stored":1000,"writes_s":6852.624,"batch_p50_ms":2.234,"batch_p95_ms":9.755,"batch_p99_ms":14.491,"errors":0},
+    {"workers":4,"attempted":2000,"stored":2000,"writes_s":12332.293,"batch_p50_ms":3.129,"batch_p95_ms":15.703,"batch_p99_ms":22.640,"errors":0},
+    {"workers":8,"attempted":4000,"stored":4000,"writes_s":8676.847,"batch_p50_ms":4.316,"batch_p95_ms":45.904,"batch_p99_ms":182.611,"errors":0}
+  ],
+  "mixed_80_read_20_write": [
+    {"workers":2,"operations":200,"ops_s":74.906,"read_p50_ms":31.368,"read_p95_ms":33.752,"read_p99_ms":34.989,"write_p50_ms":0.433,"write_p95_ms":1.955,"write_p99_ms":2.751,"correct_reads":160,"stored":40,"tenant_leaks":0,"errors":0},
+    {"workers":4,"operations":400,"ops_s":140.818,"read_p50_ms":32.412,"read_p95_ms":36.749,"read_p99_ms":48.205,"write_p50_ms":0.421,"write_p95_ms":1.601,"write_p99_ms":4.004,"correct_reads":320,"stored":80,"tenant_leaks":0,"errors":0},
+    {"workers":8,"operations":800,"ops_s":127.758,"read_p50_ms":61.015,"read_p95_ms":114.836,"read_p99_ms":147.304,"write_p50_ms":0.653,"write_p95_ms":6.316,"write_p99_ms":23.591,"correct_reads":640,"stored":160,"tenant_leaks":0,"errors":0}
+  ],
+  "distributed_process_cluster": {
+    "nodes": 3,
+    "clients": 6,
+    "operations": 360,
+    "read_operations": 324,
+    "write_operations": 36,
+    "ops_s": 97.375,
+    "rpc_p50_ms": 31.489,
+    "rpc_p95_ms": 42.995,
+    "rpc_p99_ms": 51.234,
+    "correct_reads": 324,
+    "stored_writes": 36,
+    "errors": 0
+  },
+  "crash_recovery": {
+    "forced_termination_after_committed_chunks_at_least": 5,
+    "sqlite_integrity_check": "ok",
+    "event_rows": 125,
+    "memory_rows": 125,
+    "projection_parity": true,
+    "checksum_chain_valid": true
+  },
+  "test_suite": {"passed": 99, "failed": 0}
+}

@@ -4,9 +4,10 @@ import hashlib
 import json
 import sqlite3
 from pathlib import Path
-from typing import Iterable
 
-from .models import EventRecord, SecurityLabel, TrustTier
+from .sqlite_utils import connect_sqlite
+
+from .models import EpistemicStatus, EventRecord, Modality, SecurityLabel, TrustTier
 
 
 class ImmutableEventError(RuntimeError):
@@ -18,7 +19,7 @@ class SQLiteEventStore:
 
     def __init__(self, path: str | Path = ":memory:"):
         self.path = str(path)
-        self.conn = sqlite3.connect(self.path)
+        self.conn = connect_sqlite(self.path)
         self.conn.row_factory = sqlite3.Row
         self._migrate()
 
@@ -40,7 +41,9 @@ class SQLiteEventStore:
                 valid_to TEXT,
                 observed_at TEXT NOT NULL,
                 checksum TEXT NOT NULL UNIQUE,
-                metadata_json TEXT NOT NULL
+                metadata_json TEXT NOT NULL,
+                modality TEXT NOT NULL DEFAULT 'text',
+                epistemic_status TEXT NOT NULL DEFAULT 'observed'
             );
             CREATE INDEX IF NOT EXISTS idx_events_scope
             ON cognitive_events(tenant_id, workspace_id, observed_at);
@@ -52,7 +55,14 @@ class SQLiteEventStore:
             BEGIN SELECT RAISE(ABORT, 'cognitive_events is append-only'); END;
             """
         )
+        self._ensure_column("modality", "TEXT NOT NULL DEFAULT 'text'")
+        self._ensure_column("epistemic_status", "TEXT NOT NULL DEFAULT 'observed'")
         self.conn.commit()
+
+    def _ensure_column(self, name: str, declaration: str) -> None:
+        columns = {row[1] for row in self.conn.execute("PRAGMA table_info(cognitive_events)")}
+        if name not in columns:
+            self.conn.execute(f"ALTER TABLE cognitive_events ADD COLUMN {name} {declaration}")
 
     @staticmethod
     def _checksum(record: EventRecord) -> str:
@@ -65,6 +75,8 @@ class SQLiteEventStore:
                 "source": record.source,
                 "payload": record.payload,
                 "observed_at": record.observed_at,
+                "modality": record.modality.value,
+                "epistemic_status": record.epistemic_status.value,
             },
             sort_keys=True,
             ensure_ascii=False,
@@ -79,27 +91,46 @@ class SQLiteEventStore:
             INSERT INTO cognitive_events(
                 event_id, tenant_id, workspace_id, actor, source, payload_json,
                 trust_tier, security_label, valid_from, valid_to, observed_at,
-                checksum, metadata_json
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+                checksum, metadata_json, modality, epistemic_status
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             (
-                record.event_id,
-                record.tenant_id,
-                record.workspace_id,
-                record.actor,
-                record.source,
-                json.dumps(record.payload, ensure_ascii=False, sort_keys=True),
-                int(record.trust_tier),
-                record.security_label.value,
-                record.valid_from,
-                record.valid_to,
-                record.observed_at,
-                checksum,
+                record.event_id, record.tenant_id, record.workspace_id, record.actor,
+                record.source, json.dumps(record.payload, ensure_ascii=False, sort_keys=True),
+                int(record.trust_tier), record.security_label.value, record.valid_from,
+                record.valid_to, record.observed_at, checksum,
                 json.dumps(record.metadata, ensure_ascii=False, sort_keys=True),
+                record.modality.value, record.epistemic_status.value,
             ),
         )
         self.conn.commit()
         return EventRecord(**{**record.__dict__, "checksum": checksum})
+
+
+    def append_many(self, records: list[EventRecord]) -> list[EventRecord]:
+        """Append a batch atomically while preserving per-event checksums."""
+        prepared: list[EventRecord] = []
+        rows = []
+        for record in records:
+            checksum = record.checksum or self._checksum(record)
+            prepared.append(EventRecord(**{**record.__dict__, "checksum": checksum}))
+            rows.append((
+                record.event_id, record.tenant_id, record.workspace_id, record.actor,
+                record.source, json.dumps(record.payload, ensure_ascii=False, sort_keys=True),
+                int(record.trust_tier), record.security_label.value, record.valid_from,
+                record.valid_to, record.observed_at, checksum,
+                json.dumps(record.metadata, ensure_ascii=False, sort_keys=True),
+                record.modality.value, record.epistemic_status.value,
+            ))
+        self.conn.executemany(
+            """INSERT INTO cognitive_events(
+                event_id, tenant_id, workspace_id, actor, source, payload_json,
+                trust_tier, security_label, valid_from, valid_to, observed_at,
+                checksum, metadata_json, modality, epistemic_status
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", rows
+        )
+        self.conn.commit()
+        return prepared
 
     def get(self, event_id: str, tenant_id: str) -> EventRecord | None:
         row = self.conn.execute(
@@ -127,17 +158,10 @@ class SQLiteEventStore:
     @staticmethod
     def _row(row: sqlite3.Row) -> EventRecord:
         return EventRecord(
-            event_id=row["event_id"],
-            tenant_id=row["tenant_id"],
-            workspace_id=row["workspace_id"],
-            actor=row["actor"],
-            source=row["source"],
-            payload=json.loads(row["payload_json"]),
-            trust_tier=TrustTier(row["trust_tier"]),
-            security_label=SecurityLabel(row["security_label"]),
-            valid_from=row["valid_from"],
-            valid_to=row["valid_to"],
-            observed_at=row["observed_at"],
-            checksum=row["checksum"],
-            metadata=json.loads(row["metadata_json"]),
+            event_id=row["event_id"], tenant_id=row["tenant_id"], workspace_id=row["workspace_id"],
+            actor=row["actor"], source=row["source"], payload=json.loads(row["payload_json"]),
+            trust_tier=TrustTier(row["trust_tier"]), security_label=SecurityLabel(row["security_label"]),
+            valid_from=row["valid_from"], valid_to=row["valid_to"], observed_at=row["observed_at"],
+            checksum=row["checksum"], metadata=json.loads(row["metadata_json"]),
+            modality=Modality(row["modality"]), epistemic_status=EpistemicStatus(row["epistemic_status"]),
         )

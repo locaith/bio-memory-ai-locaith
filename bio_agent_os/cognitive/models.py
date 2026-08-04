@@ -24,6 +24,13 @@ class MemoryType(str, Enum):
     COUNTERFACTUAL = "counterfactual"
     POLICY = "policy"
     EXCEPTION = "exception"
+    AUTOBIOGRAPHICAL = "autobiographical"
+    PROSPECTIVE = "prospective"
+    SPATIAL = "spatial"
+    SOCIAL = "social"
+    AFFECTIVE = "affective"
+    WORLD_STATE = "world_state"
+    SELF_MODEL = "self_model"
 
 
 class BeliefState(str, Enum):
@@ -33,6 +40,40 @@ class BeliefState(str, Enum):
     CHALLENGED = "challenged"
     DEPRECATED = "deprecated"
     ARCHIVED = "archived"
+
+
+class EpistemicStatus(str, Enum):
+    """How a memory claim entered the system.
+
+    OBSERVED and VERIFIED are the only states allowed to silently influence
+    high-risk actions. SIMULATED memories are useful for planning but can
+    never masquerade as historical fact.
+    """
+
+    OBSERVED = "observed"
+    REPORTED = "reported"
+    INFERRED = "inferred"
+    HYPOTHESIZED = "hypothesized"
+    SIMULATED = "simulated"
+    VERIFIED = "verified"
+
+
+class VerificationStatus(str, Enum):
+    UNVERIFIED = "unverified"
+    MACHINE_CHECKED = "machine_checked"
+    HUMAN_APPROVED = "human_approved"
+    REJECTED = "rejected"
+
+
+class Modality(str, Enum):
+    TEXT = "text"
+    IMAGE = "image"
+    AUDIO = "audio"
+    VIDEO = "video"
+    SCREEN = "screen"
+    CODE = "code"
+    SENSOR = "sensor"
+    STRUCTURED = "structured"
 
 
 class TrustTier(IntEnum):
@@ -77,11 +118,15 @@ class EventRecord:
     event_id: str = field(default_factory=lambda: str(uuid4()))
     checksum: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    modality: Modality = Modality.TEXT
+    epistemic_status: EpistemicStatus = EpistemicStatus.OBSERVED
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["trust_tier"] = int(self.trust_tier)
         data["security_label"] = self.security_label.value
+        data["modality"] = self.modality.value
+        data["epistemic_status"] = self.epistemic_status.value
         return data
 
 
@@ -118,6 +163,13 @@ class CognitiveMemory:
     memory_id: str = field(default_factory=lambda: str(uuid4()))
     created_at: str = field(default_factory=utc_now)
     metadata: dict[str, Any] = field(default_factory=dict)
+    epistemic_status: EpistemicStatus = EpistemicStatus.OBSERVED
+    verification_status: VerificationStatus = VerificationStatus.UNVERIFIED
+    counterevidence_event_ids: list[str] = field(default_factory=list)
+    applicable_context: dict[str, Any] = field(default_factory=dict)
+    modality: Modality = Modality.TEXT
+    simulation_id: str | None = None
+    reversible_forget_at: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -125,4 +177,41 @@ class CognitiveMemory:
         data["trust_tier"] = int(self.trust_tier)
         data["security_label"] = self.security_label.value
         data["lifecycle_state"] = self.lifecycle_state.value
+        data["epistemic_status"] = self.epistemic_status.value
+        data["verification_status"] = self.verification_status.value
+        data["modality"] = self.modality.value
         return data
+
+
+@dataclass(frozen=True)
+class ExecutionOutcome:
+    goal: str
+    steps: tuple[str, ...]
+    success: bool
+    verifier_passed: bool
+    environment: dict[str, Any] = field(default_factory=dict)
+    errors: tuple[str, ...] = ()
+    result_summary: str = ""
+    trace_id: str = field(default_factory=lambda: str(uuid4()))
+
+
+@dataclass(frozen=True)
+class ProspectiveTrigger:
+    trigger_id: str
+    condition: dict[str, Any]
+    action: str
+    priority: float = 0.5
+    expires_at: str | None = None
+    requires_approval: bool = False
+    source_memory_id: str | None = None
+
+
+@dataclass(frozen=True)
+class SimulationTrace:
+    simulation_id: str
+    premise: str
+    interventions: dict[str, Any]
+    predicted_states: tuple[dict[str, Any], ...]
+    confidence: float
+    source_memory_ids: tuple[str, ...] = ()
+    created_at: str = field(default_factory=utc_now)

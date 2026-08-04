@@ -1,0 +1,1158 @@
+test_applicable_context_affects_ranking (test_agi_cognitive.AGICognitiveTests.test_applicable_context_affects_ranking) ... ok
+test_causal_confidence_grows_with_support (test_agi_cognitive.AGICognitiveTests.test_causal_confidence_grows_with_support) ... ok
+test_causal_counterexample_reduces_confidence (test_agi_cognitive.AGICognitiveTests.test_causal_counterexample_reduces_confidence) ... ok
+test_claude_hook_adapter_rejects_unknown_hook (test_agi_cognitive.AGICognitiveTests.test_claude_hook_adapter_rejects_unknown_hook) ... ok
+test_claude_hook_adapter_supports_full_lifecycle (test_agi_cognitive.AGICognitiveTests.test_claude_hook_adapter_supports_full_lifecycle) ... ok
+test_claude_hook_auto_projects_episode (test_agi_cognitive.AGICognitiveTests.test_claude_hook_auto_projects_episode) ... ok
+test_claude_hook_secret_is_redacted (test_agi_cognitive.AGICognitiveTests.test_claude_hook_secret_is_redacted) ... ok
+test_counterfactual_is_explicitly_simulated (test_agi_cognitive.AGICognitiveTests.test_counterfactual_is_explicitly_simulated) ... ok
+test_dream_engine_promotes_stable_verified_pattern (test_agi_cognitive.AGICognitiveTests.test_dream_engine_promotes_stable_verified_pattern) ... ok
+test_dream_engine_rejects_pattern_with_counterexamples (test_agi_cognitive.AGICognitiveTests.test_dream_engine_rejects_pattern_with_counterexamples) ... ok
+test_dream_engine_requires_repeated_verified_success (test_agi_cognitive.AGICognitiveTests.test_dream_engine_requires_repeated_verified_success) ... ok
+test_event_checksum_includes_modality (test_agi_cognitive.AGICognitiveTests.test_event_checksum_includes_modality) ... ok
+test_evidence_ledger_corroboration_increases_confidence (test_agi_cognitive.AGICognitiveTests.test_evidence_ledger_corroboration_increases_confidence) ... ok
+test_evidence_ledger_counterevidence_blocks_high_risk (test_agi_cognitive.AGICognitiveTests.test_evidence_ledger_counterevidence_blocks_high_risk) ... ok
+test_expired_prospective_memory_does_not_fire (test_agi_cognitive.AGICognitiveTests.test_expired_prospective_memory_does_not_fire) ... ok
+test_prospective_memory_does_not_refire_after_marked (test_agi_cognitive.AGICognitiveTests.test_prospective_memory_does_not_refire_after_marked) ... ok
+test_prospective_memory_fires_on_exact_condition (test_agi_cognitive.AGICognitiveTests.test_prospective_memory_fires_on_exact_condition) ... ok
+test_prospective_memory_supports_threshold_condition (test_agi_cognitive.AGICognitiveTests.test_prospective_memory_supports_threshold_condition) ... ok
+test_query_classifier_handles_cognitive_types (test_agi_cognitive.AGICognitiveTests.test_query_classifier_handles_cognitive_types) ... ok
+test_reconstruction_returns_chronological_evidence (test_agi_cognitive.AGICognitiveTests.test_reconstruction_returns_chronological_evidence) ... ok
+test_rejected_memory_is_strongly_penalized (test_agi_cognitive.AGICognitiveTests.test_rejected_memory_is_strongly_penalized) ... ok
+test_reversible_forgetting_and_restore (test_agi_cognitive.AGICognitiveTests.test_reversible_forgetting_and_restore) ... ok
+test_self_model_ignores_unverified_outcome (test_agi_cognitive.AGICognitiveTests.test_self_model_ignores_unverified_outcome) ... ok
+test_self_model_recommends_delegation_without_evidence (test_agi_cognitive.AGICognitiveTests.test_self_model_recommends_delegation_without_evidence) ... ok
+test_self_model_updates_from_verified_outcomes (test_agi_cognitive.AGICognitiveTests.test_self_model_updates_from_verified_outcomes) ... ok
+test_simulated_memory_is_penalized_for_high_risk_recall (test_agi_cognitive.AGICognitiveTests.test_simulated_memory_is_penalized_for_high_risk_recall) ... ok
+test_simulated_policy_is_quarantined (test_agi_cognitive.AGICognitiveTests.test_simulated_policy_is_quarantined) ... ok
+test_world_model_builds_machine_readable_snapshot (test_agi_cognitive.AGICognitiveTests.test_world_model_builds_machine_readable_snapshot) ... ok
+test_world_model_excludes_simulated_by_default (test_agi_cognitive.AGICognitiveTests.test_world_model_excludes_simulated_by_default) ... ok
+test_world_model_respects_validity_window (test_agi_cognitive.AGICognitiveTests.test_world_model_respects_validity_window) ... ok
+test_world_state_retrieval_is_explainable (test_agi_cognitive.AGICognitiveTests.test_world_state_retrieval_is_explainable) ... ok
+test_bulk_ingest_applies_immune_gate (test_context_fabric.ContextFabricTests.test_bulk_ingest_applies_immune_gate) ... ok
+test_bulk_ingest_is_retrievable (test_context_fabric.ContextFabricTests.test_bulk_ingest_is_retrievable) ... /usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79a80>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79b70>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79c60>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79d50>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79e40>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79f30>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a020>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a110>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a200>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a2f0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a4d0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a5c0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a3e0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a6b0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a7a0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a890>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a980>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7aa70>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7ab60>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7ac50>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7bf10>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700310>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a798a0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700220>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7be20>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7bd30>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a797b0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a796c0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7af20>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b010>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b2e0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b1f0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b4c0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b790>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b5b0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b970>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b6a0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b880>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7ba60>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7ae30>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7bc40>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79990>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b3d0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177006d0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700130>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700040>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700400>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177005e0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177004f0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177007c0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177008b0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177009a0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700a90>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700b80>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700c70>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700d60>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700e50>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700f40>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417701030>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417701120>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417701210>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417701300>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_cache_invalidates_when_new_memory_arrives (test_context_fabric.ContextFabricTests.test_cache_invalidates_when_new_memory_arrives) ... ok
+test_checkpoint_round_trip (test_context_fabric.ContextFabricTests.test_checkpoint_round_trip) ... ok
+test_checkpoint_tenant_isolation (test_context_fabric.ContextFabricTests.test_checkpoint_tenant_isolation) ... ok
+test_compiler_can_include_simulation_explicitly (test_context_fabric.ContextFabricTests.test_compiler_can_include_simulation_explicitly) ... ok
+test_compiler_enforces_token_budget (test_context_fabric.ContextFabricTests.test_compiler_enforces_token_budget) ... ok
+test_compiler_excludes_simulation_by_default (test_context_fabric.ContextFabricTests.test_compiler_excludes_simulation_by_default) ... ok
+test_compiler_reports_token_reduction (test_context_fabric.ContextFabricTests.test_compiler_reports_token_reduction) ... ok
+test_content_addressed_deduplication (test_context_fabric.ContextFabricTests.test_content_addressed_deduplication) ... ok
+test_context_metrics_are_recorded (test_context_fabric.ContextFabricTests.test_context_metrics_are_recorded) ... ok
+test_context_packet_cache_hits (test_context_fabric.ContextFabricTests.test_context_packet_cache_hits) ... ok
+test_dedup_is_tenant_scoped (test_context_fabric.ContextFabricTests.test_dedup_is_tenant_scoped) ... ok
+test_expired_blocks_are_evicted (test_context_fabric.ContextFabricTests.test_expired_blocks_are_evicted) ... ok
+test_fts_candidate_stage_is_explainable (test_context_fabric.ContextFabricTests.test_fts_candidate_stage_is_explainable) ... ok
+test_hash_is_workspace_scoped (test_context_fabric.ContextFabricTests.test_hash_is_workspace_scoped) ... ok
+test_latest_checkpoint_is_restored (test_context_fabric.ContextFabricTests.test_latest_checkpoint_is_restored) ... ok
+test_multi_agent_context_share_and_revoke (test_context_fabric.ContextFabricTests.test_multi_agent_context_share_and_revoke) ... ok
+test_multi_agent_share_cannot_cross_tenant (test_context_fabric.ContextFabricTests.test_multi_agent_share_cannot_cross_tenant) ... ok
+test_packet_preserves_provenance (test_context_fabric.ContextFabricTests.test_packet_preserves_provenance) ... ok
+test_policy_is_prioritized_in_high_risk_context (test_context_fabric.ContextFabricTests.test_policy_is_prioritized_in_high_risk_context) ... ok
+test_predictive_prefetch_detects_debug_intent (test_context_fabric.ContextFabricTests.test_predictive_prefetch_detects_debug_intent) ... ok
+test_predictive_prefetch_detects_deploy_intent (test_context_fabric.ContextFabricTests.test_predictive_prefetch_detects_deploy_intent) ... ok
+test_quarantine_block_is_not_shareable (test_context_fabric.ContextFabricTests.test_quarantine_block_is_not_shareable) ... ok
+test_security_label_survives_compilation (test_context_fabric.ContextFabricTests.test_security_label_survives_compilation) ... ok
+test_tiering_archives_low_value_block (test_context_fabric.ContextFabricTests.test_tiering_archives_low_value_block) ... ok
+test_tiering_promotes_high_value_block (test_context_fabric.ContextFabricTests.test_tiering_promotes_high_value_block) ... ok
+test_domain_blender_3d (test_domain_coverage.DomainCoverageBase.test_domain_blender_3d) ... ok
+test_domain_coding (test_domain_coverage.DomainCoverageBase.test_domain_coding) ... ok
+test_domain_customer_support (test_domain_coverage.DomainCoverageBase.test_domain_customer_support) ... ok
+test_domain_cybersecurity (test_domain_coverage.DomainCoverageBase.test_domain_cybersecurity) ... ok
+test_domain_database (test_domain_coverage.DomainCoverageBase.test_domain_database) ... ok
+test_domain_devops (test_domain_coverage.DomainCoverageBase.test_domain_devops) ... ok
+test_domain_education (test_domain_coverage.DomainCoverageBase.test_domain_education) ... ok
+test_domain_erp (test_domain_coverage.DomainCoverageBase.test_domain_erp) ... ok
+test_domain_family_assistant (test_domain_coverage.DomainCoverageBase.test_domain_family_assistant) ... ok
+test_domain_finance (test_domain_coverage.DomainCoverageBase.test_domain_finance) ... ok
+test_domain_healthcare (test_domain_coverage.DomainCoverageBase.test_domain_healthcare) ... ok
+test_domain_hr (test_domain_coverage.DomainCoverageBase.test_domain_hr) ... ok
+test_domain_iot (test_domain_coverage.DomainCoverageBase.test_domain_iot) ... ok
+test_domain_legal (test_domain_coverage.DomainCoverageBase.test_domain_legal) ... ok
+test_domain_manufacturing (test_domain_coverage.DomainCoverageBase.test_domain_manufacturing) ... ok
+test_domain_multilingual_vi (test_domain_coverage.DomainCoverageBase.test_domain_multilingual_vi) ... ok
+test_domain_robotics (test_domain_coverage.DomainCoverageBase.test_domain_robotics) ... ok
+test_domain_sales (test_domain_coverage.DomainCoverageBase.test_domain_sales) ... ok
+test_domain_science (test_domain_coverage.DomainCoverageBase.test_domain_science) ... ok
+test_domain_wind_energy (test_domain_coverage.DomainCoverageBase.test_domain_wind_energy) ... ok
+test_active_exception_can_rank_first (test_foundation.FoundationTests.test_active_exception_can_rank_first) ... ok
+test_as_of_filters_validity (test_foundation.FoundationTests.test_as_of_filters_validity) ... ok
+test_challenged_belief_is_penalized (test_foundation.FoundationTests.test_challenged_belief_is_penalized) ... ok
+test_event_checksum_verifies (test_foundation.FoundationTests.test_event_checksum_verifies) ... ok
+test_event_delete_is_blocked (test_foundation.FoundationTests.test_event_delete_is_blocked) ... ok
+test_event_is_append_only (test_foundation.FoundationTests.test_event_is_append_only) ... ok
+test_expired_exception_is_penalized (test_foundation.FoundationTests.test_expired_exception_is_penalized) ... ok
+test_identity_requires_approval (test_foundation.FoundationTests.test_identity_requires_approval) ... ok
+test_policy_query_prefers_policy (test_foundation.FoundationTests.test_policy_query_prefers_policy) ... ok
+test_procedural_compiler_promotes_verified_pattern (test_foundation.FoundationTests.test_procedural_compiler_promotes_verified_pattern) ... ok
+test_procedural_compiler_requires_two_verified_runs (test_foundation.FoundationTests.test_procedural_compiler_requires_two_verified_runs) ... ok
+test_prompt_injection_is_quarantined_for_policy (test_foundation.FoundationTests.test_prompt_injection_is_quarantined_for_policy) ... ok
+test_purpose_acl_enforced (test_foundation.FoundationTests.test_purpose_acl_enforced) ... ok
+test_recall_has_explanation_and_provenance (test_foundation.FoundationTests.test_recall_has_explanation_and_provenance) ... ok
+test_retrieval_counter_increments (test_foundation.FoundationTests.test_retrieval_counter_increments) ... ok
+test_role_acl_enforced (test_foundation.FoundationTests.test_role_acl_enforced) ... ok
+test_secret_is_redacted_in_event (test_foundation.FoundationTests.test_secret_is_redacted_in_event) ... ok
+test_security_label_enforced (test_foundation.FoundationTests.test_security_label_enforced) ... ok
+test_state_matching_changes_ranking (test_foundation.FoundationTests.test_state_matching_changes_ranking) ... ok
+test_tenant_isolation (test_foundation.FoundationTests.test_tenant_isolation) ... ok
+test_version_history_is_preserved (test_foundation.FoundationTests.test_version_history_is_preserved) ... ok
+
+----------------------------------------------------------------------
+Ran 99 tests in 4.387s
+
+OK
+{
+  "dataset": "deterministic-foundation-smoke-v1",
+  "cases": 8,
+  "naive_accuracy": 0.875,
+  "hybrid_accuracy": 0.875,
+  "absolute_accuracy_gain": 0.0,
+  "naive_latency_ms": {
+    "p50": 0.306271,
+    "max": 0.514656
+  },
+  "hybrid_latency_ms": {
+    "p50": 0.7653345,
+    "max": 1.280415
+  },
+  "rows": [
+    {
+      "query": "Can we deploy on Friday?",
+      "kind": "policy",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "Production deployment is forbidden on Friday",
+      "hybrid_top": "Production deployment is forbidden on Friday"
+    },
+    {
+      "query": "Is an emergency Friday hotfix allowed?",
+      "kind": "policy",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "Emergency Friday hotfix is allowed with CTO approval",
+      "hybrid_top": "Emergency Friday hotfix is allowed with CTO approval"
+    },
+    {
+      "query": "What was the product price on January 15?",
+      "kind": "temporal",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "Product price is 100 dollars",
+      "hybrid_top": "Product price is 100 dollars"
+    },
+    {
+      "query": "What is the current product price?",
+      "kind": "factual",
+      "naive_correct": false,
+      "hybrid_correct": true,
+      "naive_top": "Product price is 100 dollars",
+      "hybrid_top": "Product price is 120 dollars"
+    },
+    {
+      "query": "How do we fix the Vite peer conflict?",
+      "kind": "procedural",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "To fix Vite peer conflict inspect the lockfile, align peer versions, clean install, then run tests",
+      "hybrid_top": "To fix Vite peer conflict inspect the lockfile, align peer versions, clean install, then run tests"
+    },
+    {
+      "query": "Why did the service recover?",
+      "kind": "causal",
+      "naive_correct": true,
+      "hybrid_correct": false,
+      "naive_top": "The service recovered because the dependency endpoint became healthy, not because of restart",
+      "hybrid_top": "To fix Vite peer conflict inspect the lockfile, align peer versions, clean install, then run tests"
+    },
+    {
+      "query": "Which database is selected for ERP?",
+      "kind": "factual",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "PostgreSQL is selected as the ERP database",
+      "hybrid_top": "PostgreSQL is selected as the ERP database"
+    },
+    {
+      "query": "Can support agents read board compensation?",
+      "kind": "policy",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "Support agents cannot read restricted board compensation",
+      "hybrid_top": "Support agents cannot read restricted board compensation"
+    }
+  ],
+  "warning": "Synthetic smoke benchmark. Not a substitute for LoCoMo/LongMemEval head-to-head evaluation."
+}
+{
+  "benchmark": "cognitive-differentiation-smoke-v1",
+  "cases": 12,
+  "search_only_hybrid_accuracy": 0.5833333333333334,
+  "bio_cognitive_accuracy": 1.0,
+  "absolute_accuracy_gain": 0.4166666666666667,
+  "search_only_latency_ms": {
+    "p50": 0.486765,
+    "max": 0.6852
+  },
+  "bio_cognitive_latency_ms": {
+    "p50": 0.862554,
+    "max": 1.449578
+  },
+  "rows": [
+    {
+      "case": "current-fact",
+      "query": "What is the current product price?",
+      "search_only_correct": false,
+      "bio_cognitive_correct": true,
+      "search_only_top": "Product price is 100 dollars",
+      "bio_cognitive_top": "Product price is 120 dollars",
+      "bio_explanation": {
+        "query_type": "factual",
+        "score_components": {
+          "semantic": 1.095445,
+          "lexical": 0.9,
+          "confidence": 0.33,
+          "trust": 0.27,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 0.0,
+          "context_match": 0.0,
+          "query_type": 0.5,
+          "temporal": 0.0,
+          "governance": 0.0,
+          "epistemic": 0.18
+        },
+        "source_event_ids": [
+          "88496093-2555-46d2-93b6-aa23e23c158e"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": "2026-02-01T00:00:00+00:00",
+        "valid_to": null,
+        "trust_tier": 3,
+        "lifecycle_state": "proposed",
+        "epistemic_status": "observed",
+        "verification_status": "unverified",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": null,
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "historical-fact",
+      "query": "What was the product price on January 15?",
+      "search_only_correct": true,
+      "bio_cognitive_correct": true,
+      "search_only_top": "Product price is 100 dollars",
+      "bio_cognitive_top": "Product price is 100 dollars",
+      "bio_explanation": {
+        "query_type": "factual",
+        "score_components": {
+          "semantic": 0.632456,
+          "lexical": 0.6,
+          "confidence": 0.33,
+          "trust": 0.27,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 0.0,
+          "context_match": 0.0,
+          "query_type": 0.5,
+          "temporal": 0.0,
+          "governance": 0.0,
+          "epistemic": 0.18
+        },
+        "source_event_ids": [
+          "48f2c610-6cb5-44ae-9907-af1bea18727f"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": "2026-01-01T00:00:00+00:00",
+        "valid_to": "2026-02-01T00:00:00+00:00",
+        "trust_tier": 3,
+        "lifecycle_state": "proposed",
+        "epistemic_status": "observed",
+        "verification_status": "unverified",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": null,
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "policy",
+      "query": "Can we deploy on Friday?",
+      "search_only_correct": true,
+      "bio_cognitive_correct": true,
+      "search_only_top": "Production deployment is forbidden on Friday",
+      "bio_cognitive_top": "Production deployment is forbidden on Friday",
+      "bio_explanation": {
+        "query_type": "policy",
+        "score_components": {
+          "semantic": 0.730297,
+          "lexical": 0.6,
+          "confidence": 0.5445,
+          "trust": 0.45,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 0.45,
+          "context_match": 0.0,
+          "query_type": 0.9,
+          "temporal": 0.0,
+          "governance": 0.2,
+          "epistemic": 0.42
+        },
+        "source_event_ids": [
+          "efff4723-49b4-4b13-ad49-68354462dbf5"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": null,
+        "valid_to": null,
+        "trust_tier": 5,
+        "lifecycle_state": "stable",
+        "epistemic_status": "observed",
+        "verification_status": "human_approved",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": "cto",
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "active-exception",
+      "query": "Is an emergency Friday hotfix allowed?",
+      "search_only_correct": true,
+      "bio_cognitive_correct": true,
+      "search_only_top": "Emergency Friday hotfix is allowed with CTO approval",
+      "bio_cognitive_top": "Emergency Friday hotfix is allowed with CTO approval",
+      "bio_explanation": {
+        "query_type": "policy",
+        "score_components": {
+          "semantic": 1.443376,
+          "lexical": 1.2,
+          "confidence": 0.539,
+          "trust": 0.36,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 0.45,
+          "context_match": 0.0,
+          "query_type": 1.0,
+          "temporal": 0.0,
+          "governance": 0.65,
+          "epistemic": 0.42
+        },
+        "source_event_ids": [
+          "a17ae8d3-a72e-4090-a5ab-02bc8af7b42d"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": null,
+        "valid_to": null,
+        "trust_tier": 4,
+        "lifecycle_state": "stable",
+        "epistemic_status": "observed",
+        "verification_status": "human_approved",
+        "simulation_id": null,
+        "governed_exception_for": "ebd0fb3d-5c37-47c0-a1aa-566c5a8000a6",
+        "approved_by": "cto",
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "debug-state",
+      "query": "How do we install dependencies?",
+      "search_only_correct": true,
+      "bio_cognitive_correct": true,
+      "search_only_top": "Install dependencies by inspecting the lockfile first",
+      "bio_cognitive_top": "Install dependencies by inspecting the lockfile first",
+      "bio_explanation": {
+        "query_type": "factual",
+        "score_components": {
+          "semantic": 0.676123,
+          "lexical": 0.6,
+          "confidence": 0.451,
+          "trust": 0.27,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 2.25,
+          "context_match": 0.0,
+          "query_type": 0.0,
+          "temporal": 0.0,
+          "governance": 0.0,
+          "epistemic": 0.18
+        },
+        "source_event_ids": [
+          "30967f48-0ab5-48c2-9325-80b554cfcd17"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": null,
+        "valid_to": null,
+        "trust_tier": 3,
+        "lifecycle_state": "proposed",
+        "epistemic_status": "observed",
+        "verification_status": "unverified",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": null,
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "implement-state",
+      "query": "How do we install dependencies?",
+      "search_only_correct": false,
+      "bio_cognitive_correct": true,
+      "search_only_top": "Install dependencies by inspecting the lockfile first",
+      "bio_cognitive_top": "Install dependencies with the standard package command",
+      "bio_explanation": {
+        "query_type": "factual",
+        "score_components": {
+          "semantic": 0.676123,
+          "lexical": 0.6,
+          "confidence": 0.451,
+          "trust": 0.27,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 2.25,
+          "context_match": 0.0,
+          "query_type": 0.0,
+          "temporal": 0.0,
+          "governance": 0.0,
+          "epistemic": 0.18
+        },
+        "source_event_ids": [
+          "b63513fd-61c4-4a88-986e-dbb3739519f8"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": null,
+        "valid_to": null,
+        "trust_tier": 3,
+        "lifecycle_state": "proposed",
+        "epistemic_status": "observed",
+        "verification_status": "unverified",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": null,
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "windows-context",
+      "query": "How do we restart the service?",
+      "search_only_correct": true,
+      "bio_cognitive_correct": true,
+      "search_only_top": "Restart the service using Windows Service Control Manager",
+      "bio_cognitive_top": "Restart the service using Windows Service Control Manager",
+      "bio_explanation": {
+        "query_type": "procedural",
+        "score_components": {
+          "semantic": 1.032796,
+          "lexical": 0.9,
+          "confidence": 0.451,
+          "trust": 0.27,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 0.0,
+          "context_match": 0.35,
+          "query_type": 0.9,
+          "temporal": 0.0,
+          "governance": 0.0,
+          "epistemic": 0.18
+        },
+        "source_event_ids": [
+          "60e4dfb4-dccc-44c7-ac4c-681dad0008cc"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": null,
+        "valid_to": null,
+        "trust_tier": 3,
+        "lifecycle_state": "proposed",
+        "epistemic_status": "observed",
+        "verification_status": "unverified",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": null,
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "linux-context",
+      "query": "How do we restart the service?",
+      "search_only_correct": false,
+      "bio_cognitive_correct": true,
+      "search_only_top": "Restart the service using Windows Service Control Manager",
+      "bio_cognitive_top": "Restart the service using systemctl on Linux",
+      "bio_explanation": {
+        "query_type": "procedural",
+        "score_components": {
+          "semantic": 0.92582,
+          "lexical": 0.9,
+          "confidence": 0.451,
+          "trust": 0.27,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 0.0,
+          "context_match": 0.35,
+          "query_type": 0.9,
+          "temporal": 0.0,
+          "governance": 0.0,
+          "epistemic": 0.18
+        },
+        "source_event_ids": [
+          "5ed0eca0-3316-4824-a0fc-988668f3359b"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": null,
+        "valid_to": null,
+        "trust_tier": 3,
+        "lifecycle_state": "proposed",
+        "epistemic_status": "observed",
+        "verification_status": "unverified",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": null,
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "verified-over-simulated",
+      "query": "Which rollback procedure should production use?",
+      "search_only_correct": false,
+      "bio_cognitive_correct": true,
+      "search_only_top": "Production should use the experimental instant rollback procedure",
+      "bio_cognitive_top": "Production should use the verified blue-green rollback procedure",
+      "bio_explanation": {
+        "query_type": "procedural",
+        "score_components": {
+          "semantic": 1.360828,
+          "lexical": 1.2,
+          "confidence": 0.396,
+          "trust": 0.27,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 0.0,
+          "context_match": 0.0,
+          "query_type": 0.9,
+          "temporal": 0.0,
+          "governance": 0.0,
+          "epistemic": 0.32
+        },
+        "source_event_ids": [
+          "376661b1-33ee-424f-aad5-d7732577a7ba"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": null,
+        "valid_to": null,
+        "trust_tier": 3,
+        "lifecycle_state": "proposed",
+        "epistemic_status": "observed",
+        "verification_status": "machine_checked",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": null,
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "checked-over-rejected",
+      "query": "What caused the outage?",
+      "search_only_correct": false,
+      "bio_cognitive_correct": true,
+      "search_only_top": "The cache caused the outage",
+      "bio_cognitive_top": "A database lock caused the outage",
+      "bio_explanation": {
+        "query_type": "causal",
+        "score_components": {
+          "semantic": 1.341641,
+          "lexical": 0.9,
+          "confidence": 0.396,
+          "trust": 0.27,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 0.0,
+          "context_match": 0.0,
+          "query_type": 0.9,
+          "temporal": 0.0,
+          "governance": 0.0,
+          "epistemic": 0.32
+        },
+        "source_event_ids": [
+          "2a8d74f3-8a78-4ffc-bde9-f02199d551cc"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": null,
+        "valid_to": null,
+        "trust_tier": 3,
+        "lifecycle_state": "proposed",
+        "epistemic_status": "observed",
+        "verification_status": "machine_checked",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": null,
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "social",
+      "query": "Who is the CTO?",
+      "search_only_correct": true,
+      "bio_cognitive_correct": true,
+      "search_only_top": "Lan is the CTO",
+      "bio_cognitive_top": "Lan is the CTO",
+      "bio_explanation": {
+        "query_type": "social",
+        "score_components": {
+          "semantic": 1.5,
+          "lexical": 0.9,
+          "confidence": 0.495,
+          "trust": 0.27,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 0.0,
+          "context_match": 0.0,
+          "query_type": 0.9,
+          "temporal": 0.0,
+          "governance": 0.0,
+          "epistemic": 0.18
+        },
+        "source_event_ids": [
+          "25ad00ae-dc1c-426e-b4b0-eda5c4c9bcfc"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": null,
+        "valid_to": null,
+        "trust_tier": 3,
+        "lifecycle_state": "proposed",
+        "epistemic_status": "observed",
+        "verification_status": "unverified",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": null,
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    },
+    {
+      "case": "spatial",
+      "query": "Where is the production config path?",
+      "search_only_correct": true,
+      "bio_cognitive_correct": true,
+      "search_only_top": "The production config path is /etc/locaith/prod.yaml",
+      "bio_cognitive_top": "The production config path is /etc/locaith/prod.yaml",
+      "bio_explanation": {
+        "query_type": "spatial",
+        "score_components": {
+          "semantic": 1.360828,
+          "lexical": 1.2,
+          "confidence": 0.495,
+          "trust": 0.27,
+          "utility": 0.125,
+          "salience": 0.1,
+          "reinforcement": 0.0,
+          "contradiction_penalty": -0.0,
+          "state_match": 0.0,
+          "context_match": 0.0,
+          "query_type": 0.9,
+          "temporal": 0.0,
+          "governance": 0.0,
+          "epistemic": 0.18
+        },
+        "source_event_ids": [
+          "0c65445b-0794-49ce-b255-706512e3b40b"
+        ],
+        "counterevidence_event_ids": [],
+        "valid_from": null,
+        "valid_to": null,
+        "trust_tier": 3,
+        "lifecycle_state": "proposed",
+        "epistemic_status": "observed",
+        "verification_status": "unverified",
+        "simulation_id": null,
+        "governed_exception_for": null,
+        "approved_by": null,
+        "access": "allowed",
+        "access_reasons": [],
+        "candidate_pool_size": 15,
+        "fts_first_stage": true
+      }
+    }
+  ],
+  "disclaimer": "The search-only baseline approximates lexical+semantic retrieval. It is not AgentMemory, Mem0, Letta, Zep or Cognee. Use the supplied external harness plan for real head-to-head evaluation."
+}
+{
+  "benchmark": "context-efficiency-smoke-v1",
+  "memory_count": 808,
+  "quarantined": 0,
+  "naive_full_context_tokens": 33701,
+  "compiled_context_tokens": 411,
+  "token_reduction_ratio": 0.9878045161864633,
+  "token_budget_respected": true,
+  "required_signal_recall": 1.0,
+  "selected_blocks": 15,
+  "omitted_blocks": 45,
+  "first_compile_ms": 13.390991,
+  "cached_compile_ms": 0.409159,
+  "cache_hit": true,
+  "checkpoint_restore_ms": 0.036505,
+  "checkpoint_round_trip": true,
+  "prefetch_intent": "deploy",
+  "prefetch_results": 8,
+  "context_metrics": {
+    "compile_calls": 2,
+    "cache_hit_rate": 0.5,
+    "token_reduction_ratio": 0.8213820078226858,
+    "compile_p50_ms": 6.876464499896429,
+    "compile_p95_ms": 13.347425999882034,
+    "restore_calls": 1,
+    "prefetch_calls": 1
+  },
+  "disclaimer": "Synthetic context-economics smoke benchmark, not a GPU KV-cache or NVIDIA hardware benchmark."
+}
+{
+  "benchmark": "multi-domain-coverage-smoke-v1",
+  "domains": 20,
+  "top1_accuracy": 1.0,
+  "compiled_context_recall": 1.0,
+  "rows": [
+    {
+      "domain": "coding",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "erp",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "legal",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "healthcare",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "finance",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "iot",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "education",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "cybersecurity",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "support",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "personal",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "blender",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "wind",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "devops",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "database",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "robotics",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "science",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "sales",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "hr",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "manufacturing",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "vietnamese",
+      "top1": true,
+      "context_included": true
+    }
+  ],
+  "disclaimer": "Synthetic domain coverage verifies routing and isolation, not professional correctness in regulated fields."
+}
+{
+  "benchmark": "memory-immune-and-governance-smoke-v1",
+  "checks": {
+    "prompt_injection_quarantined": true,
+    "simulated_policy_quarantined": true,
+    "cross_tenant_isolation": true,
+    "security_label_enforced": true,
+    "verified_beats_rejected": true,
+    "expired_exception_blocked": true,
+    "secret_redacted": true
+  },
+  "passed": 7,
+  "total": 7,
+  "pass_rate": 1.0,
+  "disclaimer": "Deterministic smoke checks, not an independent penetration test or compliance certification."
+}
+{
+  "benchmark": "sqlite-fts5-indexed-load-smoke-v2",
+  "memory_count": 10000,
+  "query_count": 100,
+  "batch_size": 1000,
+  "fts_available": true,
+  "ingest_seconds": 0.7144779730001574,
+  "ingest_per_second": 13996.232743200046,
+  "top1_accuracy": 1.0,
+  "candidate_pool": {
+    "median": 100.0,
+    "max": 100
+  },
+  "latency_ms": {
+    "cold_start": 32.376149,
+    "p50": 29.5761915,
+    "p95": 30.844279,
+    "p99": 31.667664,
+    "max": 32.697261
+  },
+  "disclaimer": "Single-process SQLite/FTS5 smoke test using the bulk-ingest path. It is not a distributed, concurrent or billion-memory benchmark."
+}
+{
+  "benchmark": "external-head-to-head-preflight-v1",
+  "systems": {
+    "agentmemory": {
+      "available": false,
+      "npx_available": true,
+      "required": "Node >=20 and @agentmemory/agentmemory"
+    },
+    "mem0": {
+      "available": false,
+      "required": "pip install mem0ai"
+    },
+    "letta": {
+      "available": false,
+      "required": "pip install letta"
+    },
+    "graphiti": {
+      "available": false,
+      "required": "pip install graphiti-core"
+    },
+    "cognee": {
+      "available": false,
+      "required": "pip install cognee"
+    }
+  },
+  "fairness_contract": {
+    "same_dataset": true,
+    "same_reader_model": true,
+    "same_embedding_model": true,
+    "same_reranker": true,
+    "same_token_budget": true,
+    "same_hardware": true,
+    "report_accuracy_latency_cost_security": true
+  },
+  "status": "READY_BUT_NOT_RUN",
+  "statement": "No competitor score is claimed until its actual package is installed and executed."
+}
+{
+  "status": "ok",
+  "version": "0.8.0a1",
+  "checks": {
+    "event_integrity": true,
+    "recall": true,
+    "context_compile": true,
+    "context_cache": true,
+    "checkpoint_restore": true,
+    "fts_first_stage": true,
+    "tenant_scope": true
+  }
+}
+Stored memory: a753a92a-f26f-4c32-8b1c-81454736f884
+Recall top: A migration lock caused the production deployment failure
+Compiled tokens: 22
+Context blocks: 1
+Checkpoint: 08b4d450-33c5-45c0-b240-8a205a07bef6
+Prefetch intent: deploy results: 1
+Rendered context:
+ # Active goal
+Recover production safely
+
+# Fact
+- A migration lock caused the production deployment failure
+
+All v0.8 alpha checks passed.

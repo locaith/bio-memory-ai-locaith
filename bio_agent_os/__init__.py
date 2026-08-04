@@ -5,7 +5,7 @@ Portable bio-inspired memory infrastructure for coding agents, ERP agents,
 and long-running autonomous systems.
 """
 
-__version__ = "0.6.1"
+__version__ = "0.8.1a1"
 __author__ = "Locaith Solution Tech"
 
 from bio_agent_os.core.async_sqlite_store import AsyncSQLiteStore
@@ -85,9 +85,53 @@ __all__ = [
     "TrustTier",
 ]
 
-# Bio-Agent OS V1 cognitive foundation upgrade
+# --------------------------------------------------------------------------
+# Bio-AGI Memory OS v0.8.1 — additive cognitive kernel
+#
+# Merged, not replaced. The upstream v0.8.1 bundle ships only the cognitive
+# and context_fabric packages, and its own __init__ drops every legacy export
+# above. Adopting that file verbatim would have removed L1/L2 memory, the
+# hippocampus, the knowledge graph, the LOCOMO evals, the REST API, the MCP
+# server and the SDK from the public surface. Everything below is added
+# alongside those, so both generations import from one package.
+# --------------------------------------------------------------------------
+
 from bio_agent_os.cognitive import MemoryOS
+from bio_agent_os.cognitive.hooks import ClaudeCodeHookAdapter
 from bio_agent_os.cognitive.models import (
-    AccessContext, BeliefState, CognitiveMemory, EventRecord, MemoryType,
-    SecurityLabel, TrustTier,
+    AccessContext,
+    BeliefState,
+    CognitiveMemory,
+    EpistemicStatus,
+    EventRecord,
+    ExecutionOutcome,
+    MemoryType,
+    Modality,
+    ProspectiveTrigger,
+    SecurityLabel,
+    SimulationTrace,
+    TrustTier,
+    VerificationStatus,
 )
+from bio_agent_os.context_fabric import (
+    AgentCheckpoint,
+    ContextBlock,
+    ContextBlockKind,
+    ContextPacket,
+    StorageTier,
+)
+
+__all__ += [
+    "AgentCheckpoint",
+    "ClaudeCodeHookAdapter",
+    "ContextBlock",
+    "ContextBlockKind",
+    "ContextPacket",
+    "EpistemicStatus",
+    "ExecutionOutcome",
+    "Modality",
+    "ProspectiveTrigger",
+    "SimulationTrace",
+    "StorageTier",
+    "VerificationStatus",
+]

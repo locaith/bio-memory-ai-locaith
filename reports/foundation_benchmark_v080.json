@@ -1,0 +1,82 @@
+{
+  "dataset": "deterministic-foundation-smoke-v1",
+  "cases": 8,
+  "naive_accuracy": 0.875,
+  "hybrid_accuracy": 0.875,
+  "absolute_accuracy_gain": 0.0,
+  "naive_latency_ms": {
+    "p50": 0.306271,
+    "max": 0.514656
+  },
+  "hybrid_latency_ms": {
+    "p50": 0.7653345,
+    "max": 1.280415
+  },
+  "rows": [
+    {
+      "query": "Can we deploy on Friday?",
+      "kind": "policy",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "Production deployment is forbidden on Friday",
+      "hybrid_top": "Production deployment is forbidden on Friday"
+    },
+    {
+      "query": "Is an emergency Friday hotfix allowed?",
+      "kind": "policy",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "Emergency Friday hotfix is allowed with CTO approval",
+      "hybrid_top": "Emergency Friday hotfix is allowed with CTO approval"
+    },
+    {
+      "query": "What was the product price on January 15?",
+      "kind": "temporal",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "Product price is 100 dollars",
+      "hybrid_top": "Product price is 100 dollars"
+    },
+    {
+      "query": "What is the current product price?",
+      "kind": "factual",
+      "naive_correct": false,
+      "hybrid_correct": true,
+      "naive_top": "Product price is 100 dollars",
+      "hybrid_top": "Product price is 120 dollars"
+    },
+    {
+      "query": "How do we fix the Vite peer conflict?",
+      "kind": "procedural",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "To fix Vite peer conflict inspect the lockfile, align peer versions, clean install, then run tests",
+      "hybrid_top": "To fix Vite peer conflict inspect the lockfile, align peer versions, clean install, then run tests"
+    },
+    {
+      "query": "Why did the service recover?",
+      "kind": "causal",
+      "naive_correct": true,
+      "hybrid_correct": false,
+      "naive_top": "The service recovered because the dependency endpoint became healthy, not because of restart",
+      "hybrid_top": "To fix Vite peer conflict inspect the lockfile, align peer versions, clean install, then run tests"
+    },
+    {
+      "query": "Which database is selected for ERP?",
+      "kind": "factual",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "PostgreSQL is selected as the ERP database",
+      "hybrid_top": "PostgreSQL is selected as the ERP database"
+    },
+    {
+      "query": "Can support agents read board compensation?",
+      "kind": "policy",
+      "naive_correct": true,
+      "hybrid_correct": true,
+      "naive_top": "Support agents cannot read restricted board compensation",
+      "hybrid_top": "Support agents cannot read restricted board compensation"
+    }
+  ],
+  "warning": "Synthetic smoke benchmark. Not a substitute for LoCoMo/LongMemEval head-to-head evaluation."
+}

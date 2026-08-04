@@ -2,7 +2,16 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from .models import AccessContext, BeliefState, CognitiveMemory, MemoryType, SecurityLabel, TrustTier
+from .models import (
+    AccessContext,
+    BeliefState,
+    CognitiveMemory,
+    EpistemicStatus,
+    MemoryType,
+    SecurityLabel,
+    TrustTier,
+    VerificationStatus,
+)
 
 
 _SECURITY_ORDER = {
@@ -36,15 +45,20 @@ class GovernanceEngine:
 
     def validate_promotion(self, memory: CognitiveMemory) -> tuple[bool, list[str]]:
         reasons: list[str] = []
-        if memory.memory_type in {MemoryType.IDENTITY, MemoryType.POLICY}:
+        authoritative = {MemoryType.IDENTITY, MemoryType.POLICY, MemoryType.EXCEPTION, MemoryType.SELF_MODEL}
+        if memory.memory_type in authoritative:
             if memory.trust_tier < TrustTier.HUMAN_APPROVED:
-                reasons.append("identity_or_policy_requires_human_approval")
+                reasons.append("authoritative_memory_requires_human_approval")
             if not memory.approved_by:
                 reasons.append("missing_approver")
+            if memory.epistemic_status == EpistemicStatus.SIMULATED:
+                reasons.append("simulated_memory_cannot_be_authoritative")
         if not memory.source_event_ids:
             reasons.append("missing_provenance")
         if memory.lifecycle_state == BeliefState.STABLE and memory.confidence < 0.75:
             reasons.append("stable_memory_confidence_too_low")
+        if memory.lifecycle_state == BeliefState.STABLE and memory.verification_status == VerificationStatus.REJECTED:
+            reasons.append("rejected_memory_cannot_be_stable")
         if memory.governed_exception_for and not memory.approved_by:
             reasons.append("governed_exception_requires_approval")
         return not reasons, reasons
@@ -54,6 +68,8 @@ class GovernanceEngine:
         if not memory.governed_exception_for:
             return False
         if not memory.approved_by:
+            return False
+        if memory.epistemic_status == EpistemicStatus.SIMULATED:
             return False
         current = now or datetime.now(timezone.utc).isoformat()
         return memory.approval_expires_at is None or current < memory.approval_expires_at

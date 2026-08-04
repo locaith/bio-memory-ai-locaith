@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bio-agent-os"
-version = "0.6.1"
+version = "0.8.1a1"
 description = "Open-source bio-inspired memory framework for AI agents."
 readme = "README.md"
 license = {text = "MIT"}
@@ -35,6 +35,8 @@ dependencies = [
 
 [project.scripts]
 bio-agent-os = "bio_agent_os.cli:main"
+bio-agi-memory = "bio_agent_os.cognitive.cli:main"
+bio-memory-hook = "bio_agent_os.cognitive.hook_cli:main"
 
 [project.entry-points."bio_agent_os.plugins"]
 openclaw = "bio_agent_os.plugins.openclaw:build_openclaw_plugin"

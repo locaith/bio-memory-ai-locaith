@@ -1,0 +1,16 @@
+{
+  "benchmark": "memory-immune-and-governance-smoke-v1",
+  "checks": {
+    "prompt_injection_quarantined": true,
+    "simulated_policy_quarantined": true,
+    "cross_tenant_isolation": true,
+    "security_label_enforced": true,
+    "verified_beats_rejected": true,
+    "expired_exception_blocked": true,
+    "secret_redacted": true
+  },
+  "passed": 7,
+  "total": 7,
+  "pass_rate": 1.0,
+  "disclaimer": "Deterministic smoke checks, not an independent penetration test or compliance certification."
+}

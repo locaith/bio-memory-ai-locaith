@@ -1,0 +1,47 @@
+\documentclass[authoryear]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{color}
+
+\title{Bio-Agent OS: A Biologically-Inspired Memory Architecture for Autonomous Coding Agents with Homeostatic Attention, Belief Lifecycle Management, and NLI-Backed Contradiction Resolution}
+\author{Ha Tuan Anh \\ Locaith Solution Tech \\ \texttt{tuananhnangluong@gmail.com}}
+\date{April 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Long-running autonomous agents require persistent memory systems that go beyond simple key-value caching or append-only context windows. We present \textbf{Bio-Agent OS}, an open-source memory framework that draws from neuroscience to provide coding and ERP agents with a biologically faithful memory architecture. Our system implements (1) a multi-tier memory pipeline mirroring human memory consolidation (L1 Working Memory $\rightarrow$ L2 Semantic Memory $\rightarrow$ Belief Graph), (2) a homeostatic attention scheduler that dynamically adjusts focus weights based on agent stress and failure streaks, (3) an Ebbinghaus-decay forgetting curve for synaptic pruning, (4) a six-state belief lifecycle with governed exception governance, and (5) a hybrid heuristic+NLI contradiction detector with persistent caching. We evaluate on an 8-pair multi-domain conflict detection benchmark and a 6-task end-to-end memory consolidation suite using Gemma-4 E2B as the local inference backbone. Results show that the hybrid NLI detector achieves \textbf{8/8 (100\%) accuracy with 1.0 precision and 0 false positives}, compared to 4/8 (50\%) for heuristic-only detection. The NLI cache eliminates 100\% of redundant inference calls on repeat evaluations. Bio-Agent OS is the first open-source framework to combine production-grade persistence (SQLite + PostgreSQL), bio-faithful memory dynamics, and enterprise-grade rule governance in a single installable package.
+\end{abstract}
+
+\section{Introduction}
+
+The rapid adoption of autonomous coding agents—systems like OpenClaw, SWE-Agent, and Devin—has exposed a critical infrastructure gap: agents lack memory systems that can learn, forget, contradict, and self-correct across sessions. Current approaches fall into three categories:
+
+\begin{enumerate}
+    \item \textbf{Context window stuffing}: Prepending all prior observations into the prompt. This is bounded by the context window size and provides no mechanism for forgetting or prioritization.
+    \item \textbf{Vector-store retrieval}: Systems like Mem0 and Zep store memories as embeddings and retrieve by similarity. While effective for recall, they treat all memories as equally valid and provide no lifecycle management.
+    \item \textbf{Graph-based memory}: Letta and Graphiti use relational structures but lack biological dynamics—there is no forgetting, no attention homeostasis, and no mechanism for handling contradictory beliefs.
+\end{enumerate}
+
+Bio-Agent OS addresses these limitations by modeling memory after the human brain's consolidation pipeline. We draw from three neuroscience principles: synaptic consolidation, Ebbinghaus forgetting, and homeostatic plasticity.
+
+\section{Related Work}
+... (Omitted for brevity in this scratch version, full paper content from README)
+
+\section{Architecture}
+Bio-Agent OS consists of five layers, mirroring the human memory consolidation pipeline: L1 Working Memory, Hippocampus, L2 Semantic Memory, Persona, and Knowledge Graph.
+
+\section{Evaluation}
+We evaluated the system on an 8-pair benchmark. The hybrid detector achieved 100\% accuracy.
+
+\section{Conclusion}
+Bio-Agent OS demonstrates that biologically-inspired memory dynamics produce practical improvements in agent memory systems.
+
+\end{document}

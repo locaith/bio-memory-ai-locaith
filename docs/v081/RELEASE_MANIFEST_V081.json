@@ -1,0 +1,735 @@
+{
+  "version": "0.8.1a1",
+  "files": [
+    {
+      "path": "ARCHITECTURE.md",
+      "size": 3547,
+      "sha256": "e5e12c3cc2c74fffa8a9b3172f695b07da67e4994df462d0ee72e0ebd5219632"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "size": 1589,
+      "sha256": "96bb39b1fb4c0c2aa128a5eb1a8c2fb904c99d573b167341ec5643625b77dcc9"
+    },
+    {
+      "path": "CLAUDE_CONTINUATION_STATE.json",
+      "size": 6678,
+      "sha256": "7d139c487dcc1c44657aa52f941b464965c6539f5a7c1977b9b3355573a554b0"
+    },
+    {
+      "path": "CLAUDE_REVIEW_BRIEF.md",
+      "size": 4793,
+      "sha256": "bf293c5db7ed4331e29ab8d492da46f7540467fee4ec9a5d2d6a0f568efec1bd"
+    },
+    {
+      "path": "HEAD_TO_HEAD_HARNESS_PLAN.md",
+      "size": 1256,
+      "sha256": "f2b622c50d4cbc2296c624dc6be528949f85c1692f62bdc991977783052832c5"
+    },
+    {
+      "path": "IMPLEMENTATION_REPORT.md",
+      "size": 1255,
+      "sha256": "73362df3b63db6f2fa6b6e1df64c90be437e10deacc6987e74e983db1d492d31"
+    },
+    {
+      "path": "KNOWN_GAPS.md",
+      "size": 2439,
+      "sha256": "e31f50878545f90a10f547e86962f36b6619fd6227124bd1c51b7ddabf88cae0"
+    },
+    {
+      "path": "LICENSE",
+      "size": 1078,
+      "sha256": "72224a22a8f23f07de3241648c0679a9571f7a613e8fa4e7ab301ae1d68ddf76"
+    },
+    {
+      "path": "MIGRATION_GUIDE.md",
+      "size": 1952,
+      "sha256": "d410954380dfb7c05de758ce8c5fc41ec61bbe28402b7bcdeabd2a2f4464bbea"
+    },
+    {
+      "path": "README.md",
+      "size": 4386,
+      "sha256": "85416d8cb50c67d52aaa672e5fe25764114550fe90cdff574da7a42463b4bb2b"
+    },
+    {
+      "path": "RELEASE_MANIFEST.json",
+      "size": 15937,
+      "sha256": "04302c7130113c3e96f6d3e639b3d1565f23f2006e8ea5c39cdd89f190c48132"
+    },
+    {
+      "path": "benchmarks/__init__.py",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "benchmarks/cognitive_benchmark.py",
+      "size": 8724,
+      "sha256": "0fd609c9ee166f8ebc8e6f6855437b850441714bd3a580a1a757fe480a891b23"
+    },
+    {
+      "path": "benchmarks/concurrency_probe.py",
+      "size": 5976,
+      "sha256": "5d5dbe9fb4d1dff8fa012b4ce85bac5a548f412ca1458c48842e835d87aa26ab"
+    },
+    {
+      "path": "benchmarks/context_efficiency_benchmark.py",
+      "size": 5157,
+      "sha256": "e30e644d3838f06a47bcd81b83f9258235fa7023beb06d5db925a8fb0cf3ef06"
+    },
+    {
+      "path": "benchmarks/domain_coverage_benchmark.py",
+      "size": 5303,
+      "sha256": "a32bb9cf6d3ca2b862a4a0ce3f8ea2030ff056f148050516edae32ed16200fe0"
+    },
+    {
+      "path": "benchmarks/external_head_to_head.py",
+      "size": 2071,
+      "sha256": "c9b501734e78349a714b490d75258b3b07e0a9db10dffe85e40ca9779e604c70"
+    },
+    {
+      "path": "benchmarks/load_benchmark.py",
+      "size": 4043,
+      "sha256": "80df428400b88a62e54c1978d110661ad94c7d1ceaaf358928e383da922bdfe0"
+    },
+    {
+      "path": "benchmarks/production_concurrency_benchmark.py",
+      "size": 8434,
+      "sha256": "2aff8abcb0d1e66d5fa5f2b90306240b5201876b6dbe07d75f7c6f231b8e2dc8"
+    },
+    {
+      "path": "benchmarks/run_benchmark.py",
+      "size": 5587,
+      "sha256": "26a5bfa4df12cfed5eaa4cc3d63e30449f998ec8640efcdb7e57f6ce8efef36f"
+    },
+    {
+      "path": "benchmarks/safety_benchmark.py",
+      "size": 4763,
+      "sha256": "1b089cf587c465ad4ffcbf062f46316a67244a29d134f6969e7369bb4139d224"
+    },
+    {
+      "path": "bio_agent_os/__init__.py",
+      "size": 1106,
+      "sha256": "2ae56017af0e09379297f2c6fc94fede041bf3f3abf950ae074b823b23a30107"
+    },
+    {
+      "path": "bio_agent_os/cognitive/__init__.py",
+      "size": 1619,
+      "sha256": "78703837697d3fed9ea174a4dc0803135e2d51d04ba75924b69fac2bad6ac19e"
+    },
+    {
+      "path": "bio_agent_os/cognitive/causal.py",
+      "size": 2212,
+      "sha256": "53a2b39c49f7ebf22433e23eec562738bbd75adfc0f51795f723f7d7715193e9"
+    },
+    {
+      "path": "bio_agent_os/cognitive/cli.py",
+      "size": 2748,
+      "sha256": "a58a13f18608ba314a2773ae62b8135dc383c964d2b505ef2f8deee06cc82b28"
+    },
+    {
+      "path": "bio_agent_os/cognitive/compiler.py",
+      "size": 3111,
+      "sha256": "e42b68fba368a7f6df72b3d1f9c99693745036897e51285880d68f8d2a16f221"
+    },
+    {
+      "path": "bio_agent_os/cognitive/counterfactual.py",
+      "size": 1484,
+      "sha256": "0cf6b34e93ecb1bc5bda164ab0e3018d3bf82e68e45378a115315958b178c4b8"
+    },
+    {
+      "path": "bio_agent_os/cognitive/dream_engine.py",
+      "size": 3967,
+      "sha256": "6b05ecd5bdd14412ff38ab7876bdb644492fa96bdd0d2a936747fc6a113e4362"
+    },
+    {
+      "path": "bio_agent_os/cognitive/epistemics.py",
+      "size": 4405,
+      "sha256": "3874b1c778511ccaee1e23be3a097415d1b8886aa03789724a0c01f102a7d8fc"
+    },
+    {
+      "path": "bio_agent_os/cognitive/event_store.py",
+      "size": 7471,
+      "sha256": "738f67c2aac1ed0f9feb72839c8396d2488883e9c05d0c381939b9052ca6ead6"
+    },
+    {
+      "path": "bio_agent_os/cognitive/facade.py",
+      "size": 19336,
+      "sha256": "fe9e5b4cd19145f08c8e72b0102420f7e85d2f6efda014a28e4a20af8f9b055a"
+    },
+    {
+      "path": "bio_agent_os/cognitive/governance.py",
+      "size": 3159,
+      "sha256": "e752341bec007f54b10a658536a56392dd08f44705fb5b22f16e7aac507d6504"
+    },
+    {
+      "path": "bio_agent_os/cognitive/hook_cli.py",
+      "size": 2583,
+      "sha256": "af59891dfbecead48285975cd219a57b6e784e073f0740e989377a4702b7c576"
+    },
+    {
+      "path": "bio_agent_os/cognitive/hooks.py",
+      "size": 3951,
+      "sha256": "87cb21c45c99fbfd605729b3be560fe9505594ded5e433e12e260d6061f10ccf"
+    },
+    {
+      "path": "bio_agent_os/cognitive/immune.py",
+      "size": 3163,
+      "sha256": "9cd5cb480962cdc9f8aca7850eb215a72c8b15eeb636a8bd353bdffb13a00709"
+    },
+    {
+      "path": "bio_agent_os/cognitive/memory_store.py",
+      "size": 21796,
+      "sha256": "4b3b353e3e303d2f7dc981b680122aa12e50ce1e6bc24899058f55b675ce22f1"
+    },
+    {
+      "path": "bio_agent_os/cognitive/models.py",
+      "size": 6498,
+      "sha256": "3339ce9c8e55479e5465baa76fd738c4c89433be3217de9ece10643edd7c0406"
+    },
+    {
+      "path": "bio_agent_os/cognitive/prospective.py",
+      "size": 4051,
+      "sha256": "d2c745d15f533414322eafb4d680e674ed261b5e51142ced65b974670dec86b2"
+    },
+    {
+      "path": "bio_agent_os/cognitive/reconstruction.py",
+      "size": 3146,
+      "sha256": "5916506018721e6ca68ce818340070c88bb7630738784463d056c20a10a2ae45"
+    },
+    {
+      "path": "bio_agent_os/cognitive/retrieval.py",
+      "size": 10426,
+      "sha256": "a4340dd7130ac9e9037bfa0c7eebd6f3a3e0d45bfdbdfead23b3efd18d7b57cc"
+    },
+    {
+      "path": "bio_agent_os/cognitive/security.py",
+      "size": 1883,
+      "sha256": "50f88232bd587de3fa2b3d560ad16241620f44bd91c08acb7c4343d01b4e71ee"
+    },
+    {
+      "path": "bio_agent_os/cognitive/self_model.py",
+      "size": 4024,
+      "sha256": "f2265321d786d70838d512c4577f5160b3024df027b9ff303a4074b99b7909ec"
+    },
+    {
+      "path": "bio_agent_os/cognitive/sqlite_utils.py",
+      "size": 514,
+      "sha256": "fc13973a99918f927accc46be6a89d5301c37c25abfc9a4ccdc2688c84dc1851"
+    },
+    {
+      "path": "bio_agent_os/cognitive/world_model.py",
+      "size": 3143,
+      "sha256": "09eb4225124509303ec884651ec14955a1a178758c31121e3e1713f2cf9e75de"
+    },
+    {
+      "path": "bio_agent_os/context_fabric/README.md",
+      "size": 434,
+      "sha256": "afce26c0f711368cb69091408902d4a3cb5f1c5f9ab70a9a1eecac6033c2a6de"
+    },
+    {
+      "path": "bio_agent_os/context_fabric/__init__.py",
+      "size": 785,
+      "sha256": "2434a4665afc7559ac6d08ccc98b193081361b56bf5307bcb77b6745f4d08f62"
+    },
+    {
+      "path": "bio_agent_os/context_fabric/backend.py",
+      "size": 780,
+      "sha256": "3e8db06a9067478c76e577f50955ec3b2c8498b963313db63144a4677b634fc9"
+    },
+    {
+      "path": "bio_agent_os/context_fabric/block_store.py",
+      "size": 14172,
+      "sha256": "0f424bd6a172ebc96b9f708a4360cd12ec850fd0a952db34581fa749354ebaf1"
+    },
+    {
+      "path": "bio_agent_os/context_fabric/checkpoint.py",
+      "size": 3953,
+      "sha256": "118d7e3a23ce5b0652b791933955eeeedda680c143c634874a5deee6fc8f517b"
+    },
+    {
+      "path": "bio_agent_os/context_fabric/context_compiler.py",
+      "size": 7937,
+      "sha256": "1889d895a1e280b8880f5d6dfb69a7b041a86828f9d45119182de71fa85f31fb"
+    },
+    {
+      "path": "bio_agent_os/context_fabric/metrics.py",
+      "size": 1805,
+      "sha256": "8eaa2e5d30dd22444909a38066f6f42ea05d0931542fc9ce7e9bd06298ab490b"
+    },
+    {
+      "path": "bio_agent_os/context_fabric/models.py",
+      "size": 3772,
+      "sha256": "7a072d1168035fba8a1ceddf59b1e422abb56e1594a70c9d2afacf9dee2a2a68"
+    },
+    {
+      "path": "bio_agent_os/context_fabric/prefetch.py",
+      "size": 2369,
+      "sha256": "3d0a79325898747c94585a3deb71588ff9acea8ac218fb4de02c3b115e33564f"
+    },
+    {
+      "path": "bio_agent_os/context_fabric/tiering.py",
+      "size": 1168,
+      "sha256": "bb01b59c090d4037e5b2eeb5ad7861f6e1ba0972aafadafc4b0f863cba47a480"
+    },
+    {
+      "path": "bio_agi_memory_os.egg-info/PKG-INFO",
+      "size": 324,
+      "sha256": "1f0afa2bd98043a6bb61ba80484db0006f762ea0ad017e6b4619f4911566e178"
+    },
+    {
+      "path": "bio_agi_memory_os.egg-info/SOURCES.txt",
+      "size": 1882,
+      "sha256": "b3cb1c5ffc3d6a495d1a5ad0cc8abacc1baabd38002bf256b3345af6c6988e8f"
+    },
+    {
+      "path": "bio_agi_memory_os.egg-info/dependency_links.txt",
+      "size": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "bio_agi_memory_os.egg-info/entry_points.txt",
+      "size": 171,
+      "sha256": "b2bf9cd03c56c411c0d5179005ec8c2f9d100fbba5db4da5d01d5957bc8f4edd"
+    },
+    {
+      "path": "bio_agi_memory_os.egg-info/top_level.txt",
+      "size": 24,
+      "sha256": "0ec9085c9b344c58f35f8c124a27e273ff11980bfa92d5919743ecd2bb957e96"
+    },
+    {
+      "path": "build/lib/benchmarks/__init__.py",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/lib/benchmarks/cognitive_benchmark.py",
+      "size": 8724,
+      "sha256": "0fd609c9ee166f8ebc8e6f6855437b850441714bd3a580a1a757fe480a891b23"
+    },
+    {
+      "path": "build/lib/benchmarks/concurrency_probe.py",
+      "size": 5976,
+      "sha256": "5d5dbe9fb4d1dff8fa012b4ce85bac5a548f412ca1458c48842e835d87aa26ab"
+    },
+    {
+      "path": "build/lib/benchmarks/context_efficiency_benchmark.py",
+      "size": 5157,
+      "sha256": "e30e644d3838f06a47bcd81b83f9258235fa7023beb06d5db925a8fb0cf3ef06"
+    },
+    {
+      "path": "build/lib/benchmarks/domain_coverage_benchmark.py",
+      "size": 5303,
+      "sha256": "a32bb9cf6d3ca2b862a4a0ce3f8ea2030ff056f148050516edae32ed16200fe0"
+    },
+    {
+      "path": "build/lib/benchmarks/external_head_to_head.py",
+      "size": 2071,
+      "sha256": "c9b501734e78349a714b490d75258b3b07e0a9db10dffe85e40ca9779e604c70"
+    },
+    {
+      "path": "build/lib/benchmarks/load_benchmark.py",
+      "size": 4043,
+      "sha256": "80df428400b88a62e54c1978d110661ad94c7d1ceaaf358928e383da922bdfe0"
+    },
+    {
+      "path": "build/lib/benchmarks/production_concurrency_benchmark.py",
+      "size": 8434,
+      "sha256": "2aff8abcb0d1e66d5fa5f2b90306240b5201876b6dbe07d75f7c6f231b8e2dc8"
+    },
+    {
+      "path": "build/lib/benchmarks/run_benchmark.py",
+      "size": 5587,
+      "sha256": "26a5bfa4df12cfed5eaa4cc3d63e30449f998ec8640efcdb7e57f6ce8efef36f"
+    },
+    {
+      "path": "build/lib/benchmarks/safety_benchmark.py",
+      "size": 4763,
+      "sha256": "1b089cf587c465ad4ffcbf062f46316a67244a29d134f6969e7369bb4139d224"
+    },
+    {
+      "path": "build/lib/bio_agent_os/__init__.py",
+      "size": 1106,
+      "sha256": "2ae56017af0e09379297f2c6fc94fede041bf3f3abf950ae074b823b23a30107"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/__init__.py",
+      "size": 1619,
+      "sha256": "78703837697d3fed9ea174a4dc0803135e2d51d04ba75924b69fac2bad6ac19e"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/causal.py",
+      "size": 2212,
+      "sha256": "53a2b39c49f7ebf22433e23eec562738bbd75adfc0f51795f723f7d7715193e9"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/cli.py",
+      "size": 2748,
+      "sha256": "a58a13f18608ba314a2773ae62b8135dc383c964d2b505ef2f8deee06cc82b28"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/compiler.py",
+      "size": 3111,
+      "sha256": "e42b68fba368a7f6df72b3d1f9c99693745036897e51285880d68f8d2a16f221"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/counterfactual.py",
+      "size": 1484,
+      "sha256": "0cf6b34e93ecb1bc5bda164ab0e3018d3bf82e68e45378a115315958b178c4b8"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/dream_engine.py",
+      "size": 3967,
+      "sha256": "6b05ecd5bdd14412ff38ab7876bdb644492fa96bdd0d2a936747fc6a113e4362"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/epistemics.py",
+      "size": 4405,
+      "sha256": "3874b1c778511ccaee1e23be3a097415d1b8886aa03789724a0c01f102a7d8fc"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/event_store.py",
+      "size": 7471,
+      "sha256": "738f67c2aac1ed0f9feb72839c8396d2488883e9c05d0c381939b9052ca6ead6"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/facade.py",
+      "size": 19336,
+      "sha256": "fe9e5b4cd19145f08c8e72b0102420f7e85d2f6efda014a28e4a20af8f9b055a"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/governance.py",
+      "size": 3159,
+      "sha256": "e752341bec007f54b10a658536a56392dd08f44705fb5b22f16e7aac507d6504"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/hook_cli.py",
+      "size": 2583,
+      "sha256": "af59891dfbecead48285975cd219a57b6e784e073f0740e989377a4702b7c576"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/hooks.py",
+      "size": 3951,
+      "sha256": "87cb21c45c99fbfd605729b3be560fe9505594ded5e433e12e260d6061f10ccf"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/immune.py",
+      "size": 3163,
+      "sha256": "9cd5cb480962cdc9f8aca7850eb215a72c8b15eeb636a8bd353bdffb13a00709"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/memory_store.py",
+      "size": 21796,
+      "sha256": "4b3b353e3e303d2f7dc981b680122aa12e50ce1e6bc24899058f55b675ce22f1"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/models.py",
+      "size": 6498,
+      "sha256": "3339ce9c8e55479e5465baa76fd738c4c89433be3217de9ece10643edd7c0406"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/prospective.py",
+      "size": 4051,
+      "sha256": "d2c745d15f533414322eafb4d680e674ed261b5e51142ced65b974670dec86b2"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/reconstruction.py",
+      "size": 3146,
+      "sha256": "5916506018721e6ca68ce818340070c88bb7630738784463d056c20a10a2ae45"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/retrieval.py",
+      "size": 10426,
+      "sha256": "a4340dd7130ac9e9037bfa0c7eebd6f3a3e0d45bfdbdfead23b3efd18d7b57cc"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/security.py",
+      "size": 1883,
+      "sha256": "50f88232bd587de3fa2b3d560ad16241620f44bd91c08acb7c4343d01b4e71ee"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/self_model.py",
+      "size": 4024,
+      "sha256": "f2265321d786d70838d512c4577f5160b3024df027b9ff303a4074b99b7909ec"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/sqlite_utils.py",
+      "size": 514,
+      "sha256": "fc13973a99918f927accc46be6a89d5301c37c25abfc9a4ccdc2688c84dc1851"
+    },
+    {
+      "path": "build/lib/bio_agent_os/cognitive/world_model.py",
+      "size": 3143,
+      "sha256": "09eb4225124509303ec884651ec14955a1a178758c31121e3e1713f2cf9e75de"
+    },
+    {
+      "path": "build/lib/bio_agent_os/context_fabric/__init__.py",
+      "size": 785,
+      "sha256": "2434a4665afc7559ac6d08ccc98b193081361b56bf5307bcb77b6745f4d08f62"
+    },
+    {
+      "path": "build/lib/bio_agent_os/context_fabric/backend.py",
+      "size": 780,
+      "sha256": "3e8db06a9067478c76e577f50955ec3b2c8498b963313db63144a4677b634fc9"
+    },
+    {
+      "path": "build/lib/bio_agent_os/context_fabric/block_store.py",
+      "size": 14172,
+      "sha256": "0f424bd6a172ebc96b9f708a4360cd12ec850fd0a952db34581fa749354ebaf1"
+    },
+    {
+      "path": "build/lib/bio_agent_os/context_fabric/checkpoint.py",
+      "size": 3953,
+      "sha256": "118d7e3a23ce5b0652b791933955eeeedda680c143c634874a5deee6fc8f517b"
+    },
+    {
+      "path": "build/lib/bio_agent_os/context_fabric/context_compiler.py",
+      "size": 7937,
+      "sha256": "1889d895a1e280b8880f5d6dfb69a7b041a86828f9d45119182de71fa85f31fb"
+    },
+    {
+      "path": "build/lib/bio_agent_os/context_fabric/metrics.py",
+      "size": 1805,
+      "sha256": "8eaa2e5d30dd22444909a38066f6f42ea05d0931542fc9ce7e9bd06298ab490b"
+    },
+    {
+      "path": "build/lib/bio_agent_os/context_fabric/models.py",
+      "size": 3772,
+      "sha256": "7a072d1168035fba8a1ceddf59b1e422abb56e1594a70c9d2afacf9dee2a2a68"
+    },
+    {
+      "path": "build/lib/bio_agent_os/context_fabric/prefetch.py",
+      "size": 2369,
+      "sha256": "3d0a79325898747c94585a3deb71588ff9acea8ac218fb4de02c3b115e33564f"
+    },
+    {
+      "path": "build/lib/bio_agent_os/context_fabric/tiering.py",
+      "size": 1168,
+      "sha256": "bb01b59c090d4037e5b2eeb5ad7861f6e1ba0972aafadafc4b0f863cba47a480"
+    },
+    {
+      "path": "dist/bio_agi_memory_os-0.8.1a1-py3-none-any.whl",
+      "size": 73219,
+      "sha256": "e2352ace3609a7862dc19656ff60bd5ddfb884369fb806d6e8b3296f5e69c72a"
+    },
+    {
+      "path": "examples/__init__.py",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "examples/quickstart.py",
+      "size": 2164,
+      "sha256": "c4d1cba6cb508281452e87cce31c13a4071ed3481db7bb0e06c786ad1bbdeecc"
+    },
+    {
+      "path": "integrations/claude-code/README.md",
+      "size": 798,
+      "sha256": "a91a6b69c576c6072e8adb74bedb5674a6ab14fb83430a34d125e224ce671eff"
+    },
+    {
+      "path": "patches/existing_init_exports.txt",
+      "size": 589,
+      "sha256": "14a6dbff94aecb72dd627ce28ae7ec9cd3670467ddd4f3cd6fa53f8e03a01b4b"
+    },
+    {
+      "path": "pyproject.toml",
+      "size": 695,
+      "sha256": "e3daf6f53970595197f091b8c0bfd5853148186a38553ba40c7620753ebf14e8"
+    },
+    {
+      "path": "reports/PRODUCTION_CONCURRENCY_REPORT_V081.md",
+      "size": 4920,
+      "sha256": "e0e2fd408f017975df59afab39ee5d22ba27137c9e86476382cd73137f2948b9"
+    },
+    {
+      "path": "reports/RESULTS_SUMMARY_V080.md",
+      "size": 2052,
+      "sha256": "4b67d42ca0e2f4cbed5c8335d0e601f7e9db670327de5c9538cdae596e99c301"
+    },
+    {
+      "path": "reports/cognitive_benchmark.json",
+      "size": 17519,
+      "sha256": "871a77a89c38765e394a74fe6b10240c85509b07f6961008b5cffebde53d35c4"
+    },
+    {
+      "path": "reports/cognitive_benchmark_output_v080.txt",
+      "size": 17520,
+      "sha256": "668ad3574d3e61c0dfea6c1b08867be640b501afab97657b41487c12a6e87bf0"
+    },
+    {
+      "path": "reports/context_efficiency_output_v080.txt",
+      "size": 912,
+      "sha256": "4e79b41aae16c0ab30a70ab374c59c6b56e1335bf5747c3cce7c7c18148d62f0"
+    },
+    {
+      "path": "reports/context_efficiency_v080.json",
+      "size": 911,
+      "sha256": "a73d3ddf4e34f318fbd05fc67d5feda92aab742f59c82b952272c2e18b05eb62"
+    },
+    {
+      "path": "reports/doctor_output_v080.txt",
+      "size": 255,
+      "sha256": "103e19324b697c660112761fac76556114277b4a09c94dd35509a387500f727c"
+    },
+    {
+      "path": "reports/domain_coverage_output_v080.txt",
+      "size": 2091,
+      "sha256": "5509dfb2cbfe56a064d2726f96ac9a0090da11a26c69090fcc0854e6dd24cd04"
+    },
+    {
+      "path": "reports/domain_coverage_v080.json",
+      "size": 2090,
+      "sha256": "3df5f7d0b82dd7f3d84240ebf48e72f093cc42bc4fcc40baeef5af2c7307f86f"
+    },
+    {
+      "path": "reports/external_head_to_head_output.txt",
+      "size": 964,
+      "sha256": "f5af3917d5f2109167d84e45fa8d0c7a6a6f19c259821654a4cfcca17a2e5fdf"
+    },
+    {
+      "path": "reports/external_head_to_head_preflight.json",
+      "size": 963,
+      "sha256": "4871009f3788a93da507c1f04c01ae600312925bca5a5ff7bc3485f20e0f91bd"
+    },
+    {
+      "path": "reports/foundation_benchmark_output_v080.txt",
+      "size": 2896,
+      "sha256": "b22760192269c40512617b50ac0df4f6daaaaaf7b57b6ceb13071f99406c4152"
+    },
+    {
+      "path": "reports/foundation_benchmark_v080.json",
+      "size": 2884,
+      "sha256": "34a04d970709d4fd2efffd382e061322390ced52a4ddec55ec5d673b5065c188"
+    },
+    {
+      "path": "reports/install_test_v080.txt",
+      "size": 461,
+      "sha256": "187723bd76ebfeac25358e0e838cbc69b0a6fb1463cb9db33c79abe70c6a7a73"
+    },
+    {
+      "path": "reports/load_benchmark_100k_output_v080.txt",
+      "size": 613,
+      "sha256": "e69a18f9ee54fa123b79d6c886c16213e97c18945a4f68965c62e5fbd4b60048"
+    },
+    {
+      "path": "reports/load_benchmark_50k_output_v080.txt",
+      "size": 612,
+      "sha256": "49c714fc84558749c26e53464c607397e6d3f5086b5fb5551864e50d1d464654"
+    },
+    {
+      "path": "reports/load_benchmark_output_v080.txt",
+      "size": 609,
+      "sha256": "b75055dce9948d98b8fe251a4c63a86852c12bfeb46a1b0b45e633e4c6e14b3d"
+    },
+    {
+      "path": "reports/load_benchmark_v080_100k.json",
+      "size": 612,
+      "sha256": "b7991cd4e57c0566d206434bb5e1f29017f77916a9f63aa4f0756b5b2fe0dba6"
+    },
+    {
+      "path": "reports/load_benchmark_v080_10k.json",
+      "size": 608,
+      "sha256": "a3e3d37d7d4ceb24ad620c3158b76d24b3ad1d56a1f723422c6bed79690eee2b"
+    },
+    {
+      "path": "reports/load_benchmark_v080_50k.json",
+      "size": 611,
+      "sha256": "fc313f2058ac4f56f46e6449e5dc1db3518c653df745928b07f31201dd074856"
+    },
+    {
+      "path": "reports/production_concurrency_v081.json",
+      "size": 3355,
+      "sha256": "35d88d16cb09253f3d1a583f834eb5b06c7a000290573994891358d3138ee2b9"
+    },
+    {
+      "path": "reports/production_concurrency_v081.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "reports/quickstart_v080_output.txt",
+      "size": 371,
+      "sha256": "b42133ac2fbf21706791e65a1c42ed29f06186f6dc596fb138f0212d74fbc3fb"
+    },
+    {
+      "path": "reports/run_all_checks_v080.txt",
+      "size": 54354,
+      "sha256": "5d1c775353736fdd34bce61e5955216645a85b53314789c589cfe04bd4e7bb92"
+    },
+    {
+      "path": "reports/safety_benchmark_output_v080.txt",
+      "size": 500,
+      "sha256": "63ef313f5498457ea1b43c3e508cb3b430526c29a2e5563c11a1ba45fd92be12"
+    },
+    {
+      "path": "reports/safety_benchmark_v080.json",
+      "size": 499,
+      "sha256": "5618adb6ef4b75c363bc9ad35fda33fdad19786f8dd3f33587d2d89fdb892c30"
+    },
+    {
+      "path": "reports/test_results_v080.txt",
+      "size": 28216,
+      "sha256": "8e0c8f0e22c9a5e73172b6b3f31d6658c379da91b348e71749f54d7a15c77db5"
+    },
+    {
+      "path": "reports/test_results_v081.txt",
+      "size": 37408,
+      "sha256": "960682ff9367b89d6c8dced8012099c6bbf20c8da879f2818bab099606038501"
+    },
+    {
+      "path": "reports/wheel_build_v080.txt",
+      "size": 1106,
+      "sha256": "9870cf7cc11d3cfd18f19ff63fd84c3a858baca1187242024803a05733ffb603"
+    },
+    {
+      "path": "reports/wheel_build_v081.txt",
+      "size": 1114,
+      "sha256": "6631c01c800669e62ff84a71972401fcaa56668898307b3b063269de27a732a1"
+    },
+    {
+      "path": "run_all_checks.bat",
+      "size": 1194,
+      "sha256": "4f557c63c7e227e238a56559cefcb26111a40c8cb7d21173923da4161fd4292b"
+    },
+    {
+      "path": "run_all_checks.sh",
+      "size": 1114,
+      "sha256": "56f15546757d1c7f5bfe203a118fc2ba28eaa0ed8c33c374b45836f3a90e798d"
+    },
+    {
+      "path": "run_extended_benchmarks.sh",
+      "size": 346,
+      "sha256": "aecb2c624496a5c49f6945893e9e8b81ebb225ce9561f3dd1e69320c069436f3"
+    },
+    {
+      "path": "tests/test_agi_cognitive.py",
+      "size": 17391,
+      "sha256": "2c522027b910a78b7011452ae5f122ff88d87754681462e737bee3ffb0ba3c0c"
+    },
+    {
+      "path": "tests/test_context_fabric.py",
+      "size": 13818,
+      "sha256": "82f1e6faf9f2c4848c829c779cfc156205f370ab7aabc43abc7d324d3b68f326"
+    },
+    {
+      "path": "tests/test_domain_coverage.py",
+      "size": 4833,
+      "sha256": "54b65b3a29d2ca120c8d92b0e55cd9b2ee7346f1faaaed8ed95163a968c17a76"
+    },
+    {
+      "path": "tests/test_foundation.py",
+      "size": 11202,
+      "sha256": "8740974a3f5528c8874204c311d5db985f9ebebd9e8c769fa85946ac278f8ab9"
+    },
+    {
+      "path": "tools/apply_upgrade.py",
+      "size": 3220,
+      "sha256": "a6d60789d5ce4917b5e3f950da9bc2e0b2b0c71783578e5bf237852f169da3a9"
+    },
+    {
+      "path": "tools/install_claude_code_hooks.py",
+      "size": 2158,
+      "sha256": "d4e305ae1ea61f32dbc6ad19d66176d75569204d06d60f1f409a4c72fd6033e6"
+    }
+  ]
+}

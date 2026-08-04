@@ -1,0 +1,13 @@
+{
+  "status": "ok",
+  "version": "0.8.0a1",
+  "checks": {
+    "event_integrity": true,
+    "recall": true,
+    "context_compile": true,
+    "context_cache": true,
+    "checkpoint_restore": true,
+    "fts_first_stage": true,
+    "tenant_scope": true
+  }
+}

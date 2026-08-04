@@ -1,0 +1,22 @@
+{
+  "benchmark": "sqlite-fts5-indexed-load-smoke-v2",
+  "memory_count": 50000,
+  "query_count": 50,
+  "batch_size": 1000,
+  "fts_available": true,
+  "ingest_seconds": 3.9328996949999464,
+  "ingest_per_second": 12713.266006648228,
+  "top1_accuracy": 1.0,
+  "candidate_pool": {
+    "median": 100.0,
+    "max": 100
+  },
+  "latency_ms": {
+    "cold_start": 159.821443,
+    "p50": 156.3350545,
+    "p95": 161.302482,
+    "p99": 162.20839,
+    "max": 166.277527
+  },
+  "disclaimer": "Single-process SQLite/FTS5 smoke test using the bulk-ingest path. It is not a distributed, concurrent or billion-memory benchmark."
+}

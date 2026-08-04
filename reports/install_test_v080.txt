@@ -1,0 +1,5 @@
+WARNING: The directory '/home/oai/.cache/pip' or its parent directory is not owned or is not writable by the current user. The cache has been disabled. Check the permissions and owner of that directory. If executing pip with sudo, you should use sudo's -H flag.
+Processing ./dist/bio_agi_memory_os-0.8.0a1-py3-none-any.whl
+Installing collected packages: bio-agi-memory-os
+Successfully installed bio-agi-memory-os-0.8.0a1
+CLEAN_INSTALL_IMPORT_AND_CONTEXT_OK 1 5

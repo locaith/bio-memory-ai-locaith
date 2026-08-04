@@ -1,0 +1,29 @@
+{
+  "benchmark": "context-efficiency-smoke-v1",
+  "memory_count": 808,
+  "quarantined": 0,
+  "naive_full_context_tokens": 33701,
+  "compiled_context_tokens": 411,
+  "token_reduction_ratio": 0.9878045161864633,
+  "token_budget_respected": true,
+  "required_signal_recall": 1.0,
+  "selected_blocks": 15,
+  "omitted_blocks": 45,
+  "first_compile_ms": 13.390991,
+  "cached_compile_ms": 0.409159,
+  "cache_hit": true,
+  "checkpoint_restore_ms": 0.036505,
+  "checkpoint_round_trip": true,
+  "prefetch_intent": "deploy",
+  "prefetch_results": 8,
+  "context_metrics": {
+    "compile_calls": 2,
+    "cache_hit_rate": 0.5,
+    "token_reduction_ratio": 0.8213820078226858,
+    "compile_p50_ms": 6.876464499896429,
+    "compile_p95_ms": 13.347425999882034,
+    "restore_calls": 1,
+    "prefetch_calls": 1
+  },
+  "disclaimer": "Synthetic context-economics smoke benchmark, not a GPU KV-cache or NVIDIA hardware benchmark."
+}

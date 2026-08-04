@@ -1,0 +1,109 @@
+{
+  "benchmark": "multi-domain-coverage-smoke-v1",
+  "domains": 20,
+  "top1_accuracy": 1.0,
+  "compiled_context_recall": 1.0,
+  "rows": [
+    {
+      "domain": "coding",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "erp",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "legal",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "healthcare",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "finance",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "iot",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "education",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "cybersecurity",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "support",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "personal",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "blender",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "wind",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "devops",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "database",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "robotics",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "science",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "sales",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "hr",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "manufacturing",
+      "top1": true,
+      "context_included": true
+    },
+    {
+      "domain": "vietnamese",
+      "top1": true,
+      "context_included": true
+    }
+  ],
+  "disclaimer": "Synthetic domain coverage verifies routing and isolation, not professional correctness in regulated fields."
+}

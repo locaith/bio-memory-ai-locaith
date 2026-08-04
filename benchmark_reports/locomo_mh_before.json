@@ -1,0 +1,250 @@
+{
+  "benchmark": "locomo",
+  "config": {
+    "max_conversations": 2,
+    "max_sessions": 4,
+    "max_questions_per_conversation": null,
+    "categories": [
+      1
+    ],
+    "top_k": 10,
+    "sleep_every": 20
+  },
+  "metadata": {
+    "backend": "ollama",
+    "model": "qwen2.5:7b-instruct",
+    "started_at": "2026-07-30 11:40:03",
+    "dataset": "data\\evals\\locomo10.json",
+    "dataset_url": "https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json"
+  },
+  "conversations_evaluated": [
+    "conv-26",
+    "conv-30"
+  ],
+  "systems": {
+    "naive-rag": {
+      "summary": {
+        "questions_total": 7,
+        "questions_answerable": 7,
+        "per_category": {
+          "multi-hop": {
+            "count": 7,
+            "f1": 0.1475,
+            "em": 0.0
+          }
+        },
+        "f1_answerable": 0.1475,
+        "em_answerable": 0.0,
+        "ingest_seconds_total": 12.12,
+        "answer_seconds_total": 16.7
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 76,
+          "questions": [
+            {
+              "question": "What did Caroline research?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Adoption agencies",
+              "adversarial_answer": null,
+              "prediction": "Adoption agencies and counseling/mental health as a career.",
+              "f1": 0.4444444444444445,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What is Caroline's identity?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Transgender woman",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What is Caroline's relationship status?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Single",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "Where did Caroline move from 4 years ago?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Sweden",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What career path has Caroline decided to persue?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "counseling or mental health for Transgender people",
+              "adversarial_answer": null,
+              "prediction": "Counseling or working in mental health, specifically with trans people.",
+              "f1": 0.588235294117647,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 9.26,
+          "answer_seconds": 14.83
+        },
+        {
+          "sample_id": "conv-30",
+          "turns_ingested": 77,
+          "questions": [
+            {
+              "question": "What do Jon and Gina both have in common?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "They lost their jobs and decided to start their own businesses.",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What Jon thinks the ideal dance studio should look like?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "By the water, with natural light and Marley flooring",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 2.86,
+          "answer_seconds": 1.87
+        }
+      ]
+    },
+    "bio-memory": {
+      "summary": {
+        "questions_total": 7,
+        "questions_answerable": 7,
+        "per_category": {
+          "multi-hop": {
+            "count": 7,
+            "f1": 0.3218,
+            "em": 0.1429
+          }
+        },
+        "f1_answerable": 0.3218,
+        "em_answerable": 0.1429,
+        "ingest_seconds_total": 680.59,
+        "answer_seconds_total": 8.18
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 76,
+          "questions": [
+            {
+              "question": "What did Caroline research?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Adoption agencies",
+              "adversarial_answer": null,
+              "prediction": "Adoption agencies",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "What is Caroline's identity?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Transgender woman",
+              "adversarial_answer": null,
+              "prediction": "Caroline is transgender.",
+              "f1": 0.4,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What is Caroline's relationship status?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Single",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "Where did Caroline move from 4 years ago?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "Sweden",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What career path has Caroline decided to persue?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "counseling or mental health for Transgender people",
+              "adversarial_answer": null,
+              "prediction": "Counseling and mental health services.",
+              "f1": 0.5,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 333.08,
+          "answer_seconds": 5.54
+        },
+        {
+          "sample_id": "conv-30",
+          "turns_ingested": 77,
+          "questions": [
+            {
+              "question": "What do Jon and Gina both have in common?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "They lost their jobs and decided to start their own businesses.",
+              "adversarial_answer": null,
+              "prediction": "Both use dance for stress relief.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What Jon thinks the ideal dance studio should look like?",
+              "category": 1,
+              "category_name": "multi-hop",
+              "gold": "By the water, with natural light and Marley flooring",
+              "adversarial_answer": null,
+              "prediction": "Downtown location, easy access, natural light, proper flooring quality.",
+              "f1": 0.35294117647058826,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 347.51,
+          "answer_seconds": 2.64
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+Stored memory: a753a92a-f26f-4c32-8b1c-81454736f884
+Recall top: A migration lock caused the production deployment failure
+Compiled tokens: 22
+Context blocks: 1
+Checkpoint: 08b4d450-33c5-45c0-b240-8a205a07bef6
+Prefetch intent: deploy results: 1
+Rendered context:
+ # Active goal
+Recover production safely
+
+# Fact
+- A migration lock caused the production deployment failure

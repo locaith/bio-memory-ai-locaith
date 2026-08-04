@@ -1,0 +1,290 @@
+test_applicable_context_affects_ranking (test_agi_cognitive.AGICognitiveTests.test_applicable_context_affects_ranking) ... ok
+test_causal_confidence_grows_with_support (test_agi_cognitive.AGICognitiveTests.test_causal_confidence_grows_with_support) ... ok
+test_causal_counterexample_reduces_confidence (test_agi_cognitive.AGICognitiveTests.test_causal_counterexample_reduces_confidence) ... ok
+test_claude_hook_adapter_rejects_unknown_hook (test_agi_cognitive.AGICognitiveTests.test_claude_hook_adapter_rejects_unknown_hook) ... ok
+test_claude_hook_adapter_supports_full_lifecycle (test_agi_cognitive.AGICognitiveTests.test_claude_hook_adapter_supports_full_lifecycle) ... ok
+test_claude_hook_auto_projects_episode (test_agi_cognitive.AGICognitiveTests.test_claude_hook_auto_projects_episode) ... ok
+test_claude_hook_secret_is_redacted (test_agi_cognitive.AGICognitiveTests.test_claude_hook_secret_is_redacted) ... ok
+test_counterfactual_is_explicitly_simulated (test_agi_cognitive.AGICognitiveTests.test_counterfactual_is_explicitly_simulated) ... ok
+test_dream_engine_promotes_stable_verified_pattern (test_agi_cognitive.AGICognitiveTests.test_dream_engine_promotes_stable_verified_pattern) ... ok
+test_dream_engine_rejects_pattern_with_counterexamples (test_agi_cognitive.AGICognitiveTests.test_dream_engine_rejects_pattern_with_counterexamples) ... ok
+test_dream_engine_requires_repeated_verified_success (test_agi_cognitive.AGICognitiveTests.test_dream_engine_requires_repeated_verified_success) ... ok
+test_event_checksum_includes_modality (test_agi_cognitive.AGICognitiveTests.test_event_checksum_includes_modality) ... ok
+test_evidence_ledger_corroboration_increases_confidence (test_agi_cognitive.AGICognitiveTests.test_evidence_ledger_corroboration_increases_confidence) ... ok
+test_evidence_ledger_counterevidence_blocks_high_risk (test_agi_cognitive.AGICognitiveTests.test_evidence_ledger_counterevidence_blocks_high_risk) ... ok
+test_expired_prospective_memory_does_not_fire (test_agi_cognitive.AGICognitiveTests.test_expired_prospective_memory_does_not_fire) ... ok
+test_prospective_memory_does_not_refire_after_marked (test_agi_cognitive.AGICognitiveTests.test_prospective_memory_does_not_refire_after_marked) ... ok
+test_prospective_memory_fires_on_exact_condition (test_agi_cognitive.AGICognitiveTests.test_prospective_memory_fires_on_exact_condition) ... ok
+test_prospective_memory_supports_threshold_condition (test_agi_cognitive.AGICognitiveTests.test_prospective_memory_supports_threshold_condition) ... ok
+test_query_classifier_handles_cognitive_types (test_agi_cognitive.AGICognitiveTests.test_query_classifier_handles_cognitive_types) ... ok
+test_reconstruction_returns_chronological_evidence (test_agi_cognitive.AGICognitiveTests.test_reconstruction_returns_chronological_evidence) ... ok
+test_rejected_memory_is_strongly_penalized (test_agi_cognitive.AGICognitiveTests.test_rejected_memory_is_strongly_penalized) ... ok
+test_reversible_forgetting_and_restore (test_agi_cognitive.AGICognitiveTests.test_reversible_forgetting_and_restore) ... ok
+test_self_model_ignores_unverified_outcome (test_agi_cognitive.AGICognitiveTests.test_self_model_ignores_unverified_outcome) ... ok
+test_self_model_recommends_delegation_without_evidence (test_agi_cognitive.AGICognitiveTests.test_self_model_recommends_delegation_without_evidence) ... ok
+test_self_model_updates_from_verified_outcomes (test_agi_cognitive.AGICognitiveTests.test_self_model_updates_from_verified_outcomes) ... ok
+test_simulated_memory_is_penalized_for_high_risk_recall (test_agi_cognitive.AGICognitiveTests.test_simulated_memory_is_penalized_for_high_risk_recall) ... ok
+test_simulated_policy_is_quarantined (test_agi_cognitive.AGICognitiveTests.test_simulated_policy_is_quarantined) ... ok
+test_world_model_builds_machine_readable_snapshot (test_agi_cognitive.AGICognitiveTests.test_world_model_builds_machine_readable_snapshot) ... ok
+test_world_model_excludes_simulated_by_default (test_agi_cognitive.AGICognitiveTests.test_world_model_excludes_simulated_by_default) ... ok
+test_world_model_respects_validity_window (test_agi_cognitive.AGICognitiveTests.test_world_model_respects_validity_window) ... ok
+test_world_state_retrieval_is_explainable (test_agi_cognitive.AGICognitiveTests.test_world_state_retrieval_is_explainable) ... ok
+test_bulk_ingest_applies_immune_gate (test_context_fabric.ContextFabricTests.test_bulk_ingest_applies_immune_gate) ... ok
+test_bulk_ingest_is_retrievable (test_context_fabric.ContextFabricTests.test_bulk_ingest_is_retrievable) ... /usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79a80>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79b70>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79c60>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79d50>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79e40>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79f30>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a020>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a110>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a200>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a2f0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a4d0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a5c0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a3e0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a6b0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a7a0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a890>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7a980>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7aa70>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7ab60>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7ac50>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7bf10>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700310>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a798a0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700220>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7be20>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7bd30>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a797b0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a796c0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7af20>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b010>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b2e0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b1f0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b4c0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b790>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b5b0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b970>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b6a0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b880>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7ba60>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7ae30>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7bc40>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a79990>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417a7b3d0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177006d0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700130>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700040>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700400>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177005e0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177004f0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177007c0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177008b0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f44177009a0>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700a90>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700b80>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700c70>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700d60>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700e50>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417700f40>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417701030>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417701120>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417701210>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/uuid.py:142: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x7f4417701300>
+  def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_cache_invalidates_when_new_memory_arrives (test_context_fabric.ContextFabricTests.test_cache_invalidates_when_new_memory_arrives) ... ok
+test_checkpoint_round_trip (test_context_fabric.ContextFabricTests.test_checkpoint_round_trip) ... ok
+test_checkpoint_tenant_isolation (test_context_fabric.ContextFabricTests.test_checkpoint_tenant_isolation) ... ok
+test_compiler_can_include_simulation_explicitly (test_context_fabric.ContextFabricTests.test_compiler_can_include_simulation_explicitly) ... ok
+test_compiler_enforces_token_budget (test_context_fabric.ContextFabricTests.test_compiler_enforces_token_budget) ... ok
+test_compiler_excludes_simulation_by_default (test_context_fabric.ContextFabricTests.test_compiler_excludes_simulation_by_default) ... ok
+test_compiler_reports_token_reduction (test_context_fabric.ContextFabricTests.test_compiler_reports_token_reduction) ... ok
+test_content_addressed_deduplication (test_context_fabric.ContextFabricTests.test_content_addressed_deduplication) ... ok
+test_context_metrics_are_recorded (test_context_fabric.ContextFabricTests.test_context_metrics_are_recorded) ... ok
+test_context_packet_cache_hits (test_context_fabric.ContextFabricTests.test_context_packet_cache_hits) ... ok
+test_dedup_is_tenant_scoped (test_context_fabric.ContextFabricTests.test_dedup_is_tenant_scoped) ... ok
+test_expired_blocks_are_evicted (test_context_fabric.ContextFabricTests.test_expired_blocks_are_evicted) ... ok
+test_fts_candidate_stage_is_explainable (test_context_fabric.ContextFabricTests.test_fts_candidate_stage_is_explainable) ... ok
+test_hash_is_workspace_scoped (test_context_fabric.ContextFabricTests.test_hash_is_workspace_scoped) ... ok
+test_latest_checkpoint_is_restored (test_context_fabric.ContextFabricTests.test_latest_checkpoint_is_restored) ... ok
+test_multi_agent_context_share_and_revoke (test_context_fabric.ContextFabricTests.test_multi_agent_context_share_and_revoke) ... ok
+test_multi_agent_share_cannot_cross_tenant (test_context_fabric.ContextFabricTests.test_multi_agent_share_cannot_cross_tenant) ... ok
+test_packet_preserves_provenance (test_context_fabric.ContextFabricTests.test_packet_preserves_provenance) ... ok
+test_policy_is_prioritized_in_high_risk_context (test_context_fabric.ContextFabricTests.test_policy_is_prioritized_in_high_risk_context) ... ok
+test_predictive_prefetch_detects_debug_intent (test_context_fabric.ContextFabricTests.test_predictive_prefetch_detects_debug_intent) ... ok
+test_predictive_prefetch_detects_deploy_intent (test_context_fabric.ContextFabricTests.test_predictive_prefetch_detects_deploy_intent) ... ok
+test_quarantine_block_is_not_shareable (test_context_fabric.ContextFabricTests.test_quarantine_block_is_not_shareable) ... ok
+test_security_label_survives_compilation (test_context_fabric.ContextFabricTests.test_security_label_survives_compilation) ... ok
+test_tiering_archives_low_value_block (test_context_fabric.ContextFabricTests.test_tiering_archives_low_value_block) ... ok
+test_tiering_promotes_high_value_block (test_context_fabric.ContextFabricTests.test_tiering_promotes_high_value_block) ... ok
+test_domain_blender_3d (test_domain_coverage.DomainCoverageBase.test_domain_blender_3d) ... ok
+test_domain_coding (test_domain_coverage.DomainCoverageBase.test_domain_coding) ... ok
+test_domain_customer_support (test_domain_coverage.DomainCoverageBase.test_domain_customer_support) ... ok
+test_domain_cybersecurity (test_domain_coverage.DomainCoverageBase.test_domain_cybersecurity) ... ok
+test_domain_database (test_domain_coverage.DomainCoverageBase.test_domain_database) ... ok
+test_domain_devops (test_domain_coverage.DomainCoverageBase.test_domain_devops) ... ok
+test_domain_education (test_domain_coverage.DomainCoverageBase.test_domain_education) ... ok
+test_domain_erp (test_domain_coverage.DomainCoverageBase.test_domain_erp) ... ok
+test_domain_family_assistant (test_domain_coverage.DomainCoverageBase.test_domain_family_assistant) ... ok
+test_domain_finance (test_domain_coverage.DomainCoverageBase.test_domain_finance) ... ok
+test_domain_healthcare (test_domain_coverage.DomainCoverageBase.test_domain_healthcare) ... ok
+test_domain_hr (test_domain_coverage.DomainCoverageBase.test_domain_hr) ... ok
+test_domain_iot (test_domain_coverage.DomainCoverageBase.test_domain_iot) ... ok
+test_domain_legal (test_domain_coverage.DomainCoverageBase.test_domain_legal) ... ok
+test_domain_manufacturing (test_domain_coverage.DomainCoverageBase.test_domain_manufacturing) ... ok
+test_domain_multilingual_vi (test_domain_coverage.DomainCoverageBase.test_domain_multilingual_vi) ... ok
+test_domain_robotics (test_domain_coverage.DomainCoverageBase.test_domain_robotics) ... ok
+test_domain_sales (test_domain_coverage.DomainCoverageBase.test_domain_sales) ... ok
+test_domain_science (test_domain_coverage.DomainCoverageBase.test_domain_science) ... ok
+test_domain_wind_energy (test_domain_coverage.DomainCoverageBase.test_domain_wind_energy) ... ok
+test_active_exception_can_rank_first (test_foundation.FoundationTests.test_active_exception_can_rank_first) ... ok
+test_as_of_filters_validity (test_foundation.FoundationTests.test_as_of_filters_validity) ... ok
+test_challenged_belief_is_penalized (test_foundation.FoundationTests.test_challenged_belief_is_penalized) ... ok
+test_event_checksum_verifies (test_foundation.FoundationTests.test_event_checksum_verifies) ... ok
+test_event_delete_is_blocked (test_foundation.FoundationTests.test_event_delete_is_blocked) ... ok
+test_event_is_append_only (test_foundation.FoundationTests.test_event_is_append_only) ... ok
+test_expired_exception_is_penalized (test_foundation.FoundationTests.test_expired_exception_is_penalized) ... ok
+test_identity_requires_approval (test_foundation.FoundationTests.test_identity_requires_approval) ... ok
+test_policy_query_prefers_policy (test_foundation.FoundationTests.test_policy_query_prefers_policy) ... ok
+test_procedural_compiler_promotes_verified_pattern (test_foundation.FoundationTests.test_procedural_compiler_promotes_verified_pattern) ... ok
+test_procedural_compiler_requires_two_verified_runs (test_foundation.FoundationTests.test_procedural_compiler_requires_two_verified_runs) ... ok
+test_prompt_injection_is_quarantined_for_policy (test_foundation.FoundationTests.test_prompt_injection_is_quarantined_for_policy) ... ok
+test_purpose_acl_enforced (test_foundation.FoundationTests.test_purpose_acl_enforced) ... ok
+test_recall_has_explanation_and_provenance (test_foundation.FoundationTests.test_recall_has_explanation_and_provenance) ... ok
+test_retrieval_counter_increments (test_foundation.FoundationTests.test_retrieval_counter_increments) ... ok
+test_role_acl_enforced (test_foundation.FoundationTests.test_role_acl_enforced) ... ok
+test_secret_is_redacted_in_event (test_foundation.FoundationTests.test_secret_is_redacted_in_event) ... ok
+test_security_label_enforced (test_foundation.FoundationTests.test_security_label_enforced) ... ok
+test_state_matching_changes_ranking (test_foundation.FoundationTests.test_state_matching_changes_ranking) ... ok
+test_tenant_isolation (test_foundation.FoundationTests.test_tenant_isolation) ... ok
+test_version_history_is_preserved (test_foundation.FoundationTests.test_version_history_is_preserved) ... ok
+
+----------------------------------------------------------------------
+Ran 99 tests in 4.387s
+
+OK

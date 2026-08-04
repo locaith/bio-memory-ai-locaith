@@ -1,0 +1,37 @@
+{
+  "benchmark": "external-head-to-head-preflight-v1",
+  "systems": {
+    "agentmemory": {
+      "available": false,
+      "npx_available": true,
+      "required": "Node >=20 and @agentmemory/agentmemory"
+    },
+    "mem0": {
+      "available": false,
+      "required": "pip install mem0ai"
+    },
+    "letta": {
+      "available": false,
+      "required": "pip install letta"
+    },
+    "graphiti": {
+      "available": false,
+      "required": "pip install graphiti-core"
+    },
+    "cognee": {
+      "available": false,
+      "required": "pip install cognee"
+    }
+  },
+  "fairness_contract": {
+    "same_dataset": true,
+    "same_reader_model": true,
+    "same_embedding_model": true,
+    "same_reranker": true,
+    "same_token_budget": true,
+    "same_hardware": true,
+    "report_accuracy_latency_cost_security": true
+  },
+  "status": "READY_BUT_NOT_RUN",
+  "statement": "No competitor score is claimed until its actual package is installed and executed."
+}
