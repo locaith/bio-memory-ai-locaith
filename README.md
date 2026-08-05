@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <h1 align="center">🧠 Bio-Agent OS v0.6.1</h1>
+  <h1 align="center">🧠 Bio-Agent OS v0.8.2rc1</h1>
   <p align="center"><strong>The Biological Memory Upgrade for OpenClaw, ERP AI & Autonomous Agents</strong></p>
   <p align="center"><em>"Biết nhớ · Biết quên · Biết tư duy"</em></p>
   <p align="center">Researched & Developed by <strong>Dev Tuan Anh Ha</strong> (<a href="https://locaith.com">Locaith Solution Tech</a>) | 🇻🇳 Make in Vietnam</p>
@@ -112,10 +112,13 @@ pip install bio-locaith-openclaw
 
 ### ✅ Trạng thái bản hiện tại
 
+- **Phiên bản hiện tại: `0.8.2rc1`** — release candidate của Reliability Kernel. **Chưa phải bản stable.** Đường ghi mặc định vẫn là `legacy`; xem mục [Reliability Kernel v0.8.2](#-reliability-kernel-v082--đường-ghi-có-thể-phục-hồi) bên dưới.
 - **Kết quả chính (LoCoMo, 300 câu hỏi, qwen2.5:7b):** Bio-Agent OS F1 `0.326` vs Naive-RAG `0.254` (**+28%**), suy luận thời gian gấp `2.7×`. Xem mục [Benchmark thật](#-benchmark-thật-locomo-đối-chiếu-naive-rag) bên trên.
-- `v0.6.1` có hybrid contradiction detector kèm NLI cache.
+- `v0.6.1` có hybrid contradiction detector kèm NLI cache (vẫn còn nguyên trong bản hiện tại).
 - **Bộ kiểm thử đơn vị phát hiện mâu thuẫn** (8 cặp tự biên — *unit test có chủ đích, không phải benchmark thống kê*): heuristic `4/8` → hybrid+NLI `8/8`, false positive `0`. Đây là bằng chứng phụ cho riêng module detector; bằng chứng chính là LoCoMo ở trên.
-- 80 bài kiểm thử tự động (`pytest tests/`), đóng gói Docker, adapter PostgreSQL, MCP server, REST API có xác thực.
+- **528 bài kiểm thử tự động** (`pytest tests/`, 31 file) — con số này từng là `80` ở bản `v0.6.1`. Đóng gói Docker, adapter PostgreSQL, MCP server, REST API có xác thực.
+- **CI chạy ma trận 4 cấu hình:** Ubuntu Python `3.10` / `3.11` / `3.12` và Windows Python `3.11`. Windows không phải để trang trí — projection worker dùng `spawn`, fault matrix giết process thật, và WAL test giữ khoá SQLite qua nhiều connection; không cái nào hành xử giống `fork` trên Linux.
+- **Fault matrix `25/25`** — crash recovery ở cấp process thật, dùng `os._exit`/`TerminateProcess` chứ không phải exception giả lập.
 
 ### Sử dụng OpenClaw Adapter (Preview)
 
@@ -335,6 +338,17 @@ API hiện có:
 - `GET /api/audit`
 - `GET /api/replay`
 
+Bổ sung từ các bản sau (tổng cộng **34 route**):
+- `POST /api/retrieve` · `POST /api/reset`
+- `GET /api/episodes` — duyệt episode store kèm provenance
+- `GET /api/lineage` · `POST /api/lineage` — truy vết nguồn gốc một ký ức
+- `GET /api/coverage` · `POST /api/coverage/refresh` · `POST /api/coverage/retrieve`
+- `GET /api/exact-memories` · `POST /api/exact-memories/reindex`
+- `GET /api/approvals` · `POST /api/approvals/{request_id}/approve` · `POST /api/approvals/{request_id}/reject`
+- `GET /api/revalidation` · `POST /api/revalidation/resolve`
+- `GET /api/confidence-dashboard` · `GET /api/zoom`
+- `DELETE /api/workspace/{workspace_id}` — xoá sạch một workspace
+
 ### Các nâng cấp bộ nhớ Phase 5
 
 Bio-Agent OS V2.1 phase 5 hiện bổ sung 4 nâng cấp thực dụng cho OpenClaw session dài:
@@ -355,6 +369,177 @@ Mục tiêu V2.1 là đưa Bio-Agent OS tiến thêm một bước gần hơn v�
 3. **Reconsolidation**: Khi có episode mới, memory cũ được đọc lại và có thể bị chỉnh sửa thay vì chỉ append thêm.
 4. **Hệ sinh thái OpenClaw**: README, config và flow cài đặt nhấn mạnh vào cộng đồng OpenClaw để clone về dùng được ngay.
 5. **Tính di động toàn cầu**: Một bộ điều khiển bộ nhớ (Memory Controller) dùng được trên local AI lẫn cloud AI, áp dụng cho nhiều agent framework.
+
+---
+
+## 🛡️ Reliability Kernel v0.8.2 — đường ghi có thể phục hồi
+
+> **Trạng thái: `0.8.2rc1`, release candidate.** Đường ghi mặc định vẫn là `legacy`.
+> Outbox **không** tự bật. Rollback là một biến môi trường.
+
+Tất cả những gì ở trên nói về *trí nhớ*. Mục này nói về *độ tin cậy của việc ghi trí nhớ đó xuống đĩa* — thứ mà một hệ thống chạy nhiều năm bắt buộc phải có.
+
+### Vấn đề gốc
+
+`MemoryOS` mở **sáu connection SQLite độc lập** vào cùng một file. Event được commit trên connection này, projection trên connection khác. Một cú crash giữa hai lần commit để lại một event bền vững mà **không ai biết là còn nợ một projection**. Nó không mất dữ liệu — nó mất *thông tin rằng có việc chưa làm*, và đó là loại hỏng không ai phát hiện ra.
+
+### Cách giải quyết
+
+| Thành phần | Vai trò |
+|:---|:---|
+| **Transactional outbox** | Event và bản ghi "còn nợ projection" commit trong **cùng một transaction**. Hoặc cả hai tồn tại, hoặc không cái nào. |
+| **Target-local ledger** | Ghi cùng transaction với chính projection → **đúng-một-lần về hiệu quả** trên nền giao-ít-nhất-một-lần. Retry sau crash thấy ledger và biết việc đã xong. |
+| **Leased worker** | Claim theo lease, backoff luỹ thừa, dead-letter đúng `max_attempts`, xử lý phụ thuộc giữa các projection type. |
+| **Replay engine** | Tìm lại việc còn nợ. **Mặc định dry-run.** |
+| **Fault injection** | 14 điểm crash có tên. Không dùng `sleep()` rồi đoán process đang ở đâu. |
+| **Doctor** | Chẩn đoán chỉ-đọc, phân biệt *chưa hỗ trợ* với *hỏng*. Có cả deep và incremental. |
+| **Reconciliation** | Sửa chữa theo danh sách cho phép, mặc định dry-run, mọi lần `--repair` đều ghi audit. |
+| **WAL manager** | Checkpoint quan sát được, có ngưỡng và cảnh báo. |
+| **Shadow mode** | Chạy song song legacy và outbox từ **một input chuẩn tắc duy nhất**, rồi so sánh. |
+
+### Số đo thật (không phải mô phỏng)
+
+Toàn bộ đo trên i5-12400F / 32 GB / NTFS / SQLite WAL. Raw nằm ở `reports/v082/`, phương pháp ở [`docs/v082/BENCHMARK_REPORT.md`](docs/v082/BENCHMARK_REPORT.md).
+
+**Đúng đắn — trên khoảng 900.000 event:**
+
+```
+0 event mất          0 debt mất
+0 projection trùng   0 ledger trùng
+0 rò rỉ tenant       0 shadow mismatch không giải thích được
+integrity_check ok sau mọi lần chạy
+```
+
+**Shadow mode:** `10.000/10.000` MATCH. **0** hàng shadow lọt vào bảng production, **0** hàng shadow bị `recall()` trả về — cách ly bằng **bảng riêng**, không phải bằng bộ lọc.
+
+**Soak 1 giờ:** 366.715 event nạp, 366.713 hoàn tất, **queue sâu nhất chỉ 6**, p95 hiển thị `80 ms`, p99 `140 ms`, RSS tăng `10,7 MB/giờ`, **0 lock error**, hai lần restart worker đều phục hồi.
+
+**Throughput và điểm bão hoà:**
+
+| Cấu hình | Append | Projection | Tổng |
+|:---|---:|---:|---:|
+| 1p + 1w | 1.091/s | 756/s | 1.847/s |
+| **4p + 4w** | 1.164/s | 754/s | **1.918/s** |
+| 4p + 8w | 567/s | 566/s | 1.133/s |
+
+**4 worker là điểm bão hoà. 8 worker làm mất 41% throughput** — thêm worker trên máy này là trừ đi hiệu năng, không phải cộng.
+
+**Điều quan trọng nhất, và là điều dễ hiểu sai nhất:** producer nhanh hơn projector khoảng **1,3–1,9 lần**, và khoảng cách **nới rộng** khi database lớn lên (703 → 613 → 556 job/s ở 10K → 50K → 100K). Nghĩa là **không có trạng thái ổn định nào trên tốc độ projection**. Độ trễ khi quá tải là *hàm của thời gian quá tải*, không phải thuộc tính của pipeline — p95 đi từ 4,9s → 31,8s → **93,5s** khi chỉ tăng số event.
+
+### Safe Operating Envelope
+
+Tính từ **sàn**, không phải từ đỉnh. Đỉnh của một benchmark là lần chạy may nhất trên máy rảnh; lấy nó làm giới hạn vận hành là một lời hứa không giữ được.
+
+```
+SQLite single-node alpha
+
+  producer khuyến nghị       4
+  worker khuyến nghị         4
+  tốc độ nạp bền vững        390 event/s      (headroom 30%)
+  burst                      550 event/s trong 60 giây
+  queue depth lành mạnh tối đa  1.100
+  p95 hiển thị kỳ vọng       < 100 ms
+  dung lượng                 3,1 KB mỗi event, tuyến tính
+```
+
+> **Tính theo projector, tuyệt đối không tính theo appender.** Append gánh được gấp ba lần projector có thể tiêu thụ. Bất kỳ con số nào tính từ append đều tạo ra một hàng đợi phình mãi.
+>
+> **Cảnh báo theo queue depth, không theo độ trễ.** Độ trễ là chỉ báo trễ của một tồn đọng đã hình thành từ trước.
+
+### Rollback
+
+```bash
+BIO_AGENT_PROJECTION_MODE=legacy
+```
+
+Restart process. Hết. Không migration ngược, không viết lại gì, không đổi schema. Debt đã commit **được giữ lại** để replay sau chứ không bị xoá — xoá nó là huỷ bằng chứng duy nhất rằng việc từng được giao.
+
+Ba lệnh vận hành đi kèm:
+
+```bash
+bio-agent-os projection pause --reason "..."   # job đang chạy vẫn chạy hết
+bio-agent-os projection resume
+bio-agent-os projection drain                  # ghi đè pause một cách có chủ đích
+```
+
+Chi tiết: [`docs/v082/ROLLBACK_RUNBOOK.md`](docs/v082/ROLLBACK_RUNBOOK.md).
+
+### Doctor: chẩn đoán không bao giờ tự sửa
+
+```bash
+bio-agent-os doctor                    # nhanh, chỉ đọc
+bio-agent-os doctor --deep             # toàn bộ check set
+bio-agent-os doctor --incremental      # từ cursor an toàn khi crash
+bio-agent-os projection status
+bio-agent-os projection reconcile              # dry-run mặc định
+bio-agent-os projection reconcile --repair     # luôn ghi audit
+bio-agent-os storage wal-status
+bio-agent-os storage checkpoint --mode passive
+```
+
+Exit code: `0` sạch · `1` FAIL · `2` CRITICAL · `3` **bản thân lần quét không hoàn thành**. Mã 3 xếp trên các finding có chủ đích: một lần quét chết dở tuyệt đối không được trông giống một giấy chứng nhận sức khoẻ.
+
+Chi phí quét, đo trên database 100.000 event:
+
+| Chế độ | Thời gian |
+|:---|---:|
+| `--deep` (audit) | 13,36 s |
+| quick (4 check) | 8,31 s |
+| **`--incremental`, không có gì mới** | **2,12 s** |
+| `--incremental`, 500 event mới | 2,70 s |
+
+Incremental rẻ hơn deep **6,3×**, và rẻ hơn cả quick mode dù chạy **nhiều check hơn** — khác biệt nằm ở `integrity_check`, thứ phải đọc từng trang.
+
+Cursor chỉ tiến sau một lần quét **hoàn tất**, và chỉ khi **không còn gì tồn đọng**: một FAIL hay CRITICAL giữ nguyên cursor cho tới khi vấn đề thực sự biến mất. Bước qua một finding chưa xử lý sẽ giấu nó vĩnh viễn — đó là kiểu hỏng duy nhất mà một scanner incremental không được phép có.
+
+### WAL
+
+Soak đo được WAL lên **500 MB** sau một giờ — **46% kích thước database** — và chỉ về 0 khi connection cuối cùng đóng. Không mất gì, nhưng cũng không thu hồi được gì, và một process chạy lâu thì mãi mãi không thu hồi.
+
+```
+dưới soft limit (256 MB)   PASSIVE
+vượt soft limit            PASSIVE + cảnh báo
+vượt hard limit (512 MB)   RESTART nếu không có reader đăng ký
+```
+
+`TRUNCATE` **không bao giờ tự động** — nó chờ mọi reader, và một job nền mà chờ reader là một job nền làm treo process. Chi tiết: [`docs/v082/WAL_OPERATIONS.md`](docs/v082/WAL_OPERATIONS.md).
+
+### Trung thực về những gì chưa đạt
+
+Chúng tôi công bố cả những chỗ không đẹp, giống như đã làm với multi-hop ở phần LoCoMo.
+
+1. **Shadow overhead trượt ngưỡng đề ra.** Ngưỡng đặt trước là ≤10% ở p95; đo được **99,4%**. Tuyệt đối là **+0,30 ms**. Chúng tôi **không sửa ngưỡng để làm cho bài test đạt** — nó đứng nguyên trong báo cáo như một lần trượt. Từ giai đoạn canary trở đi, SLO được viết theo **ngân sách tuyệt đối** (≤0,50 ms) với tỷ lệ chỉ để báo cáo, vì phần trăm của một con số rất nhỏ không nói lên được điều gì đáng hành động.
+2. **PostgreSQL chưa đo.** Mọi đường cong throughput ở đây do đặc tính *một writer duy nhất* của SQLite định hình. Trên backend có `FOR UPDATE SKIP LOCKED`, không có gì đảm bảo hình dạng đó còn đúng — tốt hơn hay xấu hơn đều chưa biết.
+3. **4/5 projection type chưa có builder.** `cognitive_memory` là loại duy nhất chạy được. Bốn loại còn lại được doctor báo là **`unsupported` (thiếu năng lực)**, không phải `passed`, và cũng không phải `hỏng`.
+4. **Biến thiên giữa các lần chạy lớn.** Cùng một cấu hình đo được `1.164` rồi `328` event/s cách nhau vài phút. Bốn lần chạy lặp cho biên độ **1,88×** ở producer và **1,15×** ở projector. Vì vậy envelope tính từ sàn của projector.
+5. **Soak mới 1 giờ**, chưa phải 6 hay 24 giờ.
+
+### Ba lỗi mà chính công việc này tìm ra
+
+Cả ba đều **cũ hơn** phần việc đã phát hiện ra chúng:
+
+1. **Doctor quét kiểu quadratic.** Ba check dùng `LIKE '%' || event_id || '%'` trong subquery tương quan — leading wildcard không dùng được index. Exponent **2,1**; ngoại suy ở 100K là **2,75 giờ**. Sau khi thay bằng bảng liên kết có index: **0,59s** ở 10K, **65,7s** ở 366K, và findings giữ nguyên `1.009` ở mọi quy mô.
+2. **Hàng FTS sống lâu hơn ký ức của nó.** Dựng lại một projection khi đó tạo ra hai entry cùng khoá, và SQLite báo `malformed inverted index` — tức là **hỏng database**, từ một thao tác *được hỗ trợ*.
+3. **Doctor có thể báo hỏng giả.** Pragma integrity chạy trên connection đang giữ read snapshot cũ. `SQLITE_INTEGRITY` là CRITICAL — đủ để dừng một canary mà không có gì sai cả.
+
+### Đọc thêm
+
+| Tài liệu | Nội dung |
+|:---|:---|
+| [`docs/v082/BENCHMARK_REPORT.md`](docs/v082/BENCHMARK_REPORT.md) | Môi trường, phương pháp, sáu workload, số liệu thô, cả kết quả xấu |
+| [`docs/v082/OPERATIONS.md`](docs/v082/OPERATIONS.md) | Doctor và reconciliation: mã finding, chính sách sửa chữa |
+| [`docs/v082/CANARY_RUNBOOK.md`](docs/v082/CANARY_RUNBOOK.md) | Shadow 24 giờ, rồi canary theo tenant allow-list |
+| [`docs/v082/ROLLBACK_RUNBOOK.md`](docs/v082/ROLLBACK_RUNBOOK.md) | Một biến môi trường, và những gì sống sót qua nó |
+| [`docs/v082/WAL_OPERATIONS.md`](docs/v082/WAL_OPERATIONS.md) | Vì sao WAL phình, bốn chế độ, cảnh báo |
+| [`docs/v082/RC1_RELEASE_NOTES.md`](docs/v082/RC1_RELEASE_NOTES.md) | Bản này là gì và **không** là gì |
+| [`docs/v082/FAILURE_MATRIX.md`](docs/v082/FAILURE_MATRIX.md) | 25 ca crash ở cấp process |
+| [`docs/v082/SHADOW_MODE.md`](docs/v082/SHADOW_MODE.md) | So sánh legacy ↔ outbox |
+
+### Kết luận về cutover
+
+**CONDITIONAL GO — chỉ cho `cognitive_memory`, chỉ trên SQLite single-node, legacy vẫn là mặc định và là đường rollback.**
+
+18/19 điều kiện đạt. Điều duy nhất trượt là shadow overhead. Đây **không phải** production distributed, và chúng tôi không mô tả nó như vậy ở bất kỳ đâu: một node, một storage engine, một projection type, và bản cũ cách đúng một biến môi trường.
 
 ---
 
@@ -424,7 +609,8 @@ Ngoài ra, chúng tôi giới thiệu một **Mô hình Ngoại lệ có Kiểm 
 4. Bộ phát hiện mâu thuẫn lai heuristic+NLI với cơ chế lưu trữ đệm SQLite bền vững, được kiểm chứng trên một bộ kiểm thử đơn vị 8 cặp tự biên (`8/8` so với `4/8` của heuristic).
 5. Đánh giá trên LoCoMo cho thấy pipeline đầy đủ vượt naive-RAG 28% F1 (`0.326` vs `0.254`) và gấp 2.7× ở suy luận thời gian, với toàn bộ harness và report tái lập được công khai.
 6. Mô hình Ngoại lệ có Kiểm soát: một cơ chế chính thức để phân biệt các ngoại lệ có điều kiện được phê duyệt với các mâu thuẫn thực sự.
-7. Triển khai mã nguồn mở với 80 bài kiểm thử tự động, đóng gói Docker, adapter PostgreSQL, MCP server, hệ thống plugin và REST API có xác thực.
+7. Triển khai mã nguồn mở với **528** bài kiểm thử tự động (con số tại thời điểm nộp bản thảo là `80`; đã tăng cùng Reliability Kernel v0.8.2), đóng gói Docker, adapter PostgreSQL, MCP server, hệ thống plugin và REST API có xác thực.
+8. **Reliability Kernel (v0.8.2rc1)**: transactional outbox + target-local ledger cho *đúng-một-lần về hiệu quả*, leased worker, fault injection tại 14 điểm có tên với `25/25` ca crash ở cấp process, shadow mode `10.000/10.000` khớp, và doctor phân biệt *thiếu năng lực* với *hỏng dữ liệu*. Chi tiết ở mục [Reliability Kernel v0.8.2](#-reliability-kernel-v082--đường-ghi-có-thể-phục-hồi).
 
 ---
 
@@ -1064,10 +1250,13 @@ pip install bio-locaith-openclaw
 
 ### ✅ Current release state
 
+- **Current version: `0.8.2rc1`** — the Reliability Kernel release candidate. **Not a stable release.** The default write path is still `legacy`; see [Reliability Kernel v0.8.2](#-reliability-kernel-v082--a-write-path-that-can-recover) below.
 - **Headline result (LoCoMo, 300 questions, qwen2.5:7b):** Bio-Agent OS F1 `0.326` vs Naive-RAG `0.254` (**+28%**), 2.7× on temporal reasoning. See [Real Benchmark](#-real-benchmark-locomo-vs-naive-rag) above.
-- `v0.6.1` includes hybrid contradiction detection with persistent NLI caching.
+- `v0.6.1` includes hybrid contradiction detection with persistent NLI caching (still present in the current build).
 - **Contradiction-detector unit test** (8 hand-authored pairs — *a targeted unit test, not a statistical benchmark*): heuristic `4/8` → hybrid+NLI `8/8`, false positives `0`. This is supporting evidence for the detector module only; the headline evidence is LoCoMo above.
-- 80 automated tests (`pytest tests/`), Docker packaging, PostgreSQL adapter, MCP server, authenticated REST API.
+- **528 automated tests** (`pytest tests/`, 31 files) — this figure was `80` at `v0.6.1`. Docker packaging, PostgreSQL adapter, MCP server, authenticated REST API.
+- **CI runs a four-way matrix:** Ubuntu Python `3.10` / `3.11` / `3.12` and Windows Python `3.11`. Windows is not decoration — the projection worker uses `spawn`, the fault matrix kills real processes, and the WAL tests hold SQLite locks across connections; none of that behaves like `fork` on Linux.
+- **Fault matrix `25/25`** — process-level crash recovery using `os._exit`/`TerminateProcess`, not simulated exceptions.
 
 ### Using the OpenClaw Adapter (Preview)
 
@@ -1288,6 +1477,17 @@ Current API:
 - `GET /api/audit`
 - `GET /api/replay`
 
+Added in later releases (**34 routes** in total):
+- `POST /api/retrieve` · `POST /api/reset`
+- `GET /api/episodes` — browse the episode store with provenance
+- `GET /api/lineage` · `POST /api/lineage` — trace where a memory came from
+- `GET /api/coverage` · `POST /api/coverage/refresh` · `POST /api/coverage/retrieve`
+- `GET /api/exact-memories` · `POST /api/exact-memories/reindex`
+- `GET /api/approvals` · `POST /api/approvals/{request_id}/approve` · `POST /api/approvals/{request_id}/reject`
+- `GET /api/revalidation` · `POST /api/revalidation/resolve`
+- `GET /api/confidence-dashboard` · `GET /api/zoom`
+- `DELETE /api/workspace/{workspace_id}` — purge a workspace
+
 ### Phase 5 memory upgrades
 
 Bio-Agent OS v2.1 phase 5 now adds four practical upgrades for long OpenClaw sessions:
@@ -1328,6 +1528,245 @@ Planned V2.2 upgrade:
 
 ---
 
+## 🛡️ Reliability Kernel v0.8.2 — a write path that can recover
+
+> **Status: `0.8.2rc1`, a release candidate.** The default write path is still
+> `legacy`. The outbox does **not** turn itself on. Rollback is one
+> environment variable.
+
+Everything above is about *memory*. This section is about *the reliability of
+writing that memory to disk* — which is what a system meant to run for years
+has to have.
+
+### The underlying problem
+
+`MemoryOS` opens **six independent SQLite connections** to one file. The event
+commits on one connection and the projection on another. A crash between the
+two leaves a durable event that **nobody knows owes a projection**. It does not
+lose data — it loses *the knowledge that work is outstanding*, which is the
+kind of damage nobody notices.
+
+### How it is closed
+
+| Component | Role |
+|:---|:---|
+| **Transactional outbox** | The event and the record that a projection is owed commit in **one transaction**. Either both exist or neither does. |
+| **Target-local ledger** | Written in the same transaction as the projection itself → **exactly-once *effect*** on top of at-least-once delivery. A retry after a crash sees the ledger and knows the work is done. |
+| **Leased worker** | Lease-based claiming, exponential backoff, dead-lettering at `max_attempts`, dependency ordering between projection types. |
+| **Replay engine** | Finds owed work. **Dry-run by default.** |
+| **Fault injection** | 14 named crash points. No `sleep()`-then-guess about where a process got to. |
+| **Doctor** | Read-only diagnosis that tells *unsupported* apart from *corrupted*. Deep and incremental. |
+| **Reconciliation** | Allow-listed repairs, dry-run by default, every `--repair` writes an audit. |
+| **WAL manager** | Observable checkpointing with limits and alerts. |
+| **Shadow mode** | Runs legacy and outbox from **one canonical input** and compares them. |
+
+### Measured, not simulated
+
+All figures on an i5-12400F / 32 GB / NTFS / SQLite WAL. Raw results in
+`reports/v082/`, method in
+[`docs/v082/BENCHMARK_REPORT.md`](docs/v082/BENCHMARK_REPORT.md).
+
+**Correctness, across roughly 900,000 events:**
+
+```
+0 lost events           0 lost debts
+0 duplicate projections 0 duplicate ledgers
+0 tenant leakage        0 unexplained shadow mismatches
+integrity_check ok after every run
+```
+
+**Shadow mode:** `10,000/10,000` MATCH. **0** shadow rows visible in
+production tables, **0** returned by `recall()` — isolation by **separate
+table**, not by a filter.
+
+**One-hour soak:** 366,715 events appended, 366,713 completed, **peak queue
+depth 6**, p95 visibility `80 ms`, p99 `140 ms`, RSS growth `10.7 MB/hour`,
+**0 lock errors**, two worker restarts both recovered.
+
+**Throughput and the saturation point:**
+
+| Configuration | Append | Projection | Total |
+|:---|---:|---:|---:|
+| 1p + 1w | 1,091/s | 756/s | 1,847/s |
+| **4p + 4w** | 1,164/s | 754/s | **1,918/s** |
+| 4p + 8w | 567/s | 566/s | 1,133/s |
+
+**Four workers is the saturation point. Eight costs 41% of total throughput** —
+on this machine adding workers subtracts performance.
+
+**The most important result, and the easiest to misread:** the producer
+outruns the projector by **1.3–1.9×**, and the gap **widens** as the database
+grows (703 → 613 → 556 jobs/s at 10K → 50K → 100K). There is therefore **no
+steady state above the projection rate**. Latency under sustained overload is
+*a function of how long you overload it for*, not a property of the pipeline —
+p95 went 4.9 s → 31.8 s → **93.5 s** purely by increasing the event count.
+
+### Safe operating envelope
+
+Sized from the **floor**, not the peak. The peak of a benchmark is the luckiest
+run on an idle machine, and an envelope built from it is a promise nobody can
+keep.
+
+```
+SQLite single-node alpha
+
+  recommended producers        4
+  recommended workers          4
+  safe sustained input         390 events/s     (30% headroom)
+  burst                        550 events/s for up to 60 s
+  max healthy queue depth      1,100
+  expected p95 visibility      < 100 ms
+  storage                      3.1 KB per event, linear
+```
+
+> **Size on the projector, never on the appender.** Append absorbs roughly
+> three times what the projector can drain. Anything sized on the append figure
+> produces a queue that grows for as long as input continues.
+>
+> **Alert on queue depth, not on latency.** Latency is a lagging indicator of a
+> backlog that has already formed.
+
+### Rollback
+
+```bash
+BIO_AGENT_PROJECTION_MODE=legacy
+```
+
+Restart the process. That is the whole procedure. No reverse migration, no
+rewriting, no schema change. Committed debt is **kept** for a later replay
+rather than deleted — deleting it would destroy the only record that the work
+was ever due.
+
+Three operational commands come with it:
+
+```bash
+bio-agent-os projection pause --reason "..."   # in-flight jobs finish
+bio-agent-os projection resume
+bio-agent-os projection drain                  # deliberately overrides a pause
+```
+
+Detail: [`docs/v082/ROLLBACK_RUNBOOK.md`](docs/v082/ROLLBACK_RUNBOOK.md).
+
+### Doctor: diagnosis that never repairs by itself
+
+```bash
+bio-agent-os doctor                    # quick, read-only
+bio-agent-os doctor --deep             # the full check set
+bio-agent-os doctor --incremental      # from a crash-safe cursor
+bio-agent-os projection status
+bio-agent-os projection reconcile              # dry run by default
+bio-agent-os projection reconcile --repair     # always writes an audit
+bio-agent-os storage wal-status
+bio-agent-os storage checkpoint --mode passive
+```
+
+Exit codes: `0` clean · `1` FAIL · `2` CRITICAL · `3` **the scan itself did not
+finish**. Code 3 deliberately outranks the findings: a scan that crashed must
+never be mistaken for a clean bill of health.
+
+Scan cost, measured on a 100,000-event database:
+
+| Mode | Time |
+|:---|---:|
+| `--deep` (the audit) | 13.36 s |
+| quick (4 checks) | 8.31 s |
+| **`--incremental`, nothing new** | **2.12 s** |
+| `--incremental`, 500 new events | 2.70 s |
+
+Incremental is **6.3× cheaper** than the audit, and cheaper than quick mode
+while running **more checks** — the difference is `integrity_check`, which
+reads every page.
+
+The cursor advances only after a **completed** scan, and only when **nothing is
+outstanding**: a FAIL or CRITICAL holds it until the problem is genuinely gone.
+Stepping over an unhandled finding would hide it permanently, which is the one
+failure mode an incremental scanner must not have.
+
+### WAL
+
+The soak measured the write-ahead log at **500 MB** after an hour — **46% of
+the database** — falling to zero only when the last connection closed. Nothing
+lost; nothing reclaimed either, and a long-lived process never would.
+
+```
+below soft limit (256 MB)   PASSIVE
+above soft limit            PASSIVE, and a warning
+above hard limit (512 MB)   RESTART when no reader is registered
+```
+
+`TRUNCATE` is **never automatic** — it waits for every reader, and a background
+job that waits on a reader is a background job that stalls the process it runs
+in. Detail: [`docs/v082/WAL_OPERATIONS.md`](docs/v082/WAL_OPERATIONS.md).
+
+### Honest about what was missed
+
+We publish the parts that did not come out well, the same way we did with
+multi-hop in the LoCoMo section.
+
+1. **Shadow overhead missed its proposed threshold.** The threshold was set in
+   advance at ≤10% of p95; the measurement was **99.4%**. In absolute terms
+   that is **+0.30 ms**. We **did not move the threshold to make the run
+   pass** — it stands in the report as a miss. From the canary phase onward the
+   SLO is written as an **absolute budget** (≤0.50 ms) with the ratio reported
+   alongside, because a percentage of a very small number cannot tell an
+   operator whether it matters.
+2. **PostgreSQL is untested.** Every throughput curve here is shaped by
+   SQLite's *single writer*. On a backend with `FOR UPDATE SKIP LOCKED` none of
+   that shape is guaranteed to hold — better or worse is unknown.
+3. **Four of five projection types have no builder.** `cognitive_memory` is the
+   only one that runs. The other four are reported by the doctor as
+   **`unsupported` (a missing capability)**, never as `passed`, and never as
+   damage.
+4. **Run-to-run variance is large.** The same configuration measured `1,164`
+   then `328` events/s minutes apart. Four repeat runs put the spread at
+   **1.88×** for the producer and **1.15×** for the projector. That is why the
+   envelope is sized from the projector's floor.
+5. **The soak is one hour**, not six or twenty-four.
+
+### Three defects this work found in itself
+
+All three are **older** than the work that surfaced them:
+
+1. **A quadratic doctor scan.** Three checks used
+   `LIKE '%' || event_id || '%'` inside a correlated subquery — a leading
+   wildcard cannot use an index. Scaling exponent **2.1**; extrapolated to
+   **2.75 hours** at 100K events. After replacing it with an indexed link
+   table: **0.59 s** at 10K and **65.7 s** at 366K, with findings unchanged at
+   `1,009` at every size.
+2. **An FTS row could outlive its memory.** Rebuilding a projection then
+   produced two index entries under one key, and SQLite reports that as
+   `malformed inverted index` — **database corruption, from a supported
+   operation**.
+3. **The doctor could report corruption that did not exist.** The integrity
+   pragma ran on a connection pinned to an old read snapshot.
+   `SQLITE_INTEGRITY` is CRITICAL — enough to stop a canary when nothing at all
+   was wrong.
+
+### Further reading
+
+| Document | Contents |
+|:---|:---|
+| [`docs/v082/BENCHMARK_REPORT.md`](docs/v082/BENCHMARK_REPORT.md) | Environment, method, six workloads, raw figures, the bad results too |
+| [`docs/v082/OPERATIONS.md`](docs/v082/OPERATIONS.md) | Doctor and reconciliation: finding codes, repair policy |
+| [`docs/v082/CANARY_RUNBOOK.md`](docs/v082/CANARY_RUNBOOK.md) | 24-hour shadow, then a tenant-allowlist canary |
+| [`docs/v082/ROLLBACK_RUNBOOK.md`](docs/v082/ROLLBACK_RUNBOOK.md) | One environment variable, and what survives it |
+| [`docs/v082/WAL_OPERATIONS.md`](docs/v082/WAL_OPERATIONS.md) | Why the WAL grows, the four modes, the alerts |
+| [`docs/v082/RC1_RELEASE_NOTES.md`](docs/v082/RC1_RELEASE_NOTES.md) | What this candidate is and what it is **not** |
+| [`docs/v082/FAILURE_MATRIX.md`](docs/v082/FAILURE_MATRIX.md) | 25 process-level crash cases |
+| [`docs/v082/SHADOW_MODE.md`](docs/v082/SHADOW_MODE.md) | Legacy ↔ outbox comparison |
+
+### Cutover verdict
+
+**CONDITIONAL GO — `cognitive_memory` only, SQLite single-node only, legacy
+retained as the default and as the rollback path.**
+
+18 of 19 conditions pass. The one miss is the shadow overhead. This is **not**
+production-distributed and is not described that way anywhere: one node, one
+storage engine, one projection type, with the previous behaviour one
+environment variable away.
+
+---
+
 ## 🌏 Mission & Open-source Commitment
 
 **Bio-Agent OS** is NOT an LLM model. We are a **"Memory Controller"** — the decisive module that governs an AI agent's long-term intelligence.
@@ -1349,7 +1788,7 @@ The **Bio-Agent OS** system is researched and developed by **Dev Tuan Anh Ha** (
 - 🔵 **Facebook**: [Locaith Fanpage](https://www.facebook.com/profile.php?id=61560965389617)
 
 <p align="center">
-  <strong>Bio-Agent OS v0.6.1</strong> — The Art of Governing Superintelligence<br>
+  <strong>Bio-Agent OS v0.8.2rc1</strong> — The Art of Governing Superintelligence<br>
   <em>Designed with 🧠 by Locaith Solution Tech | 🇻🇳 Make in Vietnam</em>
 </p>
 
@@ -1553,7 +1992,8 @@ Additionally, we introduce a novel **Governed Exception Pattern** for enterprise
 4. A hybrid heuristic+NLI contradiction detector with persistent SQLite-backed caching, validated on a small hand-authored 8-pair unit test (`8/8` vs `4/8` heuristic-only).
 5. A LoCoMo evaluation showing the full pipeline beats naive-RAG by 28% F1 (`0.326` vs `0.254`) and 2.7× on temporal questions, with a fully reproducible public harness and reports.
 6. The Governed Exception Pattern: a formal mechanism for distinguishing conditional approved overrides from true contradictions.
-7. Open-source implementation with 80 automated tests, Docker packaging, PostgreSQL adapter, MCP server, plugin system, and an authenticated REST API.
+7. Open-source implementation with **528** automated tests (the figure at submission time was `80`; it grew with the v0.8.2 Reliability Kernel), Docker packaging, PostgreSQL adapter, MCP server, plugin system, and an authenticated REST API.
+8. **Reliability Kernel (v0.8.2rc1)**: a transactional outbox plus a target-local ledger giving *exactly-once effect* over at-least-once delivery, a leased worker, fault injection at 14 named points with `25/25` process-level crash cases, shadow mode matching `10,000/10,000`, and a doctor that tells *a missing capability* apart from *corruption*. See [Reliability Kernel v0.8.2](#-reliability-kernel-v082--a-write-path-that-can-recover).
 
 ---
 
@@ -2065,8 +2505,12 @@ ollama pull gemma4:e2b
 # Run benchmark (2 evaluation runs)
 REAL_EVAL_RUNS=2 python scripts/run_real_eval.py
 
-# Run unit tests (80 tests)
+# Run the component unit tests (45 tests)
 pytest tests/test_components.py -v
+
+# Or the whole suite (528 tests; benchmark- and soak-marked tests are
+# deselected by default and opt in with -m benchmark / -m soak)
+pytest tests/ -q
 ```
 
 Reports are written to `benchmark_reports/`.
@@ -2095,7 +2539,7 @@ Hybrid/NLI: governed_exception ✓ (recognized conditional override)
 ---
 
 <p align="center">
-  <strong>Bio-Agent OS v0.6.1</strong> — The Art of Governing Superintelligence<br>
+  <strong>Bio-Agent OS v0.8.2rc1</strong> — The Art of Governing Superintelligence<br>
   <em>Designed with 🧠 by Locaith Solution Tech | 🇻🇳 Make in Vietnam</em>
 </p>
 
