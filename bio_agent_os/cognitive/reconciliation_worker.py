@@ -150,6 +150,7 @@ class WorkerMetrics:
     blocked: int = 0
     build_seconds: float = 0.0
     cycles: int = 0
+    paused_cycles: int = 0
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -162,6 +163,7 @@ class WorkerMetrics:
             "dependency_held": self.dependency_held,
             "blocked": self.blocked,
             "cycles": self.cycles,
+            "paused_cycles": self.paused_cycles,
             "build_seconds": round(self.build_seconds, 4),
             "mean_build_ms": (
                 round(self.build_seconds * 1000 / self.completed, 3) if self.completed else 0.0
@@ -184,6 +186,7 @@ class ReconciliationWorker:
         max_attempts: int = 5,
         tenant_id: str | None = None,
         wal_manager: Any | None = None,
+        control: Any | None = None,
     ) -> None:
         #: Queue connection — reads events, claims and completes outbox rows.
         self.conn = conn
@@ -205,6 +208,8 @@ class ReconciliationWorker:
         #: Optional. Checkpointing happens between cycles in `run_forever`,
         #: never inside a batch and never on the append path — see `wal.py`.
         self.wal_manager = wal_manager
+        #: Optional pause flag, read between claims. `None` means never paused.
+        self.control = control
         self.metrics = WorkerMetrics()
         self._stop = threading.Event()
         self._migrate()
@@ -415,9 +420,27 @@ class ReconciliationWorker:
 
     # -- loops -------------------------------------------------------------
 
+    def paused(self) -> bool:
+        """Whether an operator has paused projection for this worker's scope.
+
+        Checked between claims, never inside one: a job already being built
+        finishes. Interrupting a projection mid-transaction is the crash case,
+        and there is no reason to create one deliberately.
+        """
+        if self.control is None:
+            return False
+        try:
+            return self.control.is_paused(self.tenant_id)
+        except Exception:  # a control-table problem must not stop the worker
+            logger.exception("could not read the projection pause flag")
+            return False
+
     def run_once(self, *, batch_size: int = 10) -> WorkerMetrics:
         """Claim and process up to `batch_size` jobs, then return."""
         self.metrics.cycles += 1
+        if self.paused():
+            self.metrics.paused_cycles += 1
+            return self.metrics
         _fault.fire(_fault.ProjectionFaultPoint.BEFORE_CLAIM)
         jobs = self.outbox.claim(
             self.worker_id, limit=batch_size, lease_seconds=self.lease_seconds
@@ -487,6 +510,10 @@ def worker_for(memory_os: Any, *, manage_wal: bool = True, **kwargs: Any) -> Rec
         from .wal import manager_for as _wal_manager_for
 
         kwargs["wal_manager"] = _wal_manager_for(memory_os)
+    if "control" not in kwargs:
+        from .projection_control import ProjectionControl
+
+        kwargs["control"] = ProjectionControl(memory_os.events.conn)
     return ReconciliationWorker(
         memory_os.events.conn,
         projection_conn=memory_os.memories.conn,

@@ -13,6 +13,9 @@ import sys
 from pathlib import Path
 
 from .diagnostics import DeepDoctor
+from .doctor_incremental import IncrementalDoctor
+from .doctor_cursor import CursorStore
+from .projection_control import GLOBAL_SCOPE, ProjectionControl, drain
 from .facade import MemoryOS
 from .projection_capability import render as capability_render
 from .projection_engine import ProjectionReplayEngine
@@ -27,12 +30,50 @@ def _runtime(args: argparse.Namespace) -> MemoryOS:
 
 def cmd_doctor(args: argparse.Namespace) -> int:
     runtime = _runtime(args)
-    report = DeepDoctor(runtime.events.conn, tenant_id=args.tenant).run(deep=args.deep)
+    incremental = args.incremental or args.since_event or args.since_time
+    if incremental and not args.full:
+        doctor = IncrementalDoctor(runtime.events.conn, tenant_id=args.tenant)
+        report = doctor.run_incremental(
+            since_event_id=args.since_event, since_time=args.since_time,
+            advance=not args.no_advance,
+        )
+        extra = doctor.describe()
+    else:
+        doctor = DeepDoctor(runtime.events.conn, tenant_id=args.tenant)
+        report = doctor.run(deep=args.deep or args.full)
+        extra = None
+
     if args.json:
-        sys.stdout.write(json.dumps(report.as_dict(), indent=2, ensure_ascii=False) + "\n")
+        payload = report.as_dict()
+        if extra:
+            payload["incremental"] = extra
+        sys.stdout.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
     else:
         sys.stdout.write(report.render() + "\n")
+        if extra and extra["cursor_before"]:
+            before = extra["cursor_before"]
+            sys.stdout.write(
+                f"  incremental               {before['reason']}\n"
+                f"  window (events)           {extra['window_start']['events']} -> "
+                f"{extra['window_end']['events']}\n"
+                f"  window (outbox)           {extra['window_start']['outbox']} -> "
+                f"{extra['window_end']['outbox']}\n"
+                f"  window (ledger)           {extra['window_start']['ledger']} -> "
+                f"{extra['window_end']['ledger']}\n"
+            )
     return report.exit_code
+
+
+def cmd_doctor_cursor(args: argparse.Namespace) -> int:
+    runtime = _runtime(args)
+    store = CursorStore(runtime.events.conn)
+    if args.reset:
+        removed = store.reset(args.tenant if args.tenant else None)
+        sys.stdout.write(f"  cleared {removed} cursor row(s); the next scan is full\n")
+        return 0
+    cursor = store.load(args.tenant or "")
+    sys.stdout.write(json.dumps(cursor.as_dict(), indent=2, ensure_ascii=False) + "\n")
+    return 0
 
 
 def cmd_status(args: argparse.Namespace) -> int:
@@ -77,6 +118,50 @@ def cmd_replay(args: argparse.Namespace) -> int:
     )
     sys.stdout.write(report.render() + "\n")
     return 0
+
+
+def cmd_pause(args: argparse.Namespace) -> int:
+    runtime = _runtime(args)
+    control = ProjectionControl(runtime.events.conn)
+    state = control.pause(scope=args.tenant or GLOBAL_SCOPE, reason=args.reason,
+                          operator=args.operator)
+    sys.stdout.write(
+        f"  paused {state.scope}\n"
+        f"  reason               {state.reason or '(none given)'}\n"
+        f"  operator             {state.operator}\n"
+        "  in-flight jobs finish; nothing new is claimed. Events and their\n"
+        "  outbox debt keep being written, so nothing is lost.\n"
+    )
+    return 0
+
+
+def cmd_resume(args: argparse.Namespace) -> int:
+    runtime = _runtime(args)
+    control = ProjectionControl(runtime.events.conn)
+    state = control.resume(scope=args.tenant or GLOBAL_SCOPE, reason=args.reason,
+                           operator=args.operator)
+    sys.stdout.write(f"  resumed {state.scope}\n")
+    return 0
+
+
+def cmd_drain(args: argparse.Namespace) -> int:
+    """Work the queue to empty. Overrides a pause: a paused system that cannot
+    be drained can only be waited out."""
+    runtime = _runtime(args)
+    result = drain(runtime, timeout_seconds=args.timeout, batch_size=args.batch_size)
+    if args.json:
+        sys.stdout.write(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+    else:
+        sys.stdout.write(
+            f"  drained              {result['drained']}\n"
+            f"  seconds              {result['seconds']}\n"
+            f"  queue before         {result['queue_before']}\n"
+            f"  queue after          {result['queue_after']}\n"
+            f"  remaining            {result['remaining']}\n"
+        )
+        if result["note"]:
+            sys.stdout.write(f"  note                 {result['note']}\n")
+    return 0 if result["drained"] else 1
 
 
 def cmd_wal_status(args: argparse.Namespace) -> int:
@@ -159,8 +244,22 @@ def build_parser() -> argparse.ArgumentParser:
 
     d = sub.add_parser("doctor", help="consistency diagnosis (read-only)")
     d.add_argument("--deep", action="store_true", help="run the full check set")
+    d.add_argument("--incremental", action="store_true",
+                   help="scan from the stored cursor; global invariants still run in full")
+    d.add_argument("--since-event", metavar="EVENT_ID",
+                   help="scan from this event onwards, ignoring the cursor")
+    d.add_argument("--since-time", metavar="TIMESTAMP",
+                   help="scan from this observed_at onwards, ignoring the cursor")
+    d.add_argument("--full", action="store_true",
+                   help="force a complete scan and ignore the cursor entirely")
+    d.add_argument("--no-advance", action="store_true",
+                   help="scan incrementally but leave the cursor where it is")
     d.add_argument("--json", action="store_true", help="machine-readable output")
     d.set_defaults(func=cmd_doctor)
+
+    dc = sub.add_parser("doctor-cursor", help="inspect or clear the incremental cursor")
+    dc.add_argument("--reset", action="store_true", help="clear it; the next scan is full")
+    dc.set_defaults(func=cmd_doctor_cursor)
 
     proj = sub.add_parser("projection", help="projection pipeline operations")
     psub = proj.add_subparsers(dest="projection_command", required=True)
@@ -185,6 +284,22 @@ def build_parser() -> argparse.ArgumentParser:
     rep.add_argument("--all", action="store_true", help="every event in scope")
     rep.add_argument("--apply", action="store_true", help="act; default is dry-run")
     rep.set_defaults(func=cmd_replay)
+
+    pa = psub.add_parser("pause", help="stop claiming new jobs; in-flight jobs finish")
+    pa.add_argument("--reason", default="", help="recorded alongside the flag")
+    pa.add_argument("--operator", default="cli")
+    pa.set_defaults(func=cmd_pause)
+
+    re_ = psub.add_parser("resume", help="start claiming again")
+    re_.add_argument("--reason", default="")
+    re_.add_argument("--operator", default="cli")
+    re_.set_defaults(func=cmd_resume)
+
+    dr = psub.add_parser("drain", help="work the queue to empty; overrides a pause")
+    dr.add_argument("--timeout", type=float, default=300.0)
+    dr.add_argument("--batch-size", type=int, default=100)
+    dr.add_argument("--json", action="store_true")
+    dr.set_defaults(func=cmd_drain)
 
     wk = psub.add_parser("worker", help="drain the projection queue")
     wk.add_argument("--once", dest="forever", action="store_false")
