@@ -34,6 +34,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Protocol
 
+from . import fault_points as _fault
 from .models import BeliefState, CognitiveMemory, EventRecord, MemoryType
 from .outbox import JobStatus, ProjectionJob, ProjectionOutbox
 from .projection_registry import (
@@ -324,6 +325,7 @@ class ReconciliationWorker:
 
         # 4. Event.
         event = self._load_event(job)
+        _fault.fire(_fault.ProjectionFaultPoint.AFTER_EVENT_LOAD)
         if event is None:
             self.outbox.fail(job.job_id, "event not found for this job", max_attempts=0)
             self.metrics.dead_lettered += 1
@@ -341,8 +343,12 @@ class ReconciliationWorker:
         #    makes both durable together.
         started = time.perf_counter()
         try:
+            _fault.fire(_fault.ProjectionFaultPoint.BEFORE_LEDGER_INSERT)
             self._record_ledger(job, target_id=None)
-            result = builder.build(event, job, self.conn)
+            _fault.fire(_fault.ProjectionFaultPoint.AFTER_LEDGER_INSERT)
+            _fault.fire(_fault.ProjectionFaultPoint.BEFORE_PROJECTION_WRITE)
+            result = builder.build(event, job, self.projection_conn)
+            _fault.fire(_fault.ProjectionFaultPoint.AFTER_PROJECTION_COMMIT)
         except Exception as exc:  # a bad builder must not take the worker down
             self.projection_conn.rollback()
             status = self.outbox.fail(
@@ -383,7 +389,9 @@ class ReconciliationWorker:
             self.metrics.failed += 1
             return status
 
+        _fault.fire(_fault.ProjectionFaultPoint.BEFORE_OUTBOX_COMPLETE)
         self.outbox.complete(job.job_id)
+        _fault.fire(_fault.ProjectionFaultPoint.AFTER_OUTBOX_COMPLETE)
         self.metrics.completed += 1
         return JobStatus.COMPLETED.value
 
@@ -392,9 +400,11 @@ class ReconciliationWorker:
     def run_once(self, *, batch_size: int = 10) -> WorkerMetrics:
         """Claim and process up to `batch_size` jobs, then return."""
         self.metrics.cycles += 1
+        _fault.fire(_fault.ProjectionFaultPoint.BEFORE_CLAIM)
         jobs = self.outbox.claim(
             self.worker_id, limit=batch_size, lease_seconds=self.lease_seconds
         )
+        _fault.fire(_fault.ProjectionFaultPoint.AFTER_CLAIM)
         if self.tenant_id:
             jobs = [j for j in jobs if j.tenant_id == self.tenant_id]
         self.metrics.claimed += len(jobs)

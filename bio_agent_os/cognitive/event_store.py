@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .sqlite_utils import connect_sqlite
 
+from . import fault_points as _fault
 from .models import EpistemicStatus, EventRecord, Modality, SecurityLabel, TrustTier
 from .outbox import PROJECTION_VERSION, ProjectionJob, ProjectionOutbox
 
@@ -113,6 +114,7 @@ class SQLiteEventStore:
         undetectable in the first place.
         """
         checksum = record.checksum or self._checksum(record)
+        _fault.fire(_fault.ProjectionFaultPoint.BEFORE_EVENT_TRANSACTION)
         self.conn.execute(
             """
             INSERT INTO cognitive_events(
@@ -130,6 +132,7 @@ class SQLiteEventStore:
                 record.modality.value, record.epistemic_status.value,
             ),
         )
+        _fault.fire(_fault.ProjectionFaultPoint.AFTER_EVENT_INSERT)
         # Same connection, same open transaction — no commit between these.
         for projection_type in (projection_types or DEFAULT_PROJECTION_TYPES):
             self.outbox.enqueue(
@@ -142,7 +145,9 @@ class SQLiteEventStore:
                 ),
                 commit=False,
             )
+        _fault.fire(_fault.ProjectionFaultPoint.AFTER_OUTBOX_INSERT)
         self.conn.commit()
+        _fault.fire(_fault.ProjectionFaultPoint.AFTER_EVENT_COMMIT)
         return EventRecord(**{**record.__dict__, "checksum": checksum})
 
 
