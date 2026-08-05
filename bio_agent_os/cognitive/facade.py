@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from time import perf_counter
 from typing import Any
+
+logger = logging.getLogger("bio_agent_os.memory_os")
 
 from .causal import CausalMemoryEngine
 from .counterfactual import CounterfactualSimulator
@@ -29,7 +32,14 @@ from .models import (
 from .prospective import ProspectiveMemory
 from .reconstruction import CognitiveReconstruction, CognitiveReconstructor
 from .retrieval import HybridRetrievalEngine, RetrievalResult
+from .projection_capability import enqueueable
 from .self_model import SelfModel
+from .shadow import (
+    COGNITIVE_MEMORY,
+    ProjectionMode,
+    ShadowMemoryStore,
+    current_mode,
+)
 from .sqlite_utils import resolve_runtime_path
 from .world_model import WorldModel
 from bio_agent_os.context_fabric import (
@@ -41,7 +51,7 @@ from bio_agent_os.context_fabric import (
 class MemoryOS:
     """High-level facade for Bio-AGI Memory OS v0.8 Alpha."""
 
-    def __init__(self, db_path: str | Path = ":memory:"):
+    def __init__(self, db_path: str | Path = ":memory:", *, projection_mode: str | None = None):
         # Six stores below open six connections. With plain ":memory:" SQLite
         # gives each of them a *private* database, so they cannot see one
         # another and any consistency test passes while proving nothing. The
@@ -68,6 +78,14 @@ class MemoryOS:
         self.prefetcher = PredictivePrefetcher(self.retrieval)
         self.context_metrics = ContextMetrics()
         self.quarantine: list[dict[str, Any]] = []
+
+        # Projection mode. Default is legacy and stays legacy unless the
+        # environment says otherwise, so existing behaviour is unchanged for
+        # everyone who does nothing.
+        self.projection_mode = current_mode(projection_mode)
+        # Shadow output lives on the memory connection but in its own table,
+        # so production recall cannot reach it by construction.
+        self.shadow_memories = ShadowMemoryStore(self.memories.conn)
 
     def observe(
         self,
@@ -107,7 +125,29 @@ class MemoryOS:
             modality=modality,
             epistemic_status=epistemic_status,
         )
-        return self.events.append(event)
+        return self.events.append(event, projection_types=self._projection_types())
+
+    def _projection_types(self) -> tuple[str, ...]:
+        """What this observation owes, given the mode and what can be built.
+
+        Legacy owes nothing, which is exactly the behaviour that shipped.
+        Shadow owes a cognitive_memory job and nothing else: the other four
+        types have no builder, and enqueueing work that can only dead-letter
+        would turn a missing capability into noise.
+
+        Wrapped because deciding must never be able to fail an observe() that
+        would otherwise have succeeded.
+        """
+        try:
+            if self.projection_mode is ProjectionMode.LEGACY:
+                return ()
+            supported, skipped = enqueueable((COGNITIVE_MEMORY,))
+            if skipped:
+                logger.warning("skipping unsupported projection types: %s", skipped)
+            return supported
+        except Exception:  # pragma: no cover - defensive
+            logger.exception("failed to resolve projection types; falling back to legacy")
+            return ()
 
     def remember(
         self,
