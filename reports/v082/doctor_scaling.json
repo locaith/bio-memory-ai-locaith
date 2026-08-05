@@ -1,0 +1,305 @@
+{
+  "environment": {
+    "os": "Windows 10 (10.0.26200)",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpu_cores_logical": 12,
+    "ram_bytes": 34170748928,
+    "ram_gb": 31.82,
+    "python": "3.11.9",
+    "python_implementation": "CPython",
+    "sqlite_version": "3.45.1",
+    "sqlite_module": "2.6.0",
+    "process_start_method": "default",
+    "commit_sha": "6b23671d8ffffe9ad28643f5bd1fa192b9088d86",
+    "working_tree_clean": false,
+    "producers": null,
+    "workers": null,
+    "measurement_tooling": "stdlib only (ctypes/resource); psutil not installed"
+  },
+  "rows": [
+    {
+      "events": 10000,
+      "projections": 11000,
+      "shadow_records": 1000,
+      "source_event_links": 10000,
+      "query_plans": {
+        "event_projected_without_debt": {
+          "plan": [
+            "SCAN e USING COVERING INDEX sqlite_autoindex_cognitive_events_1",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH o USING COVERING INDEX idx_outbox_event (event_id=?)",
+            "CORRELATED SCALAR SUBQUERY 2",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        },
+        "ledger_without_projection": {
+          "plan": [
+            "SCAN l",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        },
+        "completed_without_projection": {
+          "plan": [
+            "SEARCH o USING INDEX idx_outbox_claimable (status=?)",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        }
+      },
+      "any_relationship_table_scanned": false,
+      "build_seconds": 25.61,
+      "database_bytes": 35545088,
+      "quick": {
+        "seconds": 0.426,
+        "checks_run": 4,
+        "queries": 11,
+        "findings": 7,
+        "exit_code": 0
+      },
+      "deep": {
+        "seconds": 0.588,
+        "checks_run": 13,
+        "queries": 34,
+        "findings": 1009,
+        "findings_per_second": 1716.8,
+        "exit_code": 0,
+        "finding_codes": {
+          "SHADOW_COMPARISON_MISSING": 1000,
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_CONSISTENT": 1
+        }
+      },
+      "deep_seconds_per_1000_events": 0.0588,
+      "peak_rss_mb": 99.8
+    },
+    {
+      "events": 50000,
+      "projections": 51000,
+      "shadow_records": 1000,
+      "source_event_links": 50000,
+      "query_plans": {
+        "event_projected_without_debt": {
+          "plan": [
+            "SCAN e USING COVERING INDEX sqlite_autoindex_cognitive_events_1",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH o USING COVERING INDEX idx_outbox_event (event_id=?)",
+            "CORRELATED SCALAR SUBQUERY 2",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        },
+        "ledger_without_projection": {
+          "plan": [
+            "SCAN l",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        },
+        "completed_without_projection": {
+          "plan": [
+            "SEARCH o USING INDEX idx_outbox_claimable (status=?)",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        }
+      },
+      "any_relationship_table_scanned": false,
+      "build_seconds": 155.47,
+      "database_bytes": 169136128,
+      "quick": {
+        "seconds": 3.954,
+        "checks_run": 4,
+        "queries": 11,
+        "findings": 7,
+        "exit_code": 0
+      },
+      "deep": {
+        "seconds": 5.303,
+        "checks_run": 13,
+        "queries": 34,
+        "findings": 1009,
+        "findings_per_second": 190.3,
+        "exit_code": 0,
+        "finding_codes": {
+          "SHADOW_COMPARISON_MISSING": 1000,
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_CONSISTENT": 1
+        }
+      },
+      "deep_seconds_per_1000_events": 0.1061,
+      "peak_rss_mb": 142.9
+    },
+    {
+      "events": 100000,
+      "projections": 101000,
+      "shadow_records": 1000,
+      "source_event_links": 100000,
+      "query_plans": {
+        "event_projected_without_debt": {
+          "plan": [
+            "SCAN e USING COVERING INDEX sqlite_autoindex_cognitive_events_1",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH o USING COVERING INDEX idx_outbox_event (event_id=?)",
+            "CORRELATED SCALAR SUBQUERY 2",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        },
+        "ledger_without_projection": {
+          "plan": [
+            "SCAN l",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        },
+        "completed_without_projection": {
+          "plan": [
+            "SEARCH o USING INDEX idx_outbox_claimable (status=?)",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        }
+      },
+      "any_relationship_table_scanned": false,
+      "build_seconds": 320.35,
+      "database_bytes": 336445440,
+      "quick": {
+        "seconds": 8.579,
+        "checks_run": 4,
+        "queries": 11,
+        "findings": 7,
+        "exit_code": 0
+      },
+      "deep": {
+        "seconds": 12.962,
+        "checks_run": 13,
+        "queries": 34,
+        "findings": 1009,
+        "findings_per_second": 77.8,
+        "exit_code": 0,
+        "finding_codes": {
+          "SHADOW_COMPARISON_MISSING": 1000,
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_CONSISTENT": 1
+        }
+      },
+      "deep_seconds_per_1000_events": 0.1296,
+      "peak_rss_mb": 196.6
+    },
+    {
+      "events": 366000,
+      "projections": 367000,
+      "shadow_records": 1000,
+      "source_event_links": 366000,
+      "query_plans": {
+        "event_projected_without_debt": {
+          "plan": [
+            "SCAN e USING COVERING INDEX sqlite_autoindex_cognitive_events_1",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH o USING COVERING INDEX idx_outbox_event (event_id=?)",
+            "CORRELATED SCALAR SUBQUERY 2",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        },
+        "ledger_without_projection": {
+          "plan": [
+            "SCAN l",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        },
+        "completed_without_projection": {
+          "plan": [
+            "SEARCH o USING INDEX idx_outbox_claimable (status=?)",
+            "CORRELATED SCALAR SUBQUERY 1",
+            "SEARCH s USING COVERING INDEX sqlite_autoindex_memory_source_events_1 (event_id=?)",
+            "SEARCH m USING COVERING INDEX sqlite_autoindex_cognitive_memories_1 (memory_id=? AND version=?)"
+          ],
+          "scans_a_relationship_table": false,
+          "offending_steps": []
+        }
+      },
+      "any_relationship_table_scanned": false,
+      "build_seconds": 1279.68,
+      "database_bytes": 1228013568,
+      "quick": {
+        "seconds": 37.922,
+        "checks_run": 4,
+        "queries": 11,
+        "findings": 7,
+        "exit_code": 0
+      },
+      "deep": {
+        "seconds": 65.738,
+        "checks_run": 13,
+        "queries": 34,
+        "findings": 1009,
+        "findings_per_second": 15.3,
+        "exit_code": 0,
+        "finding_codes": {
+          "SHADOW_COMPARISON_MISSING": 1000,
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_CONSISTENT": 1
+        }
+      },
+      "deep_seconds_per_1000_events": 0.1796,
+      "peak_rss_mb": 482.2
+    }
+  ],
+  "scaling": {
+    "size_ratio": 36.6,
+    "deep_time_ratio": 111.8,
+    "linear_would_be": 36.6,
+    "quadratic_would_be": 1339.56,
+    "observed_exponent": 1.31
+  }
+}

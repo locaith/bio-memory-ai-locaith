@@ -1,0 +1,126 @@
+{
+  "invariants": {
+    "projection count": 1,
+    "ledger count": 1,
+    "duplicate": 0,
+    "ledger rows without target_id": 0,
+    "integrity_check": "ok"
+  },
+  "points_tested": 7,
+  "points_holding": 7,
+  "all_hold": true,
+  "results": [
+    {
+      "fault_point": "before_ledger_insert",
+      "crashed_as_designed": true,
+      "crash_exit_code": 70,
+      "already_built_on_retry": 0,
+      "projections": 1,
+      "ledger": 1,
+      "duplicate_ledger": 0,
+      "duplicate_projection": 0,
+      "ledger_without_target": 0,
+      "outbox": {
+        "completed": 1
+      },
+      "integrity_check": "ok",
+      "invariants_hold": true
+    },
+    {
+      "fault_point": "after_ledger_insert",
+      "crashed_as_designed": true,
+      "crash_exit_code": 70,
+      "already_built_on_retry": 0,
+      "projections": 1,
+      "ledger": 1,
+      "duplicate_ledger": 0,
+      "duplicate_projection": 0,
+      "ledger_without_target": 0,
+      "outbox": {
+        "completed": 1
+      },
+      "integrity_check": "ok",
+      "invariants_hold": true
+    },
+    {
+      "fault_point": "before_projection_write",
+      "crashed_as_designed": true,
+      "crash_exit_code": 70,
+      "already_built_on_retry": 0,
+      "projections": 1,
+      "ledger": 1,
+      "duplicate_ledger": 0,
+      "duplicate_projection": 0,
+      "ledger_without_target": 0,
+      "outbox": {
+        "completed": 1
+      },
+      "integrity_check": "ok",
+      "invariants_hold": true
+    },
+    {
+      "fault_point": "after_projection_write_before_commit",
+      "crashed_as_designed": true,
+      "crash_exit_code": 70,
+      "already_built_on_retry": 0,
+      "projections": 1,
+      "ledger": 1,
+      "duplicate_ledger": 0,
+      "duplicate_projection": 0,
+      "ledger_without_target": 0,
+      "outbox": {
+        "completed": 1
+      },
+      "integrity_check": "ok",
+      "invariants_hold": true
+    },
+    {
+      "fault_point": "after_projection_commit",
+      "crashed_as_designed": true,
+      "crash_exit_code": 70,
+      "already_built_on_retry": 1,
+      "projections": 1,
+      "ledger": 1,
+      "duplicate_ledger": 0,
+      "duplicate_projection": 0,
+      "ledger_without_target": 0,
+      "outbox": {
+        "completed": 1
+      },
+      "integrity_check": "ok",
+      "invariants_hold": true
+    },
+    {
+      "fault_point": "before_outbox_complete",
+      "crashed_as_designed": true,
+      "crash_exit_code": 70,
+      "already_built_on_retry": 1,
+      "projections": 1,
+      "ledger": 1,
+      "duplicate_ledger": 0,
+      "duplicate_projection": 0,
+      "ledger_without_target": 0,
+      "outbox": {
+        "completed": 1
+      },
+      "integrity_check": "ok",
+      "invariants_hold": true
+    },
+    {
+      "fault_point": "after_outbox_complete",
+      "crashed_as_designed": true,
+      "crash_exit_code": 70,
+      "already_built_on_retry": 0,
+      "projections": 1,
+      "ledger": 1,
+      "duplicate_ledger": 0,
+      "duplicate_projection": 0,
+      "ledger_without_target": 0,
+      "outbox": {
+        "completed": 1
+      },
+      "integrity_check": "ok",
+      "invariants_hold": true
+    }
+  ]
+}

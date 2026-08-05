@@ -1,0 +1,36 @@
+{
+  "observations": 1000,
+  "legacy_projections": 1000,
+  "shadow_projections": 1000,
+  "comparisons": 1000,
+  "matches": 1000,
+  "match_rate": 1.0,
+  "by_status": {
+    "MATCH": 1000
+  },
+  "non_deterministic": [],
+  "unsupported_projection_types": {
+    "self_model_update": "no builder implemented; scheduled for v0.8.3",
+    "prospective_memory": "no builder implemented; scheduled for v0.8.3",
+    "context_block": "no builder implemented; depends on cognitive_memory",
+    "checkpoint_reference": "no builder implemented; pins a memory version and is not replayable"
+  },
+  "normalisation_rules": [
+    "unicode NFC",
+    "leading and trailing whitespace",
+    "internal whitespace runs collapsed to one space"
+  ],
+  "latency": {
+    "legacy_observe_ms": {
+      "p50": 0.2982,
+      "p95": 0.566,
+      "p99": 8.0752
+    },
+    "shadow_projection_ms": {
+      "p50": 0.4129,
+      "p95": 0.8678,
+      "p99": 7.6561
+    }
+  },
+  "clean": true
+}

@@ -7,7 +7,14 @@ from pathlib import Path
 
 from .sqlite_utils import connect_sqlite
 
+from . import fault_points as _fault
 from .models import EpistemicStatus, EventRecord, Modality, SecurityLabel, TrustTier
+from .outbox import PROJECTION_VERSION, ProjectionJob, ProjectionOutbox
+
+#: Projection requested when a caller does not say. `remember()` is what
+#: actually creates a memory, so an event with no stated intent owes nothing
+#: until someone asks — see `append(projection_types=...)`.
+DEFAULT_PROJECTION_TYPES: tuple[str, ...] = ()
 
 
 class ImmutableEventError(RuntimeError):
@@ -22,6 +29,10 @@ class SQLiteEventStore:
         self.conn = connect_sqlite(self.path)
         self.conn.row_factory = sqlite3.Row
         self._migrate()
+        # Shares this connection deliberately: the event row and the record of
+        # the projection it owes have to commit together, and only one
+        # connection can give that guarantee.
+        self.outbox = ProjectionOutbox(self.conn)
 
     def _migrate(self) -> None:
         self.conn.executescript(
@@ -84,8 +95,26 @@ class SQLiteEventStore:
         )
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
-    def append(self, record: EventRecord) -> EventRecord:
+    def append(
+        self,
+        record: EventRecord,
+        *,
+        projection_types: tuple[str, ...] | list[str] | None = None,
+    ) -> EventRecord:
+        """Append an event, and optionally the projections it owes.
+
+        When `projection_types` is given, an outbox row is written for each on
+        **this same connection inside this same transaction**, so the event and
+        the record of what it owes become durable together. A crash can no
+        longer leave an event whose projection nobody knows about.
+
+        Omitting the argument keeps the previous behaviour exactly: the event
+        is appended and nothing is owed. `observe()` without `remember()` is a
+        supported call, and inferring intent from silence is what made orphans
+        undetectable in the first place.
+        """
         checksum = record.checksum or self._checksum(record)
+        _fault.fire(_fault.ProjectionFaultPoint.BEFORE_EVENT_TRANSACTION)
         self.conn.execute(
             """
             INSERT INTO cognitive_events(
@@ -103,7 +132,22 @@ class SQLiteEventStore:
                 record.modality.value, record.epistemic_status.value,
             ),
         )
+        _fault.fire(_fault.ProjectionFaultPoint.AFTER_EVENT_INSERT)
+        # Same connection, same open transaction — no commit between these.
+        for projection_type in (projection_types or DEFAULT_PROJECTION_TYPES):
+            self.outbox.enqueue(
+                ProjectionJob(
+                    event_id=record.event_id,
+                    projection_type=projection_type,
+                    tenant_id=record.tenant_id,
+                    projection_version=PROJECTION_VERSION,
+                    payload={"workspace_id": record.workspace_id},
+                ),
+                commit=False,
+            )
+        _fault.fire(_fault.ProjectionFaultPoint.AFTER_OUTBOX_INSERT)
         self.conn.commit()
+        _fault.fire(_fault.ProjectionFaultPoint.AFTER_EVENT_COMMIT)
         return EventRecord(**{**record.__dict__, "checksum": checksum})
 
 

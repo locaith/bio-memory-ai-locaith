@@ -1,0 +1,924 @@
+{
+  "thresholds": {
+    "correctness": {
+      "lost_committed_events": 0,
+      "lost_committed_debts": 0,
+      "duplicate_projections": 0,
+      "duplicate_ledgers": 0,
+      "tenant_leakage": 0,
+      "invalid_projection_keys": 0,
+      "unexplained_shadow_mismatches": 0,
+      "sqlite_integrity": "ok"
+    },
+    "reliability": {
+      "queue_drains_after_producer_stop": true,
+      "stale_leases_after_recovery": 0,
+      "orphan_claimed_jobs": 0,
+      "unexplained_dead_letters": 0
+    },
+    "performance": {
+      "sustained_projection_throughput_per_s": 100,
+      "p95_end_to_end_visibility_ms": 500,
+      "p99_end_to_end_visibility_ms": 1000,
+      "shadow_overhead_p95_pct": 10
+    }
+  },
+  "environment": {
+    "os": "Windows 10 (10.0.26200)",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpu_cores_logical": 12,
+    "ram_bytes": 34170748928,
+    "ram_gb": 31.82,
+    "python": "3.11.9",
+    "python_implementation": "CPython",
+    "sqlite_version": "3.45.1",
+    "sqlite_module": "2.6.0",
+    "process_start_method": "default",
+    "commit_sha": "65bef58818a99eb53bfc3fb00fb65de0e289bf40",
+    "working_tree_clean": false,
+    "producers": null,
+    "workers": null,
+    "measurement_tooling": "stdlib only (ctypes/resource); psutil not installed",
+    "run_dir": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn"
+  },
+  "repeatability": {
+    "configuration": {
+      "events": 10000,
+      "producers": 4,
+      "workers": 4
+    },
+    "repeats": 4,
+    "producer_throughput_per_s": {
+      "n": 4,
+      "min": 659.9,
+      "median": 765.2,
+      "mean": 858.4,
+      "max": 1243.1,
+      "stdev": 266.4,
+      "max_over_min": 1.88,
+      "samples": [
+        829.1,
+        659.9,
+        1243.1,
+        701.4
+      ]
+    },
+    "worker_throughput_per_s": {
+      "n": 4,
+      "min": 618.3,
+      "median": 679.5,
+      "mean": 671.8,
+      "max": 709.9,
+      "stdev": 43.3,
+      "max_over_min": 1.15,
+      "samples": [
+        703.9,
+        618.3,
+        709.9,
+        655.0
+      ]
+    },
+    "p95_visibility_ms": {
+      "n": 4,
+      "min": 2159.7,
+      "median": 4448.7,
+      "mean": 4392.3,
+      "max": 6512.2,
+      "stdev": 2100.9,
+      "max_over_min": 3.02,
+      "samples": [
+        5819.2,
+        3078.2,
+        6512.2,
+        2159.7
+      ]
+    },
+    "peak_queue_depth": {
+      "n": 4,
+      "min": 1386.0,
+      "median": 3831.5,
+      "mean": 3844.0,
+      "max": 6327.0,
+      "stdev": 2320.8,
+      "max_over_min": 4.56,
+      "samples": [
+        5237.0,
+        2426.0,
+        6327.0,
+        1386.0
+      ]
+    },
+    "all_drained": true,
+    "all_doctor_clean": true,
+    "total_lock_errors": 0
+  },
+  "doctor_scaling": {
+    "after": [
+      {
+        "events": 1000,
+        "projections": 2000,
+        "shadow_records": 1000,
+        "quick_s": 0.028,
+        "deep_s": 0.092,
+        "deep_s_per_1000": 0.0917,
+        "queries": 35,
+        "findings": 1009,
+        "database_mb": 5.0
+      },
+      {
+        "events": 5000,
+        "projections": 6000,
+        "shadow_records": 1000,
+        "quick_s": 0.088,
+        "deep_s": 0.186,
+        "deep_s_per_1000": 0.0373,
+        "queries": 35,
+        "findings": 1009,
+        "database_mb": 16.7
+      },
+      {
+        "events": 10000,
+        "projections": 11000,
+        "shadow_records": 1000,
+        "quick_s": 0.254,
+        "deep_s": 0.431,
+        "deep_s_per_1000": 0.0431,
+        "queries": 35,
+        "findings": 1009,
+        "database_mb": 31.6
+      },
+      {
+        "events": 50000,
+        "projections": 51000,
+        "shadow_records": 1000,
+        "quick_s": 2.172,
+        "deep_s": 3.597,
+        "deep_s_per_1000": 0.0719,
+        "queries": 35,
+        "findings": 1009,
+        "database_mb": 149.9
+      },
+      {
+        "events": 100000,
+        "projections": 101000,
+        "shadow_records": 1000,
+        "quick_s": 5.279,
+        "deep_s": 8.48,
+        "deep_s_per_1000": 0.0848,
+        "queries": 35,
+        "findings": 1009,
+        "database_mb": 298.3
+      }
+    ],
+    "scaling_after": {
+      "size_ratio": 100.0,
+      "deep_time_ratio": 92.17,
+      "linear_would_be": 100.0,
+      "quadratic_would_be": 10000.0,
+      "observed_exponent": 0.98
+    },
+    "before": [
+      {
+        "events": 1000,
+        "deep_s": 0.777,
+        "findings": 1009
+      },
+      {
+        "events": 5000,
+        "deep_s": 23.65,
+        "findings": 1009
+      },
+      {
+        "events": 10000,
+        "deep_s": 98.665,
+        "findings": 1009
+      }
+    ],
+    "scaling_before": {
+      "size_ratio": 10.0,
+      "deep_time_ratio": 126.98,
+      "linear_would_be": 10.0,
+      "quadratic_would_be": 100.0,
+      "observed_exponent": 2.1
+    },
+    "findings_unchanged": true
+  },
+  "append_scaling": [
+    {
+      "producers": 1,
+      "throughput_per_s": 2260.2,
+      "wall_s": 4.424,
+      "lock_errors": 0,
+      "failures": 0,
+      "p95_append_ms": 0.356
+    },
+    {
+      "producers": 2,
+      "throughput_per_s": 2593.9,
+      "wall_s": 3.855,
+      "lock_errors": 0,
+      "failures": 0,
+      "p95_append_ms": 1.9566
+    },
+    {
+      "producers": 4,
+      "throughput_per_s": 2322.3,
+      "wall_s": 4.306,
+      "lock_errors": 0,
+      "failures": 0,
+      "p95_append_ms": 2.298
+    },
+    {
+      "producers": 8,
+      "throughput_per_s": 2321.7,
+      "wall_s": 4.307,
+      "lock_errors": 0,
+      "failures": 0,
+      "p95_append_ms": 3.5578
+    }
+  ],
+  "projection_scaling": [
+    {
+      "workers": 1,
+      "throughput_per_s": 1098.2,
+      "drain_s": 9.106,
+      "build_p50_ms": 0.0,
+      "build_p95_ms": 2.003,
+      "completion_gap_p95_ms": 0.7617,
+      "already_built": 0,
+      "failed": 0,
+      "lock_errors": 0,
+      "doctor_before": 0,
+      "doctor_after": 0
+    },
+    {
+      "workers": 2,
+      "throughput_per_s": 1106.0,
+      "drain_s": 9.042,
+      "build_p50_ms": 0.0,
+      "build_p95_ms": 2.5482,
+      "completion_gap_p95_ms": 1.0126,
+      "already_built": 0,
+      "failed": 0,
+      "lock_errors": 0,
+      "doctor_before": 0,
+      "doctor_after": 0
+    },
+    {
+      "workers": 4,
+      "throughput_per_s": 982.1,
+      "drain_s": 10.182,
+      "build_p50_ms": 0.0,
+      "build_p95_ms": 1.5035,
+      "completion_gap_p95_ms": 1.0159,
+      "already_built": 0,
+      "failed": 0,
+      "lock_errors": 0,
+      "doctor_before": 0,
+      "doctor_after": 0
+    },
+    {
+      "workers": 8,
+      "throughput_per_s": 956.6,
+      "drain_s": 10.454,
+      "build_p50_ms": 0.0,
+      "build_p95_ms": 1.5023,
+      "completion_gap_p95_ms": 1.0288,
+      "already_built": 0,
+      "failed": 0,
+      "lock_errors": 0,
+      "doctor_before": 0,
+      "doctor_after": 0
+    }
+  ],
+  "mixed": [
+    {
+      "producers": 1,
+      "workers": 1,
+      "producer_throughput_per_s": 1091.0,
+      "worker_throughput_per_s": 755.7,
+      "p50_visibility_ms": 4455.9143,
+      "p95_visibility_ms": 4876.4403,
+      "p99_visibility_ms": 4908.2775,
+      "peak_queue_depth": 4725,
+      "drain_after_stop_s": 4.067,
+      "drained": true,
+      "lock_errors": 0,
+      "peak_rss_mb": 0.0,
+      "db_mb": 30.1,
+      "doctor_after": 0
+    },
+    {
+      "producers": 2,
+      "workers": 2,
+      "producer_throughput_per_s": 942.9,
+      "worker_throughput_per_s": 729.9,
+      "p50_visibility_ms": 3945.1754,
+      "p95_visibility_ms": 4716.0294,
+      "p99_visibility_ms": 4777.319,
+      "peak_queue_depth": 3648,
+      "drain_after_stop_s": 3.095,
+      "drained": true,
+      "lock_errors": 0,
+      "peak_rss_mb": 0.0,
+      "db_mb": 30.0,
+      "doctor_after": 0
+    },
+    {
+      "producers": 4,
+      "workers": 4,
+      "producer_throughput_per_s": 1163.8,
+      "worker_throughput_per_s": 754.2,
+      "p50_visibility_ms": 4059.2816,
+      "p95_visibility_ms": 5091.3022,
+      "p99_visibility_ms": 5728.2457,
+      "peak_queue_depth": 4720,
+      "drain_after_stop_s": 4.666,
+      "drained": true,
+      "lock_errors": 0,
+      "peak_rss_mb": 0.0,
+      "db_mb": 30.2,
+      "doctor_after": 0
+    },
+    {
+      "producers": 4,
+      "workers": 8,
+      "producer_throughput_per_s": 566.5,
+      "worker_throughput_per_s": 566.4,
+      "p50_visibility_ms": 905.5433,
+      "p95_visibility_ms": 2489.3053,
+      "p99_visibility_ms": 5229.6879,
+      "peak_queue_depth": 2033,
+      "drain_after_stop_s": 0.003,
+      "drained": true,
+      "lock_errors": 0,
+      "peak_rss_mb": 0.0,
+      "db_mb": 30.0,
+      "doctor_after": 0
+    },
+    {
+      "producers": 8,
+      "workers": 4,
+      "producer_throughput_per_s": 1151.7,
+      "worker_throughput_per_s": 701.5,
+      "p50_visibility_ms": 4360.2297,
+      "p95_visibility_ms": 5559.3748,
+      "p99_visibility_ms": 5675.1778,
+      "peak_queue_depth": 6041,
+      "drain_after_stop_s": 5.572,
+      "drained": true,
+      "lock_errors": 0,
+      "peak_rss_mb": 0.0,
+      "db_mb": 30.0,
+      "doctor_after": 0
+    }
+  ],
+  "shadow": {
+    "events": 10000,
+    "match_rate_pct": 100.0,
+    "mismatches": 0,
+    "statuses": {
+      "MATCH": 10000
+    },
+    "legacy_observe_p50_ms": 0.1494,
+    "shadow_observe_p50_ms": 0.3274,
+    "legacy_observe_p95_ms": 0.2977,
+    "shadow_observe_p95_ms": 0.5937,
+    "overhead_p50_pct": 119.14,
+    "overhead_p95_pct": 99.43,
+    "overhead_mean_pct": 205.15,
+    "drain_throughput_per_s": 1388.2,
+    "rows_visible_in_production": 0,
+    "rows_returned_by_recall": 0
+  },
+  "recovery": {
+    "events_appended": 5201,
+    "events_present": 5201,
+    "lost_events": 0,
+    "final_queue": {
+      "pending": 0,
+      "in_progress": 0,
+      "completed": 5201,
+      "dead_letter": 0,
+      "skipped": 0,
+      "events": 5201,
+      "ledger": 5201,
+      "memories": 5201,
+      "shadow": 0
+    },
+    "sqlite_integrity": "ok",
+    "duplicate_ledgers": 0,
+    "duplicate_projections": 0,
+    "scenarios": [
+      {
+        "scenario": "worker_killed_mid_drain",
+        "killed_after_completed": 1023,
+        "queue_after_kill": {
+          "pending": 2760,
+          "in_progress": 54,
+          "completed": 2186,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5000,
+          "ledger": 2190,
+          "memories": 2190,
+          "shadow": 0
+        },
+        "orphaned_in_progress": 54
+      },
+      {
+        "scenario": "worker_restarted",
+        "recovery_seconds": 24.099,
+        "queue": {
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 5000,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5000,
+          "ledger": 5000,
+          "memories": 5000,
+          "shadow": 0
+        },
+        "already_built": 0,
+        "jobs_recovered": 2814
+      },
+      {
+        "scenario": "write_lock_held",
+        "hold_seconds": 3.0,
+        "lock_acquired_by_holder": true,
+        "short_timeout_ms": 800,
+        "short_timeout_blocked_for_s": 0.95,
+        "short_timeout_lock_errors": 1,
+        "runtime_timeout_ms": 30000,
+        "runtime_timeout_blocked_for_s": 2.077,
+        "runtime_timeout_lock_errors": 0,
+        "total_seconds": 4.155,
+        "note": "the 800ms probe is expected to fail and does; the 30s probe is the runtime's own busy_timeout and is expected to wait and succeed"
+      },
+      {
+        "scenario": "stale_lease_reclaimed",
+        "reclaim_seconds": 0.277,
+        "in_progress_before": 1,
+        "in_progress_after": 0,
+        "reclaimed": 1
+      },
+      {
+        "scenario": "duplicate_enqueue",
+        "enqueue_attempts": 3,
+        "jobs_before": 1,
+        "jobs_after": 1,
+        "duplicate_jobs_created": 0,
+        "ledger_rows_for_event": 1
+      },
+      {
+        "scenario": "crash_after_projection_commit_before_outbox_complete",
+        "crashed_as_designed": true,
+        "exit_code": 70,
+        "queue_mid_crash": {
+          "pending": 195,
+          "in_progress": 3,
+          "completed": 5003,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5201,
+          "ledger": 5004,
+          "memories": 5004,
+          "shadow": 0
+        },
+        "queue_after_recovery": {
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 5201,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5201,
+          "ledger": 5201,
+          "memories": 5201,
+          "shadow": 0
+        },
+        "already_built_on_retry": 1
+      },
+      {
+        "scenario": "full_runtime_restart",
+        "events_readable_after_restart": 5201,
+        "sqlite_integrity_check": "ok",
+        "duplicate_ledger_rows": 0,
+        "duplicate_projections": 0
+      }
+    ],
+    "doctor_exit": 0
+  },
+  "fault_distribution": {
+    "planned_pct": {
+      "normal": 80.0,
+      "transient": 8.0,
+      "stale_lease": 4.0,
+      "dependency": 3.0,
+      "skipped": 2.0,
+      "permanent": 2.0,
+      "duplicate": 1.0
+    },
+    "actual_pct": {
+      "normal": 80.04,
+      "transient": 7.69,
+      "stale_lease": 4.23,
+      "dependency": 3.0,
+      "skipped": 1.91,
+      "permanent": 2.02,
+      "duplicate": 1.11
+    },
+    "terminal_states": {
+      "pending": 0,
+      "in_progress": 0,
+      "completed": 9607,
+      "dead_letter": 502,
+      "skipped": 191
+    },
+    "dead_letter_breakdown": [
+      {
+        "reason": "BenchmarkFailure: deliberate permanent failure (benchmark)",
+        "count": 202,
+        "classification": "expected: injected permanent failure"
+      },
+      {
+        "reason": "no builder registered for context_block",
+        "count": 300,
+        "classification": "expected: unsupported capability (context_block has no builder)"
+      }
+    ],
+    "unexplained_dead_letters": 0,
+    "stale_claims_remaining": 0,
+    "attempts_by_status": [
+      {
+        "status": "completed",
+        "max_attempts": 5,
+        "mean_attempts": 1.21
+      },
+      {
+        "status": "dead_letter",
+        "max_attempts": 5,
+        "mean_attempts": 3.18
+      },
+      {
+        "status": "skipped",
+        "max_attempts": 1,
+        "mean_attempts": 1.0
+      }
+    ],
+    "dependency_held": 285,
+    "already_built": 0,
+    "doctor_exit": 1,
+    "doctor_codes": {
+      "UNSUPPORTED_CAPABILITY": 4,
+      "SQLITE_INTEGRITY": 1,
+      "CAPABILITY_SUMMARY": 1,
+      "OUTBOX_DEAD_LETTER": 1,
+      "EVENT_CHECKSUM_CHAIN": 1,
+      "SHADOW_NOT_IN_USE": 1
+    }
+  },
+  "scale": [
+    {
+      "events": 10000,
+      "producers": 4,
+      "workers": 4,
+      "producer_throughput_per_s": 898.0,
+      "worker_throughput_per_s": 703.0,
+      "p95_visibility_ms": 4916.3954,
+      "p99_visibility_ms": 5715.971,
+      "peak_queue_depth": 4644,
+      "drain_after_stop_s": 3.089,
+      "drained": true,
+      "db_mb": 30.0,
+      "bytes_per_event": 3149,
+      "peak_rss_mb": 0.0,
+      "doctor_exit": 0,
+      "doctor_seconds": 0.4409,
+      "doctor_queries": 31,
+      "doctor_findings_per_s": 20.4
+    },
+    {
+      "events": 50000,
+      "producers": 4,
+      "workers": 4,
+      "producer_throughput_per_s": 948.6,
+      "worker_throughput_per_s": 613.3,
+      "p95_visibility_ms": 31756.3076,
+      "p99_visibility_ms": 32155.8151,
+      "peak_queue_depth": 25574,
+      "drain_after_stop_s": 28.816,
+      "drained": true,
+      "db_mb": 148.8,
+      "bytes_per_event": 3120,
+      "peak_rss_mb": 0.0,
+      "doctor_exit": 0,
+      "doctor_seconds": 3.6502,
+      "doctor_queries": 31,
+      "doctor_findings_per_s": 2.5
+    },
+    {
+      "events": 100000,
+      "producers": 4,
+      "workers": 4,
+      "producer_throughput_per_s": 1065.5,
+      "worker_throughput_per_s": 555.9,
+      "p95_visibility_ms": 93475.2069,
+      "p99_visibility_ms": 93899.8547,
+      "peak_queue_depth": 65550,
+      "drain_after_stop_s": 86.038,
+      "drained": true,
+      "db_mb": 297.5,
+      "bytes_per_event": 3120,
+      "peak_rss_mb": 0.0,
+      "doctor_exit": 0,
+      "doctor_seconds": 8.6327,
+      "doctor_queries": 31,
+      "doctor_findings_per_s": 1.0
+    }
+  ],
+  "soak": {
+    "hours": 1.19,
+    "appended": 366715,
+    "completed": 366713,
+    "samples": 57,
+    "queue_drained_after_stop": false,
+    "queue_depth_max": 6,
+    "queue_depth_last": 2,
+    "rss_mb_first": 89.4,
+    "rss_mb_last": 100.1,
+    "rss_growth_mb": 10.7,
+    "latency_drift_pct": 17.6,
+    "p95_first_half_ms": 75.96,
+    "p95_second_half_ms": 89.35,
+    "worker_generations": 3,
+    "runtime_restarts": 36,
+    "lock_errors": 0,
+    "sqlite_integrity": "ok",
+    "database_mb": 1077.9,
+    "doctor_before": 0,
+    "doctor_after": 0,
+    "doctor_codes_after": {
+      "UNSUPPORTED_CAPABILITY": 4,
+      "SQLITE_INTEGRITY": 1,
+      "CAPABILITY_SUMMARY": 1,
+      "OUTBOX_PENDING": 1,
+      "EVENT_CHECKSUM_CHAIN": 1,
+      "SHADOW_NOT_IN_USE": 1
+    }
+  },
+  "soak_latency": {
+    "wal_growth": {
+      "first_mb": 4.8,
+      "last_mb": 500.2,
+      "peak_mb": 500.2,
+      "last_pct_of_database": 46.4,
+      "note": "WAL grows under continuous multi-connection load and does not shrink on its own; a quiet moment or an explicit wal_checkpoint(TRUNCATE) is what resets it"
+    },
+    "windows_with_samples": 57,
+    "p95_steady_ms": 80.06,
+    "p95_worst_window_ms": 135.51,
+    "p95_best_window_ms": 43.6,
+    "p99_steady_ms": 140.26,
+    "p99_worst_window_ms": 845.45,
+    "method": "median across per-minute windows; worst window reported alongside"
+  },
+  "soak_verification": {
+    "why": "the hour-long run shared one stop event between producers and workers, so its post-producer drain had nobody draining it; this rerun uses the fixed code and measures the property",
+    "seconds": 366.2,
+    "appended": 39698,
+    "completed": 39698,
+    "queue_drained_after_stop": true,
+    "drain_seconds": 0.0,
+    "final_queue": {
+      "pending": 0,
+      "in_progress": 0,
+      "completed": 39698,
+      "dead_letter": 0,
+      "skipped": 0,
+      "events": 39698,
+      "ledger": 39698,
+      "memories": 39698,
+      "shadow": 0
+    },
+    "sqlite_integrity": "ok"
+  },
+  "write_path_profile": {
+    "events": 3000,
+    "append": {
+      "seconds": 3.901,
+      "per_event_ms": 1.3003,
+      "statements": {
+        "BEGIN": 3000,
+        "INSERT": 6000,
+        "COMMIT": 3000
+      },
+      "commits_per_event": 1.0,
+      "table_touches": {
+        "cognitive_events": 3000,
+        "projection_outbox": 3000
+      }
+    },
+    "projection": {
+      "seconds": 7.057,
+      "completed": 3000,
+      "throughput_per_s": 425.1,
+      "per_job_ms": 2.3525,
+      "builder_only_ms": 1.5604,
+      "builder_share_pct": 66.3,
+      "queue_connection_statements": {
+        "SELECT": 3061,
+        "BEGIN": 3060,
+        "UPDATE": 6000,
+        "COMMIT": 3060
+      },
+      "projection_connection_statements": {
+        "CREATE": 3,
+        "SELECT": 6000,
+        "BEGIN": 6000,
+        "INSERT": 9000,
+        "--": 31649,
+        "COMMIT": 6000,
+        "UPDATE": 3000
+      },
+      "commits_per_job": {
+        "queue_connection": 1.02,
+        "projection_connection": 2.0,
+        "total": 3.02
+      },
+      "statements_per_job": 25.611,
+      "table_touches": {
+        "projection_ledger": 12003,
+        "projection_outbox": 6061,
+        "cognitive_events": 3000,
+        "cognitive_memories": 3000
+      }
+    },
+    "database": {
+      "page_size": 4096,
+      "pages": 2317,
+      "bytes": 9490432
+    }
+  },
+  "operating_envelope": {
+    "basis": "slowest projection throughput observed: the minimum across repeatability runs and across database sizes",
+    "projection_floor_per_s": 555.9,
+    "headroom_pct": 30,
+    "recommended_workers": 4,
+    "recommended_producers": 4,
+    "safe_sustained_input_per_s": 389,
+    "burst_input_per_s": 555,
+    "burst_window_seconds": 60,
+    "max_healthy_queue_depth": 1111,
+    "notes": [
+      "8 workers costs 41% of total throughput against 4 on this machine",
+      "append sustains ~1,100/s but projection does not; sizing on append guarantees an unbounded queue",
+      "latency under sustained overload is a function of overload duration, not a property of the pipeline"
+    ]
+  },
+  "verdict": {
+    "checks": [
+      {
+        "check": "lost committed events",
+        "actual": 0,
+        "expected": 0,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "duplicate ledgers",
+        "actual": 0,
+        "expected": 0,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "duplicate projections",
+        "actual": 0,
+        "expected": 0,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "sqlite integrity",
+        "actual": "ok",
+        "expected": "ok",
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "no orphaned claims after recovery",
+        "actual": 0,
+        "expected": 0,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "unexplained dead letters",
+        "actual": 0,
+        "expected": 0,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "stale claims remaining",
+        "actual": 0,
+        "expected": 0,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "queue fully terminal",
+        "actual": "pending=0 in_progress=0",
+        "expected": "0/0",
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "shadow match rate",
+        "actual": "100.0%",
+        "expected": "100%",
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "shadow rows visible in production",
+        "actual": 0,
+        "expected": 0,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "shadow overhead p95",
+        "actual": "99.43%",
+        "expected": "<= 10%",
+        "pass": false,
+        "note": ""
+      },
+      {
+        "check": "sustained projection throughput",
+        "actual": "755.7/s at 1p+1w",
+        "expected": ">= 100/s",
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "queue drains after producers stop",
+        "actual": true,
+        "expected": true,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "p95 end-to-end visibility (unsaturated, from soak)",
+        "actual": "80.06ms",
+        "expected": "<= 500ms",
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "p99 end-to-end visibility (unsaturated, from soak)",
+        "actual": "140.26ms",
+        "expected": "<= 1000ms",
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "soak: queue drained",
+        "actual": "True in 0.0s (366.2s rerun)",
+        "expected": true,
+        "pass": true,
+        "note": "the hour-long run did not measure this - it stopped its workers alongside its producers; measured in the rerun after the fix"
+      },
+      {
+        "check": "soak: sqlite integrity",
+        "actual": "ok",
+        "expected": "ok",
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "soak: latency drift",
+        "actual": "17.6%",
+        "expected": "< 50%",
+        "pass": true,
+        "note": ""
+      },
+      {
+        "check": "soak: rss growth",
+        "actual": "10.7MB",
+        "expected": "< 100MB",
+        "pass": true,
+        "note": ""
+      }
+    ],
+    "passed": 18,
+    "failed": 1,
+    "failed_checks": [
+      "shadow overhead p95"
+    ],
+    "correctness_failures": [],
+    "recommendation": "CONDITIONAL GO"
+  }
+}

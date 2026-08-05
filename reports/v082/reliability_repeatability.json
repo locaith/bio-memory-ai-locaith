@@ -1,0 +1,151 @@
+{
+  "configuration": {
+    "events": 10000,
+    "producers": 4,
+    "workers": 4
+  },
+  "repeats": 4,
+  "environment": {
+    "os": "Windows 10 (10.0.26200)",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpu_cores_logical": 12,
+    "ram_bytes": 34170748928,
+    "ram_gb": 31.82,
+    "python": "3.11.9",
+    "python_implementation": "CPython",
+    "sqlite_version": "3.45.1",
+    "sqlite_module": "2.6.0",
+    "process_start_method": "spawn",
+    "commit_sha": "65bef58818a99eb53bfc3fb00fb65de0e289bf40",
+    "working_tree_clean": false,
+    "producers": null,
+    "workers": null,
+    "measurement_tooling": "stdlib only (ctypes/resource); psutil not installed"
+  },
+  "runs": [
+    {
+      "run": 0,
+      "wall_clock_start": 1785897178.5204995,
+      "producer_throughput_per_s": 829.1,
+      "worker_throughput_per_s": 703.9,
+      "total_throughput_per_s": 1533.0,
+      "p50_visibility_ms": 3754.5273,
+      "p95_visibility_ms": 5819.2456,
+      "p99_visibility_ms": 5994.7159,
+      "peak_queue_depth": 5237,
+      "drain_after_stop_s": 2.146,
+      "drained": true,
+      "lock_errors": 0,
+      "doctor_exit": 0
+    },
+    {
+      "run": 1,
+      "wall_clock_start": 1785897200.0271115,
+      "producer_throughput_per_s": 659.9,
+      "worker_throughput_per_s": 618.3,
+      "total_throughput_per_s": 1278.2,
+      "p50_visibility_ms": 1202.6799,
+      "p95_visibility_ms": 3078.1648,
+      "p99_visibility_ms": 3292.3994,
+      "peak_queue_depth": 2426,
+      "drain_after_stop_s": 1.02,
+      "drained": true,
+      "lock_errors": 0,
+      "doctor_exit": 0
+    },
+    {
+      "run": 2,
+      "wall_clock_start": 1785897223.5173604,
+      "producer_throughput_per_s": 1243.1,
+      "worker_throughput_per_s": 709.9,
+      "total_throughput_per_s": 1953.0,
+      "p50_visibility_ms": 6055.279,
+      "p95_visibility_ms": 6512.2061,
+      "p99_visibility_ms": 7094.7092,
+      "peak_queue_depth": 6327,
+      "drain_after_stop_s": 6.042,
+      "drained": true,
+      "lock_errors": 0,
+      "doctor_exit": 0
+    },
+    {
+      "run": 3,
+      "wall_clock_start": 1785897244.9069152,
+      "producer_throughput_per_s": 701.4,
+      "worker_throughput_per_s": 655.0,
+      "total_throughput_per_s": 1356.4,
+      "p50_visibility_ms": 1011.3292,
+      "p95_visibility_ms": 2159.7338,
+      "p99_visibility_ms": 2851.1865,
+      "peak_queue_depth": 1386,
+      "drain_after_stop_s": 1.01,
+      "drained": true,
+      "lock_errors": 0,
+      "doctor_exit": 0
+    }
+  ],
+  "producer_throughput_per_s": {
+    "n": 4,
+    "min": 659.9,
+    "median": 765.2,
+    "mean": 858.4,
+    "max": 1243.1,
+    "stdev": 266.4,
+    "max_over_min": 1.88,
+    "samples": [
+      829.1,
+      659.9,
+      1243.1,
+      701.4
+    ]
+  },
+  "worker_throughput_per_s": {
+    "n": 4,
+    "min": 618.3,
+    "median": 679.5,
+    "mean": 671.8,
+    "max": 709.9,
+    "stdev": 43.3,
+    "max_over_min": 1.15,
+    "samples": [
+      703.9,
+      618.3,
+      709.9,
+      655.0
+    ]
+  },
+  "p95_visibility_ms": {
+    "n": 4,
+    "min": 2159.7,
+    "median": 4448.7,
+    "mean": 4392.3,
+    "max": 6512.2,
+    "stdev": 2100.9,
+    "max_over_min": 3.02,
+    "samples": [
+      5819.2,
+      3078.2,
+      6512.2,
+      2159.7
+    ]
+  },
+  "peak_queue_depth": {
+    "n": 4,
+    "min": 1386.0,
+    "median": 3831.5,
+    "mean": 3844.0,
+    "max": 6327.0,
+    "stdev": 2320.8,
+    "max_over_min": 4.56,
+    "samples": [
+      5237.0,
+      2426.0,
+      6327.0,
+      1386.0
+    ]
+  },
+  "all_drained": true,
+  "all_doctor_clean": true,
+  "total_lock_errors": 0
+}

@@ -1,0 +1,4002 @@
+{
+  "label": "baseline",
+  "started_at": 1785893634.0368474,
+  "environment": {
+    "os": "Windows 10 (10.0.26200)",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpu_cores_logical": 12,
+    "ram_bytes": 34170748928,
+    "ram_gb": 31.82,
+    "python": "3.11.9",
+    "python_implementation": "CPython",
+    "sqlite_version": "3.45.1",
+    "sqlite_module": "2.6.0",
+    "process_start_method": "default",
+    "commit_sha": "65bef58818a99eb53bfc3fb00fb65de0e289bf40",
+    "working_tree_clean": false,
+    "producers": null,
+    "workers": null,
+    "measurement_tooling": "stdlib only (ctypes/resource); psutil not installed",
+    "run_dir": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn"
+  },
+  "corpus": {
+    "domains": [
+      "vi",
+      "en",
+      "coding",
+      "erp",
+      "legal",
+      "finance",
+      "medical",
+      "devops",
+      "iot",
+      "personal"
+    ],
+    "tenants": 10,
+    "workspaces_per_tenant": 10,
+    "domain_distribution_10k": {
+      "vi": 1000,
+      "en": 1000,
+      "coding": 1000,
+      "erp": 1000,
+      "legal": 1000,
+      "finance": 1000,
+      "medical": 1000,
+      "devops": 1000,
+      "iot": 1000,
+      "personal": 1000
+    }
+  },
+  "A_append_only": [
+    {
+      "workload": "A_append_only",
+      "events_requested": 10000,
+      "producers": 1,
+      "mode": "shadow",
+      "exit_codes": [
+        0
+      ],
+      "wall_seconds": 4.424,
+      "appended": 10000,
+      "append_throughput_per_s": 2260.2,
+      "outbox_enqueue_throughput_per_s": 2260.2,
+      "lock_errors": 0,
+      "failures": 0,
+      "per_producer": [
+        {
+          "index": 0,
+          "appended": 10000,
+          "throughput_per_s": 2326.5,
+          "latency": {
+            "name": "append.0",
+            "count": 10000,
+            "min_ms": 0.1105,
+            "mean_ms": 0.4272,
+            "p50_ms": 0.1935,
+            "p95_ms": 0.356,
+            "p99_ms": 12.3319,
+            "max_ms": 93.1555,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        }
+      ],
+      "queue": {
+        "pending": 10000,
+        "in_progress": 0,
+        "completed": 0,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 0,
+        "memories": 0,
+        "shadow": 0
+      },
+      "database": {
+        "db_bytes": 12824576,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 12824576
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\A_append_10000_1p.db"
+    },
+    {
+      "workload": "A_append_only",
+      "events_requested": 10000,
+      "producers": 2,
+      "mode": "shadow",
+      "exit_codes": [
+        0,
+        0
+      ],
+      "wall_seconds": 3.855,
+      "appended": 10000,
+      "append_throughput_per_s": 2593.9,
+      "outbox_enqueue_throughput_per_s": 2593.9,
+      "lock_errors": 0,
+      "failures": 0,
+      "per_producer": [
+        {
+          "index": 0,
+          "appended": 5000,
+          "throughput_per_s": 1336.0,
+          "latency": {
+            "name": "append.0",
+            "count": 5000,
+            "min_ms": 0.112,
+            "mean_ms": 0.7457,
+            "p50_ms": 0.2218,
+            "p95_ms": 1.9566,
+            "p99_ms": 15.6696,
+            "max_ms": 45.3931,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 1,
+          "appended": 5000,
+          "throughput_per_s": 1433.8,
+          "latency": {
+            "name": "append.1",
+            "count": 5000,
+            "min_ms": 0.1128,
+            "mean_ms": 0.6948,
+            "p50_ms": 0.2184,
+            "p95_ms": 1.597,
+            "p99_ms": 12.4749,
+            "max_ms": 58.6718,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        }
+      ],
+      "queue": {
+        "pending": 10000,
+        "in_progress": 0,
+        "completed": 0,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 0,
+        "memories": 0,
+        "shadow": 0
+      },
+      "database": {
+        "db_bytes": 12881920,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 12881920
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\A_append_10000_2p.db"
+    },
+    {
+      "workload": "A_append_only",
+      "events_requested": 10000,
+      "producers": 4,
+      "mode": "shadow",
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "wall_seconds": 4.306,
+      "appended": 10000,
+      "append_throughput_per_s": 2322.3,
+      "outbox_enqueue_throughput_per_s": 2322.3,
+      "lock_errors": 0,
+      "failures": 0,
+      "per_producer": [
+        {
+          "index": 0,
+          "appended": 2500,
+          "throughput_per_s": 870.8,
+          "latency": {
+            "name": "append.0",
+            "count": 2500,
+            "min_ms": 0.1183,
+            "mean_ms": 1.1453,
+            "p50_ms": 0.2236,
+            "p95_ms": 2.298,
+            "p99_ms": 21.235,
+            "max_ms": 193.9722,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 1,
+          "appended": 2500,
+          "throughput_per_s": 1222.2,
+          "latency": {
+            "name": "append.1",
+            "count": 2500,
+            "min_ms": 0.1167,
+            "mean_ms": 0.8153,
+            "p50_ms": 0.2062,
+            "p95_ms": 1.3824,
+            "p99_ms": 14.099,
+            "max_ms": 265.8884,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 2,
+          "appended": 2500,
+          "throughput_per_s": 606.3,
+          "latency": {
+            "name": "append.2",
+            "count": 2500,
+            "min_ms": 0.1192,
+            "mean_ms": 1.6466,
+            "p50_ms": 0.2031,
+            "p95_ms": 0.4095,
+            "p99_ms": 17.3678,
+            "max_ms": 2573.1027,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 3,
+          "appended": 2500,
+          "throughput_per_s": 843.1,
+          "latency": {
+            "name": "append.3",
+            "count": 2500,
+            "min_ms": 0.111,
+            "mean_ms": 1.1834,
+            "p50_ms": 0.2148,
+            "p95_ms": 1.914,
+            "p99_ms": 15.6643,
+            "max_ms": 552.2525,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        }
+      ],
+      "queue": {
+        "pending": 10000,
+        "in_progress": 0,
+        "completed": 0,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 0,
+        "memories": 0,
+        "shadow": 0
+      },
+      "database": {
+        "db_bytes": 12898304,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 12898304
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\A_append_10000_4p.db"
+    },
+    {
+      "workload": "A_append_only",
+      "events_requested": 10000,
+      "producers": 8,
+      "mode": "shadow",
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "wall_seconds": 4.307,
+      "appended": 10000,
+      "append_throughput_per_s": 2321.7,
+      "outbox_enqueue_throughput_per_s": 2321.7,
+      "lock_errors": 0,
+      "failures": 0,
+      "per_producer": [
+        {
+          "index": 0,
+          "appended": 1250,
+          "throughput_per_s": 751.4,
+          "latency": {
+            "name": "append.0",
+            "count": 1250,
+            "min_ms": 0.1164,
+            "mean_ms": 1.3282,
+            "p50_ms": 0.182,
+            "p95_ms": 1.3884,
+            "p99_ms": 27.1199,
+            "max_ms": 162.7168,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 1,
+          "appended": 1250,
+          "throughput_per_s": 396.9,
+          "latency": {
+            "name": "append.1",
+            "count": 1250,
+            "min_ms": 0.1168,
+            "mean_ms": 2.5162,
+            "p50_ms": 0.206,
+            "p95_ms": 1.8897,
+            "p99_ms": 29.2388,
+            "max_ms": 1243.9191,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 2,
+          "appended": 1250,
+          "throughput_per_s": 388.5,
+          "latency": {
+            "name": "append.2",
+            "count": 1250,
+            "min_ms": 0.1292,
+            "mean_ms": 2.5715,
+            "p50_ms": 0.2504,
+            "p95_ms": 3.5578,
+            "p99_ms": 30.3514,
+            "max_ms": 1234.781,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 3,
+          "appended": 1250,
+          "throughput_per_s": 476.7,
+          "latency": {
+            "name": "append.3",
+            "count": 1250,
+            "min_ms": 0.1172,
+            "mean_ms": 2.095,
+            "p50_ms": 0.2064,
+            "p95_ms": 1.7005,
+            "p99_ms": 25.7653,
+            "max_ms": 718.0053,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 4,
+          "appended": 1250,
+          "throughput_per_s": 492.8,
+          "latency": {
+            "name": "append.4",
+            "count": 1250,
+            "min_ms": 0.12,
+            "mean_ms": 2.0248,
+            "p50_ms": 0.2043,
+            "p95_ms": 1.9218,
+            "p99_ms": 27.994,
+            "max_ms": 931.382,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 5,
+          "appended": 1250,
+          "throughput_per_s": 366.6,
+          "latency": {
+            "name": "append.5",
+            "count": 1250,
+            "min_ms": 0.1288,
+            "mean_ms": 2.7282,
+            "p50_ms": 0.2547,
+            "p95_ms": 2.601,
+            "p99_ms": 38.5715,
+            "max_ms": 1666.6226,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 6,
+          "appended": 1250,
+          "throughput_per_s": 450.0,
+          "latency": {
+            "name": "append.6",
+            "count": 1250,
+            "min_ms": 0.1275,
+            "mean_ms": 2.2194,
+            "p50_ms": 0.2393,
+            "p95_ms": 2.6796,
+            "p99_ms": 30.9735,
+            "max_ms": 823.0242,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        },
+        {
+          "index": 7,
+          "appended": 1250,
+          "throughput_per_s": 319.3,
+          "latency": {
+            "name": "append.7",
+            "count": 1250,
+            "min_ms": 0.1224,
+            "mean_ms": 3.1273,
+            "p50_ms": 0.2068,
+            "p95_ms": 0.602,
+            "p99_ms": 19.1791,
+            "max_ms": 2809.2113,
+            "percentile_method": "exact"
+          },
+          "peak_rss_mb": 0.0
+        }
+      ],
+      "queue": {
+        "pending": 10000,
+        "in_progress": 0,
+        "completed": 0,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 0,
+        "memories": 0,
+        "shadow": 0
+      },
+      "database": {
+        "db_bytes": 12931072,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 12931072
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\A_append_10000_8p.db"
+    }
+  ],
+  "B_projection_only": [
+    {
+      "workload": "B_projection_only",
+      "events": 10000,
+      "workers": 1,
+      "shadow": false,
+      "preload_seconds": 4.148,
+      "exit_codes": [
+        0
+      ],
+      "wall_seconds": 9.106,
+      "drain_seconds": 9.106,
+      "completed": 10000,
+      "projection_throughput_per_s": 1098.2,
+      "samples": 10000,
+      "latency": {
+        "queue_wait": {
+          "name": "queue_wait",
+          "count": 10000,
+          "min_ms": 5360.1139,
+          "mean_ms": 7535.5868,
+          "p50_ms": 7632.232,
+          "p95_ms": 9466.048,
+          "p99_ms": 9672.631,
+          "max_ms": 9739.4049,
+          "percentile_method": "exact"
+        },
+        "build": {
+          "name": "build",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.4923,
+          "p50_ms": 0.0,
+          "p95_ms": 2.003,
+          "p99_ms": 11.8668,
+          "max_ms": 49.9249,
+          "percentile_method": "exact"
+        },
+        "completion_gap": {
+          "name": "completion_gap",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.1723,
+          "p50_ms": 0.0,
+          "p95_ms": 0.7617,
+          "p99_ms": 4.5154,
+          "max_ms": 113.0211,
+          "percentile_method": "exact"
+        },
+        "end_to_end_visibility": {
+          "name": "end_to_end_visibility",
+          "count": 10000,
+          "min_ms": 5375.6239,
+          "mean_ms": 7559.2188,
+          "p50_ms": 7654.9602,
+          "p95_ms": 9496.9432,
+          "p99_ms": 9703.7389,
+          "max_ms": 9772.7771,
+          "percentile_method": "exact"
+        }
+      },
+      "metrics": {
+        "claimed": 10000,
+        "completed": 10000,
+        "already_built": 0,
+        "skipped": 0,
+        "failed": 0,
+        "dead_lettered": 0,
+        "dependency_held": 0,
+        "blocked": 0,
+        "cycles": 208,
+        "build_seconds": 5.3231
+      },
+      "lock_errors": 0,
+      "peak_rss_mb": 0.0,
+      "queue_before": {
+        "pending": 10000,
+        "in_progress": 0,
+        "completed": 0,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 0,
+        "memories": 0,
+        "shadow": 0
+      },
+      "queue_after": {
+        "pending": 0,
+        "in_progress": 0,
+        "completed": 10000,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 10000,
+        "memories": 10000,
+        "shadow": 0
+      },
+      "doctor_before": {
+        "exit_code": 0,
+        "worst_severity": "WARN",
+        "checks_run": 13,
+        "queries": 27,
+        "duration_s": 0.2243,
+        "findings_per_second": 44.6,
+        "by_severity": {
+          "PASS": 3,
+          "INFO": 6,
+          "WARN": 1,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "SCHEMA_OPTIONAL_TABLE_ABSENT": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_PENDING": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 0,
+          "ledger": 0,
+          "shadow": 0
+        }
+      },
+      "doctor_after": {
+        "exit_code": 0,
+        "worst_severity": "INFO",
+        "checks_run": 13,
+        "queries": 30,
+        "duration_s": 92.5409,
+        "findings_per_second": 0.1,
+        "by_severity": {
+          "PASS": 4,
+          "INFO": 5,
+          "WARN": 0,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 10000,
+          "ledger": 10000,
+          "shadow": 0
+        }
+      },
+      "database": {
+        "db_bytes": 31449088,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 31449088
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\B_projection_10000_1w.db"
+    },
+    {
+      "workload": "B_projection_only",
+      "events": 10000,
+      "workers": 2,
+      "shadow": false,
+      "preload_seconds": 9.153,
+      "exit_codes": [
+        0,
+        0
+      ],
+      "wall_seconds": 9.042,
+      "drain_seconds": 9.042,
+      "completed": 10000,
+      "projection_throughput_per_s": 1106.0,
+      "samples": 10000,
+      "latency": {
+        "queue_wait": {
+          "name": "queue_wait",
+          "count": 10000,
+          "min_ms": 7129.987,
+          "mean_ms": 8630.5002,
+          "p50_ms": 8692.4872,
+          "p95_ms": 9896.3408,
+          "p99_ms": 10166.0604,
+          "max_ms": 10400.1548,
+          "percentile_method": "exact"
+        },
+        "build": {
+          "name": "build",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.5251,
+          "p50_ms": 0.0,
+          "p95_ms": 2.5482,
+          "p99_ms": 10.3559,
+          "max_ms": 29.8555,
+          "percentile_method": "exact"
+        },
+        "completion_gap": {
+          "name": "completion_gap",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.5161,
+          "p50_ms": 0.0,
+          "p95_ms": 1.0126,
+          "p99_ms": 13.2217,
+          "max_ms": 143.6625,
+          "percentile_method": "exact"
+        },
+        "end_to_end_visibility": {
+          "name": "end_to_end_visibility",
+          "count": 10000,
+          "min_ms": 7169.287,
+          "mean_ms": 8670.6449,
+          "p50_ms": 8737.3354,
+          "p95_ms": 9936.7821,
+          "p99_ms": 10230.9163,
+          "max_ms": 10485.7929,
+          "percentile_method": "exact"
+        }
+      },
+      "metrics": {
+        "claimed": 10000,
+        "completed": 10000,
+        "already_built": 0,
+        "skipped": 0,
+        "failed": 0,
+        "dead_lettered": 0,
+        "dependency_held": 0,
+        "blocked": 0,
+        "cycles": 240,
+        "build_seconds": 7.86
+      },
+      "lock_errors": 0,
+      "peak_rss_mb": 0.0,
+      "queue_before": {
+        "pending": 10000,
+        "in_progress": 0,
+        "completed": 0,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 0,
+        "memories": 0,
+        "shadow": 0
+      },
+      "queue_after": {
+        "pending": 0,
+        "in_progress": 0,
+        "completed": 10000,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 10000,
+        "memories": 10000,
+        "shadow": 0
+      },
+      "doctor_before": {
+        "exit_code": 0,
+        "worst_severity": "WARN",
+        "checks_run": 13,
+        "queries": 27,
+        "duration_s": 0.2254,
+        "findings_per_second": 44.4,
+        "by_severity": {
+          "PASS": 3,
+          "INFO": 6,
+          "WARN": 1,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "SCHEMA_OPTIONAL_TABLE_ABSENT": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_PENDING": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 0,
+          "ledger": 0,
+          "shadow": 0
+        }
+      },
+      "doctor_after": {
+        "exit_code": 0,
+        "worst_severity": "INFO",
+        "checks_run": 13,
+        "queries": 30,
+        "duration_s": 88.9246,
+        "findings_per_second": 0.1,
+        "by_severity": {
+          "PASS": 4,
+          "INFO": 5,
+          "WARN": 0,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 10000,
+          "ledger": 10000,
+          "shadow": 0
+        }
+      },
+      "database": {
+        "db_bytes": 31408128,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 31408128
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\B_projection_10000_2w.db"
+    },
+    {
+      "workload": "B_projection_only",
+      "events": 10000,
+      "workers": 4,
+      "shadow": false,
+      "preload_seconds": 5.88,
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "wall_seconds": 10.182,
+      "drain_seconds": 10.182,
+      "completed": 10000,
+      "projection_throughput_per_s": 982.1,
+      "samples": 10000,
+      "latency": {
+        "queue_wait": {
+          "name": "queue_wait",
+          "count": 10000,
+          "min_ms": 6671.8111,
+          "mean_ms": 8382.8267,
+          "p50_ms": 8121.1779,
+          "p95_ms": 10629.3771,
+          "p99_ms": 10751.2405,
+          "max_ms": 10782.3286,
+          "percentile_method": "exact"
+        },
+        "build": {
+          "name": "build",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.6844,
+          "p50_ms": 0.0,
+          "p95_ms": 1.5035,
+          "p99_ms": 10.8347,
+          "max_ms": 261.2779,
+          "percentile_method": "exact"
+        },
+        "completion_gap": {
+          "name": "completion_gap",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 1.3587,
+          "p50_ms": 0.0,
+          "p95_ms": 1.0159,
+          "p99_ms": 26.9468,
+          "max_ms": 1543.864,
+          "percentile_method": "exact"
+        },
+        "end_to_end_visibility": {
+          "name": "end_to_end_visibility",
+          "count": 10000,
+          "min_ms": 6714.201,
+          "mean_ms": 8464.6779,
+          "p50_ms": 8215.4534,
+          "p95_ms": 10684.0982,
+          "p99_ms": 10801.7828,
+          "max_ms": 11479.5716,
+          "percentile_method": "exact"
+        }
+      },
+      "metrics": {
+        "claimed": 10000,
+        "completed": 10000,
+        "already_built": 0,
+        "skipped": 0,
+        "failed": 0,
+        "dead_lettered": 0,
+        "dependency_held": 0,
+        "blocked": 0,
+        "cycles": 266,
+        "build_seconds": 12.7417
+      },
+      "lock_errors": 0,
+      "peak_rss_mb": 0.0,
+      "queue_before": {
+        "pending": 10000,
+        "in_progress": 0,
+        "completed": 0,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 0,
+        "memories": 0,
+        "shadow": 0
+      },
+      "queue_after": {
+        "pending": 0,
+        "in_progress": 0,
+        "completed": 10000,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 10000,
+        "memories": 10000,
+        "shadow": 0
+      },
+      "doctor_before": {
+        "exit_code": 0,
+        "worst_severity": "WARN",
+        "checks_run": 13,
+        "queries": 27,
+        "duration_s": 0.212,
+        "findings_per_second": 47.2,
+        "by_severity": {
+          "PASS": 3,
+          "INFO": 6,
+          "WARN": 1,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "SCHEMA_OPTIONAL_TABLE_ABSENT": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_PENDING": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 0,
+          "ledger": 0,
+          "shadow": 0
+        }
+      },
+      "doctor_after": {
+        "exit_code": 0,
+        "worst_severity": "INFO",
+        "checks_run": 13,
+        "queries": 30,
+        "duration_s": 85.3643,
+        "findings_per_second": 0.1,
+        "by_severity": {
+          "PASS": 4,
+          "INFO": 5,
+          "WARN": 0,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 10000,
+          "ledger": 10000,
+          "shadow": 0
+        }
+      },
+      "database": {
+        "db_bytes": 31379456,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 31379456
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\B_projection_10000_4w.db"
+    },
+    {
+      "workload": "B_projection_only",
+      "events": 10000,
+      "workers": 8,
+      "shadow": false,
+      "preload_seconds": 4.441,
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "wall_seconds": 10.454,
+      "drain_seconds": 10.454,
+      "completed": 10000,
+      "projection_throughput_per_s": 956.6,
+      "samples": 10000,
+      "latency": {
+        "queue_wait": {
+          "name": "queue_wait",
+          "count": 10000,
+          "min_ms": 6029.2196,
+          "mean_ms": 8578.3769,
+          "p50_ms": 8647.8288,
+          "p95_ms": 10610.9233,
+          "p99_ms": 10697.48,
+          "max_ms": 10728.8771,
+          "percentile_method": "exact"
+        },
+        "build": {
+          "name": "build",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.559,
+          "p50_ms": 0.0,
+          "p95_ms": 1.5023,
+          "p99_ms": 10.3297,
+          "max_ms": 21.0922,
+          "percentile_method": "exact"
+        },
+        "completion_gap": {
+          "name": "completion_gap",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 2.4022,
+          "p50_ms": 0.0,
+          "p95_ms": 1.0288,
+          "p99_ms": 27.0667,
+          "max_ms": 4458.7257,
+          "percentile_method": "exact"
+        },
+        "end_to_end_visibility": {
+          "name": "end_to_end_visibility",
+          "count": 10000,
+          "min_ms": 6051.8477,
+          "mean_ms": 8697.2423,
+          "p50_ms": 8764.9624,
+          "p95_ms": 10703.6862,
+          "p99_ms": 11371.5415,
+          "max_ms": 13310.2634,
+          "percentile_method": "exact"
+        }
+      },
+      "metrics": {
+        "claimed": 10000,
+        "completed": 10000,
+        "already_built": 0,
+        "skipped": 0,
+        "failed": 0,
+        "dead_lettered": 0,
+        "dependency_held": 0,
+        "blocked": 0,
+        "cycles": 316,
+        "build_seconds": 18.6073
+      },
+      "lock_errors": 0,
+      "peak_rss_mb": 0.0,
+      "queue_before": {
+        "pending": 10000,
+        "in_progress": 0,
+        "completed": 0,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 0,
+        "memories": 0,
+        "shadow": 0
+      },
+      "queue_after": {
+        "pending": 0,
+        "in_progress": 0,
+        "completed": 10000,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 10000,
+        "memories": 10000,
+        "shadow": 0
+      },
+      "doctor_before": {
+        "exit_code": 0,
+        "worst_severity": "WARN",
+        "checks_run": 13,
+        "queries": 27,
+        "duration_s": 0.2061,
+        "findings_per_second": 48.5,
+        "by_severity": {
+          "PASS": 3,
+          "INFO": 6,
+          "WARN": 1,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "SCHEMA_OPTIONAL_TABLE_ABSENT": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_PENDING": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 0,
+          "ledger": 0,
+          "shadow": 0
+        }
+      },
+      "doctor_after": {
+        "exit_code": 0,
+        "worst_severity": "INFO",
+        "checks_run": 13,
+        "queries": 30,
+        "duration_s": 91.6219,
+        "findings_per_second": 0.1,
+        "by_severity": {
+          "PASS": 4,
+          "INFO": 5,
+          "WARN": 0,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 10000,
+          "ledger": 10000,
+          "shadow": 0
+        }
+      },
+      "database": {
+        "db_bytes": 31449088,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 31449088
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\B_projection_10000_8w.db"
+    }
+  ],
+  "C_mixed": [
+    {
+      "workload": "C_mixed",
+      "events": 10000,
+      "producers": 1,
+      "workers": 1,
+      "shadow": false,
+      "worker_exit_codes": [
+        0
+      ],
+      "produce_seconds": 9.166,
+      "queue_drain_seconds_after_producers_stop": 4.067,
+      "total_seconds": 13.233,
+      "appended": 10000,
+      "completed": 10000,
+      "producer_throughput_per_s": 1091.0,
+      "worker_throughput_per_s": 755.7,
+      "latency": {
+        "queue_wait": {
+          "name": "queue_wait",
+          "count": 10000,
+          "min_ms": 9.9268,
+          "mean_ms": 3425.6211,
+          "p50_ms": 4422.277,
+          "p95_ms": 4854.8286,
+          "p99_ms": 4888.6602,
+          "max_ms": 4945.6031,
+          "percentile_method": "exact"
+        },
+        "build": {
+          "name": "build",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.6035,
+          "p50_ms": 0.0,
+          "p95_ms": 1.1678,
+          "p99_ms": 12.7358,
+          "max_ms": 133.9047,
+          "percentile_method": "exact"
+        },
+        "completion_gap": {
+          "name": "completion_gap",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.4724,
+          "p50_ms": 0.0,
+          "p95_ms": 1.0049,
+          "p99_ms": 13.9859,
+          "max_ms": 61.5356,
+          "percentile_method": "exact"
+        },
+        "end_to_end_visibility": {
+          "name": "end_to_end_visibility",
+          "count": 10000,
+          "min_ms": 21.9357,
+          "mean_ms": 3460.1678,
+          "p50_ms": 4455.9143,
+          "p95_ms": 4876.4403,
+          "p99_ms": 4908.2775,
+          "max_ms": 4949.7361,
+          "percentile_method": "exact"
+        }
+      },
+      "metrics": {
+        "claimed": 10000,
+        "completed": 10000,
+        "already_built": 0,
+        "skipped": 0,
+        "failed": 0,
+        "dead_lettered": 0,
+        "dependency_held": 0,
+        "blocked": 0,
+        "cycles": 202,
+        "build_seconds": 7.0676
+      },
+      "lock_errors": 0,
+      "peak_queue_depth": 4725,
+      "queue_depth_series": [
+        {
+          "t": 0.0,
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 0,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 0,
+          "ledger": 0,
+          "memories": 0,
+          "shadow": 0
+        },
+        {
+          "t": 0.502,
+          "pending": 506,
+          "in_progress": 35,
+          "completed": 365,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 906,
+          "ledger": 366,
+          "memories": 366,
+          "shadow": 0
+        },
+        {
+          "t": 1.004,
+          "pending": 918,
+          "in_progress": 42,
+          "completed": 708,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 1669,
+          "ledger": 709,
+          "memories": 709,
+          "shadow": 0
+        },
+        {
+          "t": 1.506,
+          "pending": 1088,
+          "in_progress": 40,
+          "completed": 1110,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 2238,
+          "ledger": 1111,
+          "memories": 1111,
+          "shadow": 0
+        },
+        {
+          "t": 2.008,
+          "pending": 1234,
+          "in_progress": 34,
+          "completed": 1516,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 2784,
+          "ledger": 1517,
+          "memories": 1517,
+          "shadow": 0
+        },
+        {
+          "t": 2.515,
+          "pending": 1814,
+          "in_progress": 16,
+          "completed": 1734,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 3566,
+          "ledger": 1735,
+          "memories": 1735,
+          "shadow": 0
+        },
+        {
+          "t": 3.018,
+          "pending": 2049,
+          "in_progress": 41,
+          "completed": 2059,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 4149,
+          "ledger": 2061,
+          "memories": 2061,
+          "shadow": 0
+        },
+        {
+          "t": 3.521,
+          "pending": 2425,
+          "in_progress": 32,
+          "completed": 2318,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 4775,
+          "ledger": 2319,
+          "memories": 2319,
+          "shadow": 0
+        },
+        {
+          "t": 4.025,
+          "pending": 2675,
+          "in_progress": 5,
+          "completed": 2645,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5325,
+          "ledger": 2648,
+          "memories": 2648,
+          "shadow": 0
+        },
+        {
+          "t": 4.527,
+          "pending": 3054,
+          "in_progress": 14,
+          "completed": 2886,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5955,
+          "ledger": 2887,
+          "memories": 2887,
+          "shadow": 0
+        },
+        {
+          "t": 5.122,
+          "pending": 3275,
+          "in_progress": 49,
+          "completed": 3151,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 6475,
+          "ledger": 3152,
+          "memories": 3152,
+          "shadow": 0
+        },
+        {
+          "t": 5.634,
+          "pending": 3389,
+          "in_progress": 21,
+          "completed": 3479,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 6891,
+          "ledger": 3480,
+          "memories": 3480,
+          "shadow": 0
+        },
+        {
+          "t": 6.138,
+          "pending": 3752,
+          "in_progress": 40,
+          "completed": 3710,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7502,
+          "ledger": 3712,
+          "memories": 3712,
+          "shadow": 0
+        },
+        {
+          "t": 6.641,
+          "pending": 3785,
+          "in_progress": 34,
+          "completed": 4066,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7885,
+          "ledger": 4068,
+          "memories": 4069,
+          "shadow": 0
+        },
+        {
+          "t": 7.145,
+          "pending": 3841,
+          "in_progress": 18,
+          "completed": 4432,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 8291,
+          "ledger": 4433,
+          "memories": 4433,
+          "shadow": 0
+        },
+        {
+          "t": 7.65,
+          "pending": 4127,
+          "in_progress": 50,
+          "completed": 4650,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 8828,
+          "ledger": 4650,
+          "memories": 4650,
+          "shadow": 0
+        },
+        {
+          "t": 8.159,
+          "pending": 4589,
+          "in_progress": 0,
+          "completed": 4850,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9439,
+          "ledger": 4851,
+          "memories": 4852,
+          "shadow": 0
+        },
+        {
+          "t": 8.662,
+          "pending": 4725,
+          "in_progress": 18,
+          "completed": 5132,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9877,
+          "ledger": 5133,
+          "memories": 5133,
+          "shadow": 0
+        },
+        {
+          "t": 9.171,
+          "pending": 4350,
+          "in_progress": 34,
+          "completed": 5616,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 5617,
+          "memories": 5617,
+          "shadow": 0
+        },
+        {
+          "t": 9.674,
+          "pending": 3800,
+          "in_progress": 18,
+          "completed": 6182,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 6185,
+          "memories": 6185,
+          "shadow": 0
+        },
+        {
+          "t": 10.179,
+          "pending": 3350,
+          "in_progress": 21,
+          "completed": 6629,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 6633,
+          "memories": 6634,
+          "shadow": 0
+        },
+        {
+          "t": 10.693,
+          "pending": 2800,
+          "in_progress": 29,
+          "completed": 7171,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 7175,
+          "memories": 7176,
+          "shadow": 0
+        },
+        {
+          "t": 11.206,
+          "pending": 2250,
+          "in_progress": 7,
+          "completed": 7743,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 7744,
+          "memories": 7744,
+          "shadow": 0
+        },
+        {
+          "t": 11.711,
+          "pending": 1700,
+          "in_progress": 12,
+          "completed": 8288,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 8291,
+          "memories": 8292,
+          "shadow": 0
+        },
+        {
+          "t": 12.215,
+          "pending": 1100,
+          "in_progress": 19,
+          "completed": 8881,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 8884,
+          "memories": 8885,
+          "shadow": 0
+        },
+        {
+          "t": 12.73,
+          "pending": 500,
+          "in_progress": 27,
+          "completed": 9473,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 9474,
+          "memories": 9474,
+          "shadow": 0
+        },
+        {
+          "t": 13.233,
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 10000,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 10000,
+          "memories": 10000,
+          "shadow": 0
+        }
+      ],
+      "queue_final": {
+        "pending": 0,
+        "in_progress": 0,
+        "completed": 10000,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 10000,
+        "memories": 10000,
+        "shadow": 0
+      },
+      "queue_drained": true,
+      "peak_rss_mb": 0.0,
+      "doctor_after": {
+        "exit_code": 0,
+        "worst_severity": "INFO",
+        "checks_run": 13,
+        "queries": 30,
+        "duration_s": 103.0326,
+        "findings_per_second": 0.1,
+        "by_severity": {
+          "PASS": 4,
+          "INFO": 5,
+          "WARN": 0,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 10000,
+          "ledger": 10000,
+          "shadow": 0
+        }
+      },
+      "database": {
+        "db_bytes": 31522816,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 31522816
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\C_mixed_10000_1p_1w.db"
+    },
+    {
+      "workload": "C_mixed",
+      "events": 10000,
+      "producers": 2,
+      "workers": 2,
+      "shadow": false,
+      "worker_exit_codes": [
+        0,
+        0
+      ],
+      "produce_seconds": 10.605,
+      "queue_drain_seconds_after_producers_stop": 3.095,
+      "total_seconds": 13.7,
+      "appended": 10000,
+      "completed": 10000,
+      "producer_throughput_per_s": 942.9,
+      "worker_throughput_per_s": 729.9,
+      "latency": {
+        "queue_wait": {
+          "name": "queue_wait",
+          "count": 10000,
+          "min_ms": 0.9997,
+          "mean_ms": 3177.2275,
+          "p50_ms": 3847.0185,
+          "p95_ms": 4669.4479,
+          "p99_ms": 4741.8859,
+          "max_ms": 4789.6717,
+          "percentile_method": "exact"
+        },
+        "build": {
+          "name": "build",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.6403,
+          "p50_ms": 0.0,
+          "p95_ms": 1.5047,
+          "p99_ms": 11.7443,
+          "max_ms": 102.1535,
+          "percentile_method": "exact"
+        },
+        "completion_gap": {
+          "name": "completion_gap",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 1.3306,
+          "p50_ms": 0.0,
+          "p95_ms": 1.0667,
+          "p99_ms": 28.2161,
+          "max_ms": 2601.1412,
+          "percentile_method": "exact"
+        },
+        "end_to_end_visibility": {
+          "name": "end_to_end_visibility",
+          "count": 10000,
+          "min_ms": 5.7085,
+          "mean_ms": 3238.5425,
+          "p50_ms": 3945.1754,
+          "p95_ms": 4716.0294,
+          "p99_ms": 4777.319,
+          "max_ms": 5304.297,
+          "percentile_method": "exact"
+        }
+      },
+      "metrics": {
+        "claimed": 10000,
+        "completed": 10000,
+        "already_built": 0,
+        "skipped": 0,
+        "failed": 0,
+        "dead_lettered": 0,
+        "dependency_held": 0,
+        "blocked": 0,
+        "cycles": 253,
+        "build_seconds": 10.4899
+      },
+      "lock_errors": 0,
+      "peak_queue_depth": 3648,
+      "queue_depth_series": [
+        {
+          "t": 0.0,
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 0,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 0,
+          "ledger": 0,
+          "memories": 0,
+          "shadow": 0
+        },
+        {
+          "t": 0.502,
+          "pending": 424,
+          "in_progress": 29,
+          "completed": 385,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 838,
+          "ledger": 385,
+          "memories": 385,
+          "shadow": 0
+        },
+        {
+          "t": 1.005,
+          "pending": 1061,
+          "in_progress": 49,
+          "completed": 665,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 1775,
+          "ledger": 667,
+          "memories": 667,
+          "shadow": 0
+        },
+        {
+          "t": 1.507,
+          "pending": 1296,
+          "in_progress": 49,
+          "completed": 1065,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 2411,
+          "ledger": 1066,
+          "memories": 1066,
+          "shadow": 0
+        },
+        {
+          "t": 2.009,
+          "pending": 1530,
+          "in_progress": 14,
+          "completed": 1400,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 2944,
+          "ledger": 1402,
+          "memories": 1402,
+          "shadow": 0
+        },
+        {
+          "t": 2.513,
+          "pending": 2053,
+          "in_progress": 18,
+          "completed": 1646,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 3717,
+          "ledger": 1648,
+          "memories": 1648,
+          "shadow": 0
+        },
+        {
+          "t": 3.022,
+          "pending": 2761,
+          "in_progress": 44,
+          "completed": 1820,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 4626,
+          "ledger": 1822,
+          "memories": 1822,
+          "shadow": 0
+        },
+        {
+          "t": 3.525,
+          "pending": 2835,
+          "in_progress": 69,
+          "completed": 2195,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5099,
+          "ledger": 2197,
+          "memories": 2197,
+          "shadow": 0
+        },
+        {
+          "t": 4.031,
+          "pending": 2558,
+          "in_progress": 41,
+          "completed": 2673,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5272,
+          "ledger": 2676,
+          "memories": 2676,
+          "shadow": 0
+        },
+        {
+          "t": 4.542,
+          "pending": 2800,
+          "in_progress": 19,
+          "completed": 2995,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5815,
+          "ledger": 2997,
+          "memories": 2997,
+          "shadow": 0
+        },
+        {
+          "t": 5.046,
+          "pending": 2842,
+          "in_progress": 11,
+          "completed": 3353,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 6206,
+          "ledger": 3353,
+          "memories": 3353,
+          "shadow": 0
+        },
+        {
+          "t": 5.55,
+          "pending": 2914,
+          "in_progress": 86,
+          "completed": 3678,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 6680,
+          "ledger": 3680,
+          "memories": 3680,
+          "shadow": 0
+        },
+        {
+          "t": 6.053,
+          "pending": 3258,
+          "in_progress": 79,
+          "completed": 3935,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7273,
+          "ledger": 3936,
+          "memories": 3936,
+          "shadow": 0
+        },
+        {
+          "t": 6.556,
+          "pending": 3446,
+          "in_progress": 54,
+          "completed": 4210,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7711,
+          "ledger": 4212,
+          "memories": 4212,
+          "shadow": 0
+        },
+        {
+          "t": 7.064,
+          "pending": 3396,
+          "in_progress": 54,
+          "completed": 4560,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 8010,
+          "ledger": 4564,
+          "memories": 4564,
+          "shadow": 0
+        },
+        {
+          "t": 7.567,
+          "pending": 3556,
+          "in_progress": 76,
+          "completed": 4838,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 8470,
+          "ledger": 4840,
+          "memories": 4840,
+          "shadow": 0
+        },
+        {
+          "t": 8.071,
+          "pending": 3513,
+          "in_progress": 42,
+          "completed": 5222,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 8778,
+          "ledger": 5222,
+          "memories": 5222,
+          "shadow": 0
+        },
+        {
+          "t": 8.575,
+          "pending": 3648,
+          "in_progress": 24,
+          "completed": 5490,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9162,
+          "ledger": 5491,
+          "memories": 5492,
+          "shadow": 0
+        },
+        {
+          "t": 9.082,
+          "pending": 3407,
+          "in_progress": 60,
+          "completed": 5904,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9371,
+          "ledger": 5908,
+          "memories": 5908,
+          "shadow": 0
+        },
+        {
+          "t": 9.586,
+          "pending": 3042,
+          "in_progress": 61,
+          "completed": 6403,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9509,
+          "ledger": 6404,
+          "memories": 6404,
+          "shadow": 0
+        },
+        {
+          "t": 10.089,
+          "pending": 3143,
+          "in_progress": 18,
+          "completed": 6696,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9857,
+          "ledger": 6697,
+          "memories": 6697,
+          "shadow": 0
+        },
+        {
+          "t": 10.611,
+          "pending": 2886,
+          "in_progress": 29,
+          "completed": 7085,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 7086,
+          "memories": 7086,
+          "shadow": 0
+        },
+        {
+          "t": 11.115,
+          "pending": 2286,
+          "in_progress": 80,
+          "completed": 7634,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 7637,
+          "memories": 7638,
+          "shadow": 0
+        },
+        {
+          "t": 11.62,
+          "pending": 1786,
+          "in_progress": 40,
+          "completed": 8174,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 8178,
+          "memories": 8179,
+          "shadow": 0
+        },
+        {
+          "t": 12.128,
+          "pending": 1186,
+          "in_progress": 99,
+          "completed": 8715,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 8718,
+          "memories": 8718,
+          "shadow": 0
+        },
+        {
+          "t": 12.691,
+          "pending": 686,
+          "in_progress": 47,
+          "completed": 9267,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 9271,
+          "memories": 9272,
+          "shadow": 0
+        },
+        {
+          "t": 13.195,
+          "pending": 136,
+          "in_progress": 46,
+          "completed": 9818,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 9823,
+          "memories": 9825,
+          "shadow": 0
+        },
+        {
+          "t": 13.7,
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 10000,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 10000,
+          "memories": 10000,
+          "shadow": 0
+        }
+      ],
+      "queue_final": {
+        "pending": 0,
+        "in_progress": 0,
+        "completed": 10000,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 10000,
+        "memories": 10000,
+        "shadow": 0
+      },
+      "queue_drained": true,
+      "peak_rss_mb": 0.0,
+      "doctor_after": {
+        "exit_code": 0,
+        "worst_severity": "INFO",
+        "checks_run": 13,
+        "queries": 30,
+        "duration_s": 95.0286,
+        "findings_per_second": 0.1,
+        "by_severity": {
+          "PASS": 4,
+          "INFO": 5,
+          "WARN": 0,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 10000,
+          "ledger": 10000,
+          "shadow": 0
+        }
+      },
+      "database": {
+        "db_bytes": 31469568,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 31469568
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\C_mixed_10000_2p_2w.db"
+    },
+    {
+      "workload": "C_mixed",
+      "events": 10000,
+      "producers": 4,
+      "workers": 4,
+      "shadow": false,
+      "worker_exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "produce_seconds": 8.593,
+      "queue_drain_seconds_after_producers_stop": 4.666,
+      "total_seconds": 13.258,
+      "appended": 10000,
+      "completed": 10000,
+      "producer_throughput_per_s": 1163.8,
+      "worker_throughput_per_s": 754.2,
+      "latency": {
+        "queue_wait": {
+          "name": "queue_wait",
+          "count": 10000,
+          "min_ms": 8.2018,
+          "mean_ms": 3358.2336,
+          "p50_ms": 4003.3939,
+          "p95_ms": 4985.0385,
+          "p99_ms": 5073.8208,
+          "max_ms": 5125.809,
+          "percentile_method": "exact"
+        },
+        "build": {
+          "name": "build",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.6678,
+          "p50_ms": 0.0,
+          "p95_ms": 2.0118,
+          "p99_ms": 11.7671,
+          "max_ms": 275.5814,
+          "percentile_method": "exact"
+        },
+        "completion_gap": {
+          "name": "completion_gap",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 2.3673,
+          "p50_ms": 0.0,
+          "p95_ms": 1.1468,
+          "p99_ms": 31.9469,
+          "max_ms": 1729.0583,
+          "percentile_method": "exact"
+        },
+        "end_to_end_visibility": {
+          "name": "end_to_end_visibility",
+          "count": 10000,
+          "min_ms": 23.0303,
+          "mean_ms": 3474.5079,
+          "p50_ms": 4059.2816,
+          "p95_ms": 5091.3022,
+          "p99_ms": 5728.2457,
+          "max_ms": 6621.1233,
+          "percentile_method": "exact"
+        }
+      },
+      "metrics": {
+        "claimed": 10000,
+        "completed": 10000,
+        "already_built": 0,
+        "skipped": 0,
+        "failed": 0,
+        "dead_lettered": 0,
+        "dependency_held": 0,
+        "blocked": 0,
+        "cycles": 263,
+        "build_seconds": 16.9205
+      },
+      "lock_errors": 0,
+      "peak_queue_depth": 4720,
+      "queue_depth_series": [
+        {
+          "t": 0.0,
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 0,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 0,
+          "ledger": 0,
+          "memories": 0,
+          "shadow": 0
+        },
+        {
+          "t": 0.502,
+          "pending": 521,
+          "in_progress": 50,
+          "completed": 250,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 821,
+          "ledger": 251,
+          "memories": 251,
+          "shadow": 0
+        },
+        {
+          "t": 1.005,
+          "pending": 858,
+          "in_progress": 26,
+          "completed": 624,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 1508,
+          "ledger": 625,
+          "memories": 625,
+          "shadow": 0
+        },
+        {
+          "t": 1.507,
+          "pending": 1769,
+          "in_progress": 81,
+          "completed": 769,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 2619,
+          "ledger": 771,
+          "memories": 771,
+          "shadow": 0
+        },
+        {
+          "t": 2.009,
+          "pending": 2500,
+          "in_progress": 45,
+          "completed": 955,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 3500,
+          "ledger": 958,
+          "memories": 958,
+          "shadow": 0
+        },
+        {
+          "t": 2.511,
+          "pending": 2452,
+          "in_progress": 71,
+          "completed": 1379,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 3902,
+          "ledger": 1381,
+          "memories": 1381,
+          "shadow": 0
+        },
+        {
+          "t": 3.026,
+          "pending": 2712,
+          "in_progress": 103,
+          "completed": 1697,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 4512,
+          "ledger": 1701,
+          "memories": 1701,
+          "shadow": 0
+        },
+        {
+          "t": 3.528,
+          "pending": 2373,
+          "in_progress": 119,
+          "completed": 2231,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 4723,
+          "ledger": 2234,
+          "memories": 2234,
+          "shadow": 0
+        },
+        {
+          "t": 4.033,
+          "pending": 2445,
+          "in_progress": 42,
+          "completed": 2658,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5146,
+          "ledger": 2660,
+          "memories": 2660,
+          "shadow": 0
+        },
+        {
+          "t": 4.543,
+          "pending": 2758,
+          "in_progress": 90,
+          "completed": 2960,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5810,
+          "ledger": 2962,
+          "memories": 2962,
+          "shadow": 0
+        },
+        {
+          "t": 5.046,
+          "pending": 2924,
+          "in_progress": 114,
+          "completed": 3286,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 6326,
+          "ledger": 3288,
+          "memories": 3288,
+          "shadow": 0
+        },
+        {
+          "t": 5.549,
+          "pending": 2972,
+          "in_progress": 126,
+          "completed": 3674,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 6772,
+          "ledger": 3678,
+          "memories": 3679,
+          "shadow": 0
+        },
+        {
+          "t": 6.051,
+          "pending": 3051,
+          "in_progress": 64,
+          "completed": 4086,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7201,
+          "ledger": 4091,
+          "memories": 4091,
+          "shadow": 0
+        },
+        {
+          "t": 6.554,
+          "pending": 3926,
+          "in_progress": 76,
+          "completed": 4174,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 8176,
+          "ledger": 4176,
+          "memories": 4176,
+          "shadow": 0
+        },
+        {
+          "t": 7.084,
+          "pending": 4720,
+          "in_progress": 58,
+          "completed": 4292,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9073,
+          "ledger": 4295,
+          "memories": 4295,
+          "shadow": 0
+        },
+        {
+          "t": 7.587,
+          "pending": 4539,
+          "in_progress": 75,
+          "completed": 4725,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9341,
+          "ledger": 4726,
+          "memories": 4726,
+          "shadow": 0
+        },
+        {
+          "t": 8.09,
+          "pending": 4540,
+          "in_progress": 99,
+          "completed": 5101,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9740,
+          "ledger": 5106,
+          "memories": 5107,
+          "shadow": 0
+        },
+        {
+          "t": 8.599,
+          "pending": 4400,
+          "in_progress": 96,
+          "completed": 5504,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 5507,
+          "memories": 5507,
+          "shadow": 0
+        },
+        {
+          "t": 9.103,
+          "pending": 3900,
+          "in_progress": 113,
+          "completed": 5987,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 5989,
+          "memories": 5989,
+          "shadow": 0
+        },
+        {
+          "t": 9.604,
+          "pending": 3300,
+          "in_progress": 173,
+          "completed": 6527,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 6532,
+          "memories": 6533,
+          "shadow": 0
+        },
+        {
+          "t": 10.109,
+          "pending": 2800,
+          "in_progress": 119,
+          "completed": 7081,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 7085,
+          "memories": 7086,
+          "shadow": 0
+        },
+        {
+          "t": 10.727,
+          "pending": 2200,
+          "in_progress": 86,
+          "completed": 7714,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 7717,
+          "memories": 7717,
+          "shadow": 0
+        },
+        {
+          "t": 11.236,
+          "pending": 1900,
+          "in_progress": 82,
+          "completed": 8018,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 8022,
+          "memories": 8023,
+          "shadow": 0
+        },
+        {
+          "t": 11.741,
+          "pending": 1400,
+          "in_progress": 114,
+          "completed": 8486,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 8491,
+          "memories": 8492,
+          "shadow": 0
+        },
+        {
+          "t": 12.251,
+          "pending": 850,
+          "in_progress": 109,
+          "completed": 9041,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 9043,
+          "memories": 9043,
+          "shadow": 0
+        },
+        {
+          "t": 12.756,
+          "pending": 250,
+          "in_progress": 108,
+          "completed": 9642,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 9645,
+          "memories": 9645,
+          "shadow": 0
+        },
+        {
+          "t": 13.258,
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 10000,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 10000,
+          "memories": 10000,
+          "shadow": 0
+        }
+      ],
+      "queue_final": {
+        "pending": 0,
+        "in_progress": 0,
+        "completed": 10000,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 10000,
+        "memories": 10000,
+        "shadow": 0
+      },
+      "queue_drained": true,
+      "peak_rss_mb": 0.0,
+      "doctor_after": {
+        "exit_code": 0,
+        "worst_severity": "INFO",
+        "checks_run": 13,
+        "queries": 30,
+        "duration_s": 112.2635,
+        "findings_per_second": 0.1,
+        "by_severity": {
+          "PASS": 4,
+          "INFO": 5,
+          "WARN": 0,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 10000,
+          "ledger": 10000,
+          "shadow": 0
+        }
+      },
+      "database": {
+        "db_bytes": 31703040,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 31703040
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\C_mixed_10000_4p_4w.db"
+    },
+    {
+      "workload": "C_mixed",
+      "events": 10000,
+      "producers": 4,
+      "workers": 8,
+      "shadow": false,
+      "worker_exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "produce_seconds": 17.653,
+      "queue_drain_seconds_after_producers_stop": 0.003,
+      "total_seconds": 17.656,
+      "appended": 10000,
+      "completed": 10000,
+      "producer_throughput_per_s": 566.5,
+      "worker_throughput_per_s": 566.4,
+      "latency": {
+        "queue_wait": {
+          "name": "queue_wait",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 873.978,
+          "p50_ms": 793.1457,
+          "p95_ms": 2196.9256,
+          "p99_ms": 2358.4549,
+          "max_ms": 2507.3495,
+          "percentile_method": "exact"
+        },
+        "build": {
+          "name": "build",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.6962,
+          "p50_ms": 0.0,
+          "p95_ms": 2.0063,
+          "p99_ms": 10.9444,
+          "max_ms": 433.8582,
+          "percentile_method": "exact"
+        },
+        "completion_gap": {
+          "name": "completion_gap",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 4.8791,
+          "p50_ms": 0.0,
+          "p95_ms": 1.0157,
+          "p99_ms": 47.0612,
+          "max_ms": 3879.477,
+          "percentile_method": "exact"
+        },
+        "end_to_end_visibility": {
+          "name": "end_to_end_visibility",
+          "count": 10000,
+          "min_ms": 0.5183,
+          "mean_ms": 1054.2863,
+          "p50_ms": 905.5433,
+          "p95_ms": 2489.3053,
+          "p99_ms": 5229.6879,
+          "max_ms": 5837.9965,
+          "percentile_method": "exact"
+        }
+      },
+      "metrics": {
+        "claimed": 10000,
+        "completed": 10000,
+        "already_built": 0,
+        "skipped": 0,
+        "failed": 0,
+        "dead_lettered": 0,
+        "dependency_held": 0,
+        "blocked": 0,
+        "cycles": 1377,
+        "build_seconds": 23.4358
+      },
+      "lock_errors": 0,
+      "peak_queue_depth": 2033,
+      "queue_depth_series": [
+        {
+          "t": 0.002,
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 0,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 0,
+          "ledger": 0,
+          "memories": 0,
+          "shadow": 0
+        },
+        {
+          "t": 0.503,
+          "pending": 50,
+          "in_progress": 21,
+          "completed": 381,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 452,
+          "ledger": 381,
+          "memories": 381,
+          "shadow": 0
+        },
+        {
+          "t": 1.005,
+          "pending": 646,
+          "in_progress": 42,
+          "completed": 717,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 1405,
+          "ledger": 718,
+          "memories": 718,
+          "shadow": 0
+        },
+        {
+          "t": 1.506,
+          "pending": 1766,
+          "in_progress": 73,
+          "completed": 836,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 2675,
+          "ledger": 838,
+          "memories": 838,
+          "shadow": 0
+        },
+        {
+          "t": 2.009,
+          "pending": 2033,
+          "in_progress": 76,
+          "completed": 1233,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 3342,
+          "ledger": 1235,
+          "memories": 1235,
+          "shadow": 0
+        },
+        {
+          "t": 2.513,
+          "pending": 1678,
+          "in_progress": 134,
+          "completed": 1725,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 3537,
+          "ledger": 1728,
+          "memories": 1728,
+          "shadow": 0
+        },
+        {
+          "t": 3.014,
+          "pending": 1317,
+          "in_progress": 146,
+          "completed": 2263,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 3726,
+          "ledger": 2268,
+          "memories": 2268,
+          "shadow": 0
+        },
+        {
+          "t": 3.516,
+          "pending": 1537,
+          "in_progress": 141,
+          "completed": 2668,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 4347,
+          "ledger": 2673,
+          "memories": 2673,
+          "shadow": 0
+        },
+        {
+          "t": 4.032,
+          "pending": 1677,
+          "in_progress": 145,
+          "completed": 3014,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 4836,
+          "ledger": 3020,
+          "memories": 3020,
+          "shadow": 0
+        },
+        {
+          "t": 4.535,
+          "pending": 1834,
+          "in_progress": 142,
+          "completed": 3367,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5343,
+          "ledger": 3372,
+          "memories": 3373,
+          "shadow": 0
+        },
+        {
+          "t": 5.037,
+          "pending": 1267,
+          "in_progress": 154,
+          "completed": 4005,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5426,
+          "ledger": 4010,
+          "memories": 4010,
+          "shadow": 0
+        },
+        {
+          "t": 5.54,
+          "pending": 755,
+          "in_progress": 226,
+          "completed": 4583,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5564,
+          "ledger": 4590,
+          "memories": 4590,
+          "shadow": 0
+        },
+        {
+          "t": 6.044,
+          "pending": 540,
+          "in_progress": 251,
+          "completed": 5058,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5851,
+          "ledger": 5062,
+          "memories": 5062,
+          "shadow": 0
+        },
+        {
+          "t": 6.555,
+          "pending": 688,
+          "in_progress": 229,
+          "completed": 5430,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 6347,
+          "ledger": 5435,
+          "memories": 5435,
+          "shadow": 0
+        },
+        {
+          "t": 7.063,
+          "pending": 748,
+          "in_progress": 247,
+          "completed": 5812,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 6807,
+          "ledger": 5817,
+          "memories": 5818,
+          "shadow": 0
+        },
+        {
+          "t": 7.574,
+          "pending": 494,
+          "in_progress": 246,
+          "completed": 6313,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7053,
+          "ledger": 6321,
+          "memories": 6321,
+          "shadow": 0
+        },
+        {
+          "t": 8.077,
+          "pending": 9,
+          "in_progress": 196,
+          "completed": 6907,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7112,
+          "ledger": 6913,
+          "memories": 6913,
+          "shadow": 0
+        },
+        {
+          "t": 8.962,
+          "pending": 0,
+          "in_progress": 124,
+          "completed": 7306,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7430,
+          "ledger": 7312,
+          "memories": 7313,
+          "shadow": 0
+        },
+        {
+          "t": 10.55,
+          "pending": 1,
+          "in_progress": 34,
+          "completed": 7439,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7474,
+          "ledger": 7441,
+          "memories": 7441,
+          "shadow": 0
+        },
+        {
+          "t": 11.438,
+          "pending": 0,
+          "in_progress": 62,
+          "completed": 7557,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7619,
+          "ledger": 7559,
+          "memories": 7559,
+          "shadow": 0
+        },
+        {
+          "t": 12.103,
+          "pending": 0,
+          "in_progress": 13,
+          "completed": 7664,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7677,
+          "ledger": 7664,
+          "memories": 7664,
+          "shadow": 0
+        },
+        {
+          "t": 12.693,
+          "pending": 1,
+          "in_progress": 2,
+          "completed": 7767,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7772,
+          "ledger": 7768,
+          "memories": 7768,
+          "shadow": 0
+        },
+        {
+          "t": 13.252,
+          "pending": 3,
+          "in_progress": 13,
+          "completed": 7883,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7901,
+          "ledger": 7884,
+          "memories": 7884,
+          "shadow": 0
+        },
+        {
+          "t": 13.793,
+          "pending": 1,
+          "in_progress": 2,
+          "completed": 8199,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 8204,
+          "ledger": 8200,
+          "memories": 8200,
+          "shadow": 0
+        },
+        {
+          "t": 14.605,
+          "pending": 160,
+          "in_progress": 51,
+          "completed": 8452,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 8663,
+          "ledger": 8456,
+          "memories": 8456,
+          "shadow": 0
+        },
+        {
+          "t": 15.114,
+          "pending": 4,
+          "in_progress": 130,
+          "completed": 8873,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9007,
+          "ledger": 8877,
+          "memories": 8878,
+          "shadow": 0
+        },
+        {
+          "t": 15.618,
+          "pending": 1,
+          "in_progress": 38,
+          "completed": 9102,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9141,
+          "ledger": 9103,
+          "memories": 9103,
+          "shadow": 0
+        },
+        {
+          "t": 16.137,
+          "pending": 0,
+          "in_progress": 9,
+          "completed": 9363,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9372,
+          "ledger": 9365,
+          "memories": 9365,
+          "shadow": 0
+        },
+        {
+          "t": 16.641,
+          "pending": 0,
+          "in_progress": 94,
+          "completed": 9617,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9711,
+          "ledger": 9622,
+          "memories": 9622,
+          "shadow": 0
+        },
+        {
+          "t": 17.147,
+          "pending": 41,
+          "in_progress": 55,
+          "completed": 9885,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9981,
+          "ledger": 9888,
+          "memories": 9889,
+          "shadow": 0
+        },
+        {
+          "t": 17.656,
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 10000,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 10000,
+          "memories": 10000,
+          "shadow": 0
+        }
+      ],
+      "queue_final": {
+        "pending": 0,
+        "in_progress": 0,
+        "completed": 10000,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 10000,
+        "memories": 10000,
+        "shadow": 0
+      },
+      "queue_drained": true,
+      "peak_rss_mb": 0.0,
+      "doctor_after": {
+        "exit_code": 0,
+        "worst_severity": "INFO",
+        "checks_run": 13,
+        "queries": 30,
+        "duration_s": 86.7608,
+        "findings_per_second": 0.1,
+        "by_severity": {
+          "PASS": 4,
+          "INFO": 5,
+          "WARN": 0,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 10000,
+          "ledger": 10000,
+          "shadow": 0
+        }
+      },
+      "database": {
+        "db_bytes": 31477760,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 31477760
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\C_mixed_10000_4p_8w.db"
+    },
+    {
+      "workload": "C_mixed",
+      "events": 10000,
+      "producers": 8,
+      "workers": 4,
+      "shadow": false,
+      "worker_exit_codes": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "produce_seconds": 8.683,
+      "queue_drain_seconds_after_producers_stop": 5.572,
+      "total_seconds": 14.255,
+      "appended": 10000,
+      "completed": 10000,
+      "producer_throughput_per_s": 1151.7,
+      "worker_throughput_per_s": 701.5,
+      "latency": {
+        "queue_wait": {
+          "name": "queue_wait",
+          "count": 10000,
+          "min_ms": 5.7659,
+          "mean_ms": 3490.4316,
+          "p50_ms": 4258.5144,
+          "p95_ms": 5444.788,
+          "p99_ms": 5569.9399,
+          "max_ms": 5605.8176,
+          "percentile_method": "exact"
+        },
+        "build": {
+          "name": "build",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 0.6125,
+          "p50_ms": 0.0,
+          "p95_ms": 2.0165,
+          "p99_ms": 11.7195,
+          "max_ms": 148.7467,
+          "percentile_method": "exact"
+        },
+        "completion_gap": {
+          "name": "completion_gap",
+          "count": 10000,
+          "min_ms": 0.0,
+          "mean_ms": 2.7955,
+          "p50_ms": 0.0,
+          "p95_ms": 1.1091,
+          "p99_ms": 31.6794,
+          "max_ms": 1980.5999,
+          "percentile_method": "exact"
+        },
+        "end_to_end_visibility": {
+          "name": "end_to_end_visibility",
+          "count": 10000,
+          "min_ms": 46.6895,
+          "mean_ms": 3615.5253,
+          "p50_ms": 4360.2297,
+          "p95_ms": 5559.3748,
+          "p99_ms": 5675.1778,
+          "max_ms": 6729.0359,
+          "percentile_method": "exact"
+        }
+      },
+      "metrics": {
+        "claimed": 10000,
+        "completed": 10000,
+        "already_built": 0,
+        "skipped": 0,
+        "failed": 0,
+        "dead_lettered": 0,
+        "dependency_held": 0,
+        "blocked": 0,
+        "cycles": 330,
+        "build_seconds": 22.0586
+      },
+      "lock_errors": 0,
+      "peak_queue_depth": 6041,
+      "queue_depth_series": [
+        {
+          "t": 0.0,
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 0,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 0,
+          "ledger": 0,
+          "memories": 0,
+          "shadow": 0
+        },
+        {
+          "t": 0.535,
+          "pending": 126,
+          "in_progress": 115,
+          "completed": 135,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 376,
+          "ledger": 138,
+          "memories": 138,
+          "shadow": 0
+        },
+        {
+          "t": 1.114,
+          "pending": 37,
+          "in_progress": 30,
+          "completed": 579,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 646,
+          "ledger": 583,
+          "memories": 583,
+          "shadow": 0
+        },
+        {
+          "t": 1.619,
+          "pending": 381,
+          "in_progress": 133,
+          "completed": 776,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 1296,
+          "ledger": 776,
+          "memories": 776,
+          "shadow": 0
+        },
+        {
+          "t": 2.126,
+          "pending": 1243,
+          "in_progress": 79,
+          "completed": 880,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 2202,
+          "ledger": 880,
+          "memories": 880,
+          "shadow": 0
+        },
+        {
+          "t": 2.631,
+          "pending": 1815,
+          "in_progress": 48,
+          "completed": 1111,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 2975,
+          "ledger": 1113,
+          "memories": 1113,
+          "shadow": 0
+        },
+        {
+          "t": 3.135,
+          "pending": 1599,
+          "in_progress": 87,
+          "completed": 1572,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 3258,
+          "ledger": 1573,
+          "memories": 1573,
+          "shadow": 0
+        },
+        {
+          "t": 3.637,
+          "pending": 1453,
+          "in_progress": 89,
+          "completed": 2020,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 3562,
+          "ledger": 2023,
+          "memories": 2023,
+          "shadow": 0
+        },
+        {
+          "t": 4.139,
+          "pending": 1567,
+          "in_progress": 63,
+          "completed": 2396,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 4026,
+          "ledger": 2399,
+          "memories": 2399,
+          "shadow": 0
+        },
+        {
+          "t": 4.641,
+          "pending": 1570,
+          "in_progress": 83,
+          "completed": 2826,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 4480,
+          "ledger": 2827,
+          "memories": 2827,
+          "shadow": 0
+        },
+        {
+          "t": 5.144,
+          "pending": 2580,
+          "in_progress": 100,
+          "completed": 2859,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5539,
+          "ledger": 2861,
+          "memories": 2861,
+          "shadow": 0
+        },
+        {
+          "t": 5.653,
+          "pending": 2761,
+          "in_progress": 104,
+          "completed": 3155,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 6020,
+          "ledger": 3158,
+          "memories": 3158,
+          "shadow": 0
+        },
+        {
+          "t": 6.156,
+          "pending": 3383,
+          "in_progress": 96,
+          "completed": 3363,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 6842,
+          "ledger": 3367,
+          "memories": 3367,
+          "shadow": 0
+        },
+        {
+          "t": 6.66,
+          "pending": 4326,
+          "in_progress": 95,
+          "completed": 3464,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 7885,
+          "ledger": 3468,
+          "memories": 3468,
+          "shadow": 0
+        },
+        {
+          "t": 7.17,
+          "pending": 5158,
+          "in_progress": 100,
+          "completed": 3509,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 8769,
+          "ledger": 3513,
+          "memories": 3513,
+          "shadow": 0
+        },
+        {
+          "t": 7.675,
+          "pending": 5562,
+          "in_progress": 80,
+          "completed": 3729,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 9374,
+          "ledger": 3732,
+          "memories": 3732,
+          "shadow": 0
+        },
+        {
+          "t": 8.179,
+          "pending": 6041,
+          "in_progress": 56,
+          "completed": 3903,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 3906,
+          "memories": 3906,
+          "shadow": 0
+        },
+        {
+          "t": 8.685,
+          "pending": 5491,
+          "in_progress": 107,
+          "completed": 4402,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 4406,
+          "memories": 4406,
+          "shadow": 0
+        },
+        {
+          "t": 9.192,
+          "pending": 4941,
+          "in_progress": 80,
+          "completed": 4979,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 4984,
+          "memories": 4985,
+          "shadow": 0
+        },
+        {
+          "t": 9.696,
+          "pending": 4341,
+          "in_progress": 147,
+          "completed": 5512,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 5517,
+          "memories": 5518,
+          "shadow": 0
+        },
+        {
+          "t": 10.2,
+          "pending": 3791,
+          "in_progress": 122,
+          "completed": 6087,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 6091,
+          "memories": 6092,
+          "shadow": 0
+        },
+        {
+          "t": 10.705,
+          "pending": 3241,
+          "in_progress": 104,
+          "completed": 6655,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 6659,
+          "memories": 6659,
+          "shadow": 0
+        },
+        {
+          "t": 11.213,
+          "pending": 2591,
+          "in_progress": 148,
+          "completed": 7261,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 7267,
+          "memories": 7268,
+          "shadow": 0
+        },
+        {
+          "t": 11.726,
+          "pending": 2091,
+          "in_progress": 76,
+          "completed": 7833,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 7837,
+          "memories": 7837,
+          "shadow": 0
+        },
+        {
+          "t": 12.227,
+          "pending": 1591,
+          "in_progress": 77,
+          "completed": 8332,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 8335,
+          "memories": 8336,
+          "shadow": 0
+        },
+        {
+          "t": 12.744,
+          "pending": 991,
+          "in_progress": 123,
+          "completed": 8886,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 8889,
+          "memories": 8889,
+          "shadow": 0
+        },
+        {
+          "t": 13.248,
+          "pending": 391,
+          "in_progress": 113,
+          "completed": 9496,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 9500,
+          "memories": 9501,
+          "shadow": 0
+        },
+        {
+          "t": 13.753,
+          "pending": 0,
+          "in_progress": 18,
+          "completed": 9982,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 9984,
+          "memories": 9985,
+          "shadow": 0
+        },
+        {
+          "t": 14.255,
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 10000,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 10000,
+          "ledger": 10000,
+          "memories": 10000,
+          "shadow": 0
+        }
+      ],
+      "queue_final": {
+        "pending": 0,
+        "in_progress": 0,
+        "completed": 10000,
+        "dead_letter": 0,
+        "skipped": 0,
+        "events": 10000,
+        "ledger": 10000,
+        "memories": 10000,
+        "shadow": 0
+      },
+      "queue_drained": true,
+      "peak_rss_mb": 0.0,
+      "doctor_after": {
+        "exit_code": 0,
+        "worst_severity": "INFO",
+        "checks_run": 13,
+        "queries": 30,
+        "duration_s": 88.4844,
+        "findings_per_second": 0.1,
+        "by_severity": {
+          "PASS": 4,
+          "INFO": 5,
+          "WARN": 0,
+          "FAIL": 0,
+          "CRITICAL": 0
+        },
+        "finding_codes": {
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_NOT_IN_USE": 1
+        },
+        "repairable_findings": 0,
+        "manual_review_required": 0,
+        "counts": {
+          "events": 10000,
+          "outbox_jobs": 10000,
+          "projections": 10000,
+          "ledger": 10000,
+          "shadow": 0
+        }
+      },
+      "database": {
+        "db_bytes": 31436800,
+        "wal_bytes": 0,
+        "shm_bytes": 0,
+        "total_bytes": 31436800
+      },
+      "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\C_mixed_10000_8p_4w.db"
+    }
+  ],
+  "D_shadow": {
+    "workload": "D_shadow",
+    "events": 10000,
+    "legacy_observe_ms": {
+      "name": "observe.legacy",
+      "count": 10000,
+      "min_ms": 0.0925,
+      "mean_ms": 0.2405,
+      "p50_ms": 0.1494,
+      "p95_ms": 0.2977,
+      "p99_ms": 0.9074,
+      "max_ms": 21.1083,
+      "percentile_method": "exact"
+    },
+    "shadow_observe_ms": {
+      "name": "observe.shadow",
+      "count": 10000,
+      "min_ms": 0.1671,
+      "mean_ms": 0.7338,
+      "p50_ms": 0.3274,
+      "p95_ms": 0.5937,
+      "p99_ms": 13.3833,
+      "max_ms": 1023.3943,
+      "percentile_method": "exact"
+    },
+    "legacy_remember_ms": {
+      "name": "remember.legacy",
+      "count": 10000,
+      "min_ms": 0.1657,
+      "mean_ms": 0.4666,
+      "p50_ms": 0.2516,
+      "p95_ms": 0.5232,
+      "p99_ms": 9.694,
+      "max_ms": 97.9156,
+      "percentile_method": "exact"
+    },
+    "shadow_remember_ms": {
+      "name": "remember.shadow",
+      "count": 10000,
+      "min_ms": 0.1866,
+      "mean_ms": 0.7247,
+      "p50_ms": 0.3408,
+      "p95_ms": 0.702,
+      "p99_ms": 14.9535,
+      "max_ms": 180.5399,
+      "percentile_method": "exact"
+    },
+    "observe_overhead_p50_pct": 119.14,
+    "observe_overhead_p95_pct": 99.43,
+    "observe_overhead_mean_pct": 205.15,
+    "shadow_drain_seconds": 7.203,
+    "shadow_drain_throughput_per_s": 1388.2,
+    "shadow_latency": {
+      "queue_wait": {
+        "name": "queue_wait",
+        "count": 10000,
+        "min_ms": 7086.148,
+        "mean_ms": 11962.8233,
+        "p50_ms": 12084.9395,
+        "p95_ms": 14587.7011,
+        "p99_ms": 14701.7658,
+        "max_ms": 14765.4974,
+        "percentile_method": "exact"
+      },
+      "build": {
+        "name": "build",
+        "count": 10000,
+        "min_ms": 0.0,
+        "mean_ms": 0.3678,
+        "p50_ms": 0.0,
+        "p95_ms": 1.0109,
+        "p99_ms": 12.3031,
+        "max_ms": 184.0975,
+        "percentile_method": "exact"
+      },
+      "completion_gap": {
+        "name": "completion_gap",
+        "count": 10000,
+        "min_ms": 0.0,
+        "mean_ms": 0.1858,
+        "p50_ms": 0.0,
+        "p95_ms": 1.0006,
+        "p99_ms": 2.0409,
+        "max_ms": 53.2401,
+        "percentile_method": "exact"
+      },
+      "end_to_end_visibility": {
+        "name": "end_to_end_visibility",
+        "count": 10000,
+        "min_ms": 7202.7564,
+        "mean_ms": 12038.3648,
+        "p50_ms": 12139.9643,
+        "p95_ms": 14655.7531,
+        "p99_ms": 14747.5057,
+        "max_ms": 14775.923,
+        "percentile_method": "exact"
+      }
+    },
+    "compare_seconds": 62.501,
+    "comparison_statuses": {
+      "MATCH": 10000
+    },
+    "match_rate_pct": 100.0,
+    "mismatches": 0,
+    "shadow_projections": 10000,
+    "shadow_rows_visible_in_production": 0,
+    "shadow_rows_returned_by_recall": 0,
+    "worker_metrics": {
+      "claimed": 10000,
+      "completed": 10000,
+      "already_built": 0,
+      "skipped": 0,
+      "failed": 0,
+      "dead_lettered": 0,
+      "dependency_held": 0,
+      "blocked": 0,
+      "cycles": 51,
+      "build_seconds": 4.1246,
+      "mean_build_ms": 0.412
+    },
+    "doctor_after": {
+      "exit_code": 0,
+      "worst_severity": "INFO",
+      "checks_run": 13,
+      "queries": 34,
+      "duration_s": 58.9878,
+      "findings_per_second": 0.2,
+      "by_severity": {
+        "PASS": 5,
+        "INFO": 4,
+        "WARN": 0,
+        "FAIL": 0,
+        "CRITICAL": 0
+      },
+      "finding_codes": {
+        "UNSUPPORTED_CAPABILITY": 4,
+        "SQLITE_INTEGRITY": 1,
+        "CAPABILITY_SUMMARY": 1,
+        "OUTBOX_CLEAN": 1,
+        "EVENT_CHECKSUM_CHAIN": 1,
+        "SHADOW_CONSISTENT": 1
+      },
+      "repairable_findings": 0,
+      "manual_review_required": 0,
+      "counts": {
+        "events": 10000,
+        "outbox_jobs": 10000,
+        "projections": 10000,
+        "ledger": 10000,
+        "shadow": 10000
+      }
+    },
+    "database": {
+      "db_bytes": 38203392,
+      "wal_bytes": 4223032,
+      "shm_bytes": 32768,
+      "total_bytes": 42459192
+    },
+    "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\D_shadow_10000\\shadow.db"
+  },
+  "E_recovery": {
+    "workload": "E_recovery",
+    "events": 5000,
+    "workers": 4,
+    "baseline_queue": {
+      "pending": 5000,
+      "in_progress": 0,
+      "completed": 0,
+      "dead_letter": 0,
+      "skipped": 0,
+      "events": 5000,
+      "ledger": 0,
+      "memories": 0,
+      "shadow": 0
+    },
+    "final_queue": {
+      "pending": 0,
+      "in_progress": 0,
+      "completed": 5201,
+      "dead_letter": 0,
+      "skipped": 0,
+      "events": 5201,
+      "ledger": 5201,
+      "memories": 5201,
+      "shadow": 0
+    },
+    "events_appended": 5201,
+    "events_present": 5201,
+    "lost_events": 0,
+    "scenarios": [
+      {
+        "scenario": "worker_killed_mid_drain",
+        "killed_after_completed": 1023,
+        "queue_after_kill": {
+          "pending": 2760,
+          "in_progress": 54,
+          "completed": 2186,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5000,
+          "ledger": 2190,
+          "memories": 2190,
+          "shadow": 0
+        },
+        "orphaned_in_progress": 54
+      },
+      {
+        "scenario": "worker_restarted",
+        "recovery_seconds": 24.099,
+        "queue": {
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 5000,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5000,
+          "ledger": 5000,
+          "memories": 5000,
+          "shadow": 0
+        },
+        "already_built": 0,
+        "jobs_recovered": 2814
+      },
+      {
+        "scenario": "write_lock_held",
+        "hold_seconds": 3.0,
+        "lock_acquired_by_holder": true,
+        "short_timeout_ms": 800,
+        "short_timeout_blocked_for_s": 0.95,
+        "short_timeout_lock_errors": 1,
+        "runtime_timeout_ms": 30000,
+        "runtime_timeout_blocked_for_s": 2.077,
+        "runtime_timeout_lock_errors": 0,
+        "total_seconds": 4.155,
+        "note": "the 800ms probe is expected to fail and does; the 30s probe is the runtime's own busy_timeout and is expected to wait and succeed"
+      },
+      {
+        "scenario": "stale_lease_reclaimed",
+        "reclaim_seconds": 0.277,
+        "in_progress_before": 1,
+        "in_progress_after": 0,
+        "reclaimed": 1
+      },
+      {
+        "scenario": "duplicate_enqueue",
+        "enqueue_attempts": 3,
+        "jobs_before": 1,
+        "jobs_after": 1,
+        "duplicate_jobs_created": 0,
+        "ledger_rows_for_event": 1
+      },
+      {
+        "scenario": "crash_after_projection_commit_before_outbox_complete",
+        "crashed_as_designed": true,
+        "exit_code": 70,
+        "queue_mid_crash": {
+          "pending": 195,
+          "in_progress": 3,
+          "completed": 5003,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5201,
+          "ledger": 5004,
+          "memories": 5004,
+          "shadow": 0
+        },
+        "queue_after_recovery": {
+          "pending": 0,
+          "in_progress": 0,
+          "completed": 5201,
+          "dead_letter": 0,
+          "skipped": 0,
+          "events": 5201,
+          "ledger": 5201,
+          "memories": 5201,
+          "shadow": 0
+        },
+        "already_built_on_retry": 1
+      },
+      {
+        "scenario": "full_runtime_restart",
+        "events_readable_after_restart": 5201,
+        "sqlite_integrity_check": "ok",
+        "duplicate_ledger_rows": 0,
+        "duplicate_projections": 0
+      }
+    ],
+    "doctor_after": {
+      "exit_code": 0,
+      "worst_severity": "INFO",
+      "checks_run": 13,
+      "queries": 30,
+      "duration_s": 18.2264,
+      "findings_per_second": 0.5,
+      "by_severity": {
+        "PASS": 4,
+        "INFO": 5,
+        "WARN": 0,
+        "FAIL": 0,
+        "CRITICAL": 0
+      },
+      "finding_codes": {
+        "UNSUPPORTED_CAPABILITY": 4,
+        "SQLITE_INTEGRITY": 1,
+        "CAPABILITY_SUMMARY": 1,
+        "OUTBOX_CLEAN": 1,
+        "EVENT_CHECKSUM_CHAIN": 1,
+        "SHADOW_NOT_IN_USE": 1
+      },
+      "repairable_findings": 0,
+      "manual_review_required": 0,
+      "counts": {
+        "events": 5201,
+        "outbox_jobs": 5201,
+        "projections": 5201,
+        "ledger": 5201,
+        "shadow": 0
+      }
+    },
+    "database": {
+      "db_bytes": 16412672,
+      "wal_bytes": 0,
+      "shm_bytes": 0,
+      "total_bytes": 16412672
+    },
+    "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\E_recovery_5000\\recovery.db"
+  },
+  "F_fault_distribution": {
+    "workload": "F_fault_distribution",
+    "events": 10000,
+    "workers": 4,
+    "planned_distribution": {
+      "normal": 80.0,
+      "transient": 8.0,
+      "stale_lease": 4.0,
+      "dependency": 3.0,
+      "skipped": 2.0,
+      "permanent": 2.0,
+      "duplicate": 1.0
+    },
+    "actual_buckets": {
+      "normal": 8004,
+      "transient": 769,
+      "stale_lease": 423,
+      "dependency": 300,
+      "skipped": 191,
+      "permanent": 202,
+      "duplicate": 111
+    },
+    "actual_distribution_pct": {
+      "normal": 80.04,
+      "transient": 7.69,
+      "stale_lease": 4.23,
+      "dependency": 3.0,
+      "skipped": 1.91,
+      "permanent": 2.02,
+      "duplicate": 1.11
+    },
+    "ghost_claims_planted": 423,
+    "duplicate_enqueue_attempts": 111,
+    "wall_seconds": 42.704,
+    "queue_before": {
+      "pending": 9877,
+      "in_progress": 423,
+      "completed": 0,
+      "dead_letter": 0,
+      "skipped": 0,
+      "events": 10000,
+      "ledger": 0,
+      "memories": 0,
+      "shadow": 0
+    },
+    "queue_after": {
+      "pending": 0,
+      "in_progress": 0,
+      "completed": 9607,
+      "dead_letter": 502,
+      "skipped": 191,
+      "events": 10000,
+      "ledger": 9607,
+      "memories": 9607,
+      "shadow": 0
+    },
+    "terminal_states": {
+      "pending": 0,
+      "in_progress": 0,
+      "completed": 9607,
+      "dead_letter": 502,
+      "skipped": 191
+    },
+    "dead_letter_breakdown": [
+      {
+        "reason": "BenchmarkFailure: deliberate permanent failure (benchmark)",
+        "count": 202,
+        "classification": "expected: injected permanent failure"
+      },
+      {
+        "reason": "no builder registered for context_block",
+        "count": 300,
+        "classification": "expected: unsupported capability (context_block has no builder)"
+      }
+    ],
+    "unexplained_dead_letters": 0,
+    "attempts_by_status": [
+      {
+        "status": "completed",
+        "max_attempts": 5,
+        "mean_attempts": 1.21
+      },
+      {
+        "status": "dead_letter",
+        "max_attempts": 5,
+        "mean_attempts": 3.18
+      },
+      {
+        "status": "skipped",
+        "max_attempts": 1,
+        "mean_attempts": 1.0
+      }
+    ],
+    "stale_claims_remaining": 0,
+    "injected": {
+      "transient": 1594,
+      "permanent": 1010,
+      "skipped": 191
+    },
+    "metrics": {
+      "claimed": 12987,
+      "completed": 9607,
+      "already_built": 0,
+      "skipped": 191,
+      "failed": 2604,
+      "dead_lettered": 502,
+      "dependency_held": 285,
+      "blocked": 0,
+      "cycles": 879,
+      "build_seconds": 22.2805
+    },
+    "doctor_after": {
+      "exit_code": 1,
+      "worst_severity": "FAIL",
+      "checks_run": 13,
+      "queries": 30,
+      "duration_s": 191.6218,
+      "findings_per_second": 0.0,
+      "by_severity": {
+        "PASS": 3,
+        "INFO": 5,
+        "WARN": 0,
+        "FAIL": 1,
+        "CRITICAL": 0
+      },
+      "finding_codes": {
+        "UNSUPPORTED_CAPABILITY": 4,
+        "SQLITE_INTEGRITY": 1,
+        "CAPABILITY_SUMMARY": 1,
+        "OUTBOX_DEAD_LETTER": 1,
+        "EVENT_CHECKSUM_CHAIN": 1,
+        "SHADOW_NOT_IN_USE": 1
+      },
+      "repairable_findings": 0,
+      "manual_review_required": 1,
+      "counts": {
+        "events": 10000,
+        "outbox_jobs": 10300,
+        "projections": 9607,
+        "ledger": 9607,
+        "shadow": 0
+      }
+    },
+    "database": {
+      "db_bytes": 30875648,
+      "wal_bytes": 0,
+      "shm_bytes": 0,
+      "total_bytes": 30875648
+    },
+    "db_path": "C:\\Users\\PC_WORK\\AppData\\Local\\Temp\\bench_baseline__93k6zbn\\F_faults_10000\\faults.db"
+  },
+  "total_seconds": 1477.8
+}

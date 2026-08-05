@@ -1,0 +1,57 @@
+{
+  "events": 3000,
+  "append": {
+    "seconds": 1.282,
+    "per_event_ms": 0.4273,
+    "statements": {
+      "BEGIN": 3000,
+      "INSERT": 6000,
+      "COMMIT": 3000
+    },
+    "commits_per_event": 1.0,
+    "table_touches": {
+      "cognitive_events": 3000,
+      "projection_outbox": 3000
+    }
+  },
+  "projection": {
+    "seconds": 3.056,
+    "completed": 3000,
+    "throughput_per_s": 981.8,
+    "per_job_ms": 1.0186,
+    "builder_only_ms": 0.2567,
+    "builder_share_pct": 25.2,
+    "queue_connection_statements": {
+      "SELECT": 3061,
+      "BEGIN": 3060,
+      "UPDATE": 6000,
+      "COMMIT": 3060
+    },
+    "projection_connection_statements": {
+      "CREATE": 3,
+      "SELECT": 6000,
+      "BEGIN": 3000,
+      "INSERT": 9000,
+      "--": 31649,
+      "UPDATE": 3000,
+      "COMMIT": 3000
+    },
+    "commits_per_job": {
+      "queue_connection": 1.02,
+      "projection_connection": 1.0,
+      "total": 2.02
+    },
+    "statements_per_job": 23.611,
+    "table_touches": {
+      "projection_ledger": 12003,
+      "projection_outbox": 6061,
+      "cognitive_events": 3000,
+      "cognitive_memories": 3000
+    }
+  },
+  "database": {
+    "page_size": 4096,
+    "pages": 2325,
+    "bytes": 9523200
+  }
+}

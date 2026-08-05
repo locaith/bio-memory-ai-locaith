@@ -86,8 +86,51 @@ class SQLiteMemoryStore:
             ON cognitive_memories(tenant_id, valid_from, valid_to, superseded_at);
             CREATE INDEX IF NOT EXISTS idx_memory_epistemic
             ON cognitive_memories(tenant_id, epistemic_status, verification_status);
+
+            -- Which events a memory was built from, as rows rather than as a
+            -- JSON array inside a column.
+            --
+            -- "Does a projection exist for this event" used to be asked as
+            --     source_event_ids_json LIKE '%' || event_id || '%'
+            -- which cannot use an index and so scanned every memory, once per
+            -- event asked about. The doctor did it inside a correlated
+            -- subquery and became O(N*M); the shadow comparator did it in a
+            -- loop and spent 62.5s on 10,000 events.
+            --
+            -- ON DELETE CASCADE keeps this honest when a memory row goes away:
+            -- a link row that outlived its memory would answer "yes, projected"
+            -- for a projection that no longer exists.
+            CREATE TABLE IF NOT EXISTS memory_source_events (
+                event_id TEXT NOT NULL,
+                memory_id TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                tenant_id TEXT NOT NULL,
+                PRIMARY KEY(event_id, memory_id, version),
+                FOREIGN KEY(memory_id, version)
+                    REFERENCES cognitive_memories(memory_id, version)
+                    ON DELETE CASCADE
+            );
+            -- Exactly one secondary index, and only because the join back to
+            -- cognitive_memories and ON DELETE CASCADE both need it. The
+            -- primary key already leads with event_id, which is the lookup
+            -- every caller does, and an index nobody queries is pure write
+            -- cost: a (tenant_id, event_id) index here made the 50,000-event
+            -- build 51% slower and was never used by a single query.
+            CREATE INDEX IF NOT EXISTS idx_memory_source_memory
+            ON memory_source_events(memory_id, version);
+            DROP INDEX IF EXISTS idx_memory_source_event;
+            DROP INDEX IF EXISTS idx_memory_source_tenant;
+
+            -- Records that the one-off backfill has run, so opening a store
+            -- does not re-scan the whole table to find out.
+            CREATE TABLE IF NOT EXISTS memory_store_migrations (
+                name TEXT PRIMARY KEY,
+                applied_at TEXT NOT NULL,
+                high_water INTEGER NOT NULL DEFAULT 0
+            );
             """
         )
+        self._backfill_source_events()
         self._ensure_column("epistemic_status", "TEXT NOT NULL DEFAULT 'observed'")
         self._ensure_column("verification_status", "TEXT NOT NULL DEFAULT 'unverified'")
         self._ensure_column("counterevidence_event_ids_json", "TEXT NOT NULL DEFAULT '[]'")
@@ -104,6 +147,22 @@ class SQLiteMemoryStore:
                 """CREATE VIRTUAL TABLE IF NOT EXISTS cognitive_memory_fts USING fts5(
                     memory_key UNINDEXED, tenant_id UNINDEXED, workspace_id UNINDEXED, content, tokenize='unicode61'
                 )"""
+            )
+            # An FTS row must not outlive its memory. A second entry under one
+            # key makes SQLite report "malformed inverted index for FTS5
+            # table" — corruption, from an ordinary rebuild.
+            #
+            # The trigger puts that cost on the delete path, which production
+            # does not have, instead of on every write. Deleting from FTS5 by
+            # an UNINDEXED column scans the whole index, and doing it before
+            # every insert made a 10,000-event build four times slower for a
+            # case that needs a manual DELETE to reach.
+            self.conn.execute(
+                "CREATE TRIGGER IF NOT EXISTS cognitive_memories_fts_delete "
+                "AFTER DELETE ON cognitive_memories BEGIN "
+                "  DELETE FROM cognitive_memory_fts "
+                "  WHERE memory_key = old.memory_id || ':' || old.version; "
+                "END"
             )
             count = self.conn.execute("SELECT count(*) FROM cognitive_memory_fts").fetchone()[0]
             if count == 0:
@@ -124,7 +183,94 @@ class SQLiteMemoryStore:
         if name not in columns:
             self.conn.execute(f"ALTER TABLE cognitive_memories ADD COLUMN {name} {declaration}")
 
-    def put(self, memory: CognitiveMemory) -> CognitiveMemory:
+    _BACKFILL = "memory_source_events_backfill"
+
+    def _backfill_source_events(self) -> None:
+        """Populate the link table for memories written before it existed.
+
+        One pass over `cognitive_memories`, once, and never again: the marker
+        row records the highest rowid it covered, and `MAX(rowid)` is O(1) on
+        a rowid table. The first version of this asked
+        `COUNT(DISTINCT memory_id || ':' || version)` on every open, which is
+        a full scan of the link table at startup — a cost that grows with the
+        database, on the path every process takes.
+        """
+        try:
+            high_water = self.conn.execute(
+                "SELECT MAX(rowid) FROM cognitive_memories"
+            ).fetchone()[0] or 0
+            marker = self.conn.execute(
+                "SELECT high_water FROM memory_store_migrations WHERE name=?",
+                (self._BACKFILL,),
+            ).fetchone()
+        except sqlite3.OperationalError:  # pragma: no cover - fresh database
+            return
+
+        covered = int(marker["high_water"]) if marker else 0
+        if marker is not None and high_water <= covered:
+            return
+
+        rows = []
+        for row in self.conn.execute(
+            "SELECT memory_id, version, tenant_id, source_event_ids_json"
+            " FROM cognitive_memories WHERE rowid > ?", (covered,),
+        ).fetchall():
+            try:
+                event_ids = json.loads(row["source_event_ids_json"] or "[]")
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(event_ids, list):
+                event_ids = [event_ids]
+            for event_id in event_ids:
+                if event_id:
+                    rows.append((str(event_id), row["memory_id"], row["version"],
+                                 row["tenant_id"]))
+        if rows:
+            self.conn.executemany(
+                "INSERT OR IGNORE INTO memory_source_events("
+                " event_id, memory_id, version, tenant_id) VALUES(?,?,?,?)",
+                rows,
+            )
+        self.conn.execute(
+            "INSERT INTO memory_store_migrations(name, applied_at, high_water)"
+            " VALUES(?,?,?) ON CONFLICT(name) DO UPDATE SET"
+            "  applied_at=excluded.applied_at, high_water=excluded.high_water",
+            (self._BACKFILL, datetime.now(timezone.utc).isoformat(), high_water),
+        )
+        self.conn.commit()
+
+    def _link_source_events(self, memory: CognitiveMemory) -> None:
+        """Write the link rows inside whatever transaction the caller holds.
+
+        Never commits: `put()` decides that, and the projection worker needs
+        the memory, its links and the ledger row to become durable together.
+        """
+        rows = [
+            (str(event_id), memory.memory_id, memory.version, memory.tenant_id)
+            for event_id in (memory.source_event_ids or [])
+            if event_id
+        ]
+        if rows:
+            self.conn.executemany(
+                "INSERT OR IGNORE INTO memory_source_events("
+                " event_id, memory_id, version, tenant_id) VALUES(?,?,?,?)",
+                rows,
+            )
+
+    def put(self, memory: CognitiveMemory, *, commit: bool = True) -> CognitiveMemory:
+        """Store a memory version.
+
+        `commit=False` leaves the row in the caller's open transaction. The
+        projection worker needs that: the target-local ledger row and the
+        projection it records have to become durable together, and a store
+        that always committed on its own forced a second transaction to
+        record what the first one had produced.
+
+        The commit used to live inside the FTS branch below, which meant a
+        build on a SQLite without FTS5 left the projection uncommitted and
+        durable only by whatever the caller happened to do next. Durability
+        must not depend on how the engine was compiled.
+        """
         self.conn.execute(
             """
             INSERT INTO cognitive_memories(
@@ -159,15 +305,17 @@ class SQLiteMemoryStore:
                 memory.modality.value, memory.simulation_id, memory.reversible_forget_at,
             ),
         )
+        self._link_source_events(memory)
         if self.fts_available:
             try:
                 self.conn.execute(
                     "INSERT INTO cognitive_memory_fts(memory_key,tenant_id,workspace_id,content) VALUES(?,?,?,?)",
                     (f"{memory.memory_id}:{memory.version}", memory.tenant_id, memory.workspace_id or "", memory.content),
                 )
-                self.conn.commit()
             except sqlite3.OperationalError:
                 self.fts_available = False
+        if commit:
+            self.conn.commit()
         return memory
 
 
@@ -210,6 +358,8 @@ class SQLiteMemoryStore:
             ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             rows,
         )
+        for memory in memories:
+            self._link_source_events(memory)
         if self.fts_available:
             try:
                 self.conn.executemany(

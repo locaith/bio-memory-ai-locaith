@@ -1,0 +1,52 @@
+{
+  "configuration": {
+    "events": 10000,
+    "producers": 1,
+    "workers": 1,
+    "repeats": 3
+  },
+  "append_without_link_table": {
+    "min": 601.9,
+    "median": 1346.6,
+    "max": 1435.0,
+    "samples": [
+      1346.6,
+      1435.0,
+      601.9
+    ]
+  },
+  "append_with_link_table": {
+    "min": 1012.6,
+    "median": 1381.6,
+    "max": 1407.2,
+    "samples": [
+      1381.6,
+      1012.6,
+      1407.2
+    ]
+  },
+  "projection_without_link_table": {
+    "min": 507.7,
+    "median": 539.3,
+    "max": 747.9,
+    "samples": [
+      507.7,
+      539.3,
+      747.9
+    ]
+  },
+  "projection_with_link_table": {
+    "min": 461.7,
+    "median": 487.5,
+    "max": 695.8,
+    "samples": [
+      461.7,
+      487.5,
+      695.8
+    ]
+  },
+  "append_median_change_pct": 2.6,
+  "projection_median_change_pct": -9.6,
+  "append_ranges_overlap": true,
+  "projection_ranges_overlap": true
+}

@@ -8,21 +8,51 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # One Python version tested nothing about the range the package claims to
+    # support. `requires-python = ">=3.10"`, so the floor and the ceiling both
+    # get run; Windows is here because the projection worker uses `spawn` and
+    # the fault matrix kills real processes, and neither behaves the same as
+    # `fork` on Linux.
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: '3.10'
+          - os: ubuntu-latest
+            python-version: '3.11'
+          - os: ubuntu-latest
+            python-version: '3.12'
+          - os: windows-latest
+            python-version: '3.11'
+
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-        
+        python-version: ${{ matrix.python-version }}
+        cache: pip
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pytest pytest-asyncio
         pip install -e ".[client,mcp]"
-        
+
+    - name: Show resolved versions
+      # The failure that brought this workflow down was a dependency
+      # resolving to a major nobody asked for. Print what actually got
+      # installed, so the next one is visible in the log rather than in a
+      # traceback.
+      run: |
+        python -c "import sys; print(sys.version)"
+        pip show mcp pydantic pytest 2>&1 | grep -E "^(Name|Version)" || true
+      shell: bash
+
     - name: Run Tests with Pytest
       run: |
-        pytest tests/
+        pytest tests/ -q --durations=10
