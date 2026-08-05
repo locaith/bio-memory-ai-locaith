@@ -1,6 +1,6 @@
 {
   "rc": "0.8.2rc1",
-  "generated_at": 1785909268.4711967,
+  "generated_at": 1785909559.8392484,
   "environment": {
     "os": "Windows 10 (10.0.26200)",
     "platform": "Windows-10-10.0.26200-SP0",
@@ -13,8 +13,8 @@
     "sqlite_version": "3.45.1",
     "sqlite_module": "2.6.0",
     "process_start_method": "default",
-    "commit_sha": "6b23671d8ffffe9ad28643f5bd1fa192b9088d86",
-    "working_tree_clean": false,
+    "commit_sha": "b8c1585f44673e104273cdb4058917a27d6796cd",
+    "working_tree_clean": true,
     "producers": null,
     "workers": null,
     "measurement_tooling": "stdlib only (ctypes/resource); psutil not installed"
@@ -32,18 +32,18 @@
         "no:cacheprovider"
       ],
       "exit_code": 0,
-      "seconds": 50.78,
+      "seconds": 42.88,
       "stdout_tail": [
         ".venv\\Lib\\site-packages\\fastapi\\testclient.py:1",
         "  C:\\locaith\\bio-memory-ai-locaith\\.venv\\Lib\\site-packages\\fastapi\\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.",
         "    from starlette.testclient import TestClient as TestClient  # noqa",
         "",
         "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
-        "523 passed, 1 skipped, 5 deselected, 1 warning in 49.06s"
+        "523 passed, 1 skipped, 5 deselected, 1 warning in 41.41s"
       ],
       "stderr_tail": [],
       "label": "bio_agent_os_default",
-      "summary": "523 passed, 1 skipped, 5 deselected, 1 warning in 49.06s",
+      "summary": "523 passed, 1 skipped, 5 deselected, 1 warning in 41.41s",
       "passed": true
     },
     {
@@ -59,14 +59,14 @@
         "tests/test_fault_matrix.py"
       ],
       "exit_code": 0,
-      "seconds": 12.5,
+      "seconds": 11.65,
       "stdout_tail": [
         ".........................                                                [100%]",
-        "25 passed in 11.03s"
+        "25 passed in 10.13s"
       ],
       "stderr_tail": [],
       "label": "fault_matrix",
-      "summary": "25 passed in 11.03s",
+      "summary": "25 passed in 10.13s",
       "passed": true
     },
     {
@@ -82,14 +82,14 @@
         "tests/test_shadow_mode.py"
       ],
       "exit_code": 0,
-      "seconds": 3.37,
+      "seconds": 3.6,
       "stdout_tail": [
         "..........................................                               [100%]",
-        "42 passed in 1.98s"
+        "42 passed in 2.10s"
       ],
       "stderr_tail": [],
       "label": "shadow_mode",
-      "summary": "42 passed in 1.98s",
+      "summary": "42 passed in 2.10s",
       "passed": true
     },
     {
@@ -108,15 +108,15 @@
         "tests/test_wal_management.py"
       ],
       "exit_code": 0,
-      "seconds": 11.67,
+      "seconds": 11.7,
       "stdout_tail": [
         "........................................................................ [ 64%]",
         ".......................................                                  [100%]",
-        "111 passed in 10.09s"
+        "111 passed in 10.22s"
       ],
       "stderr_tail": [],
       "label": "operations",
-      "summary": "111 passed in 10.09s",
+      "summary": "111 passed in 10.22s",
       "passed": true
     },
     {
@@ -133,18 +133,18 @@
         "benchmark"
       ],
       "exit_code": 0,
-      "seconds": 84.52,
+      "seconds": 84.53,
       "stdout_tail": [
         ".venv\\Lib\\site-packages\\fastapi\\testclient.py:1",
         "  C:\\locaith\\bio-memory-ai-locaith\\.venv\\Lib\\site-packages\\fastapi\\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.",
         "    from starlette.testclient import TestClient as TestClient  # noqa",
         "",
         "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
-        "4 passed, 525 deselected, 1 warning in 83.05s (0:01:23)"
+        "4 passed, 525 deselected, 1 warning in 83.12s (0:01:23)"
       ],
       "stderr_tail": [],
       "label": "benchmark_marked",
-      "summary": "4 passed, 525 deselected, 1 warning in 83.05s (0:01:23)",
+      "summary": "4 passed, 525 deselected, 1 warning in 83.12s (0:01:23)",
       "passed": true
     },
     {
@@ -154,7 +154,7 @@
         "benchmarks.reliability.verify_single_commit"
       ],
       "exit_code": 0,
-      "seconds": 16.51,
+      "seconds": 15.01,
       "stdout_tail": [
         "  [OK  ] after_projection_commit                crashed=True  proj=1 ledger=1 dup=0 already_built=1 integrity=ok",
         "  [OK  ] before_outbox_complete                 crashed=True  proj=1 ledger=1 dup=0 already_built=1 integrity=ok",
@@ -171,9 +171,9 @@
       "step": "wheel",
       "status": "passed",
       "wheel": "bio_agent_os-0.8.2rc1-py3-none-any.whl",
-      "sha256": "c745a86622fa127633973cfd5e7e33f83445550aba785498c3cfbb585430fb78",
+      "sha256": "e480dfffe39e7d5c1b1100f94a7041ad614ebfa4fd6e752fc9686a0fe92774fb",
       "size_bytes": 310389,
-      "build_seconds": 4.28,
+      "build_seconds": 3.28,
       "venv_created": true,
       "install_exit": 0,
       "clean_install_behaviour": {
@@ -190,6 +190,6 @@
   "passed": 7,
   "total": 7,
   "all_passed": true,
-  "seconds": 208.2,
+  "seconds": 197.2,
   "note": "Locaith OS tests, the reliability benchmark, the soak and the doctor scaling runs are recorded separately in this directory; they are not re-run here because each takes minutes to hours."
 }
