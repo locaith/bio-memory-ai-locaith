@@ -144,6 +144,62 @@ def assert_shadow_mode(runtime: Any) -> dict[str, Any]:
 # observation
 # ==========================================================================
 
+def wal_bytes() -> int:
+    """Size of the -wal file on disk, which is the number that matters.
+
+    PRAGMA reports frames, not bytes, and a fully checkpointed WAL still
+    occupies its file. Runs 1 and 2 both ended on a file that every PRAGMA
+    called healthy.
+    """
+    p = Path(str(DB_PATH) + "-wal")
+    return p.stat().st_size if p.exists() else 0
+
+
+def _run_doctor_with_wal_trace(kind: str, run) -> tuple[int | None, str]:
+    """Run a doctor and record what it did to the WAL.
+
+    The staircase in run 2 -- 5, 11, 14, 37, 162 MB, stepping at each doctor
+    and never coming back -- is the thing this run has to show is gone. A
+    single passing unit test for TRUNCATE does not demonstrate that; twenty-
+    four hours of before/after pairs does.
+    """
+    before = wal_bytes()
+    started = time.time()
+    conn = sqlite3.connect(str(DB_PATH), timeout=300)
+    try:
+        report = run(conn)
+    finally:
+        conn.close()
+    after = wal_bytes()
+
+    # Checkpoint on a short-lived connection of our own, so what is recorded
+    # is the mode that ran and the tuple SQLite returned, not an inference.
+    ck = sqlite3.connect(str(DB_PATH), timeout=300)
+    try:
+        wal_before_ck = wal_bytes()
+        result = ck.execute("PRAGMA wal_checkpoint(PASSIVE)").fetchone()
+        wal_after_ck = wal_bytes()
+    except sqlite3.Error as exc:
+        result, wal_before_ck, wal_after_ck = (f"error: {exc}",), after, after
+    finally:
+        ck.close()
+
+    record_event(f"doctor:{kind}", {
+        "exit_code": report.exit_code,
+        "findings": len(report.findings),
+        "duration_s": round(time.time() - started, 2),
+        "wal_before_doctor_bytes": before,
+        "wal_after_doctor_bytes": after,
+        "wal_delta_bytes": after - before,
+        "wal_before_checkpoint_bytes": wal_before_ck,
+        "checkpoint_mode": "PASSIVE",
+        "checkpoint_result": list(result) if isinstance(result, tuple) else result,
+        "wal_after_checkpoint_bytes": wal_after_ck,
+        "reclaimed_bytes": wal_before_ck - wal_after_ck,
+    })
+    return report.exit_code, kind
+
+
 def read_counts(db: str) -> dict[str, int]:
     return harness.queue_counts(db)
 
@@ -652,20 +708,13 @@ def run(hours: float, rate: float, producers: int, workers: int,
             doctor_exit = None
             doctor_kind = None
             if now >= next_incremental:
-                conn = sqlite3.connect(str(DB_PATH), timeout=120)
-                try:
-                    report = IncrementalDoctor(conn).run_incremental()
-                    doctor_exit, doctor_kind = report.exit_code, "incremental"
-                finally:
-                    conn.close()
+                doctor_exit, doctor_kind = _run_doctor_with_wal_trace(
+                    "incremental",
+                    lambda c: IncrementalDoctor(c).run_incremental())
                 next_incremental = now + 300
             if now >= next_quick:
-                conn = sqlite3.connect(str(DB_PATH), timeout=120)
-                try:
-                    report = DeepDoctor(conn).run(deep=False)
-                    doctor_exit, doctor_kind = report.exit_code, "quick"
-                finally:
-                    conn.close()
+                doctor_exit, doctor_kind = _run_doctor_with_wal_trace(
+                    "quick", lambda c: DeepDoctor(c).run(deep=False))
                 next_quick = now + 1800
 
             recall_leak = recall_isolation_probe(str(DB_PATH)) if samples % 10 == 0 else 0
@@ -681,6 +730,14 @@ def run(hours: float, rate: float, producers: int, workers: int,
                 "shadow_jobs_completed": counts.get("completed", 0),
                 "shadow_jobs_pending": counts.get("pending", 0),
                 "shadow_jobs_claimed": counts.get("in_progress", 0),
+                # Only worker 0 manages the WAL, so this is its manager's own
+                # account of what it has done: how many checkpoints by mode,
+                # how many hit the critical branch, how many bytes came back.
+                "wal_manager": next(
+                    (s.get("wal") for s in worker_status if s.get("wal")), None),
+                "wal_checkpoints": next(
+                    (s.get("wal_checkpoints") for s in worker_status
+                     if s.get("wal_checkpoints")), None),
                 "shadow_jobs_failed": metrics_sum.get("failed", 0),
                 "shadow_jobs_dead_letter": counts.get("dead_letter", 0),
                 "shadow_jobs_blocked": metrics_sum.get("blocked", 0),

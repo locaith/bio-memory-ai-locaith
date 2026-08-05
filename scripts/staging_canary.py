@@ -365,6 +365,14 @@ def shadow_worker_main(spec: dict[str, Any]) -> None:
                     "metrics": worker.metrics.as_dict(),
                     "comparisons": statuses,
                     "compared": len(compared),
+                    # Surfaced so the supervisor can log which checkpoint mode
+                    # ran, what SQLite returned, and whether the file actually
+                    # came back. Runs 1 and 2 both died on WAL growth that the
+                    # worker's own metrics never reported.
+                    "wal": (worker.wal_manager.status().as_dict()
+                            if worker.wal_manager is not None else None),
+                    "wal_checkpoints": (dict(worker.wal_manager.metrics)
+                                        if worker.wal_manager is not None else None),
                 }, ensure_ascii=False), encoding="utf-8")
                 next_flush = time.time() + 5.0
 
