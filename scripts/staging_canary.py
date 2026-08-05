@@ -281,7 +281,18 @@ def shadow_worker_main(spec: dict[str, Any]) -> None:
     worker = harness.make_worker(
         runtime, worker_id=spec["worker_id"], shadow=True, lease_seconds=60.0,
     )
-    worker.wal_manager = wal_manager_for(runtime) if spec.get("manage_wal") else None
+    # The manager must act well before the SLO alarms, or the canary stops
+    # itself at the exact moment the kernel starts doing its job. The kernel
+    # defaults (soft 256 MB, hard 512 MB) are identical to this run's WAL
+    # warn/critical thresholds, so staging halves them: the manager truncates
+    # at 128 MB, the alarm still sits at 512 MB, and there is 4x headroom
+    # between the two. The SLO itself is unchanged.
+    worker.wal_manager = wal_manager_for(
+        runtime,
+        soft_limit_bytes=64 * 1048576,
+        hard_limit_bytes=128 * 1048576,
+        interval_seconds=30.0,
+    ) if spec.get("manage_wal") else None
     worker.control = ProjectionControl(runtime.events.conn)
 
     samples_path = Path(spec["out"]).with_suffix(".samples.jsonl")
