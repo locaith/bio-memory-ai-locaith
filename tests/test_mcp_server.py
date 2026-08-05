@@ -147,3 +147,137 @@ async def test_fastmcp_server_exposes_the_five_tools():
     descriptions = {tool.name: tool.description for tool in tools}
     assert "before answering" not in descriptions["store_memory"]
     assert "Recall" in descriptions["recall"]
+
+
+# ==========================================================================
+# the packaging contract
+#
+# CI installed mcp 2.0.0 against `mcp>=1.2.0` and the MCP server stopped
+# working: 2.0 renamed FastMCP to MCPServer and removed `mcp.server.fastmcp`
+# entirely. The constraint said "any version from 1.2.0 onwards" while the
+# code meant "the 1.x API", and nothing caught the difference until a major
+# release shipped.
+#
+# The failure was worse than a broken import. `build_mcp_server` caught the
+# ImportError and told the operator to `pip install bio-agent-os[mcp]` — which
+# they had already done. An error that instructs you to do the thing you did
+# is worse than no error, because it sends you to the wrong place.
+# ==========================================================================
+
+import importlib.metadata
+import re
+import sys
+from pathlib import Path
+
+_PYPROJECT = Path(__file__).resolve().parents[1] / "pyproject.toml"
+
+#: What `bio_agent_os.mcp_server` actually imports. If this moves, the bound
+#: below has to move with it.
+REQUIRED_MCP_IMPORT = "mcp.server.fastmcp"
+
+
+def _mcp_constraints() -> list[str]:
+    """Every declared requirement on `mcp`, from the metadata if installed.
+
+    Reads `importlib.metadata` first: that is the packaging as pip actually
+    sees it, and it needs no TOML parser — `tomllib` is 3.11+, and this
+    package supports 3.10. Falls back to scanning pyproject.toml when the
+    distribution is not installed, which is how it runs from a source
+    checkout.
+    """
+    specs: list[str] = []
+    try:
+        for requirement in importlib.metadata.requires("bio-agent-os") or []:
+            head = requirement.split(";", 1)[0].strip()
+            if re.match(r"^mcp\b", head):
+                specs.append(head)
+    except importlib.metadata.PackageNotFoundError:
+        pass
+
+    if not specs:
+        for line in _PYPROJECT.read_text(encoding="utf-8").splitlines():
+            if line.lstrip().startswith("#"):
+                continue
+            specs.extend(
+                match.group(1)
+                for match in re.finditer(r'"(mcp[<>=!~ ][^"]*)"', line)
+            )
+
+    assert specs, "no mcp requirement found in the packaging metadata"
+    return specs
+
+
+def test_the_mcp_requirement_has_an_upper_bound():
+    """An unbounded major is a promise to work with code that does not exist yet.
+
+    mcp 2.0 removed the module this package imports. The constraint has to say
+    which API it targets, or the next major breaks it again the day it ships.
+    """
+    for spec in _mcp_constraints():
+        assert "<" in spec, (
+            f"{spec!r} admits any future major of mcp. The code imports "
+            f"{REQUIRED_MCP_IMPORT}, which mcp 2.0 removed."
+        )
+
+
+def test_every_mcp_requirement_agrees():
+    """The `mcp` extra and the `all` extra must not drift apart."""
+    assert len(set(_mcp_constraints())) == 1, (
+        f"mcp is pinned differently in different extras: {_mcp_constraints()}"
+    )
+
+
+def test_an_incompatible_mcp_is_not_reported_as_a_missing_one(monkeypatch):
+    """Tell the truth about which of the two problems it is.
+
+    With mcp installed but too new, the old message sent an operator to
+    reinstall a package they already had.
+    """
+    import bio_agent_os.mcp_server as server_module
+
+    real_import = __import__
+
+    def _no_fastmcp(name, *args, **kwargs):
+        if name.startswith("mcp.server.fastmcp"):
+            raise ModuleNotFoundError("No module named 'mcp.server.fastmcp'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setitem(sys.modules, "mcp", type(sys)("mcp"))
+    monkeypatch.setattr("builtins.__import__", _no_fastmcp)
+
+    with pytest.raises(RuntimeError) as caught:
+        server_module.build_mcp_server(MemoryToolset(rest_client=StubRestClient()))
+
+    message = str(caught.value)
+    # Whatever version is actually installed, not one this test invents: the
+    # first draft faked `mcp.__version__ = "2.0.0"` and asserted on it, which
+    # failed the moment a real mcp was present and metadata won.
+    installed = server_module._installed_mcp_version()
+    assert installed and installed in message, (
+        f"the message does not name the installed version ({installed}): {message}"
+    )
+    assert "incompatible" in message.lower(), (
+        "an installed-but-wrong-version mcp is still described as missing"
+    )
+    assert "pip install bio-agent-os[mcp]" not in message, (
+        "tells the operator to install a package that is already installed"
+    )
+
+
+def test_a_genuinely_missing_mcp_still_says_so(monkeypatch):
+    """The other half of the same distinction."""
+    import bio_agent_os.mcp_server as server_module
+
+    monkeypatch.setattr(server_module, "_installed_mcp_version", lambda: None)
+    real_import = __import__
+
+    def _no_mcp(name, *args, **kwargs):
+        if name.startswith("mcp"):
+            raise ModuleNotFoundError("No module named 'mcp'")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.__import__", _no_mcp)
+
+    with pytest.raises(RuntimeError) as caught:
+        server_module.build_mcp_server(MemoryToolset(rest_client=StubRestClient()))
+    assert "pip install bio-agent-os[mcp]" in str(caught.value)

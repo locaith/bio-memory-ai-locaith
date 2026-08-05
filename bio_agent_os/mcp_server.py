@@ -28,6 +28,7 @@ Or against a shared sidecar::
 from __future__ import annotations
 
 import logging
+import sys
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("bio_agent_os.mcp")
@@ -246,14 +247,50 @@ class MemoryToolset:
             return {"status": "error", "error": str(exc)}
 
 
+def _installed_mcp_version() -> Optional[str]:
+    """The installed mcp version, or None when the package is absent.
+
+    Reads the module first because that is what the failing import touched;
+    falls back to the distribution metadata, which is present even when the
+    module itself cannot be imported.
+    """
+    import importlib.metadata
+    import importlib.util
+
+    try:
+        return importlib.metadata.version("mcp")
+    except importlib.metadata.PackageNotFoundError:
+        pass
+    module = sys.modules.get("mcp")
+    if module is not None:
+        return str(getattr(module, "__version__", "unknown"))
+    return "unknown" if importlib.util.find_spec("mcp") else None
+
+
 def build_mcp_server(toolset: MemoryToolset):
-    """Wire the toolset into a FastMCP server (lazy mcp import)."""
+    """Wire the toolset into a FastMCP server (lazy mcp import).
+
+    Targets the mcp 1.x API. mcp 2.0 removed `mcp.server.fastmcp` and renamed
+    `FastMCP` to `MCPServer`; the extras pin `<2` for that reason, and porting
+    to the 2.x API is separate work.
+    """
     try:
         from mcp.server.fastmcp import FastMCP
     except ImportError as exc:
+        # Two different problems, and telling them apart is the whole point.
+        # The previous message said "install the mcp package" to operators who
+        # had installed it — CI hit exactly that, with mcp 2.0.0 present.
+        installed = _installed_mcp_version()
+        if installed is None:
+            raise RuntimeError(
+                "The MCP server requires the `mcp` package. "
+                "Install with `pip install bio-agent-os[mcp]`."
+            ) from exc
         raise RuntimeError(
-            "The MCP server requires the `mcp` package. "
-            "Install with `pip install bio-agent-os[mcp]`."
+            f"mcp {installed} is installed but incompatible: this package uses "
+            f"the mcp 1.x API and imports `mcp.server.fastmcp`, which mcp 2.0 "
+            f"removed (FastMCP was renamed to MCPServer). Install a 1.x "
+            f"release: pip install 'mcp>=1.2.0,<2'."
         ) from exc
 
     server = FastMCP("bio-agent-os", instructions=SERVER_INSTRUCTIONS)
