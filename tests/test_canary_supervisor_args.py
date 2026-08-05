@@ -9,6 +9,7 @@ tests exist so it cannot come back.
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
@@ -32,7 +33,25 @@ def _load():
 
 @pytest.fixture(scope="module")
 def supervisor():
-    return _load()
+    """Import the supervisor without leaking its environment into the suite.
+
+    canary_supervisor.py does `os.environ.setdefault("BIO_AGENT_PROJECTION_MODE",
+    "shadow")` at import, which is right for the staging process it owns and
+    wrong for every other test in this run: it silently switched observe() onto
+    the outbox and broke two unrelated tests that assert the legacy path is
+    still primary. Importing a module must not reconfigure the process.
+    """
+    key = "BIO_AGENT_PROJECTION_MODE"
+    had = key in os.environ
+    previous = os.environ.get(key)
+    try:
+        yield _load()
+    finally:
+        if had:
+            os.environ[key] = previous
+        else:
+            os.environ.pop(key, None)
+        sys.modules.pop("_canary_supervisor", None)
 
 
 @pytest.mark.parametrize("ramp_rate", [None, 0, 0.0, -1.0])
