@@ -28,6 +28,24 @@ accident of the interface; both are the point of it.
 Quick mode runs 4 check functions; deep runs 13. Each emits one or more of the
 finding codes tabulated below.
 
+Incremental mode runs all 13 but bounds five of them to what has arrived since
+the last scan, and swaps `integrity_check` for `quick_check`. On a
+100,000-event database that is **2.1 s** against **13.4 s** for `--deep`. See
+`BENCHMARK_REPORT.md` section 10c.
+
+```bash
+bio-agent-os --db <path> doctor --incremental
+bio-agent-os --db <path> doctor --since-event <id>
+bio-agent-os --db <path> doctor --since-time <timestamp>
+bio-agent-os --db <path> doctor --full          # ignore the cursor
+bio-agent-os --db <path> doctor-cursor          # inspect it
+bio-agent-os --db <path> doctor-cursor --reset  # next scan is full
+```
+
+The cursor advances only after a completed scan, and only when nothing is
+outstanding: a FAIL or CRITICAL holds it until the problem is gone. A change to
+the doctor version or the schema fingerprint invalidates it.
+
 ### Exit codes
 
 | Code | Meaning |

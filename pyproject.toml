@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bio-agent-os"
-version = "0.8.1a1"
+version = "0.8.2rc1"
 description = "Open-source bio-inspired memory framework for AI agents."
 readme = "README.md"
 license = {text = "MIT"}

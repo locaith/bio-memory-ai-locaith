@@ -440,6 +440,72 @@ Query count moved 34 → 35: the one extra query is the single pass that reads
 The user's stated minimum was 10,000 events / 10,000 projections / 1,000
 shadow records. That row is measured above, and so are 5× and 10× beyond it.
 
+### 10b. Re-measured after the link table (phase 2)
+
+The interim fix above read `source_event_ids_json` into a Python set once per
+scan. That is O(N+M) but still a full scan of every memory on every run, and
+it does nothing for the *per-event* question that
+`shadow_runner.legacy_projection()` and the repair precondition ask — which
+was 62.5 s for 10,000 comparisons. `memory_source_events` replaces both with an
+indexed lookup (`reports/v082/doctor_scaling.json`):
+
+| events | links | quick | deep | s per 1,000 | relationship scan |
+|---:|---:|---:|---:|---:|:---:|
+| 10,000 | 10,000 | 0.426 s | 0.588 s | 0.059 | none |
+| 50,000 | 50,000 | 3.954 s | 5.303 s | 0.106 | none |
+| 100,000 | 100,000 | 8.579 s | 12.962 s | 0.130 | none |
+| 366,000 | 366,000 | 37.922 s | **65.738 s** | 0.180 | none |
+
+`EXPLAIN QUERY PLAN` is captured at every size for all three relationship
+checks: `SEARCH ... USING INDEX`, never `SCAN`. Findings stay 1,009 throughout.
+
+**36.6× the data takes 111.8× the time — exponent 1.31.** That is close to
+linear, and it is not linear, and this report does not call it linear. The
+residual comes from `integrity_check`, which reads every page and every index
+entry: quick mode runs only four checks and still costs 37.9 s at 366,000
+events, so the pragma is most of it.
+
+**The link table is slower than the Python set for a bulk scan** — 12.96 s
+versus 8.48 s at 100,000 events, about 1.5×. It was chosen anyway, for three
+reasons stated plainly:
+
+* the set is itself a full scan of every memory, which is what this phase was
+  asked to eliminate rather than replace;
+* the set answers only the bulk question. The per-event lookups that cost
+  62.5 s per 10,000 comparisons stay a full scan under it;
+* the set holds roughly 10 MB of id strings at 100,000 memories; the index
+  holds nothing.
+
+Write cost, measured by alternating three rounds
+(`reports/v082/link_table_write_cost_ab.json`): append **+2.6%**, projection
+**−9.6%**, both with overlapping ranges. About a tenth of projection
+throughput, at the edge of what this machine resolves.
+
+### 10c. What an incremental scan actually costs
+
+The argument for incremental mode is that an operator can run it every few
+minutes instead of paying for an audit. Unmeasured, that argument is worth
+nothing. One 100,000-event database, 321 MB, built once
+(`reports/v082/incremental_doctor_cost.json`):
+
+| scan | seconds | window |
+|---|---:|---|
+| `--deep` | 13.359 | everything |
+| quick (4 checks) | 8.314 | everything |
+| `--incremental`, first run | 6.955 | 100,000 events |
+| `--incremental`, nothing new | **2.124** | empty |
+| `--incremental`, 500 new events | **2.695** | 500 events |
+
+**6.3× cheaper than the audit in steady state**, and — the part worth
+noticing — **cheaper than quick mode while running more checks**. Quick runs
+four checks and costs 8.3 s; incremental runs thirteen and costs 2.1 s. The
+difference is `PRAGMA integrity_check`, which reads every page and every index
+entry. Incremental uses `quick_check`; the full audit keeps the complete one.
+
+That is also why the 1.31 exponent above is not alarming for day-to-day
+operation: the super-linear part is the pragma, and the scan an operator runs
+every few minutes does not use it.
+
 **Peak memory** during the 100,000-event scan: roughly 195 MB resident, read
 from the OS process list rather than from the benchmark's own (then broken)
 RSS function. That figure includes building the 297 MB database as well as
@@ -714,19 +780,23 @@ job contributes no latency sample. Those are counted separately (section 7),
 but the percentiles describe successful work only. In a healthy run that is
 almost all of it; in a degraded one it would flatter the numbers.
 
-**The removable commit is still there.** Section 8 names it, measures it at a
-third of the per-job commits, and explains why removing it needs the fault
-matrix re-run rather than a benchmark session. The planned
-`perf(projection)` commit was therefore not made; the performance commit in
-this series is `perf(doctor)`, and it is named for what it actually changed.
+~~**The removable commit is still there.**~~ Removed in phase 2 with the fault
+matrix re-run as its acceptance criterion: 3.02 → 2.02 commits per job, all
+seven fault points holding `projection=1, ledger=1, duplicate=0,
+integrity=ok`, and the 25-case matrix green. Throughput was unchanged as far
+as this machine can resolve — the reason for the change was the atomicity.
 
-**Two `LIKE '%id%'` sites remain** (section 9). Neither is on the write path;
-both make a caller-in-a-loop quadratic.
+~~**Two `LIKE '%id%'` sites remain.**~~ Both replaced in phase 2 by the
+`memory_source_events` link table. Two LIKE queries survive in
+`bio_agent_os/memory/episodes.py` and are deliberately untouched: one is
+full-text matching, which is what LIKE is for, and the other
+(`metadata_json LIKE '%is_anchor_memory%'`) is filtered by task and workspace
+first, so it is bounded by scope rather than by the table. Neither is the
+O(N×M) shape and neither is in the projection path.
 
-**No incremental doctor scan.** Deep is now linear, but it is still a full
-scan: 8.5 s at 100,000 events, and a database ten times larger would take
-roughly ten times as long. Quick, deep and tenant-scoped exist; incremental
-does not.
+~~**No incremental doctor scan.**~~ Closed in phase 2: `doctor --incremental`
+scans from a crash-safe cursor and runs every cheap global invariant in full.
+See section 10c.
 
 **Peak memory is `WorkingSetSize` from the OS, not a profiler.** It tells you
 the process did not leak; it does not tell you where the bytes went. And it

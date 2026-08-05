@@ -1,0 +1,38 @@
+{
+  "rows": [
+    {
+      "events": 100000,
+      "database_mb": 321.1,
+      "deep_seconds": 13.359,
+      "deep_findings": 9,
+      "quick_seconds": 8.314,
+      "incremental_first_run_seconds": 6.955,
+      "incremental_first_window_events": 100000,
+      "incremental_steady_seconds": 2.124,
+      "incremental_steady_window_events": 0,
+      "incremental_after_arrivals_seconds": 2.695,
+      "incremental_after_arrivals_window_events": 500,
+      "appended_between": 500,
+      "deep_over_incremental_steady": 6.3,
+      "note": "quick mode is dominated by PRAGMA integrity_check, which reads every page; incremental uses quick_check instead, which is why it is cheaper than quick mode despite running more checks"
+    }
+  ],
+  "environment": {
+    "os": "Windows 10 (10.0.26200)",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpu_cores_logical": 12,
+    "ram_bytes": 34170748928,
+    "ram_gb": 31.82,
+    "python": "3.11.9",
+    "python_implementation": "CPython",
+    "sqlite_version": "3.45.1",
+    "sqlite_module": "2.6.0",
+    "process_start_method": "default",
+    "commit_sha": "6b23671d8ffffe9ad28643f5bd1fa192b9088d86",
+    "working_tree_clean": false,
+    "producers": null,
+    "workers": null,
+    "measurement_tooling": "stdlib only (ctypes/resource); psutil not installed"
+  }
+}
