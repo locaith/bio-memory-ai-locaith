@@ -25,6 +25,9 @@ bio-agent-os --db <path> projection worker --once|--forever
 **Doctor never writes.** **Reconcile defaults to dry run.** Neither is an
 accident of the interface; both are the point of it.
 
+Quick mode runs 4 check functions; deep runs 13. Each emits one or more of the
+finding codes tabulated below.
+
 ### Exit codes
 
 | Code | Meaning |
@@ -70,6 +73,8 @@ the primary path looks like today, so it reports as `INFO`
 ---
 
 ## What deep mode checks
+
+Grouped by area; the 13 deep check functions produce these codes.
 
 | Area | Codes |
 |---|---|
@@ -119,6 +124,24 @@ action whose world changed is skipped as `conflict` rather than applied to a
 situation nobody diagnosed. That is also what makes a second `--repair` a
 no-op: the precondition has stopped being true.
 
+### Recovering a dead worker's claims
+
+A worker that dies holding claims leaves them `in_progress` until their lease
+expires. Another worker reclaims them then — but only if it is **still
+running** at that point.
+
+> **A restarted worker must stay alive for longer than `lease_seconds` before
+> it gives up.** One that polls an empty queue and exits sooner will find
+> nothing claimable, because the dead worker's claims are still inside their
+> lease window, and it will recover nothing.
+
+Measured: with a 5-second lease and a half-second idle timeout, restarted
+workers recovered **0 of 9** orphaned jobs. With an idle timeout longer than
+the lease, the same scenario recovered **2,814 of 2,814** in 24.1 s.
+
+`projection worker --forever` has no idle timeout and is unaffected.
+`--once` is: run it repeatedly, or use `--forever` after a crash.
+
 ### Audit
 
 Every `--repair` writes `reports/reconciliation_<timestamp>.{json,md}` with
@@ -148,25 +171,66 @@ On a 50-observation shadow database:
 
 | | |
 |---|---:|
-| checks run (deep) | 22 |
+| check functions run (deep) | 13 |
 | scan time | 0.003 s |
 | findings | 59 |
 | repairable | 50 |
 | manual review | 0 |
+
+An earlier version of this table said 22 checks, and the commit message for
+`feat(doctor)` said "thirteen in quick mode, twenty-two in deep". Both were
+wrong: `run()` calls **4** check functions in quick mode and **13** in deep.
+Each function can emit several distinct finding codes, which is what the table
+above lists — the two numbers count different things and the earlier text
+conflated them.
 
 Dry run changed **0 rows**, verified by reading counts from a freshly opened
 connection on the closed file. A second `--repair` applied **0** actions.
 
 ---
 
+## Correction: the scan was quadratic, and this document said otherwise
+
+An earlier version of the section below claimed scan time was sub-millisecond
+"and the queries are indexed, but that is an expectation, not a measurement."
+
+The expectation was wrong. Three deep checks asked
+`WHERE m.source_event_ids_json LIKE '%' || event_id || '%'` inside a
+correlated subquery. A leading wildcard cannot use an index, so each of the N
+outer rows scanned all M memories — O(N×M), not indexed at all.
+
+Measured on 2026-08-05, before the fix:
+
+| events | deep scan | s per 1000 events |
+|---:|---:|---:|
+| 1,000 | 0.78 s | 0.78 |
+| 5,000 | 23.65 s | 4.73 |
+| 10,000 | 98.67 s | 9.87 |
+
+Ten times the data took **127 times** the time — a scaling exponent of 2.1.
+Extrapolated, a 100,000-event scan would have taken about 2.75 hours. It was
+found because it stalled the reliability benchmark, not because anyone read
+the query.
+
+The fix reads the column once into a set and tests membership in Python:
+O(N+M), and stricter, since a substring match could pair an event with a
+memory that merely contains its id inside a longer one. Post-fix figures are
+in `BENCHMARK_REPORT.md`.
+
+Two sites with the same shape remain, both deliberately: `shadow_runner.py`
+`legacy_projection()` and `reconciliation.py`'s repair precondition. Each
+scans once **per event asked about** rather than once per row of a full scan,
+so neither is quadratic in a single call — but a caller in a loop makes it so.
+Comparing 10,000 shadow events took 62.5 s for that reason.
+
 ## Limits
 
-- Scale was measured at tens to hundreds of rows, not the 10,000 events /
-  10,000 projections / 1,000 shadow records the plan asks for. Scan time is
-  sub-millisecond at this size and the queries are indexed, but that is an
-  expectation, not a measurement.
+- Scan time is now measured rather than expected; see `BENCHMARK_REPORT.md`
+  for 1,000 through 100,000 events.
 - `DUPLICATE_EVENT_ID` cannot fire on SQLite: `event_id` is the primary key, so
   the storage layer refuses it outright. The check remains as defence in depth
   for a backend with a looser constraint.
 - Incremental scan is not implemented. Quick and deep and tenant-scoped are.
-- Peak memory was not measured.
+- `_projected_event_ids` holds one set of id strings for the duration of a
+  scan — roughly 10 MB at 100,000 memories. Constant-factor memory traded for
+  a factor-of-N in time.

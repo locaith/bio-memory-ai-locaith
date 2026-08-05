@@ -1,0 +1,128 @@
+{
+  "environment": {
+    "os": "Windows 10 (10.0.26200)",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpu_cores_logical": 12,
+    "ram_bytes": 34170748928,
+    "ram_gb": 31.82,
+    "python": "3.11.9",
+    "python_implementation": "CPython",
+    "sqlite_version": "3.45.1",
+    "sqlite_module": "2.6.0",
+    "process_start_method": "default",
+    "commit_sha": "65bef58818a99eb53bfc3fb00fb65de0e289bf40",
+    "working_tree_clean": false,
+    "producers": null,
+    "workers": null,
+    "measurement_tooling": "stdlib only (ctypes/resource); psutil not installed"
+  },
+  "rows": [
+    {
+      "events": 1000,
+      "projections": 2000,
+      "shadow_records": 1000,
+      "build_seconds": 1.51,
+      "database_bytes": 5251072,
+      "quick": {
+        "seconds": 0.023,
+        "checks_run": 4,
+        "queries": 11,
+        "findings": 7,
+        "exit_code": 0
+      },
+      "deep": {
+        "seconds": 0.777,
+        "checks_run": 13,
+        "queries": 34,
+        "findings": 1009,
+        "findings_per_second": 1299.1,
+        "exit_code": 0,
+        "finding_codes": {
+          "SHADOW_COMPARISON_MISSING": 1000,
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_CONSISTENT": 1
+        }
+      },
+      "deep_seconds_per_1000_events": 0.7767,
+      "peak_rss_mb": 0.0
+    },
+    {
+      "events": 5000,
+      "projections": 6000,
+      "shadow_records": 1000,
+      "build_seconds": 6.6,
+      "database_bytes": 17543168,
+      "quick": {
+        "seconds": 0.113,
+        "checks_run": 4,
+        "queries": 11,
+        "findings": 7,
+        "exit_code": 0
+      },
+      "deep": {
+        "seconds": 23.65,
+        "checks_run": 13,
+        "queries": 34,
+        "findings": 1009,
+        "findings_per_second": 42.7,
+        "exit_code": 0,
+        "finding_codes": {
+          "SHADOW_COMPARISON_MISSING": 1000,
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_CONSISTENT": 1
+        }
+      },
+      "deep_seconds_per_1000_events": 4.7301,
+      "peak_rss_mb": 0.0
+    },
+    {
+      "events": 10000,
+      "projections": 11000,
+      "shadow_records": 1000,
+      "build_seconds": 13.83,
+      "database_bytes": 33099776,
+      "quick": {
+        "seconds": 0.229,
+        "checks_run": 4,
+        "queries": 11,
+        "findings": 7,
+        "exit_code": 0
+      },
+      "deep": {
+        "seconds": 98.665,
+        "checks_run": 13,
+        "queries": 34,
+        "findings": 1009,
+        "findings_per_second": 10.2,
+        "exit_code": 0,
+        "finding_codes": {
+          "SHADOW_COMPARISON_MISSING": 1000,
+          "UNSUPPORTED_CAPABILITY": 4,
+          "SQLITE_INTEGRITY": 1,
+          "CAPABILITY_SUMMARY": 1,
+          "OUTBOX_CLEAN": 1,
+          "EVENT_CHECKSUM_CHAIN": 1,
+          "SHADOW_CONSISTENT": 1
+        }
+      },
+      "deep_seconds_per_1000_events": 9.8665,
+      "peak_rss_mb": 0.0
+    }
+  ],
+  "scaling": {
+    "size_ratio": 10.0,
+    "deep_time_ratio": 126.98,
+    "linear_would_be": 10.0,
+    "quadratic_would_be": 100.0,
+    "observed_exponent": 2.1
+  }
+}

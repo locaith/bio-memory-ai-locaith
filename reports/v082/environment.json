@@ -1,0 +1,32 @@
+{
+  "os": "Windows 10 (10.0.26200)",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+  "cpu_cores_logical": 12,
+  "ram_bytes": 34170748928,
+  "ram_gb": 31.82,
+  "python": "3.11.9",
+  "python_implementation": "CPython",
+  "sqlite_version": "3.45.1",
+  "sqlite_module": "2.6.0",
+  "process_start_method": "default",
+  "commit_sha": "65bef58818a99eb53bfc3fb00fb65de0e289bf40",
+  "working_tree_clean": false,
+  "producers": null,
+  "workers": null,
+  "measurement_tooling": "stdlib only (ctypes/resource); psutil not installed",
+  "corpus_domains": [
+    "vi",
+    "en",
+    "coding",
+    "erp",
+    "legal",
+    "finance",
+    "medical",
+    "devops",
+    "iot",
+    "personal"
+  ],
+  "corpus_tenants": 10,
+  "corpus_workspaces_per_tenant": 10
+}

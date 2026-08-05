@@ -1,0 +1,131 @@
+{
+  "workload": "soak",
+  "seconds_requested": 3600.0,
+  "seconds_actual": 4283.4,
+  "producers": 2,
+  "workers_per_generation": 3,
+  "worker_generations": 3,
+  "target_append_rate_per_s": 120.0,
+  "doctor_every_n_samples": 5,
+  "samples": 57,
+  "appended": 366715,
+  "completed": 366713,
+  "queue_drained_after_stop": false,
+  "drain_seconds": 600.0,
+  "final_queue": {
+    "pending": 2,
+    "in_progress": 0,
+    "completed": 366713,
+    "dead_letter": 0,
+    "skipped": 0,
+    "events": 366715,
+    "ledger": 366713,
+    "memories": 366713,
+    "shadow": 0
+  },
+  "sqlite_integrity_check": "ok",
+  "rss_mb_first": 89.4,
+  "rss_mb_last": 100.1,
+  "rss_mb_peak": 100.1,
+  "rss_growth_mb": 10.7,
+  "queue_depth_max": 6,
+  "queue_depth_last": 2,
+  "p95_first_half_mean_ms": 75.96,
+  "p95_second_half_mean_ms": 89.35,
+  "latency_drift_pct": 17.6,
+  "producer_lock_errors": 0,
+  "worker_lock_errors": 0,
+  "runtime_restarts": 36,
+  "peak_rss_mb": 106.5,
+  "doctor_before": {
+    "exit_code": 0,
+    "worst_severity": "INFO",
+    "checks_run": 13,
+    "queries": 28,
+    "duration_s": 0.0017,
+    "findings_per_second": 5294.1,
+    "by_severity": {
+      "PASS": 3,
+      "INFO": 6,
+      "WARN": 0,
+      "FAIL": 0,
+      "CRITICAL": 0
+    },
+    "finding_codes": {
+      "UNSUPPORTED_CAPABILITY": 4,
+      "SQLITE_INTEGRITY": 1,
+      "SCHEMA_OPTIONAL_TABLE_ABSENT": 1,
+      "CAPABILITY_SUMMARY": 1,
+      "OUTBOX_CLEAN": 1,
+      "SHADOW_NOT_IN_USE": 1
+    },
+    "repairable_findings": 0,
+    "manual_review_required": 0,
+    "counts": {
+      "events": 0,
+      "outbox_jobs": 0,
+      "projections": 0,
+      "ledger": 0,
+      "shadow": 0
+    }
+  },
+  "doctor_after": {
+    "exit_code": 0,
+    "worst_severity": "WARN",
+    "checks_run": 13,
+    "queries": 31,
+    "duration_s": 47.9029,
+    "findings_per_second": 0.2,
+    "by_severity": {
+      "PASS": 3,
+      "INFO": 5,
+      "WARN": 1,
+      "FAIL": 0,
+      "CRITICAL": 0
+    },
+    "finding_codes": {
+      "UNSUPPORTED_CAPABILITY": 4,
+      "SQLITE_INTEGRITY": 1,
+      "CAPABILITY_SUMMARY": 1,
+      "OUTBOX_PENDING": 1,
+      "EVENT_CHECKSUM_CHAIN": 1,
+      "SHADOW_NOT_IN_USE": 1
+    },
+    "repairable_findings": 0,
+    "manual_review_required": 0,
+    "counts": {
+      "events": 366715,
+      "outbox_jobs": 366715,
+      "projections": 366713,
+      "ledger": 366713,
+      "shadow": 0
+    }
+  },
+  "database": {
+    "db_bytes": 1130311680,
+    "wal_bytes": 0,
+    "shm_bytes": 0,
+    "total_bytes": 1130311680
+  },
+  "timeseries_path": "C:\\locaith\\bio-memory-ai-locaith\\reports\\v082\\soak_timeseries.jsonl",
+  "db_path": "C:\\locaith\\bio-memory-ai-locaith\\reports\\v082\\soak\\soak.db",
+  "environment": {
+    "os": "Windows 10 (10.0.26200)",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpu_cores_logical": 12,
+    "ram_bytes": 34170748928,
+    "ram_gb": 31.82,
+    "python": "3.11.9",
+    "python_implementation": "CPython",
+    "sqlite_version": "3.45.1",
+    "sqlite_module": "2.6.0",
+    "process_start_method": "spawn",
+    "commit_sha": "65bef58818a99eb53bfc3fb00fb65de0e289bf40",
+    "working_tree_clean": false,
+    "producers": null,
+    "workers": null,
+    "measurement_tooling": "stdlib only (ctypes/resource); psutil not installed",
+    "work_dir": "C:\\locaith\\bio-memory-ai-locaith\\.bench\\soak"
+  }
+}
