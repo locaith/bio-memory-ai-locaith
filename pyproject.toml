@@ -76,3 +76,14 @@ Issues = "https://github.com/locaith/bio-memory-ai-locaith/issues"
 
 [tool.setuptools.packages.find]
 include = ["bio_agent_os*"]
+
+[tool.pytest.ini_options]
+# A load test in the unit suite makes the unit suite something people stop
+# running. Both markers are deselected by default and opted into explicitly:
+#   pytest -m benchmark        multi-process load, seconds to minutes
+#   pytest -m soak             long-running; measured in hours
+addopts = "-m 'not benchmark and not soak'"
+markers = [
+    "benchmark: multi-process reliability load; excluded from the default run",
+    "soak: long-running reliability load; excluded from the default run",
+]
