@@ -370,3 +370,117 @@ def test_observe_is_still_legacy(os_):
     """Nothing in this commit wires observe() to the outbox."""
     event = os_.observe(tenant_id="t1", actor="a", source="unit", content="legacy")
     assert os_.events.outbox.by_event(event.event_id) == []
+
+
+# ==========================================================================
+# one transaction on the target connection
+#
+# The ledger row, the projection and the ledger's target_id all belong in one
+# transaction. They were in two: `put()` committed, and then the worker
+# committed again to record target_id. The benchmark measured that second
+# commit at a third of the per-job commits, and the split also meant a crash
+# between them left a ledger row whose target_id was permanently null.
+# ==========================================================================
+
+
+def _count_commits(conn) -> list[str]:
+    seen: list[str] = []
+
+    def trace(sql: str) -> None:
+        head = sql.strip().split(None, 1)[0].upper() if sql.strip() else ""
+        if head in ("COMMIT", "END"):
+            seen.append(sql.strip())
+
+    conn.set_trace_callback(trace)
+    return seen
+
+
+def test_one_commit_on_the_target_connection_per_job(os_, worker):
+    """The ledger, the projection and target_id must cost one commit, not two."""
+    _append(os_)
+    commits = _count_commits(os_.memories.conn)
+    try:
+        worker.run_once()
+    finally:
+        os_.memories.conn.set_trace_callback(None)
+
+    assert worker.metrics.completed == 1
+    assert len(commits) == 1, (
+        f"expected one commit on the projection connection, saw {len(commits)}: "
+        f"{commits}"
+    )
+
+
+def test_target_id_is_durable_with_the_projection(os_, worker):
+    """No window in which the projection exists and its ledger row does not
+    say what it produced."""
+    _append(os_)
+    worker.run_once()
+
+    row = os_.memories.conn.execute(
+        "SELECT target_id FROM projection_ledger"
+    ).fetchone()
+    assert row is not None
+    assert row["target_id"], "ledger row has no target_id after a successful build"
+
+    memory = os_.memories.conn.execute(
+        "SELECT memory_id FROM cognitive_memories"
+    ).fetchone()
+    assert memory["memory_id"] == row["target_id"]
+
+
+def test_a_failed_build_leaves_no_ledger_row(os_):
+    """The ledger insert is uncommitted until the projection commits with it,
+    so a builder that raises must leave nothing behind."""
+
+    class _Exploding:
+        projection_type = MEMORY
+
+        def build(self, event, job, conn):
+            raise RuntimeError("builder exploded")
+
+    _append(os_)
+    worker = ReconciliationWorker(
+        os_.events.conn, projection_conn=os_.memories.conn,
+        outbox=os_.events.outbox, builders={MEMORY: _Exploding()}, worker_id="boom",
+    )
+    worker.run_once()
+
+    assert os_.memories.conn.execute(
+        "SELECT COUNT(*) FROM projection_ledger"
+    ).fetchone()[0] == 0
+    assert os_.memories.conn.execute(
+        "SELECT COUNT(*) FROM cognitive_memories"
+    ).fetchone()[0] == 0
+
+
+def test_a_skipped_build_leaves_no_ledger_row(os_, worker):
+    _append(os_, content="   ")   # no content: the builder declines
+    worker.run_once()
+
+    assert worker.metrics.skipped == 1
+    assert os_.memories.conn.execute(
+        "SELECT COUNT(*) FROM projection_ledger"
+    ).fetchone()[0] == 0
+
+
+def test_put_commits_by_default_and_defers_when_asked(os_):
+    """`put()` used to commit only when FTS happened to be available, so
+    whether a projection was durable depended on how SQLite was compiled."""
+    from bio_agent_os.cognitive.models import CognitiveMemory, MemoryType
+
+    memory = CognitiveMemory(
+        tenant_id="t1", memory_type=MemoryType.EPISODIC, content="durable",
+        source_event_ids=["evt-durable"],
+    )
+    os_.memories.put(memory, commit=False)
+    os_.memories.conn.rollback()
+    assert os_.memories.conn.execute(
+        "SELECT COUNT(*) FROM cognitive_memories WHERE memory_id=?", (memory.memory_id,)
+    ).fetchone()[0] == 0
+
+    os_.memories.put(memory)
+    os_.memories.conn.rollback()
+    assert os_.memories.conn.execute(
+        "SELECT COUNT(*) FROM cognitive_memories WHERE memory_id=?", (memory.memory_id,)
+    ).fetchone()[0] == 1

@@ -124,7 +124,20 @@ class SQLiteMemoryStore:
         if name not in columns:
             self.conn.execute(f"ALTER TABLE cognitive_memories ADD COLUMN {name} {declaration}")
 
-    def put(self, memory: CognitiveMemory) -> CognitiveMemory:
+    def put(self, memory: CognitiveMemory, *, commit: bool = True) -> CognitiveMemory:
+        """Store a memory version.
+
+        `commit=False` leaves the row in the caller's open transaction. The
+        projection worker needs that: the target-local ledger row and the
+        projection it records have to become durable together, and a store
+        that always committed on its own forced a second transaction to
+        record what the first one had produced.
+
+        The commit used to live inside the FTS branch below, which meant a
+        build on a SQLite without FTS5 left the projection uncommitted and
+        durable only by whatever the caller happened to do next. Durability
+        must not depend on how the engine was compiled.
+        """
         self.conn.execute(
             """
             INSERT INTO cognitive_memories(
@@ -165,9 +178,10 @@ class SQLiteMemoryStore:
                     "INSERT INTO cognitive_memory_fts(memory_key,tenant_id,workspace_id,content) VALUES(?,?,?,?)",
                     (f"{memory.memory_id}:{memory.version}", memory.tenant_id, memory.workspace_id or "", memory.content),
                 )
-                self.conn.commit()
             except sqlite3.OperationalError:
                 self.fts_available = False
+        if commit:
+            self.conn.commit()
         return memory
 
 

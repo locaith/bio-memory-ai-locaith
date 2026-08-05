@@ -285,14 +285,17 @@ class ShadowMemoryBuilder:
                 "canonical_input_hash": canonical.input_hash(),
                 "output_hash": output_hash(fields),
             },
-            # Commits here, exactly as the production builder's `put()` does.
-            # The worker has already inserted the ledger row on this same
-            # connection without committing, so this commit makes the ledger
-            # and the shadow projection durable together. An earlier version
-            # passed commit=False and relied on a later incidental commit —
-            # atomicity by accident, and a crash test proved it: the child died
-            # with the shadow row still uncommitted and nothing survived.
-            commit=True,
+            # Does not commit, exactly as the production builder no longer
+            # does. The worker holds one transaction on this connection
+            # carrying the ledger row, this shadow row and the ledger's
+            # target_id, and the worker commits it.
+            #
+            # An earlier version passed commit=False while the *worker* did
+            # not commit either, so durability depended on a later incidental
+            # commit — atomicity by accident, and a crash test proved it. The
+            # fix then was commit=True here; the fix now is that the worker
+            # owns the commit, which is where it always belonged.
+            commit=False,
         )
         return BuildResult(BuildOutcome.BUILT.value, target_id=key)
 

@@ -1,0 +1,32 @@
+{
+  "configuration": {
+    "workload": "B_projection_only",
+    "events": 10000,
+    "workers": 1,
+    "repeats": 3
+  },
+  "before_two_commits": {
+    "min": 559.9,
+    "median": 900.2,
+    "max": 949.2,
+    "mean": 803.1,
+    "samples": [
+      949.2,
+      559.9,
+      900.2
+    ]
+  },
+  "after_one_commit": {
+    "min": 462.2,
+    "median": 925.9,
+    "max": 937.8,
+    "mean": 775.3,
+    "samples": [
+      925.9,
+      937.8,
+      462.2
+    ]
+  },
+  "median_change_pct": 2.9,
+  "overlap": true
+}

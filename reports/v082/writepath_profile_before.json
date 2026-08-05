@@ -1,8 +1,8 @@
 {
   "events": 3000,
   "append": {
-    "seconds": 1.282,
-    "per_event_ms": 0.4273,
+    "seconds": 3.901,
+    "per_event_ms": 1.3003,
     "statements": {
       "BEGIN": 3000,
       "INSERT": 6000,
@@ -15,12 +15,12 @@
     }
   },
   "projection": {
-    "seconds": 3.056,
+    "seconds": 7.057,
     "completed": 3000,
-    "throughput_per_s": 981.8,
-    "per_job_ms": 1.0186,
-    "builder_only_ms": 0.2567,
-    "builder_share_pct": 25.2,
+    "throughput_per_s": 425.1,
+    "per_job_ms": 2.3525,
+    "builder_only_ms": 1.5604,
+    "builder_share_pct": 66.3,
     "queue_connection_statements": {
       "SELECT": 3061,
       "BEGIN": 3060,
@@ -30,18 +30,18 @@
     "projection_connection_statements": {
       "CREATE": 3,
       "SELECT": 6000,
-      "BEGIN": 3000,
+      "BEGIN": 6000,
       "INSERT": 9000,
       "--": 31649,
-      "UPDATE": 3000,
-      "COMMIT": 3000
+      "COMMIT": 6000,
+      "UPDATE": 3000
     },
     "commits_per_job": {
       "queue_connection": 1.02,
-      "projection_connection": 1.0,
-      "total": 2.02
+      "projection_connection": 2.0,
+      "total": 3.02
     },
-    "statements_per_job": 23.611,
+    "statements_per_job": 25.611,
     "table_touches": {
       "projection_ledger": 12003,
       "projection_outbox": 6061,
@@ -51,7 +51,7 @@
   },
   "database": {
     "page_size": 4096,
-    "pages": 2325,
-    "bytes": 9523200
+    "pages": 2317,
+    "bytes": 9490432
   }
 }

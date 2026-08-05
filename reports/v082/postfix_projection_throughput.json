@@ -1,0 +1,19 @@
+{
+  "note": "workload B after removing the redundant commit; compare with reliability_baseline.json B_projection_only",
+  "runs": [
+    {
+      "workers": 1,
+      "throughput": 891.9,
+      "drain_s": 11.212,
+      "doctor": 0,
+      "completed": 10000
+    },
+    {
+      "workers": 4,
+      "throughput": 915.5,
+      "drain_s": 10.923,
+      "doctor": 0,
+      "completed": 10000
+    }
+  ]
+}

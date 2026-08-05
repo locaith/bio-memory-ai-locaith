@@ -84,6 +84,12 @@ class ProjectionBuilder(Protocol):
     A builder must be deterministic: the same event and version must produce
     the same projection, or replay cannot reproduce what it is meant to
     reproduce.
+
+    **A builder must not commit.** It writes into the transaction the worker
+    already has open on `conn` — which already holds the ledger row — and the
+    worker commits both together. A builder that commits on its own splits one
+    transaction into two, and the window between them is a state where the
+    projection exists but the ledger does not yet describe it.
     """
 
     def build(self, event: EventRecord, job: ProjectionJob, conn: sqlite3.Connection) -> BuildResult:
@@ -93,9 +99,9 @@ class ProjectionBuilder(Protocol):
 class CognitiveMemoryBuilder:
     """Builds the retrievable memory a `cognitive_memory` job owes.
 
-    Writes nothing itself beyond handing the row to the memory store — the
-    ledger insert is the worker's responsibility and must share this
-    transaction.
+    Writes into the worker's open transaction and does not commit: the ledger
+    row is already pending on the same connection, and the worker commits the
+    pair.
     """
 
     projection_type = ProjectionType.COGNITIVE_MEMORY.value
@@ -128,7 +134,7 @@ class CognitiveMemoryBuilder:
                 "source_event_id": event.event_id,
             },
         )
-        stored = self.memories.put(memory)
+        stored = self.memories.put(memory, commit=False)
         return BuildResult(BuildOutcome.BUILT.value, target_id=getattr(stored, "memory_id", None))
 
 
@@ -339,8 +345,12 @@ class ReconciliationWorker:
             self.metrics.dead_lettered += 1
             return JobStatus.DEAD_LETTER.value
 
-        # 5. Build. Ledger first (uncommitted), then the builder's own commit
-        #    makes both durable together.
+        # 5. Build. One transaction on the target connection carries the
+        #    ledger row, the projection and the ledger's target_id, and the
+        #    worker is what commits it. The builder used to commit for itself,
+        #    which split this into two transactions: the second existed only
+        #    to write target_id, and a crash between them left a ledger row
+        #    that could never say what it had produced.
         started = time.perf_counter()
         try:
             _fault.fire(_fault.ProjectionFaultPoint.BEFORE_LEDGER_INSERT)
@@ -348,7 +358,9 @@ class ReconciliationWorker:
             _fault.fire(_fault.ProjectionFaultPoint.AFTER_LEDGER_INSERT)
             _fault.fire(_fault.ProjectionFaultPoint.BEFORE_PROJECTION_WRITE)
             result = builder.build(event, job, self.projection_conn)
-            _fault.fire(_fault.ProjectionFaultPoint.AFTER_PROJECTION_COMMIT)
+            _fault.fire(
+                _fault.ProjectionFaultPoint.AFTER_PROJECTION_WRITE_BEFORE_COMMIT
+            )
         except Exception as exc:  # a bad builder must not take the worker down
             self.projection_conn.rollback()
             status = self.outbox.fail(
@@ -378,7 +390,9 @@ class ReconciliationWorker:
                 "UPDATE projection_ledger SET target_id=? WHERE projection_key=?",
                 (result.target_id, job.key),
             )
-            self.projection_conn.commit()
+        # The one commit: ledger row, projection and target_id together.
+        self.projection_conn.commit()
+        _fault.fire(_fault.ProjectionFaultPoint.AFTER_PROJECTION_COMMIT)
 
         # 6. Verify before claiming success.
         if self.ledger_entry(job.key) is None:
