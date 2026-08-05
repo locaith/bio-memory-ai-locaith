@@ -275,9 +275,14 @@ class ReconciliationEngine:
                 return False
             if not is_supported(job["projection_type"]):
                 return False
+            # Indexed lookup through the link table. This runs once per action,
+            # so a repair plan over 10,000 findings used to mean 10,000 full
+            # scans of every memory.
             built = self.conn.execute(
-                "SELECT 1 FROM cognitive_memories "
-                "WHERE source_event_ids_json LIKE '%' || ? || '%'",
+                "SELECT 1 FROM memory_source_events s "
+                "JOIN cognitive_memories m"
+                "  ON m.memory_id = s.memory_id AND m.version = s.version "
+                "WHERE s.event_id = ? LIMIT 1",
                 (job["event_id"],),
             ).fetchone()
             return built is None

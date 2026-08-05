@@ -44,11 +44,19 @@ def shadow_worker(memory_os: Any, **kwargs: Any) -> ReconciliationWorker:
 
 
 def legacy_projection(memory_os: Any, event_id: str) -> dict[str, Any] | None:
-    """The production memory a legacy `remember()` produced for this event."""
+    """The production memory a legacy `remember()` produced for this event.
+
+    Joins the `memory_source_events` link table rather than matching the JSON
+    column with a leading-wildcard LIKE. The LIKE could not use an index, so
+    each call scanned every memory — and this is called once per event, which
+    made comparing 10,000 shadow observations cost 62.5 s.
+    """
     row = memory_os.memories.conn.execute(
-        "SELECT * FROM cognitive_memories WHERE source_event_ids_json LIKE ? "
-        "ORDER BY version DESC LIMIT 1",
-        (f'%"{event_id}"%',),
+        "SELECT m.* FROM cognitive_memories m "
+        "JOIN memory_source_events s "
+        "  ON s.memory_id = m.memory_id AND s.version = m.version "
+        "WHERE s.event_id = ? ORDER BY m.version DESC LIMIT 1",
+        (event_id,),
     ).fetchone()
     if row is None:
         return None

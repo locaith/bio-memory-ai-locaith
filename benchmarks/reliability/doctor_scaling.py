@@ -83,6 +83,59 @@ def _build(db: str, events: int, *, drain: bool, shadow_records: int) -> dict[st
     return harness.queue_counts(db)
 
 
+#: The three questions that used to be leading-wildcard LIKE scans. A query
+#: plan saying SCAN here is the defect returning; SEARCH ... USING INDEX is the
+#: fix holding.
+_RELATIONSHIP_QUERIES = {
+    "event_projected_without_debt":
+        "SELECT e.event_id FROM cognitive_events e WHERE NOT EXISTS ("
+        " SELECT 1 FROM projection_outbox o WHERE o.event_id = e.event_id)"
+        " AND EXISTS (SELECT 1 FROM memory_source_events s"
+        "   JOIN cognitive_memories m ON m.memory_id = s.memory_id AND m.version = s.version"
+        "   WHERE s.event_id = e.event_id)",
+    "ledger_without_projection":
+        "SELECT l.projection_key FROM projection_ledger l"
+        " WHERE l.projection_type = 'cognitive_memory' AND NOT EXISTS ("
+        "  SELECT 1 FROM memory_source_events s"
+        "   JOIN cognitive_memories m ON m.memory_id = s.memory_id AND m.version = s.version"
+        "   WHERE s.event_id = l.event_id)",
+    "completed_without_projection":
+        "SELECT o.job_id FROM projection_outbox o WHERE o.status = 'completed'"
+        " AND o.projection_type = 'cognitive_memory' AND NOT EXISTS ("
+        "  SELECT 1 FROM memory_source_events s"
+        "   JOIN cognitive_memories m ON m.memory_id = s.memory_id AND m.version = s.version"
+        "   WHERE s.event_id = o.event_id)",
+}
+
+
+def query_plans(db: str) -> dict[str, Any]:
+    """`EXPLAIN QUERY PLAN` for the relationship checks, plus a verdict.
+
+    Better evidence than a synthetic rows-scanned number: SQLite says outright
+    whether it is scanning a table or searching an index.
+    """
+    conn = sqlite3.connect(db, timeout=60)
+    out: dict[str, Any] = {}
+    try:
+        for name, sql in _RELATIONSHIP_QUERIES.items():
+            rows = conn.execute(f"EXPLAIN QUERY PLAN {sql}").fetchall()
+            steps = [r[3] for r in rows]
+            scans_memories = [
+                s for s in steps
+                if s.startswith("SCAN") and (
+                    "cognitive_memories" in s or "memory_source_events" in s
+                )
+            ]
+            out[name] = {
+                "plan": steps,
+                "scans_a_relationship_table": bool(scans_memories),
+                "offending_steps": scans_memories,
+            }
+    finally:
+        conn.close()
+    return out
+
+
 def measure(sizes: list[int], *, shadow_records: int = 1000) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     for events in sizes:
@@ -97,7 +150,9 @@ def measure(sizes: list[int], *, shadow_records: int = 1000) -> dict[str, Any]:
         conn = sqlite3.connect(db, timeout=120)
         ledger = conn.execute("SELECT COUNT(*) FROM projection_ledger").fetchone()[0]
         shadow = conn.execute("SELECT COUNT(*) FROM shadow_memories").fetchone()[0]
+        links = conn.execute("SELECT COUNT(*) FROM memory_source_events").fetchone()[0]
         conn.close()
+        plans = query_plans(db)
 
         print(f"    built in {build_seconds:.1f}s: {counts['events']:,} events, "
               f"{ledger:,} ledger, {shadow:,} shadow", flush=True)
@@ -118,6 +173,11 @@ def measure(sizes: list[int], *, shadow_records: int = 1000) -> dict[str, Any]:
             "events": counts["events"],
             "projections": ledger,
             "shadow_records": shadow,
+            "source_event_links": links,
+            "query_plans": plans,
+            "any_relationship_table_scanned": any(
+                p["scans_a_relationship_table"] for p in plans.values()
+            ),
             "build_seconds": round(build_seconds, 2),
             "database_bytes": environment.database_footprint(db)["total_bytes"],
             "quick": {
@@ -142,7 +202,9 @@ def measure(sizes: list[int], *, shadow_records: int = 1000) -> dict[str, Any]:
         rows.append(row)
         print(f"    quick {quick_seconds:8.3f}s   deep {deep_seconds:8.3f}s   "
               f"({row['deep_seconds_per_1000_events']}s per 1000 events)  "
-              f"queries={deep['queries']}  findings={len(deep['findings'])}", flush=True)
+              f"queries={deep['queries']}  findings={len(deep['findings'])}  "
+              f"links={links:,}  "
+              f"relationship_scan={row['any_relationship_table_scanned']}", flush=True)
         shutil.rmtree(tmp, ignore_errors=True)
 
     scaling = None
