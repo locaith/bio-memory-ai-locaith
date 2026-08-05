@@ -218,13 +218,33 @@ def test_policy_warns_above_the_soft_limit_and_stays_passive(os_):
     assert {a["code"] for a in manager.alerts()} >= {"WAL_ABOVE_SOFT_LIMIT"}
 
 
-def test_policy_restarts_above_the_hard_limit_when_no_reader_is_registered(os_):
+def test_policy_truncates_above_the_hard_limit_when_no_reader_is_registered(os_):
+    """Policy reversal, on evidence from the staging canary.
+
+    This previously asserted RESTART, on the reasoning that TRUNCATE waits
+    for every reader and a background job must not. The reasoning was wrong
+    in one respect: RESTART waits for readers too, so on the branch where the
+    manager has already decided to block, RESTART buys none of the safety it
+    was chosen for and gives up the only thing TRUNCATE offers.
+
+    What that cost, measured: the canary's WAL was fully checkpointed -
+    PRAGMA wal_checkpoint returned (0, 27033, 27033), no reader blocking,
+    every frame copied back - and the file still held 106 MB. The high-water
+    mark only ever rose, stepping up at each doctor run, and crossed the hard
+    limit twice, stopping a 24-hour run at twelve minutes and again at
+    thirty-one.
+
+    The safety property that actually matters is unchanged and is asserted by
+    test_policy_never_restarts_while_a_reader_is_registered: with a reader
+    registered, the manager stays on PASSIVE and blocks nothing.
+    """
     manager = manager_for(os_, soft_limit_bytes=1, hard_limit_bytes=2,
                           interval_seconds=0.0)
     _write(os_, 200)
     result = manager.maybe_checkpoint()
-    assert result.mode == CheckpointMode.RESTART.value
+    assert result.mode == CheckpointMode.TRUNCATE.value
     assert manager.metrics["critical_events"] == 1
+    assert manager.status().wal_bytes == 0, "truncate must return the file"
 
 
 def test_policy_never_restarts_while_a_reader_is_registered(os_):
@@ -240,13 +260,29 @@ def test_policy_never_restarts_while_a_reader_is_registered(os_):
     assert manager.metrics["by_mode"].get(CheckpointMode.RESTART.value) is None
 
 
-def test_no_automatic_path_ever_truncates(os_):
-    manager = manager_for(os_, soft_limit_bytes=1, hard_limit_bytes=2,
-                          interval_seconds=0.0)
-    for _ in range(5):
-        _write(os_, 50, start=_ * 50)
-        manager.maybe_checkpoint(force=True)
-    assert CheckpointMode.TRUNCATE.value not in manager.metrics["by_mode"]
+def test_the_automatic_path_truncates_only_above_the_hard_limit(os_):
+    """The replacement for test_no_automatic_path_ever_truncates.
+
+    Truncation is now reachable automatically, so the invariant worth pinning
+    is that it stays confined to the critical branch. A manager that never
+    crosses its hard limit must never block, however many times it runs.
+    """
+    roomy = manager_for(os_, soft_limit_bytes=512 * 1048576,
+                        hard_limit_bytes=1024 * 1048576, interval_seconds=0.0)
+    for i in range(5):
+        _write(os_, 50, start=i * 50)
+        roomy.maybe_checkpoint(force=True)
+    assert CheckpointMode.TRUNCATE.value not in roomy.metrics["by_mode"], (
+        "a WAL below its limits was truncated; truncation must stay on the "
+        "critical branch")
+    assert CheckpointMode.RESTART.value not in roomy.metrics["by_mode"]
+    assert roomy.metrics["critical_events"] == 0
+
+    tight = manager_for(os_, soft_limit_bytes=1, hard_limit_bytes=2,
+                        interval_seconds=0.0)
+    _write(os_, 50, start=250)
+    tight.maybe_checkpoint(force=True)
+    assert CheckpointMode.TRUNCATE.value in tight.metrics["by_mode"]
 
 
 # -- the worker keeps working -----------------------------------------------
@@ -419,3 +455,68 @@ def test_an_unparsable_limit_falls_back_rather_than_crashing(os_, monkeypatch):
     monkeypatch.setenv("BIO_AGENT_WAL_SOFT_LIMIT_MB", "not-a-number")
     manager = manager_for(os_)
     assert manager.soft_limit_bytes == 256 * 1048576
+
+
+# -- reclaiming the file, not just the frames --------------------------------
+#
+# The 24-hour staging canary stopped twice on wal_above_hard_limit. Both times
+# the WAL had been fully checkpointed - PRAGMA wal_checkpoint returned
+# (0, 27033, 27033), meaning no reader was blocking and every frame had been
+# copied back - and the file was still 106 MB. PASSIVE and RESTART reset where
+# SQLite writes next; only TRUNCATE returns the space.
+#
+# The high-water mark therefore only ever rose. Over the canary it stepped up
+# at each doctor run (5 -> 11 -> 14 -> 37 -> 162 MB in 31 minutes) and would
+# have crossed the hard limit around hour two of twenty-four.
+
+def test_a_fully_checkpointed_wal_still_occupies_its_file(os_, wal):
+    """The premise. If this ever fails, the fix below is unnecessary."""
+    _write(os_, 800)
+    _, before, _ = wal.file_sizes()
+    assert before > 0
+
+    result = wal.checkpoint(CheckpointMode.PASSIVE)
+    assert result.ok and result.busy is False
+    _, after, _ = wal.file_sizes()
+    assert after == before, (
+        "PASSIVE reclaimed file space; this test encodes that it does not")
+
+
+def test_above_the_hard_limit_with_no_reader_the_file_is_reclaimed(os_, wal):
+    """The regression.
+
+    RESTART and TRUNCATE share a precondition - both wait for readers to
+    drain - so when the manager has already decided it is willing to block,
+    the mode that returns the disk is the one to use.
+    """
+    _write(os_, 1200)
+    _, wal_bytes, _ = wal.file_sizes()
+    assert wal_bytes >= wal.hard_limit_bytes, (
+        f"test needs the WAL above the {wal.hard_limit_bytes:,}-byte hard "
+        f"limit; it is {wal_bytes:,}")
+    assert wal.oldest_reader_age() is None, "no reader should be registered"
+
+    wal.maybe_checkpoint(force=True)
+
+    _, after, _ = wal.file_sizes()
+    assert after < wal_bytes, (
+        f"the WAL was above its hard limit with no reader registered and the "
+        f"file was not reclaimed: {wal_bytes:,} -> {after:,} bytes")
+
+
+def test_a_reader_still_prevents_the_blocking_reclaim(os_, wal, tmp_path):
+    """The safety property the previous test must not have broken."""
+    _write(os_, 1200)
+    reader = sqlite3.connect(str(tmp_path / "wal.db"), timeout=5)
+    reader.execute("BEGIN")
+    reader.execute("SELECT COUNT(*) FROM cognitive_events").fetchone()
+    wal.note_reader("holder")
+    try:
+        result = wal.maybe_checkpoint(force=True)
+        assert result is not None
+        assert result.mode == CheckpointMode.PASSIVE.value, (
+            f"a registered reader must keep the manager on PASSIVE, got "
+            f"{result.mode}")
+    finally:
+        reader.close()
+        wal.release_reader("holder")

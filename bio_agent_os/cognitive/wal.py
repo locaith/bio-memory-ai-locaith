@@ -441,10 +441,21 @@ class WALCheckpointManager:
 
         below soft limit : PASSIVE
         above soft limit : PASSIVE, and a warning
-        above hard limit : RESTART when no reader is registered, otherwise
-                           PASSIVE and a critical warning. TRUNCATE is never
-                           automatic - it waits for every reader, and a
-                           background job must not.
+        above hard limit : TRUNCATE when no reader is registered, otherwise
+                           PASSIVE and a critical warning.
+
+        TRUNCATE is reached only on the branch that had already chosen to
+        block. It waits for readers exactly as RESTART does, so on that branch
+        it costs nothing extra, and it is the only mode that returns the file
+        to the filesystem: PASSIVE and RESTART reset where SQLite writes next
+        and leave the file at its high-water mark. The staging canary showed
+        what that costs - a fully checkpointed WAL, (0, 27033, 27033) with no
+        reader blocking, still holding 106 MB, and a high-water mark that only
+        ever rose until it crossed this limit and stopped the run.
+
+        Below the hard limit nothing blocks, which is the property that
+        matters: a background job must never wait on readers unless the
+        alternative is running out of disk.
         """
         if not force and not self.due():
             return None
@@ -457,10 +468,10 @@ class WALCheckpointManager:
             self.metrics["critical_events"] += 1
             if readers is None:
                 logger.warning(
-                    "wal above hard limit; restarting the log",
+                    "wal above hard limit; truncating the log",
                     extra={"wal_bytes": wal_bytes, "hard_limit": self.hard_limit_bytes},
                 )
-                return self.checkpoint(CheckpointMode.RESTART, allow_blocking=True)
+                return self.checkpoint(CheckpointMode.TRUNCATE, allow_blocking=True)
             logger.warning(
                 "wal above hard limit but a reader is registered; passive only",
                 extra={"wal_bytes": wal_bytes, "oldest_reader_age_seconds": readers},
