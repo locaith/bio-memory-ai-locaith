@@ -196,6 +196,8 @@ class DeepDoctor:
         self.conn.row_factory = sqlite3.Row
         self.tenant_id = tenant_id
         self.report = DoctorReport()
+        #: Built at most once per scan by `_projected_event_ids`.
+        self._projected_ids: set[str] | None = None
 
     # -- plumbing ----------------------------------------------------------
 
@@ -219,6 +221,43 @@ class DeepDoctor:
     def _check(self, fn) -> None:
         self.report.checks_run += 1
         fn()
+
+    def _projected_event_ids(self) -> set[str]:
+        """Every event id that some memory names as its source.
+
+        Three checks used to ask this per row as
+        `LIKE '%' || event_id || '%'`. A leading wildcard cannot use an index,
+        so each of the N outer rows scanned all M memories: O(N*M). Measured
+        at 1k/5k/10k events the deep scan took 0.78s / 23.7s / 98.7s — a
+        scaling exponent of 2.1, and an extrapolated 2.75 hours at 100k.
+
+        Reading the column once and testing membership in Python is O(N+M).
+        It is also stricter: a substring match could pair an event with a
+        memory that merely contains its id inside a longer one, which exact
+        membership cannot.
+
+        Cost is one set of id strings, about 10MB at 100k memories, held for
+        the duration of one scan.
+        """
+        if self._projected_ids is None:
+            ids: set[str] = set()
+            # Deliberately not tenant-scoped: the correlated subquery this
+            # replaces was not either, and narrowing it here would silently
+            # turn cross-tenant projections into "missing projection" findings.
+            for row in self._q("SELECT source_event_ids_json FROM cognitive_memories"):
+                raw = row[0]
+                if not raw:
+                    continue
+                try:
+                    parsed = json.loads(raw)
+                except (TypeError, ValueError):
+                    continue
+                if isinstance(parsed, list):
+                    ids.update(str(item) for item in parsed)
+                elif parsed:
+                    ids.add(str(parsed))
+            self._projected_ids = ids
+        return self._projected_ids
 
     # -- run ---------------------------------------------------------------
 
@@ -488,14 +527,17 @@ class DeepDoctor:
         remember(), which is legal — so only the inconsistent case is reported.
         """
         clause, params = self._tenant_clause("e")
-        rows = self._q(
-            "SELECT e.event_id, e.tenant_id FROM cognitive_events e "
-            "WHERE NOT EXISTS (SELECT 1 FROM projection_outbox o WHERE o.event_id = e.event_id) "
-            "  AND EXISTS (SELECT 1 FROM cognitive_memories m "
-            "              WHERE m.source_event_ids_json LIKE '%' || e.event_id || '%')"
-            f"{clause}",
-            params,
-        )
+        projected = self._projected_event_ids()
+        rows = [
+            row for row in self._q(
+                "SELECT e.event_id, e.tenant_id FROM cognitive_events e "
+                "WHERE NOT EXISTS ("
+                "  SELECT 1 FROM projection_outbox o WHERE o.event_id = e.event_id)"
+                f"{clause}",
+                params,
+            )
+            if row["event_id"] in projected
+        ]
         for row in rows:
             self.report.add(Finding(
                 "EVENT_PROJECTED_WITHOUT_DEBT", Severity.INFO.value, "event",
@@ -557,13 +599,15 @@ class DeepDoctor:
                 suggested_action="manual review: never repaired automatically",
             ))
 
-        for row in self._q(
-            "SELECT l.* FROM projection_ledger l "
-            "WHERE l.projection_type = 'cognitive_memory' AND NOT EXISTS ("
-            "  SELECT 1 FROM cognitive_memories m "
-            "  WHERE m.source_event_ids_json LIKE '%' || l.event_id || '%')"
-            f"{clause}",
-            params,
+        projected = self._projected_event_ids()
+        for row in (
+            row for row in self._q(
+                "SELECT l.* FROM projection_ledger l "
+                "WHERE l.projection_type = 'cognitive_memory'"
+                f"{clause}",
+                params,
+            )
+            if row["event_id"] not in projected
         ):
             self.report.add(Finding(
                 "LEDGER_WITHOUT_PROJECTION", Severity.FAIL.value, "ledger",
@@ -575,13 +619,15 @@ class DeepDoctor:
 
     def check_projection_consistency(self) -> None:
         clause, params = self._tenant_clause("o")
-        for row in self._q(
-            "SELECT o.* FROM projection_outbox o "
-            "WHERE o.status = ? AND o.projection_type = 'cognitive_memory' "
-            "  AND NOT EXISTS (SELECT 1 FROM cognitive_memories m "
-            "                  WHERE m.source_event_ids_json LIKE '%' || o.event_id || '%')"
-            f"{clause}",
-            (JobStatus.COMPLETED.value, *params),
+        projected = self._projected_event_ids()
+        for row in (
+            row for row in self._q(
+                "SELECT o.* FROM projection_outbox o "
+                "WHERE o.status = ? AND o.projection_type = 'cognitive_memory'"
+                f"{clause}",
+                (JobStatus.COMPLETED.value, *params),
+            )
+            if row["event_id"] not in projected
         ):
             self.report.add(Finding(
                 "COMPLETED_WITHOUT_PROJECTION", Severity.FAIL.value, "projection",

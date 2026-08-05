@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from bio_agent_os.cognitive import diagnostics
 from bio_agent_os.cognitive.diagnostics import DeepDoctor, Severity
 from bio_agent_os.cognitive.facade import MemoryOS
 from bio_agent_os.cognitive.models import EventRecord, MemoryType
@@ -610,3 +611,101 @@ def test_json_output_is_stable_for_monitoring(os_):
                 "manual_review_required", "findings"):
         assert key in data
     json.dumps(data)  # must be serialisable
+
+
+# ==========================================================================
+# the scan must not be quadratic
+#
+# Three deep checks used a correlated `LIKE '%' || event_id || '%'`, which
+# cannot use an index and so scanned every memory once per outer row. Measured
+# at 1k/5k/10k events the deep scan took 0.78s / 23.7s / 98.7s: an exponent of
+# 2.1, and an extrapolated 2.75 hours at 100k. It was found because it stalled
+# a benchmark, which is a bad way to find it.
+# ==========================================================================
+
+
+def test_no_deep_check_scans_with_a_leading_wildcard():
+    """A source-level guard, because the behavioural test below can only fail
+    once the database is large enough to be slow — by which time the change is
+    already merged.
+
+    Inspects the SQL actually passed to `self._q`, via the AST. Grepping the
+    file would flag the docstring that explains the bug, which is the wrong
+    kind of strict.
+    """
+    import ast
+
+    tree = ast.parse(Path(diagnostics.__file__).read_text(encoding="utf-8"))
+    docstrings = {
+        id(node.body[0].value)
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.body
+        and isinstance(node.body[0], ast.Expr)
+        and isinstance(node.body[0].value, ast.Constant)
+        and isinstance(node.body[0].value.value, str)
+    }
+    offenders = [
+        node.value for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and id(node) not in docstrings
+        and "LIKE '%'" in node.value
+    ]
+    assert not offenders, (
+        "a leading-wildcard LIKE inside a per-row check makes the scan "
+        f"O(N*M): {offenders}"
+    )
+
+
+def test_deep_scan_time_grows_sub_quadratically(tmp_path):
+    """Four times the data must not cost sixteen times the scan.
+
+    The bound is generous — a shared machine makes tight timing assertions
+    flaky — but quadratic growth blows past it by a wide margin, which is the
+    only thing this needs to catch.
+    """
+    def _scan_seconds(n: int) -> float:
+        runtime = MemoryOS(str(tmp_path / f"scale_{n}.db"), projection_mode="shadow")
+        for i in range(n):
+            _observe(runtime, content=f"scaling probe {i}")
+        started = time.perf_counter()
+        DeepDoctor(runtime.events.conn).run(deep=True)
+        elapsed = time.perf_counter() - started
+        runtime.close()
+        return elapsed
+
+    small = _scan_seconds(250)
+    large = _scan_seconds(1000)
+    ratio = large / max(small, 1e-4)
+    assert ratio < 8, (
+        f"4x the data took {ratio:.1f}x the scan time; linear would be 4x and "
+        f"quadratic 16x ({small:.3f}s -> {large:.3f}s)"
+    )
+
+
+def test_projection_lookup_matches_ids_exactly_not_as_substrings(os_):
+    """The set-membership test is stricter than the LIKE it replaced.
+
+    A substring match would pair an event with a memory that merely contains
+    its id inside a longer one, and silently conclude a projection exists.
+    """
+    event = os_.observe(tenant_id="t1", actor="a", source="unit", content="parent")
+    os_.remember(event=event, memory_type=MemoryType.EPISODIC, content="parent")
+    worker_for(os_)  # creates projection_ledger
+
+    # A ledger row for an id that is a strict prefix of a real, projected id.
+    prefix = event.event_id[:-4]
+    os_.memories.conn.execute(
+        "INSERT INTO projection_ledger(projection_key, event_id, projection_type,"
+        " projection_version, tenant_id, target_id, worker_id, created_at)"
+        " VALUES(?,?,?,?,?,?,?,?)",
+        (projection_key(prefix, MEMORY), prefix, MEMORY, 1, "t1", None, "w", time.time()),
+    )
+    os_.memories.conn.commit()
+
+    codes = _codes(_scan(os_))
+    assert "LEDGER_WITHOUT_PROJECTION" in codes, (
+        "a ledger row whose event id merely prefixes a projected one has no "
+        "projection of its own and must be reported"
+    )
