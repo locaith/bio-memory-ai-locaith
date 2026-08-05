@@ -183,6 +183,7 @@ class ReconciliationWorker:
         lease_seconds: float = 300.0,
         max_attempts: int = 5,
         tenant_id: str | None = None,
+        wal_manager: Any | None = None,
     ) -> None:
         #: Queue connection — reads events, claims and completes outbox rows.
         self.conn = conn
@@ -201,6 +202,9 @@ class ReconciliationWorker:
         self.lease_seconds = lease_seconds
         self.max_attempts = max_attempts
         self.tenant_id = tenant_id
+        #: Optional. Checkpointing happens between cycles in `run_forever`,
+        #: never inside a batch and never on the append path — see `wal.py`.
+        self.wal_manager = wal_manager
         self.metrics = WorkerMetrics()
         self._stop = threading.Event()
         self._migrate()
@@ -450,6 +454,14 @@ class ReconciliationWorker:
                 break
             before = self.metrics.claimed
             self.run_once(batch_size=batch_size)
+            # Between cycles, outside any transaction, and a no-op unless the
+            # interval has elapsed. A checkpoint inside a batch would hold the
+            # write lock the batch is trying to use.
+            if self.wal_manager is not None:
+                try:
+                    self.wal_manager.maybe_checkpoint()
+                except Exception:  # a checkpoint must never take the worker down
+                    logger.exception("wal checkpoint failed")
             if self.metrics.claimed == before and not self.stopping:
                 # Queue is empty; sleep in slices so a stop is prompt.
                 slept = 0.0
@@ -459,13 +471,22 @@ class ReconciliationWorker:
         return self.metrics
 
 
-def worker_for(memory_os: Any, **kwargs: Any) -> ReconciliationWorker:
+def worker_for(memory_os: Any, *, manage_wal: bool = True, **kwargs: Any) -> ReconciliationWorker:
     """Wire a worker to a MemoryOS with the connections in the right places.
 
     The queue lives with the event store; the ledger and the projection live
     with the memory store. Getting that backwards costs one busy_timeout per
     job and buys no atomicity — see `ReconciliationWorker.projection_conn`.
+
+    `manage_wal` attaches a checkpoint manager on the queue connection. A
+    `run_forever` worker is the one long-lived process the runtime is sure to
+    have, which makes it the right place to do periodic maintenance — but the
+    checkpointing itself only ever happens between cycles.
     """
+    if manage_wal and "wal_manager" not in kwargs:
+        from .wal import manager_for as _wal_manager_for
+
+        kwargs["wal_manager"] = _wal_manager_for(memory_os)
     return ReconciliationWorker(
         memory_os.events.conn,
         projection_conn=memory_os.memories.conn,

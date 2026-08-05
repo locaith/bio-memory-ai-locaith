@@ -18,6 +18,7 @@ from .projection_capability import render as capability_render
 from .projection_engine import ProjectionReplayEngine
 from .reconciliation import ReconciliationEngine, write_audit
 from .reconciliation_worker import worker_for
+from .wal import CheckpointMode, WALLevel, manager_for as wal_manager_for
 
 
 def _runtime(args: argparse.Namespace) -> MemoryOS:
@@ -78,6 +79,66 @@ def cmd_replay(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_wal_status(args: argparse.Namespace) -> int:
+    runtime = _runtime(args)
+    manager = wal_manager_for(runtime)
+    status = manager.status()
+    alerts = manager.alerts()
+    if args.json:
+        sys.stdout.write(json.dumps(
+            {"status": status.as_dict(), "alerts": alerts,
+             "metrics": manager.metrics_snapshot()},
+            indent=2, ensure_ascii=False) + "\n")
+    else:
+        sys.stdout.write(status.render() + "\n")
+        for alert in alerts:
+            sys.stdout.write(f"  [{alert['severity']}] {alert['code']}: {alert['action']}\n")
+    return 2 if status.level == WALLevel.CRITICAL.value else (
+        1 if status.level == WALLevel.WARN.value else 0
+    )
+
+
+def cmd_checkpoint(args: argparse.Namespace) -> int:
+    """TRUNCATE is never implicit: it waits for every reader to finish."""
+    mode = CheckpointMode(args.mode.upper())
+    if mode is CheckpointMode.TRUNCATE and not (args.maintenance or args.yes):
+        sys.stderr.write(
+            "truncate blocks until every reader has finished and can stall a live\n"
+            "runtime. Re-run with --maintenance (or --yes) once readers are drained.\n"
+        )
+        return 1
+
+    runtime = _runtime(args)
+    manager = wal_manager_for(runtime)
+    before = manager.status()
+    result = manager.checkpoint(mode, allow_blocking=True, busy_timeout_ms=args.timeout_ms)
+    after = manager.status()
+
+    if args.json:
+        sys.stdout.write(json.dumps(
+            {"before": before.as_dict(), "checkpoint": result.as_dict(),
+             "after": after.as_dict()}, indent=2, ensure_ascii=False) + "\n")
+    else:
+        sys.stdout.write(
+            f"  mode                 {result.mode}\n"
+            f"  busy                 {result.busy}"
+            f"{'   (a reader blocked it)' if result.busy else ''}\n"
+            f"  frames in wal        {result.wal_frames}\n"
+            f"  frames checkpointed  {result.frames_checkpointed}\n"
+            f"  duration             {result.duration_ms:.1f} ms\n"
+            f"  wal                  {before.wal_bytes / 1048576:.1f} MB -> "
+            f"{after.wal_bytes / 1048576:.1f} MB "
+            f"(reclaimed {result.reclaimed_bytes / 1048576:.1f} MB)\n"
+        )
+        if result.refused:
+            sys.stdout.write(f"  refused              {result.refused}\n")
+        if result.error:
+            sys.stdout.write(f"  error                {result.error}\n")
+    if result.error:
+        return 1
+    return 1 if result.busy else 0
+
+
 def cmd_worker(args: argparse.Namespace) -> int:
     runtime = _runtime(args)
     worker = worker_for(runtime, worker_id=args.worker_id, tenant_id=args.tenant)
@@ -132,6 +193,26 @@ def build_parser() -> argparse.ArgumentParser:
     wk.add_argument("--max-seconds", type=float, default=None)
     wk.add_argument("--worker-id", default=None)
     wk.set_defaults(func=cmd_worker, forever=False)
+
+    storage = sub.add_parser("storage", help="storage-level operations")
+    ssub = storage.add_subparsers(dest="storage_command", required=True)
+
+    ws = ssub.add_parser("wal-status", help="write-ahead log size and health")
+    ws.add_argument("--json", action="store_true")
+    ws.set_defaults(func=cmd_wal_status)
+
+    cp = ssub.add_parser("checkpoint", help="copy WAL frames back into the database")
+    cp.add_argument("--mode", default="passive",
+                    choices=["passive", "full", "restart", "truncate"],
+                    help="passive yields to readers; restart and truncate wait for them")
+    cp.add_argument("--maintenance", action="store_true",
+                    help="assert the runtime is drained; required for truncate")
+    cp.add_argument("--yes", action="store_true", help="same, non-interactively")
+    cp.add_argument("--timeout-ms", type=int, default=5000,
+                    help="how long to wait for readers before reporting blocked "
+                         "(default 5000; the runtime's own timeout is 30000)")
+    cp.add_argument("--json", action="store_true")
+    cp.set_defaults(func=cmd_checkpoint)
 
     return p
 
