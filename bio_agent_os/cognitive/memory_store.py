@@ -87,6 +87,21 @@ class SQLiteMemoryStore:
             CREATE INDEX IF NOT EXISTS idx_memory_epistemic
             ON cognitive_memories(tenant_id, epistemic_status, verification_status);
 
+            -- candidate_pool joins the FTS index back to this table on a
+            -- composed key:
+            --     ON f.memory_key = (m.memory_id || ':' || m.version)
+            -- A computed predicate cannot use a column index, so the planner
+            -- paired SCAN f with SCAN m and re-read every memory for each FTS
+            -- match. On the staging canary corpus (53,066 memories) a recall
+            -- whose terms matched the caller's tenant took 23.0s; one that
+            -- matched nothing returned in 0.005s, because it never reached the
+            -- join. Successful searches were the expensive ones.
+            --
+            -- Indexing the same expression turns SCAN m into SEARCH m and the
+            -- query into 0.019s on that corpus, returning identical rows.
+            CREATE INDEX IF NOT EXISTS idx_memory_fts_key
+            ON cognitive_memories(memory_id || ':' || version);
+
             -- Which events a memory was built from, as rows rather than as a
             -- JSON array inside a column.
             --
