@@ -276,9 +276,32 @@ class DeepDoctor:
         started = time.perf_counter()
         try:
             self._collect_counts()
-            for fn in (self.check_sqlite, self.check_schema, self.check_capabilities,
-                       self.check_outbox_basics):
+
+            # The integrity pragma reads the whole database file, so its cost
+            # follows file size and not scan depth. It belongs to the audit
+            # that is meant to be expensive.
+            #
+            # 14bbbd5 took it out of the incremental scan but left it here, so
+            # the quick scan kept paying it: canary run 5 measured the quick
+            # doctor at 13.84s, then 37.30s, then 58.12s as the database grew
+            # past a gigabyte, every thirty minutes. And SQLite cannot
+            # checkpoint the WAL past the oldest reader, so the WAL only grows
+            # for as long as it runs -- which is how that run reached 479 MB
+            # against a 512 MB limit and stopped at 1.55h of 24.
+            head = [self.check_schema, self.check_capabilities, self.check_outbox_basics]
+            if deep:
+                head.insert(0, self.check_sqlite)
+            for fn in head:
                 self._check(fn)
+            if not deep:
+                # Named, so a check that did not run cannot be mistaken for a
+                # check that passed.
+                self.report.add(Finding(
+                    "SQLITE_INTEGRITY_DEFERRED", Severity.INFO.value, "sqlite",
+                    f"{self.integrity_pragma} skipped on a quick scan; it reads the "
+                    f"whole database file. Runs on the deep audit.",
+                    evidence={"pragma": self.integrity_pragma, "scan": "quick"},
+                ))
             if deep:
                 for fn in (
                     self.check_event_integrity,

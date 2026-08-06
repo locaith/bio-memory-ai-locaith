@@ -404,3 +404,24 @@ def test_a_full_scan_still_runs_the_pragma(os_):
     codes = _codes(report)
     assert "SQLITE_INTEGRITY" in codes, sorted(codes)
     assert "SQLITE_INTEGRITY_DEFERRED" not in codes
+
+
+def test_quick_scan_also_defers_the_integrity_pragma(os_):
+    """The other half of the same defect.
+
+    14bbbd5 took the whole-file pragma out of the incremental scan and left it
+    in DeepDoctor.run(deep=False) -- the quick scan the canary runs every
+    thirty minutes. Run 5 measured that scan at 13.84s, 37.30s, 58.12s as the
+    database passed a gigabyte, and the WAL cannot be checkpointed while it
+    reads. The run reached 479 MB against a 512 MB limit and stopped at 1.55h.
+    """
+    _observe(os_, 20)
+    _drain(os_)
+    quick = DeepDoctor(os_.events.conn).run(deep=False)
+    codes = _codes(quick)
+    assert "SQLITE_INTEGRITY" not in codes, sorted(codes)
+    assert "SQLITE_INTEGRITY_DEFERRED" in codes, sorted(codes)
+
+    deep = DeepDoctor(os_.events.conn).run(deep=True)
+    assert "SQLITE_INTEGRITY" in _codes(deep)
+    assert "SQLITE_INTEGRITY_DEFERRED" not in _codes(deep)
