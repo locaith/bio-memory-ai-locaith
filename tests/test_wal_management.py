@@ -520,3 +520,44 @@ def test_a_reader_still_prevents_the_blocking_reclaim(os_, wal, tmp_path):
     finally:
         reader.close()
         wal.release_reader("holder")
+
+
+# -- the manager must run whoever drives the worker ---------------------------
+#
+# Found in canary run 3. worker_for(..., manage_wal=True) built a manager, the
+# manager reported the right limits and level "ok", and after fifteen minutes
+# and 73,534 events its metrics read checkpoints_attempted: 0. It had never
+# run. maybe_checkpoint() was called only from run_forever(), and the canary
+# drives the worker with its own loop over run_once() so it can interleave
+# comparison work.
+#
+# Nothing failed loudly. The flag was accepted, the object was constructed,
+# and WAL management silently did not happen -- in run 1, run 2 and run 3.
+
+def test_manage_wal_checkpoints_when_the_caller_drives_run_once(os_):
+    """A caller that drives the worker itself still gets WAL management."""
+    worker = worker_for(os_, worker_id="driven", manage_wal=True)
+    worker.wal_manager.soft_limit_bytes = 1
+    worker.wal_manager.hard_limit_bytes = 2 << 40   # warn, never the blocking branch
+    worker.wal_manager.interval_seconds = 0.0
+
+    _write(os_, 200)
+    for _ in range(3):
+        worker.run_once(batch_size=100)
+
+    assert worker.wal_manager.metrics["checkpoints_attempted"] > 0, (
+        "manage_wal=True built a manager that never ran; a caller using "
+        "run_once() gets silent no-op WAL management")
+
+
+def test_manage_wal_still_checkpoints_under_run_forever(os_):
+    """The path that already worked must keep working."""
+    worker = worker_for(os_, worker_id="forever", manage_wal=True)
+    worker.wal_manager.soft_limit_bytes = 1
+    worker.wal_manager.hard_limit_bytes = 2 << 40
+    worker.wal_manager.interval_seconds = 0.0
+
+    _write(os_, 200)
+    worker.run_forever(batch_size=100, max_cycles=3, poll_seconds=0.01)
+
+    assert worker.wal_manager.metrics["checkpoints_attempted"] > 0
