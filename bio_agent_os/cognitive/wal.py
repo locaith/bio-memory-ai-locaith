@@ -44,6 +44,23 @@ DEFAULT_SOFT_LIMIT_MB = 256
 DEFAULT_HARD_LIMIT_MB = 512
 DEFAULT_INTERVAL_SECONDS = 60.0
 
+#: How long a *scheduled* TRUNCATE may wait for readers before giving up and
+#: leaving the job to the next interval.
+#:
+#: Run 6 measured the unbounded version. The checkpoint that finally landed
+#: reported `wal_frames=0, frames_checkpointed=0` and took 23,236 ms: it moved
+#: nothing and spent every one of those milliseconds waiting. Inside that same
+#: window a producer's observe() reached 23,457 ms and one write died on its
+#: own 10-second busy timeout — 1 failure in 465,738, but a fatal SLO breach
+#: that stopped a 24-hour run at 2.9 hours.
+#:
+#: Since the work is zero and the wait is everything, a budget costs nothing
+#: and removes the stall: either a natural gap in the readers appears within
+#: the budget, or the log stays large for another interval. A WAL that is
+#: 130 MB is an operator's problem; a checkpoint that freezes every writer for
+#: 23 seconds is everyone's.
+SCHEDULED_TRUNCATE_BUDGET_MS = 250
+
 
 class CheckpointMode(str, Enum):
     """SQLite's four modes, in increasing order of how much they block.
@@ -456,6 +473,11 @@ class WALCheckpointManager:
         Below the hard limit nothing blocks, which is the property that
         matters: a background job must never wait on readers unless the
         alternative is running out of disk.
+
+        And when it does wait, it waits on a clock. The TRUNCATE here is
+        capped at SCHEDULED_TRUNCATE_BUDGET_MS; a blocked one returns busy and
+        the next interval tries again. Run 6 is why: unbounded, it held every
+        writer for 23 seconds to move zero frames.
         """
         if not force and not self.due():
             return None
@@ -471,7 +493,10 @@ class WALCheckpointManager:
                     "wal above hard limit; truncating the log",
                     extra={"wal_bytes": wal_bytes, "hard_limit": self.hard_limit_bytes},
                 )
-                return self.checkpoint(CheckpointMode.TRUNCATE, allow_blocking=True)
+                return self.checkpoint(
+                    CheckpointMode.TRUNCATE, allow_blocking=True,
+                    busy_timeout_ms=SCHEDULED_TRUNCATE_BUDGET_MS,
+                )
             logger.warning(
                 "wal above hard limit but a reader is registered; passive only",
                 extra={"wal_bytes": wal_bytes, "oldest_reader_age_seconds": readers},
@@ -555,6 +580,7 @@ __all__ = [
     "DEFAULT_HARD_LIMIT_MB",
     "DEFAULT_INTERVAL_SECONDS",
     "DEFAULT_SOFT_LIMIT_MB",
+    "SCHEDULED_TRUNCATE_BUDGET_MS",
     "CheckpointMode",
     "CheckpointResult",
     "WALCheckpointManager",

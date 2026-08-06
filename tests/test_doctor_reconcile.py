@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from bio_agent_os.cognitive import diagnostics
-from bio_agent_os.cognitive.diagnostics import DeepDoctor, Severity
+from bio_agent_os.cognitive.diagnostics import _MAX_ROW_FINDINGS, DeepDoctor, Severity
 from bio_agent_os.cognitive.facade import MemoryOS
 from bio_agent_os.cognitive.models import EventRecord, MemoryType
 from bio_agent_os.cognitive.outbox import JobStatus, ProjectionJob, projection_key
@@ -331,6 +331,32 @@ def test_legacy_projection_without_debt_is_info_not_damage(db):
     report = DeepDoctor(legacy.events.conn).run(deep=True)
     finding = next(f for f in report.findings if f.code == "EVENT_PROJECTED_WITHOUT_DEBT")
     assert finding.severity == Severity.INFO.value
+    assert report.exit_code == 0
+
+
+def test_an_expected_condition_is_counted_not_listed_row_by_row(db):
+    """Regression, Run 6.
+
+    Every legacy write produces one of these, and the check produced one
+    finding for each: 234,745 identical INFO lines and a 111 MB report for a
+    2.4 GB database. Nothing was wrong — that is the point. The report was
+    unopenable, and it grows with the data, so the bigger the database the
+    less the diagnostic can be read.
+    """
+    legacy = MemoryOS(db)
+    for i in range(_MAX_ROW_FINDINGS * 3):
+        _observe(legacy, content=f"legacy row {i}")
+
+    report = DeepDoctor(legacy.events.conn).run(deep=True)
+    listed = [f for f in report.findings if f.code == "EVENT_PROJECTED_WITHOUT_DEBT"]
+    bulk = [f for f in report.findings if f.code == "EVENT_PROJECTED_WITHOUT_DEBT_BULK"]
+
+    assert len(listed) == _MAX_ROW_FINDINGS, (
+        f"{len(listed)} rows listed individually; the cap is {_MAX_ROW_FINDINGS}")
+    assert len(bulk) == 1, "the rows that were folded away must still be counted"
+    # The count is the whole reason the roll-up exists: folding must not lose it.
+    assert bulk[0].evidence["total"] == _MAX_ROW_FINDINGS * 3
+    assert bulk[0].severity == Severity.INFO.value
     assert report.exit_code == 0
 
 

@@ -29,6 +29,13 @@ from .projection_capability import CAPABILITIES, is_supported, supported_types, 
 from .projection_registry import ProjectionType, dependencies_of, detect_cycles
 from .shadow import ComparisonStatus
 
+#: How many rows a single expected-by-design check may name individually
+#: before it folds the rest into one counted finding. A report is read by a
+#: person; a check that emits one line per row stops being a report somewhere
+#: around the thousandth line and becomes a data dump. Twenty is enough to
+#: investigate a handful by hand and small enough that no check can dominate.
+_MAX_ROW_FINDINGS = 20
+
 
 class Severity(str, Enum):
     PASS = "PASS"
@@ -640,12 +647,28 @@ class DeepDoctor:
             f"{clause}",
             params,
         )
-        for row in rows:
+        # One finding per row, for a condition the docstring above calls legal
+        # and the finding itself calls expected. Run 6 measured what that means
+        # at scale: 234,745 identical INFO findings and a 111 MB report for a
+        # 2.4 GB database. The same sentence, a quarter of a million times, in a
+        # file no operator can open. Individual rows are still worth naming when
+        # there are few enough to act on one by one; past that the count is the
+        # only new information, so report the count.
+        for row in rows[:_MAX_ROW_FINDINGS]:
             self.report.add(Finding(
                 "EVENT_PROJECTED_WITHOUT_DEBT", Severity.INFO.value, "event",
                 "projection exists but no outbox row records it was owed "
                 "(legacy write path)",
                 entity_id=row["event_id"], tenant_id=row["tenant_id"], repairable=False,
+                suggested_action="expected while the legacy path is primary",
+            ))
+        if len(rows) > _MAX_ROW_FINDINGS:
+            self.report.add(Finding(
+                "EVENT_PROJECTED_WITHOUT_DEBT_BULK", Severity.INFO.value, "event",
+                f"{len(rows):,} event(s) carry a projection with no outbox debt "
+                f"(legacy write path); {_MAX_ROW_FINDINGS} listed individually",
+                evidence={"total": len(rows), "listed": _MAX_ROW_FINDINGS},
+                repairable=False,
                 suggested_action="expected while the legacy path is primary",
             ))
 

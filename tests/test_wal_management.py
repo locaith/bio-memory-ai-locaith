@@ -22,6 +22,7 @@ from bio_agent_os.cognitive.models import EventRecord
 from bio_agent_os.cognitive.projection_registry import ProjectionType
 from bio_agent_os.cognitive.reconciliation_worker import worker_for
 from bio_agent_os.cognitive.wal import (
+    SCHEDULED_TRUNCATE_BUDGET_MS,
     CheckpointMode,
     WALCheckpointManager,
     WALLevel,
@@ -245,6 +246,53 @@ def test_policy_truncates_above_the_hard_limit_when_no_reader_is_registered(os_)
     assert result.mode == CheckpointMode.TRUNCATE.value
     assert manager.metrics["critical_events"] == 1
     assert manager.status().wal_bytes == 0, "truncate must return the file"
+
+
+def test_the_scheduled_truncate_gives_up_instead_of_holding_the_writers(os_, tmp_path):
+    """Regression, Run 6.
+
+    The critical branch ran TRUNCATE with no time budget, so it inherited the
+    connection's busy_timeout — 10,000 ms in staging. Measured consequence: a
+    checkpoint that reported `wal_frames=0, frames_checkpointed=0` and still
+    took 23,236 ms. It moved nothing. Every millisecond was spent waiting for
+    readers, and while it waited a producer's observe() reached 23,457 ms and
+    one write of 465,738 died on its own busy timeout, which is a fatal SLO
+    breach. A 24-hour run stopped at 2.9 hours over a checkpoint that
+    accomplished nothing.
+
+    So: blocked is an acceptable answer, and the next interval will ask again.
+    Waiting is not.
+    """
+    manager = manager_for(os_, soft_limit_bytes=1, hard_limit_bytes=2,
+                          interval_seconds=0.0)
+    _write(os_, 300)
+    # Staging's setting, and the reason the unbounded wait was so long.
+    manager.conn.execute("PRAGMA busy_timeout=10000")
+
+    reader = sqlite3.connect(str(tmp_path / "wal.db"), timeout=1.0)
+    reader.execute("BEGIN")
+    reader.execute("SELECT COUNT(*) FROM cognitive_events").fetchone()
+    try:
+        started = time.perf_counter()
+        result = manager.maybe_checkpoint()
+        waited_ms = (time.perf_counter() - started) * 1000
+    finally:
+        reader.rollback()
+        reader.close()
+
+    assert result is not None and result.mode == CheckpointMode.TRUNCATE.value
+    assert result.busy, "a live reader should have blocked this checkpoint"
+    # Generous against a slow CI box, and still an order of magnitude under the
+    # 10,000 ms the connection would have granted before the budget existed.
+    assert waited_ms < 3000, (
+        f"scheduled TRUNCATE waited {waited_ms:.0f} ms; the budget is "
+        f"{SCHEDULED_TRUNCATE_BUDGET_MS} ms and the whole point is that a "
+        f"background job never holds the writers")
+
+    restored = int(manager.conn.execute("PRAGMA busy_timeout").fetchone()[0])
+    assert restored == 10000, (
+        "the budget leaked onto the connection; the append path would then "
+        "give up on a lock after 250 ms")
 
 
 def test_policy_never_restarts_while_a_reader_is_registered(os_):
