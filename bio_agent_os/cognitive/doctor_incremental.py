@@ -13,7 +13,7 @@ import sqlite3
 import time
 from typing import Any
 
-from .diagnostics import DeepDoctor, DoctorReport, Severity
+from .diagnostics import DeepDoctor, DoctorReport, Finding, Severity
 
 
 class IncrementalDoctor(DeepDoctor):
@@ -100,7 +100,7 @@ class IncrementalDoctor(DeepDoctor):
         }
         self.window_end = {"events": events, "ledger": ledger, "outbox": outbox}
 
-        report = self._run_windowed(start)
+        report = self._run_windowed(start, full=full)
         report.counts["incremental"] = 1
         # Counted, not subtracted. Rowids are global, so `high_water - floor`
         # would report another tenant's rows as belonging to this window.
@@ -159,14 +159,38 @@ class IncrementalDoctor(DeepDoctor):
         except sqlite3.OperationalError:
             return 0
 
-    def _run_windowed(self, start: Any) -> DoctorReport:
+    def _run_windowed(self, start: Any, *, full: bool = False) -> DoctorReport:
         self.report = DoctorReport(deep=True)
         started = time.perf_counter()
         try:
             self._collect_counts()
-            for fn in (self.check_sqlite, self.check_schema, self.check_capabilities,
-                       self.check_outbox_basics):
+
+            # PRAGMA integrity/quick_check reads the WHOLE database file, so its
+            # cost follows file size, not window size. Running it on every
+            # incremental scan makes an O(window) scan O(database) — and worse,
+            # SQLite cannot checkpoint the WAL past the oldest reader, so the WAL
+            # only grows for as long as the pragma runs.
+            #
+            # Canary run 4, measured: 1.811s on a 244 MB database, ~12.6s at
+            # 1.7 GB, and the 24-hour projection put it at ~148s out of every
+            # 300s. Checkpointing blocked half the time is how a WAL never comes
+            # back. The pragma belongs to the audit that is meant to be
+            # expensive, not to a five-minute scan.
+            head = [self.check_schema, self.check_capabilities, self.check_outbox_basics]
+            if full:
+                head.insert(0, self.check_sqlite)
+            for fn in head:
                 self._check(fn)
+            if not full:
+                # Said out loud. A check that quietly did not run turns a report
+                # into a claim it never made.
+                self.report.add(Finding(
+                    "SQLITE_INTEGRITY_DEFERRED", Severity.INFO.value, "sqlite",
+                    f"{self.integrity_pragma} skipped on an incremental scan; it "
+                    f"reads the whole database file. Runs on --full and on the "
+                    f"deep audit.",
+                    evidence={"pragma": self.integrity_pragma, "scan": "incremental"},
+                ))
             for fn in (
                 self.check_event_integrity,
                 self.check_event_debt,
