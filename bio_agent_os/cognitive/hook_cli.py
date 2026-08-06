@@ -34,8 +34,25 @@ def _memory_context(memory_os: MemoryOS, query: str, tenant: str, workspace: str
     return "Relevant Bio-AGI Memory OS context (claims retain confidence and provenance labels):\n" + "\n".join(lines)
 
 
+def _read_payload() -> dict[str, Any]:
+    """Read the hook payload from stdin, always as UTF-8.
+
+    Claude Code sends UTF-8 JSON, but on Windows `sys.stdin` decodes with the
+    system codepage. Vietnamese text then comes through as lone surrogates via
+    surrogateescape, and everything downstream that touches those strings
+    breaks -- concretely the event store's checksum, which raises
+    UnicodeEncodeError before a single memory is written.
+
+    So the hook died on exactly the prompts this user types every day, while
+    English prompts went through fine. Read the bytes and decode them
+    ourselves rather than trusting the console's idea of an encoding.
+    """
+    raw = sys.stdin.buffer.read()
+    return json.loads(raw.decode("utf-8", errors="replace"))
+
+
 def main() -> None:
-    payload: dict[str, Any] = json.load(sys.stdin)
+    payload: dict[str, Any] = _read_payload()
     hook = sys.argv[1] if len(sys.argv) > 1 else str(payload.get("hook_event_name", ""))
     cwd = str(payload.get("cwd") or os.getcwd())
     tenant = os.environ.get("BIO_MEMORY_TENANT", "local")
@@ -54,7 +71,9 @@ def main() -> None:
     output: dict[str, Any] = {"suppressOutput": True}
     if result.accepted and context:
         output["hookSpecificOutput"] = {"hookEventName": hook, "additionalContext": context}
-    print(json.dumps(output, ensure_ascii=False))
+    # Same reason as the read side: the injected context is Vietnamese, and a
+    # cp1252 stdout would mangle it on the way back to Claude Code.
+    sys.stdout.buffer.write(json.dumps(output, ensure_ascii=False).encode("utf-8"))
 
 
 if __name__ == "__main__":
