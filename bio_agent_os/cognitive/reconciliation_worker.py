@@ -435,6 +435,15 @@ class ReconciliationWorker:
             logger.exception("could not read the projection pause flag")
             return False
 
+    def _maybe_checkpoint(self) -> None:
+        """Checkpoint if one is due. Never takes the worker down."""
+        if self.wal_manager is None:
+            return
+        try:
+            self.wal_manager.maybe_checkpoint()
+        except Exception:  # a checkpoint must never take the worker down
+            logger.exception("wal checkpoint failed")
+
     def run_once(self, *, batch_size: int = 10) -> WorkerMetrics:
         """Claim and process up to `batch_size` jobs, then return."""
         self.metrics.cycles += 1
@@ -453,6 +462,15 @@ class ReconciliationWorker:
             if self.stopping:
                 break
             self.process(job)
+
+        # Every job above has committed, so there is no open transaction here
+        # and a checkpoint cannot fight the batch for the write lock. This has
+        # to live in run_once rather than in run_forever: a caller that drives
+        # the worker itself -- to interleave other work between batches -- is
+        # a supported way to use this class, and such a caller passing
+        # manage_wal=True was silently getting no WAL management at all.
+        # A no-op unless the interval has elapsed.
+        self._maybe_checkpoint()
         return self.metrics
 
     def run_forever(
@@ -477,14 +495,6 @@ class ReconciliationWorker:
                 break
             before = self.metrics.claimed
             self.run_once(batch_size=batch_size)
-            # Between cycles, outside any transaction, and a no-op unless the
-            # interval has elapsed. A checkpoint inside a batch would hold the
-            # write lock the batch is trying to use.
-            if self.wal_manager is not None:
-                try:
-                    self.wal_manager.maybe_checkpoint()
-                except Exception:  # a checkpoint must never take the worker down
-                    logger.exception("wal checkpoint failed")
             if self.metrics.claimed == before and not self.stopping:
                 # Queue is empty; sleep in slices so a stop is prompt.
                 slept = 0.0
