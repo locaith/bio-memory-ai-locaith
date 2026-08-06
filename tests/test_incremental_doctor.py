@@ -138,20 +138,40 @@ def test_global_checks_run_even_with_an_empty_window(os_):
 
 
 def test_schema_and_capability_checks_always_run(os_):
+    """Cheap, bounded checks stay on every scan.
+
+    SQLITE_INTEGRITY moved out — see
+    test_incremental_defers_the_integrity_pragma_to_the_audit.
+    """
     _observe(os_, 2)
     report = IncrementalDoctor(os_.events.conn).run_incremental()
     codes = _codes(report)
     assert "CAPABILITY_SUMMARY" in codes
-    assert "SQLITE_INTEGRITY" in codes
+    assert "SQLITE_INTEGRITY_DEFERRED" in codes
 
 
-def test_incremental_uses_quick_check_not_the_full_integrity_scan(os_):
-    """integrity_check reads every page and every index entry; that belongs to
-    an audit, not to something run every few minutes."""
+def test_incremental_defers_the_integrity_pragma_to_the_audit(os_):
+    """Policy change, on evidence from canary run 4.
+
+    This previously asserted the incremental scan ran quick_check rather than
+    integrity_check. The reasoning in that test was right — "that belongs to an
+    audit, not to something run every few minutes" — but the remedy was not:
+    quick_check also reads every page. Swapping the pragma lowered the constant
+    and left the O(database) scaling untouched.
+
+    Measured on the run-3 canary database (244 MB): quick_check 1.811s, the
+    largest of thirteen checks. Run 4 at 1.7 GB spent ~16s per incremental scan,
+    matching 1.811 x 1700/244. Projected to 24 hours at ~20 GB it would run
+    ~148s out of every 300s — and SQLite cannot checkpoint the WAL past the
+    oldest reader, so for that whole time the WAL only grows.
+
+    So the scan skips it and says so. The deep audit keeps integrity_check.
+    """
     _observe(os_, 2)
     report = IncrementalDoctor(os_.events.conn).run_incremental()
-    integrity = next(f for f in report.findings if f.code == "SQLITE_INTEGRITY")
-    assert integrity.evidence["pragma"] == "quick_check"
+    assert "SQLITE_INTEGRITY" not in _codes(report)
+    deferred = next(f for f in report.findings if f.code == "SQLITE_INTEGRITY_DEFERRED")
+    assert deferred.severity == Severity.INFO.value
 
     full = DeepDoctor(os_.events.conn).run(deep=True)
     integrity = next(f for f in full.findings if f.code == "SQLITE_INTEGRITY")
@@ -332,3 +352,55 @@ def test_tenant_scoped_cursors_are_independent(os_):
 
     again = IncrementalDoctor(os_.events.conn, tenant_id="tenant-a").run_incremental()
     assert again.counts["window_events"] == 0
+
+
+# -- the integrity pragma is not an incremental cost ---------------------------
+#
+# Found in canary run 4. The "incremental" scan ran check_sqlite every time, and
+# check_sqlite is PRAGMA integrity/quick_check, which reads the WHOLE database
+# file. A scan advertised as O(window) was really O(database).
+#
+# Measured on the run-3 canary database (244 MB, 73,534 events): check_sqlite
+# took 1.811s of a 3.393s total — the largest check, and the only one whose cost
+# tracks file size. Run 4 at 1.7 GB spent ~16s per incremental scan, matching
+# 1.811 x 1700/244 = 12.6s plus the windowed checks.
+#
+# The seconds are not the damage. SQLite cannot checkpoint the WAL past the
+# oldest reader, so while that pragma runs the WAL only grows. At the 24-hour
+# projection (~20 GB) it would run ~148s out of every 300s: checkpointing
+# blocked half the time, and the WAL never comes back.
+
+def test_incremental_scan_skips_the_whole_file_integrity_pragma(os_):
+    _observe(os_, 20)
+    _drain(os_)
+    doctor = IncrementalDoctor(os_.events.conn)
+
+    ran: list[str] = []
+    original = doctor.check_sqlite
+    def spy() -> None:
+        ran.append("yes")
+        original()
+    doctor.check_sqlite = spy                       # type: ignore[method-assign]
+
+    doctor.run_incremental()
+    assert not ran, (
+        "the incremental scan ran the whole-file integrity pragma; its cost is "
+        "O(database) not O(window), and it blocks WAL checkpointing while it runs")
+
+
+def test_the_deferred_pragma_is_reported_not_silently_dropped(os_):
+    """A check that did not run must be visible, or the report lies by omission."""
+    _observe(os_, 20)
+    _drain(os_)
+    report = IncrementalDoctor(os_.events.conn).run_incremental()
+    assert "SQLITE_INTEGRITY_DEFERRED" in _codes(report), sorted(_codes(report))
+
+
+def test_a_full_scan_still_runs_the_pragma(os_):
+    """The audit that is meant to be expensive keeps its integrity check."""
+    _observe(os_, 20)
+    _drain(os_)
+    report = IncrementalDoctor(os_.events.conn).run_incremental(full=True)
+    codes = _codes(report)
+    assert "SQLITE_INTEGRITY" in codes, sorted(codes)
+    assert "SQLITE_INTEGRITY_DEFERRED" not in codes
