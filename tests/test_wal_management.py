@@ -209,14 +209,47 @@ def test_policy_stays_passive_below_the_soft_limit(os_):
     assert manager.metrics["warn_events"] == 0
 
 
-def test_policy_warns_above_the_soft_limit_and_stays_passive(os_):
+def test_policy_reclaims_above_the_soft_limit(os_):
+    """Second policy reversal, and this one cost a run.
+
+    This test previously asserted the opposite — above the soft limit, stay on
+    PASSIVE — on the reasoning that the soft limit is an alerting threshold and
+    only the hard limit warrants blocking. Run 7 disproved that reasoning with
+    numbers, so the assertion has to move with it.
+
+    What Run 7 measured against a 64 MB soft limit: median WAL 118 MB, 81% of
+    382 samples above the limit, and the log never once returned to it on its
+    own. Then 220 MB to 612 MB in forty-two seconds, over the supervisor's
+    fatal threshold, six and a half hours into a twenty-four hour run.
+
+    The mechanism is not subtle: PASSIVE copies frames back but never returns
+    the file. A log that only ever gets PASSIVE has no downward force at all.
+    The soft limit was therefore unreachable by the manager's own action — it
+    was not an alerting threshold, it was a threshold nothing could satisfy.
+
+    Reclaim now starts at the soft limit, bounded and on a cooldown, so the
+    campaign begins while the log is still small enough for it to succeed.
+    """
     manager = manager_for(os_, soft_limit_bytes=1, hard_limit_bytes=10 ** 10,
                           interval_seconds=0.0)
     _write(os_, 200)
-    result = manager.maybe_checkpoint()
-    assert result.mode == CheckpointMode.PASSIVE.value
-    assert manager.metrics["warn_events"] == 1
+    before = manager.status().wal_bytes
+    # The alert is instantaneous, so it has to be read before the reclaim runs.
     assert {a["code"] for a in manager.alerts()} >= {"WAL_ABOVE_SOFT_LIMIT"}
+
+    result = manager.maybe_checkpoint()
+
+    assert result.mode == CheckpointMode.TRUNCATE.value, (
+        "the soft limit must start the reclaim campaign, not just log about it")
+    assert manager.metrics["warn_events"] == 1
+    assert manager.metrics["truncate_succeeded"] == 1
+    assert manager.status().wal_bytes < before, "reclaim ran but the file did not shrink"
+    # State was entered on the pre-reclaim size and is held by hysteresis until
+    # a later sample sees the log below the resume threshold. That is the point
+    # of a campaign: it does not end the instant one checkpoint lands.
+    assert manager.status().state == "pressure"
+    # And once it did land, there is nothing left to alert about.
+    assert {a["code"] for a in manager.alerts()} & {"WAL_ABOVE_SOFT_LIMIT"} == set()
 
 
 def test_policy_truncates_above_the_hard_limit_when_no_reader_is_registered(os_):

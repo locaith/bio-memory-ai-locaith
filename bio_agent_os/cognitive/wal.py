@@ -61,6 +61,23 @@ DEFAULT_INTERVAL_SECONDS = 60.0
 #: 23 seconds is everyone's.
 SCHEDULED_TRUNCATE_BUDGET_MS = 250
 
+#: Where the log has to fall back to before pressure is declared over.
+#:
+#: Expressed as a fraction of the soft limit, because the point is the gap, not
+#: the number. Without one, a log oscillating around the threshold resumes at
+#: 63.9 MB and re-enters pressure at 64.1 MB, and the manager spends its life
+#: checkpointing. Run 7 measured the shape of that: 81% of samples above the
+#: soft limit, median 118 MB against a 64 MB limit.
+DEFAULT_RESUME_FRACTION = 0.5
+
+#: Minimum gap between two TRUNCATE attempts on the scheduled path.
+#:
+#: A blocked TRUNCATE costs the budget above and achieves nothing, so retrying
+#: it every interval under sustained load is a checkpoint storm that taxes
+#: every writer for no reclaim. Wait, then try again — the reader that blocked
+#: it is usually gone within a cooldown.
+DEFAULT_TRUNCATE_COOLDOWN_SECONDS = 20.0
+
 
 class CheckpointMode(str, Enum):
     """SQLite's four modes, in increasing order of how much they block.
@@ -82,8 +99,30 @@ class CheckpointMode(str, Enum):
 
 
 class WALLevel(str, Enum):
+    """Where the log sits *right now*. Instantaneous, no memory."""
+
     OK = "ok"
     WARN = "warn"
+    CRITICAL = "critical"
+
+
+class WALState(str, Enum):
+    """Where the manager *believes* it is. Hysteretic, and the thing policy reads.
+
+    Distinct from `WALLevel` on purpose. Level answers "how big is the file";
+    state answers "am I in a reclaim campaign". They differ exactly in the
+    hysteresis band — between the resume threshold and the soft limit — where
+    the level reads OK but the state stays elevated because the campaign that
+    got it there has not finished yet.
+
+    NORMAL     log below the resume threshold. PASSIVE on schedule, no blocking.
+    PRESSURE   log crossed the soft limit. Bounded TRUNCATE, on a cooldown.
+    CRITICAL   log crossed the hard limit. Same action, plus the harness is
+               expected to stop adding load until the state falls back.
+    """
+
+    NORMAL = "normal"
+    PRESSURE = "pressure"
     CRITICAL = "critical"
 
 
@@ -147,6 +186,16 @@ class WALStatus:
     oldest_reader_age_seconds: float | None
     consecutive_busy_checkpoints: int
     last_checkpoint: dict[str, Any] | None
+    # -- state machine, added after Run 7 --
+    state: str = WALState.NORMAL.value
+    resume_threshold_bytes: int = 0
+    seconds_in_state: float = 0.0
+    time_above_soft_seconds: float = 0.0
+    time_above_hard_seconds: float = 0.0
+    truncate_attempts: int = 0
+    truncate_succeeded: int = 0
+    truncate_busy: int = 0
+    truncate_ineffective: int = 0
 
     @property
     def wal_pct_of_database(self) -> float:
@@ -171,6 +220,15 @@ class WALStatus:
             "oldest_reader_age_seconds": self.oldest_reader_age_seconds,
             "consecutive_busy_checkpoints": self.consecutive_busy_checkpoints,
             "last_checkpoint": self.last_checkpoint,
+            "state": self.state,
+            "resume_threshold_mb": round(self.resume_threshold_bytes / 1048576, 1),
+            "seconds_in_state": round(self.seconds_in_state, 1),
+            "time_above_soft_seconds": round(self.time_above_soft_seconds, 1),
+            "time_above_hard_seconds": round(self.time_above_hard_seconds, 1),
+            "truncate_attempts": self.truncate_attempts,
+            "truncate_succeeded": self.truncate_succeeded,
+            "truncate_busy": self.truncate_busy,
+            "truncate_ineffective": self.truncate_ineffective,
         }
 
     def render(self, width: int = 66) -> str:
@@ -241,6 +299,8 @@ class WALCheckpointManager:
         soft_limit_bytes: int | None = None,
         hard_limit_bytes: int | None = None,
         interval_seconds: float | None = None,
+        resume_threshold_bytes: int | None = None,
+        truncate_cooldown_seconds: float | None = None,
     ) -> None:
         self.conn = conn
         self.db_path = str(db_path)
@@ -257,11 +317,34 @@ class WALCheckpointManager:
             else _env_seconds("BIO_AGENT_WAL_CHECKPOINT_INTERVAL_SECONDS",
                               DEFAULT_INTERVAL_SECONDS)
         )
+        self.resume_threshold_bytes = (
+            resume_threshold_bytes if resume_threshold_bytes is not None
+            else _env_bytes("BIO_AGENT_WAL_RESUME_MB", 0)
+            or int(self.soft_limit_bytes * DEFAULT_RESUME_FRACTION)
+        )
+        # A resume threshold at or above the soft limit is not hysteresis, it is
+        # a coin toss on every sample. Refuse it rather than pretend.
+        if self.resume_threshold_bytes >= self.soft_limit_bytes:
+            logger.warning(
+                "resume threshold must sit below the soft limit; falling back to half",
+                extra={"requested": self.resume_threshold_bytes,
+                       "soft_limit": self.soft_limit_bytes},
+            )
+            self.resume_threshold_bytes = int(self.soft_limit_bytes * DEFAULT_RESUME_FRACTION)
+        self.truncate_cooldown_seconds = (
+            truncate_cooldown_seconds if truncate_cooldown_seconds is not None
+            else _env_seconds("BIO_AGENT_WAL_TRUNCATE_COOLDOWN_SECONDS",
+                              DEFAULT_TRUNCATE_COOLDOWN_SECONDS)
+        )
         self._lock = threading.Lock()
         self._readers: dict[str, float] = {}
         self._last_run: float = 0.0
         self._last_result: CheckpointResult | None = None
         self._consecutive_busy = 0
+        self._state = WALState.NORMAL
+        self._state_since: float = time.time()
+        self._last_seen: float = time.time()
+        self._last_truncate_attempt: float = 0.0
         self.metrics: dict[str, Any] = {
             "checkpoints_attempted": 0,
             "checkpoints_busy": 0,
@@ -273,6 +356,18 @@ class WALCheckpointManager:
             "warn_events": 0,
             "critical_events": 0,
             "by_mode": {},
+            # -- state machine, added after Run 7 --
+            "truncate_attempts": 0,
+            "truncate_succeeded": 0,
+            "truncate_busy": 0,
+            "truncate_ineffective": 0,   # finished, blocked nobody, reclaimed nothing
+            "truncate_bytes_reclaimed": 0,
+            "truncate_skipped_cooldown": 0,
+            "truncate_skipped_reader": 0,
+            "state_transitions": 0,
+            "time_above_soft_seconds": 0.0,
+            "time_above_hard_seconds": 0.0,
+            "by_state": {},
         }
 
     # -- readers -----------------------------------------------------------
@@ -333,6 +428,13 @@ class WALCheckpointManager:
             readers = len(self._readers)
             consecutive_busy = self._consecutive_busy
             last = self._last_result.as_dict() if self._last_result else None
+            state = self._state.value
+            seconds_in_state = time.time() - self._state_since
+            m = self.metrics
+            above_soft = m["time_above_soft_seconds"]
+            above_hard = m["time_above_hard_seconds"]
+            t_att, t_ok = m["truncate_attempts"], m["truncate_succeeded"]
+            t_busy, t_none = m["truncate_busy"], m["truncate_ineffective"]
         return WALStatus(
             db_path=self.db_path,
             journal_mode=journal_mode,
@@ -348,6 +450,15 @@ class WALCheckpointManager:
             oldest_reader_age_seconds=self.oldest_reader_age(),
             consecutive_busy_checkpoints=consecutive_busy,
             last_checkpoint=last,
+            state=state,
+            resume_threshold_bytes=self.resume_threshold_bytes,
+            seconds_in_state=seconds_in_state,
+            time_above_soft_seconds=above_soft,
+            time_above_hard_seconds=above_hard,
+            truncate_attempts=t_att,
+            truncate_succeeded=t_ok,
+            truncate_busy=t_busy,
+            truncate_ineffective=t_none,
         )
 
     # -- action ------------------------------------------------------------
@@ -453,63 +564,149 @@ class WALCheckpointManager:
         with self._lock:
             return (now - self._last_run) >= self.interval_seconds
 
+    def state(self) -> str:
+        """The hysteretic state, without advancing it. Safe to poll."""
+        with self._lock:
+            return self._state.value
+
+    def _advance_state(self, wal_bytes: int, now: float) -> WALState:
+        """Fold the current size into the state, and bill the time since last look.
+
+        Hysteresis lives here and nowhere else. Crossing the soft limit enters
+        PRESSURE; crossing the hard limit enters CRITICAL; and the only way back
+        to NORMAL is falling below the *resume* threshold, which sits strictly
+        under the soft limit. Between resume and soft the state is held, which
+        is the whole point: a log oscillating around its own trigger must not
+        re-arm the campaign on every sample.
+        """
+        with self._lock:
+            previous = self._state
+            elapsed = max(0.0, now - self._last_seen)
+            self._last_seen = now
+            # Bill elapsed time against the size we last observed, not the new
+            # one — the interval that just passed was spent at the old size.
+            if previous is WALState.CRITICAL:
+                self.metrics["time_above_hard_seconds"] += elapsed
+                self.metrics["time_above_soft_seconds"] += elapsed
+            elif previous is WALState.PRESSURE:
+                self.metrics["time_above_soft_seconds"] += elapsed
+
+            if wal_bytes >= self.hard_limit_bytes:
+                nxt = WALState.CRITICAL
+            elif wal_bytes < self.resume_threshold_bytes:
+                nxt = WALState.NORMAL
+            elif previous is WALState.NORMAL and wal_bytes >= self.soft_limit_bytes:
+                nxt = WALState.PRESSURE
+            else:
+                nxt = previous  # inside the hysteresis band, or draining but not yet clear
+
+            if nxt is not previous:
+                self._state = nxt
+                self._state_since = now
+                self.metrics["state_transitions"] += 1
+                self.metrics["by_state"][nxt.value] = (
+                    self.metrics["by_state"].get(nxt.value, 0) + 1
+                )
+            return nxt
+
+    def _truncate_on_cooldown(self, now: float) -> bool:
+        with self._lock:
+            return (now - self._last_truncate_attempt) < self.truncate_cooldown_seconds
+
     def maybe_checkpoint(self, *, force: bool = False) -> CheckpointResult | None:
         """The scheduled path. Returns None when nothing was due.
 
-        below soft limit : PASSIVE
-        above soft limit : PASSIVE, and a warning
-        above hard limit : TRUNCATE when no reader is registered, otherwise
-                           PASSIVE and a critical warning.
+        A three-state machine, replacing the two-branch policy that Run 7
+        disproved. The old policy only truncated above the *hard* limit, on the
+        reasoning that the soft limit is an alerting threshold and the log would
+        not run away below it. Run 7 measured otherwise: 81% of samples above a
+        64 MB soft limit, a median of 118 MB, and then 220 MB to 612 MB in
+        forty-two seconds. PASSIVE copies frames back but never returns the
+        file, so a log that only ever gets PASSIVE has no downward force at all
+        — it ratchets, and the hard limit is where the ratchet is noticed, not
+        where it starts.
 
-        TRUNCATE is reached only on the branch that had already chosen to
-        block. It waits for readers exactly as RESTART does, so on that branch
-        it costs nothing extra, and it is the only mode that returns the file
-        to the filesystem: PASSIVE and RESTART reset where SQLite writes next
-        and leave the file at its high-water mark. The staging canary showed
-        what that costs - a fully checkpointed WAL, (0, 27033, 27033) with no
-        reader blocking, still holding 106 MB, and a high-water mark that only
-        ever rose until it crossed this limit and stopped the run.
+        NORMAL     PASSIVE on schedule. Nothing blocks, nothing waits.
+        PRESSURE   bounded TRUNCATE, on a cooldown. This is the reclaim
+                   campaign, and it is the branch that was missing.
+        CRITICAL   the same bounded TRUNCATE, and `state()` reads CRITICAL so
+                   the harness can stop adding load. The manager cannot throttle
+                   producers itself and must not pretend to.
 
-        Below the hard limit nothing blocks, which is the property that
-        matters: a background job must never wait on readers unless the
-        alternative is running out of disk.
-
-        And when it does wait, it waits on a clock. The TRUNCATE here is
-        capped at SCHEDULED_TRUNCATE_BUDGET_MS; a blocked one returns busy and
-        the next interval tries again. Run 6 is why: unbounded, it held every
-        writer for 23 seconds to move zero frames.
+        A TRUNCATE that returns busy is **not** a success. It reclaimed nothing,
+        it is counted as busy, and the cooldown defers the retry rather than
+        letting the manager spin against a reader that is not going anywhere.
         """
         if not force and not self.due():
             return None
 
+        now = time.time()
         _, wal_bytes, _ = self.file_sizes()
-        level = self.level(wal_bytes)
-        readers = self.oldest_reader_age()
+        state = self._advance_state(wal_bytes, now)
 
-        if level == WALLevel.CRITICAL.value:
+        if state is WALState.NORMAL:
+            return self.checkpoint(CheckpointMode.PASSIVE)
+
+        # -- PRESSURE and CRITICAL share an action; they differ in what the
+        #    caller is expected to do about it.
+        if state is WALState.CRITICAL:
             self.metrics["critical_events"] += 1
-            if readers is None:
-                logger.warning(
-                    "wal above hard limit; truncating the log",
-                    extra={"wal_bytes": wal_bytes, "hard_limit": self.hard_limit_bytes},
-                )
-                return self.checkpoint(
-                    CheckpointMode.TRUNCATE, allow_blocking=True,
-                    busy_timeout_ms=SCHEDULED_TRUNCATE_BUDGET_MS,
-                )
             logger.warning(
-                "wal above hard limit but a reader is registered; passive only",
-                extra={"wal_bytes": wal_bytes, "oldest_reader_age_seconds": readers},
+                "wal above hard limit; reclaim campaign running, stop adding load",
+                extra={"wal_bytes": wal_bytes, "hard_limit": self.hard_limit_bytes,
+                       "resume_threshold": self.resume_threshold_bytes},
+            )
+        else:
+            self.metrics["warn_events"] += 1
+            logger.warning(
+                "wal above soft limit; reclaim campaign running",
+                extra={"wal_bytes": wal_bytes, "soft_limit": self.soft_limit_bytes,
+                       "resume_threshold": self.resume_threshold_bytes},
+            )
+
+        if self._truncate_on_cooldown(now):
+            # Still worth copying frames back; just not worth blocking for.
+            self.metrics["truncate_skipped_cooldown"] += 1
+            return self.checkpoint(CheckpointMode.PASSIVE)
+
+        # A registered long reader means the answer is already known: TRUNCATE
+        # will be busy. Taking the write lock for the budget to learn that is
+        # pure waste, so skip it and let the cooldown bring us back.
+        #
+        # This is an optimisation, not the safety mechanism. The budget is the
+        # safety mechanism — registration is voluntary and mostly unused, and
+        # Run 7 is the proof: `registered_readers` read 0 for every one of its
+        # 382 samples while readers demonstrably existed. A guard that depends
+        # on callers opting in cannot be load-bearing.
+        reader_age = self.oldest_reader_age()
+        if reader_age is not None:
+            self.metrics["truncate_skipped_reader"] += 1
+            logger.info(
+                "reclaim deferred: a long reader is registered",
+                extra={"oldest_reader_age_seconds": reader_age, "wal_bytes": wal_bytes},
             )
             return self.checkpoint(CheckpointMode.PASSIVE)
 
-        if level == WALLevel.WARN.value:
-            self.metrics["warn_events"] += 1
-            logger.warning(
-                "wal above soft limit",
-                extra={"wal_bytes": wal_bytes, "soft_limit": self.soft_limit_bytes},
-            )
-        return self.checkpoint(CheckpointMode.PASSIVE)
+        with self._lock:
+            self._last_truncate_attempt = now
+            self.metrics["truncate_attempts"] += 1
+
+        result = self.checkpoint(
+            CheckpointMode.TRUNCATE, allow_blocking=True,
+            busy_timeout_ms=SCHEDULED_TRUNCATE_BUDGET_MS,
+        )
+        with self._lock:
+            if result.busy or not result.ok:
+                self.metrics["truncate_busy"] += 1
+            elif result.reclaimed_bytes > 0:
+                self.metrics["truncate_succeeded"] += 1
+                self.metrics["truncate_bytes_reclaimed"] += result.reclaimed_bytes
+            else:
+                # Finished, nothing blocked it, and the file did not shrink.
+                # Distinct from busy and worth its own counter: it means the log
+                # is genuinely all live frames, not that a reader is in the way.
+                self.metrics["truncate_ineffective"] += 1
+        return result
 
     def alerts(self) -> list[dict[str, Any]]:
         """What a monitor should page on, with the numbers behind it."""
@@ -536,6 +733,34 @@ class WALCheckpointManager:
                 "consecutive_busy": status.consecutive_busy_checkpoints,
                 "oldest_reader_age_seconds": status.oldest_reader_age_seconds,
                 "action": "a long-lived read snapshot is preventing reclamation",
+            })
+        # A blocked reclaim is not a failure, but it is not a success either, and
+        # silence would let the campaign look like it is working.
+        if status.truncate_busy > 0 and status.truncate_succeeded == 0:
+            out.append({
+                "severity": "WARN", "code": "WAL_CHECKPOINT_BUSY",
+                "truncate_attempts": status.truncate_attempts,
+                "truncate_busy": status.truncate_busy,
+                "wal_mb": round(status.wal_bytes / 1048576, 1),
+                "action": "every reclaim attempt was blocked; the log has no downward "
+                          "force until a reader releases",
+            })
+        # Nothing blocked it, nothing came back: the log really is all live frames.
+        if status.truncate_ineffective >= 3 and status.truncate_succeeded == 0:
+            out.append({
+                "severity": "WARN", "code": "WAL_RECLAIM_INEFFECTIVE",
+                "truncate_ineffective": status.truncate_ineffective,
+                "wal_mb": round(status.wal_bytes / 1048576, 1),
+                "action": "truncate completed unblocked but reclaimed nothing; look for "
+                          "a writer producing frames faster than they can be retired",
+            })
+        if status.state == WALState.CRITICAL.value:
+            out.append({
+                "severity": "CRITICAL", "code": "WAL_RECLAIM_CAMPAIGN",
+                "state": status.state,
+                "seconds_in_state": round(status.seconds_in_state, 1),
+                "resume_threshold_mb": round(status.resume_threshold_bytes / 1048576, 1),
+                "action": "stop adding load until the log falls below the resume threshold",
             })
         if status.journal_mode.lower() != "wal":
             out.append({
@@ -579,12 +804,15 @@ def manager_for(memory_os: Any, **kwargs: Any) -> WALCheckpointManager:
 __all__ = [
     "DEFAULT_HARD_LIMIT_MB",
     "DEFAULT_INTERVAL_SECONDS",
+    "DEFAULT_RESUME_FRACTION",
     "DEFAULT_SOFT_LIMIT_MB",
+    "DEFAULT_TRUNCATE_COOLDOWN_SECONDS",
     "SCHEDULED_TRUNCATE_BUDGET_MS",
     "CheckpointMode",
     "CheckpointResult",
     "WALCheckpointManager",
     "WALLevel",
+    "WALState",
     "WALStatus",
     "manager_for",
 ]

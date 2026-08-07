@@ -9,6 +9,7 @@ from typing import Any
 from .facade import MemoryOS
 from .hooks import ClaudeCodeHookAdapter
 from .models import AccessContext, EpistemicStatus, VerificationStatus
+from .scope import log_scope, resolve_scope
 
 
 def _memory_context(memory_os: MemoryOS, query: str, tenant: str, workspace: str, limit: int = 5) -> str:
@@ -55,8 +56,13 @@ def main() -> None:
     payload: dict[str, Any] = _read_payload()
     hook = sys.argv[1] if len(sys.argv) > 1 else str(payload.get("hook_event_name", ""))
     cwd = str(payload.get("cwd") or os.getcwd())
-    tenant = os.environ.get("BIO_MEMORY_TENANT", "local")
-    workspace = os.environ.get("BIO_MEMORY_WORKSPACE", cwd)
+    # One resolver, shared with every other entry point. This used to default
+    # the workspace to `cwd`, which fragmented memory once per directory and
+    # then read back only its own fragment -- thirty memories one partition
+    # away, invisible, for eighteen hours. See scope.py.
+    scope = resolve_scope(project_path=cwd)
+    log_scope(scope, entrypoint="claude-code-hook")
+    tenant, workspace = scope.tenant_id, scope.workspace_id
     db_path = Path(os.environ.get("BIO_MEMORY_DB", str(Path(cwd) / ".bio-agent-os" / "memory.db")))
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
