@@ -36,7 +36,8 @@ REQUIRED_SUITES = (
     ("wal state machine", ["tests/test_wal_state_machine.py"]),
     ("wal management", ["tests/test_wal_management.py"]),
     ("scope identity", ["tests/test_scope_identity.py"]),
-    ("shadow", ["tests/test_shadow_projection.py"]),
+    ("shadow", ["tests/test_shadow_mode.py"]),
+    ("projection outbox", ["tests/test_projection_outbox.py"]),
     ("doctor", ["tests/test_doctor_reconcile.py"]),
 )
 

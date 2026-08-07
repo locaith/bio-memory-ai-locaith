@@ -103,12 +103,25 @@ def _write(os_: MemoryOS, n: int = 400, start: int = 0) -> None:
         )
 
 
-def _reader(tmp_path: Path) -> sqlite3.Connection:
-    """A connection holding a real read snapshot, which is what blocks TRUNCATE."""
+def _reader(tmp_path: Path, os_: MemoryOS | None = None,
+            start: int = 900_000) -> sqlite3.Connection:
+    """A connection pinned to an *older* snapshot, which is what blocks TRUNCATE.
+
+    Taking a snapshot is not enough on its own. TRUNCATE waits only until every
+    reader is on the newest snapshot — so a reader that has just read everything
+    is already there, and the checkpoint sails through. That made the first
+    version of these tests pass or fail depending on ordering: a real flake, and
+    the Run 8 gate is what surfaced it.
+
+    Pass `os_` to write a few rows *after* the snapshot is taken. The reader is
+    then genuinely behind, and blocking is deterministic rather than lucky.
+    """
     conn = sqlite3.connect(str(tmp_path / "wal.db"), timeout=1.0)
     conn.execute("PRAGMA busy_timeout=100")
     conn.execute("BEGIN")
     conn.execute("SELECT COUNT(*) FROM cognitive_events").fetchone()
+    if os_ is not None:
+        _write(os_, 20, start=start)
     return conn
 
 
@@ -178,7 +191,7 @@ def test_a_blocked_truncate_gives_up_inside_its_budget(os_, tmp_path):
                           interval_seconds=0.0)
     manager.conn.execute("PRAGMA busy_timeout=10000")  # staging's setting
 
-    reader = _reader(tmp_path)
+    reader = _reader(tmp_path, os_, start=900_000)
     try:
         o = observe(manager, lambda: manager.checkpoint(
             CheckpointMode.TRUNCATE, allow_blocking=True,
@@ -203,7 +216,7 @@ def test_a_blocked_reclaim_is_not_counted_as_success(os_, tmp_path):
     _write(os_, 400)
     manager = manager_for(os_, soft_limit_bytes=1, hard_limit_bytes=2,
                           interval_seconds=0.0, truncate_cooldown_seconds=0.0)
-    reader = _reader(tmp_path)
+    reader = _reader(tmp_path, os_, start=910_000)
     try:
         manager.maybe_checkpoint()
     finally:
@@ -223,7 +236,7 @@ def test_the_retry_after_the_reader_leaves_actually_reclaims(os_, tmp_path):
     manager = manager_for(os_, soft_limit_bytes=1, hard_limit_bytes=2,
                           interval_seconds=0.0, truncate_cooldown_seconds=0.0)
 
-    reader = _reader(tmp_path)
+    reader = _reader(tmp_path, os_, start=920_000)
     blocked = observe(manager, manager.maybe_checkpoint)
     assert blocked.busy and blocked.reclaimed == 0, f"{blocked}"
     reader.rollback(); reader.close()
@@ -244,7 +257,7 @@ def test_a_registered_reader_defers_the_attempt_entirely(os_, tmp_path):
     _write(os_, 400)
     manager = manager_for(os_, soft_limit_bytes=1, hard_limit_bytes=2,
                           interval_seconds=0.0, truncate_cooldown_seconds=0.0)
-    reader = _reader(tmp_path)
+    reader = _reader(tmp_path, os_, start=930_000)
     manager.note_reader("long-report")
     try:
         o = observe(manager, manager.maybe_checkpoint)
@@ -337,7 +350,7 @@ def test_the_cooldown_stops_a_checkpoint_storm(os_, tmp_path):
     _write(os_, 400)
     manager = manager_for(os_, soft_limit_bytes=1, hard_limit_bytes=2,
                           interval_seconds=0.0, truncate_cooldown_seconds=60.0)
-    reader = _reader(tmp_path)
+    reader = _reader(tmp_path, os_, start=940_000)
     try:
         for _ in range(8):
             manager.maybe_checkpoint()
