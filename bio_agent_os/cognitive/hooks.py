@@ -67,6 +67,7 @@ class ClaudeCodeHookAdapter:
         if hook not in SUPPORTED_CLAUDE_HOOKS:
             return HookIngestResult(False, None, hook, "unsupported_hook", None)
         content = self._content(hook, payload)
+        substantive = self._is_substantive(hook, payload)
         event = self.memory_os.observe(
             tenant_id=self.tenant_id,
             actor=self.agent_id,
@@ -79,6 +80,24 @@ class ClaudeCodeHookAdapter:
             modality=Modality.CODE if "ToolUse" in hook or "Task" in hook else Modality.TEXT,
             epistemic_status=EpistemicStatus.OBSERVED,
         )
+        # An event always happened, so it is always recorded — events are the
+        # audit trail and dropping one would be lying about what occurred.
+        #
+        # A *memory* is a different promise. When the payload carries none of
+        # the keys `_content` looks for, the content it produces is literally
+        # "hook=SessionStart": the entire body is the name of the mechanism that
+        # created it. Storing that competes for retrieval slots with everything
+        # that means something, and it wins, because it is the newest thing in
+        # the store every single session.
+        #
+        # Measured 2026-08-07: three of the five slots a recall returns were
+        # rows of exactly that shape, on a store holding the company bank
+        # account and a customer's real pricing. The store was not short of
+        # signal; the signal was being outvoted by its own logging.
+        if not substantive:
+            return HookIngestResult(True, event.event_id, hook,
+                                    "no_substantive_content", None)
+
         projected = self.memory_os.remember(
             event=event,
             memory_type=MemoryType.EPISODIC,
@@ -100,11 +119,35 @@ class ClaudeCodeHookAdapter:
         memory_id = getattr(projected, "memory_id", None)
         return HookIngestResult(True, event.event_id, hook, None, memory_id)
 
-    @staticmethod
-    def _content(hook: str, payload: dict[str, Any]) -> str:
-        keys = ["prompt", "command_name", "tool_name", "tool_input", "tool_output", "error", "error_details", "summary", "compact_summary", "task_prompt", "last_assistant_message", "reason", "file_path", "delta"]
+    #: The payload keys that carry something a person could later want back.
+    #: `_content` renders them; `_is_substantive` decides whether any were there.
+    CONTENT_KEYS = (
+        "prompt", "command_name", "tool_name", "tool_input", "tool_output",
+        "error", "error_details", "summary", "compact_summary", "task_prompt",
+        "last_assistant_message", "reason", "file_path", "delta",
+    )
+
+    #: Below this, a rendered value is a marker rather than a memory — an empty
+    #: string, a lone punctuation mark, an "ok". Deliberately small: the job is
+    #: to drop the empty, not to judge the brief.
+    MIN_CONTENT_CHARS = 3
+
+    @classmethod
+    def _is_substantive(cls, hook: str, payload: dict[str, Any]) -> bool:
+        """Did the payload bring anything beyond the fact that a hook fired?"""
+        for key in cls.CONTENT_KEYS:
+            value = payload.get(key)
+            if value in (None, "", {}, []):
+                continue
+            if isinstance(value, str) and len(value.strip()) < cls.MIN_CONTENT_CHARS:
+                continue
+            return True
+        return False
+
+    @classmethod
+    def _content(cls, hook: str, payload: dict[str, Any]) -> str:
         parts = [f"hook={hook}"]
-        for key in keys:
+        for key in cls.CONTENT_KEYS:
             value = payload.get(key)
             if value not in (None, "", {}, []):
                 parts.append(f"{key}={value}")
