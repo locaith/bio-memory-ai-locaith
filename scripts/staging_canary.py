@@ -93,8 +93,22 @@ SLO = {
         "projection_visibility_p99_ms": 500.0,
     },
     "queue": {"warn_depth": 700, "critical_depth": 1100},
-    "wal": {"warn_bytes": 256 * 1048576, "critical_bytes": 512 * 1048576},
+    "wal": {
+        "warn_bytes": 256 * 1048576,
+        "critical_bytes": 512 * 1048576,
+        # Added for Run 8. The ceiling above is a backstop; these two decide
+        # whether the log has a working lifecycle. Run 7 spent six hours with
+        # a median of 118 MB against a 64 MB limit and no action able to lower
+        # it — a state the ceiling check could not see until it was fatal.
+        "max_seconds_above_hard": 600.0,   # ten minutes of dwelling, cumulative
+        "reclaim_grace_attempts": 5,       # judged only after five real attempts
+    },
 }
+
+#: Fatal identity conditions. A scope mismatch is not a retrieval fault and must
+#: not be reported as one; it stops the run because every memory written after
+#: it lands in the wrong partition.
+ROLLBACK_TRIGGERS_IDENTITY = ("scope_configuration_mismatch",)
 
 #: How long a shadow projection is given to find its legacy counterpart before
 #: a comparison is treated as final. The producer writes the event, then the
@@ -112,6 +126,9 @@ ROLLBACK_TRIGGERS = (
     "shadow_visible_in_production_recall", "sqlite_integrity_not_ok",
     "doctor_critical", "queue_not_draining", "wal_above_hard_limit",
     "legacy_observe_failed",
+    # -- added for Run 8 --
+    "wal_dwelling_above_hard_limit", "wal_reclaim_never_succeeds",
+    "scope_configuration_mismatch",
 )
 
 

@@ -366,9 +366,38 @@ def evaluate(sample: dict[str, Any]) -> dict[str, Any]:
         fail("doctor_critical", 2, "<2", True)
     if sample.get("legacy_failures_delta", 0) > 0:
         fail("legacy_observe_failed", sample["legacy_failures_delta"], 0, True)
+    # -- WAL: the pass condition is a lifecycle, not a ceiling ---------------
+    #
+    # Run 7 was stopped by a bare `wal_bytes > 512 MB`, which is a real signal
+    # but the wrong question. A log that spikes and is reclaimed is healthy; a
+    # log that sits above its limit for hours with nothing able to bring it
+    # down is not, and the ceiling check cannot tell those apart until the
+    # second one has already become the first.
+    #
+    # So the ceiling stays as a backstop — past it the disk is a real risk —
+    # but the conditions that actually decide the run are about whether reclaim
+    # is working at all.
+    wal = sample.get("wal_manager") or {}
     if sample.get("wal_bytes", 0) > SLO["wal"]["critical_bytes"]:
         fail("wal_above_hard_limit", sample["wal_bytes"],
              SLO["wal"]["critical_bytes"], True)
+    above_hard = float(wal.get("time_above_hard_seconds") or 0.0)
+    if above_hard > SLO["wal"]["max_seconds_above_hard"]:
+        fail("wal_dwelling_above_hard_limit", round(above_hard, 1),
+             SLO["wal"]["max_seconds_above_hard"], True)
+    # Attempts happening and nothing ever coming back is the Run 7 shape: the
+    # campaign runs, the log does not move, and the ceiling is only a matter of
+    # time. Give it a grace period so a young run is not judged on two samples.
+    attempts = int(wal.get("truncate_attempts") or 0)
+    reclaimed_ok = int(wal.get("truncate_succeeded") or 0)
+    if attempts >= SLO["wal"]["reclaim_grace_attempts"] and reclaimed_ok == 0:
+        fail("wal_reclaim_never_succeeds", attempts, ">0 successes", True)
+
+    # -- identity: every entry point must be in the same partition -----------
+    cli_fp = sample.get("scope_fingerprint_cli")
+    hook_fp = sample.get("scope_fingerprint_hook")
+    if cli_fp and hook_fp and cli_fp != hook_fp:
+        fail("scope_configuration_mismatch", f"{cli_fp}!={hook_fp}", "equal", True)
 
     lat = SLO["latency"]
     for key, limit in (
@@ -393,6 +422,32 @@ def evaluate(sample: dict[str, Any]) -> dict[str, Any]:
 
     return {"breaches": breaches, "stop": stop_now,
             "queue_considered_healthy": healthy_queue}
+
+
+def _scope_fingerprints() -> dict[str, Any]:
+    """What each entry point would resolve to, right now, from this environment.
+
+    The in-process CLI path and the hook path differ in exactly one input: the
+    hook passes the project directory. Under the explicit strategy that changes
+    nothing, which is the point — the two fingerprints are equal, and any run
+    where they diverge has an entry point scoping itself by path again.
+    """
+    try:
+        from bio_agent_os.cognitive.scope import resolve_scope
+    except Exception:  # pragma: no cover - the canary must not die on telemetry
+        return {}
+    try:
+        cli = resolve_scope()
+        hook = resolve_scope(project_path=os.getcwd())
+        return {
+            "scope_fingerprint_cli": cli.fingerprint,
+            "scope_fingerprint_hook": hook.fingerprint,
+            "scope_tenant": cli.tenant_id,
+            "scope_workspace": cli.workspace_id,
+            "scope_source": f"{cli.tenant_source}/{cli.workspace_source}",
+        }
+    except Exception as exc:  # pragma: no cover - defensive
+        return {"scope_fingerprint_error": f"{type(exc).__name__}: {exc}"}
 
 
 # ==========================================================================
@@ -763,6 +818,10 @@ def run(hours: float, rate: float, producers: int, workers: int,
                 "shadow_overhead_ratio_p95_pct": overhead_ratio,
                 "wal_bytes": footprint["wal_bytes"],
                 "database_bytes": footprint["db_bytes"],
+                # Section 15: every entry point must stay in the same partition
+                # for the whole run. Two fingerprints per sample so a drift is
+                # visible at the minute it happens, not at the post-mortem.
+                **_scope_fingerprints(),
                 "rss_bytes": environment.rss_bytes(),
                 "worker_count": len(state["workers"]),
                 "worker_restarts": state["restarts"],
