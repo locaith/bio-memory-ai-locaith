@@ -196,6 +196,14 @@ class WALStatus:
     truncate_succeeded: int = 0
     truncate_busy: int = 0
     truncate_ineffective: int = 0
+    # Run 8 ran without these and the post-mortem needed all four. The counters
+    # existed in `metrics` the whole time; they simply were not carried into the
+    # status object the canary samples, so every minute recorded a hole where
+    # "how much did reclaim actually return" should have been.
+    truncate_bytes_reclaimed: int = 0
+    truncate_skipped_cooldown: int = 0
+    truncate_skipped_reader: int = 0
+    state_transitions: int = 0
 
     @property
     def wal_pct_of_database(self) -> float:
@@ -229,6 +237,11 @@ class WALStatus:
             "truncate_succeeded": self.truncate_succeeded,
             "truncate_busy": self.truncate_busy,
             "truncate_ineffective": self.truncate_ineffective,
+            "truncate_bytes_reclaimed": self.truncate_bytes_reclaimed,
+            "truncate_mb_reclaimed": round(self.truncate_bytes_reclaimed / 1048576, 1),
+            "truncate_skipped_cooldown": self.truncate_skipped_cooldown,
+            "truncate_skipped_reader": self.truncate_skipped_reader,
+            "state_transitions": self.state_transitions,
         }
 
     def render(self, width: int = 66) -> str:
@@ -435,6 +448,9 @@ class WALCheckpointManager:
             above_hard = m["time_above_hard_seconds"]
             t_att, t_ok = m["truncate_attempts"], m["truncate_succeeded"]
             t_busy, t_none = m["truncate_busy"], m["truncate_ineffective"]
+            t_bytes = m["truncate_bytes_reclaimed"]
+            t_cool, t_rdr = m["truncate_skipped_cooldown"], m["truncate_skipped_reader"]
+            transitions = m["state_transitions"]
         return WALStatus(
             db_path=self.db_path,
             journal_mode=journal_mode,
@@ -459,6 +475,10 @@ class WALCheckpointManager:
             truncate_succeeded=t_ok,
             truncate_busy=t_busy,
             truncate_ineffective=t_none,
+            truncate_bytes_reclaimed=t_bytes,
+            truncate_skipped_cooldown=t_cool,
+            truncate_skipped_reader=t_rdr,
+            state_transitions=transitions,
         )
 
     # -- action ------------------------------------------------------------

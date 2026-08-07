@@ -139,8 +139,20 @@ After aligning the scope, through the same hook binary Claude Code invokes:
     ARCHILAB real pricing memory      confidence 0.95
     quotation correction memory       confidence 0.90
 
-That is end-to-end retrieval evidence for this database and these queries. It
-is not a retrieval benchmark and must not be quoted as one.
+That is end-to-end evidence that the **scope wiring** is correct for this
+database and these queries.
+
+> **Correction, 2026-08-08.** This section originally called the three lines
+> above "end-to-end retrieval evidence". That claim was too strong and is
+> withdrawn. Measured since: the same Techcombank memory is returned at rank 1
+> for the query *"quy trình đăng ký tên miền website"* — domain registration,
+> nothing to do with a bank account — and at rank 3 for the nonsense string
+> `"aaaa bbbb cccc"`. Scoring does respond to the query (a WAL question scores
+> 3.270 against a 1.624 baseline), but there is **no relevance floor**, so an
+> unmatched query returns the highest-confidence memories instead of nothing.
+> Getting the right memory back for a matching query therefore proves the
+> partition is right. It does not prove retrieval quality. See
+> `canary_run8.md` section 6.
 
 ---
 

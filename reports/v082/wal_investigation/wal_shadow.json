@@ -1,0 +1,71 @@
+{
+  "mode": "shadow",
+  "page_size": 4096,
+  "samples": [
+    {
+      "events": 3000,
+      "db_bytes": 9900032,
+      "wal_bytes_for_sample": 4223032,
+      "wal_bytes_per_write": 4223.0,
+      "sample_writes": 1000,
+      "seconds": 1.13,
+      "writes_per_second": 887.7
+    },
+    {
+      "events": 11000,
+      "db_bytes": 35880960,
+      "wal_bytes_for_sample": 4223032,
+      "wal_bytes_per_write": 4223.0,
+      "sample_writes": 1000,
+      "seconds": 1.54,
+      "writes_per_second": 647.3
+    },
+    {
+      "events": 26000,
+      "db_bytes": 84561920,
+      "wal_bytes_for_sample": 4218912,
+      "wal_bytes_per_write": 4218.9,
+      "sample_writes": 1000,
+      "seconds": 2.02,
+      "writes_per_second": 496.0
+    },
+    {
+      "events": 51000,
+      "db_bytes": 166109184,
+      "wal_bytes_for_sample": 4210672,
+      "wal_bytes_per_write": 4210.7,
+      "sample_writes": 1000,
+      "seconds": 2.17,
+      "writes_per_second": 461.5
+    },
+    {
+      "events": 101000,
+      "db_bytes": 329416704,
+      "wal_bytes_for_sample": 4202432,
+      "wal_bytes_per_write": 4202.4,
+      "sample_writes": 1000,
+      "seconds": 2.47,
+      "writes_per_second": 404.2
+    },
+    {
+      "events": 176000,
+      "db_bytes": 573874176,
+      "wal_bytes_for_sample": 4214792,
+      "wal_bytes_per_write": 4214.8,
+      "sample_writes": 1000,
+      "seconds": 4.37,
+      "writes_per_second": 228.6
+    },
+    {
+      "events": 251000,
+      "db_bytes": 818679808,
+      "wal_bytes_for_sample": 4227152,
+      "wal_bytes_per_write": 4227.2,
+      "sample_writes": 1000,
+      "seconds": 3.07,
+      "writes_per_second": 325.3
+    }
+  ],
+  "page_attribution": {},
+  "db_bytes_final": 818679808
+}
