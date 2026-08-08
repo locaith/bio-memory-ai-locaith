@@ -514,13 +514,18 @@ class DeepDoctor:
         "check_orphan_jobs": ("last_outbox_rowid", "o"),
         "check_ledger_consistency": ("last_ledger_rowid", "l"),
         "check_projection_consistency": ("last_outbox_rowid", "o"),
-        # Added after Run 8. `projection_key` can only become wrong when the row
-        # is written, so verifying it on every past row at every scan is work
-        # that can never find anything new. Measured on a 1.7 GB database it was
-        # 1,084 ms of held snapshot per run, above the 1,000 ms threshold on its
-        # own, for a check whose docstring called it cheap.
-        "check_job_lifecycle": ("last_outbox_rowid", ""),
     }
+
+    #: Why `check_job_lifecycle` is NOT in the table above, having briefly been
+    #: put there and taken back out.
+    #:
+    #: The reasoning was that `projection_key` can only become wrong when a row
+    #: is written, so re-verifying every old row finds nothing. True for that
+    #: one finding — and false for the check as a whole, because the same check
+    #: also reports stale leases, and a lease goes stale by the *clock*, not by
+    #: a write. Windowing it made a lease planted before the cursor invisible,
+    #: which `test_global_checks_run_even_with_an_empty_window` caught within
+    #: the hour. Global it stays; the hold is bounded by slicing instead.
 
     # -- counts ------------------------------------------------------------
 
@@ -761,8 +766,13 @@ class DeepDoctor:
                 entity_id=row["job_id"], tenant_id=row["tenant_id"],
             ))
 
-        for row in self._q(
-            f"SELECT * FROM projection_outbox WHERE 1=1{clause}", params
+        # Every row, every scan — the semantics are deliberate and unchanged.
+        # 1,084 ms of unbroken snapshot on a 1.7 GB database, though, so it is
+        # read in slices: same rows examined, log released between each.
+        for row in self._chunked(
+            "projection_outbox",
+            sql=f"SELECT * FROM projection_outbox WHERE 1=1{clause}{{window}}",
+            params=params,
         ):
             expected = projection_key(
                 row["event_id"], row["projection_type"], int(row["projection_version"])
