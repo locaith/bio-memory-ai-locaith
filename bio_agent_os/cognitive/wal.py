@@ -79,6 +79,23 @@ DEFAULT_RESUME_FRACTION = 0.5
 #: it is usually gone within a cooldown.
 DEFAULT_TRUNCATE_COOLDOWN_SECONDS = 20.0
 
+#: How long any one read may hold a snapshot before it is a problem.
+#:
+#: Derived from the failure, not chosen for comfort. Run 8's doctor held 8-12
+#: seconds every five minutes and the log grew 30-43 MB inside each hold, at
+#: 2.6 MB per second of holding. At that rate a hundred milliseconds costs a
+#: quarter of a megabyte and a second costs two and a half — which is why the
+#: line between "fine" and "fail" sits where it does.
+#:
+#: TARGET   what a sliced scan should land on
+#: WARN     worth looking at; something is scanning more than it slices
+#: CRITICAL the log has no useful reset window while this is held
+#: FAIL     a build-breaking regression: this is Run 8 again
+READER_HOLD_TARGET_MS = 100.0
+READER_HOLD_WARN_MS = 250.0
+READER_HOLD_CRITICAL_MS = 500.0
+READER_HOLD_FAIL_MS = 1_000.0
+
 
 class CheckpointMode(str, Enum):
     """SQLite's four modes, in increasing order of how much they block.
@@ -844,6 +861,35 @@ class WALCheckpointManager:
                 "action": "truncate completed unblocked but reclaimed nothing; look for "
                           "a writer producing frames faster than they can be retired",
             })
+        # -- reader holds, added after Run 8 -------------------------------
+        pct = self.reader_hold_percentiles()
+        p95, worst = pct["reader_hold_p95_ms"], pct["reader_hold_max_ms"]
+        if worst and worst > READER_HOLD_FAIL_MS:
+            out.append({
+                "severity": "CRITICAL", "code": "READER_HOLD_TOO_LONG",
+                "reader_hold_max_ms": worst,
+                "reader_hold_p95_ms": p95,
+                "by_source": {k: round(v["max_ms"], 1)
+                              for k, v in self.metrics["reader_hold_ms_by_source"].items()},
+                "limit_ms": READER_HOLD_FAIL_MS,
+                "action": "a single read pinned the log past the point where a "
+                          "checkpoint can reclaim it; slice that scan",
+            })
+        elif worst and worst > READER_HOLD_CRITICAL_MS:
+            out.append({
+                "severity": "WARN", "code": "READER_HOLD_ABOVE_CRITICAL",
+                "reader_hold_max_ms": worst, "limit_ms": READER_HOLD_CRITICAL_MS,
+                "action": "the log has no useful reset window while a read is held "
+                          "this long",
+            })
+        elif p95 and p95 > READER_HOLD_WARN_MS:
+            out.append({
+                "severity": "WARN", "code": "READER_HOLD_P95_ABOVE_WARN",
+                "reader_hold_p95_ms": p95, "limit_ms": READER_HOLD_WARN_MS,
+                "action": "holds are systematically long, not occasionally long; "
+                          "look at slice size rather than at one scan",
+            })
+
         if status.state == WALState.CRITICAL.value:
             out.append({
                 "severity": "CRITICAL", "code": "WAL_RECLAIM_CAMPAIGN",
@@ -897,6 +943,10 @@ __all__ = [
     "DEFAULT_RESUME_FRACTION",
     "DEFAULT_SOFT_LIMIT_MB",
     "DEFAULT_TRUNCATE_COOLDOWN_SECONDS",
+    "READER_HOLD_CRITICAL_MS",
+    "READER_HOLD_FAIL_MS",
+    "READER_HOLD_TARGET_MS",
+    "READER_HOLD_WARN_MS",
     "SCHEDULED_TRUNCATE_BUDGET_MS",
     "CheckpointMode",
     "CheckpointResult",

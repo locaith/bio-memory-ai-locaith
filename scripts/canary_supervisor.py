@@ -83,6 +83,37 @@ RECOVERY_SCHEDULE = (
 )
 
 
+#: Every snapshot hold the supervisor's own doctor has taken, this run.
+#:
+#: The workers report their WAL manager through a status file, but the doctor
+#: runs *here*, in the supervisor process, on a connection of its own. Its holds
+#: are therefore invisible to any worker's manager — which is why Run 8 recorded
+#: `registered_readers = 0` for all 122 samples while the doctor was demonstrably
+#: pinning the log. Collected at the source instead.
+_DOCTOR_HOLDS_MS: list[float] = []
+_DOCTOR_HOLD_CAP = 5000
+
+
+def _record_doctor_hold(ms: float) -> None:
+    _DOCTOR_HOLDS_MS.append(ms)
+    if len(_DOCTOR_HOLDS_MS) > _DOCTOR_HOLD_CAP:
+        del _DOCTOR_HOLDS_MS[: len(_DOCTOR_HOLDS_MS) - _DOCTOR_HOLD_CAP]
+
+
+def _doctor_hold_percentiles() -> dict[str, Any]:
+    if not _DOCTOR_HOLDS_MS:
+        return {"doctor_hold_samples": 0}
+    xs = sorted(_DOCTOR_HOLDS_MS)
+    p = lambda q: round(xs[min(len(xs) - 1, int(len(xs) * q))], 2)
+    return {
+        "doctor_hold_p50_ms": p(0.50),
+        "doctor_hold_p95_ms": p(0.95),
+        "doctor_hold_p99_ms": p(0.99),
+        "doctor_hold_max_ms": round(xs[-1], 2),
+        "doctor_hold_samples": len(xs),
+    }
+
+
 def log(message: str) -> None:
     line = f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {message}"
     print(line, flush=True)
@@ -184,10 +215,21 @@ def _run_doctor_with_wal_trace(kind: str, run) -> tuple[int | None, str]:
     finally:
         ck.close()
 
+    # Section 18: the total is not the number to watch. Run 8 recorded only
+    # `duration_s`, so an 8-second scan and an 8-second *hold* looked identical
+    # in the log — and it was the hold that grew the WAL 30-43 MB per run.
+    worst_check, worst = (report.holds_ranked() or [("none", {"max_ms": 0.0})])[0]
+    for entry in report.reader_holds.values():
+        _record_doctor_hold(entry["max_ms"])
     record_event(f"doctor:{kind}", {
         "exit_code": report.exit_code,
         "findings": len(report.findings),
         "duration_s": round(time.time() - started, 2),
+        "max_snapshot_hold_ms": round(report.max_hold_ms, 1),
+        "slowest_check": worst_check,
+        "slowest_check_max_ms": round(worst.get("max_ms", 0.0), 1),
+        "chunks": report.chunks,
+        "queries": report.queries,
         "wal_before_doctor_bytes": before,
         "wal_after_doctor_bytes": after,
         "wal_delta_bytes": after - before,
@@ -822,6 +864,10 @@ def run(hours: float, rate: float, producers: int, workers: int,
                 # for the whole run. Two fingerprints per sample so a drift is
                 # visible at the minute it happens, not at the post-mortem.
                 **_scope_fingerprints(),
+                # Section 18: a distribution, not a maximum. One bad scan and a
+                # systematically slow one produce the same max and need
+                # different fixes.
+                **_doctor_hold_percentiles(),
                 "rss_bytes": environment.rss_bytes(),
                 "worker_count": len(state["workers"]),
                 "worker_restarts": state["restarts"],

@@ -594,7 +594,56 @@ class DeepDoctor:
             return f"unreadable: {exc}"
         return str(row[0]) if row else "unreadable"
 
+    def _writers_look_active(self) -> int | None:
+        """How many rows arrived in the last few seconds, or None if unknowable.
+
+        Cheap and approximate on purpose — it exists to decide whether to warn,
+        not to gate anything. `None` means the question could not be answered
+        and is reported as such rather than as "quiet".
+        """
+        try:
+            # `strftime` with a T, not `datetime()`, which uses a space.
+            # `observed_at` is stored ISO-8601 — "2026-08-08T08:45:23.372061+00:00"
+            # — and 'T' sorts above ' ', so comparing against `datetime('now')`
+            # is true for every row written on the same date. Measured: the
+            # warning fired six seconds after the last write, and would have
+            # fired six hours after it.
+            row = self.conn.execute(
+                "SELECT COUNT(*) FROM cognitive_events "
+                "WHERE observed_at >= strftime('%Y-%m-%dT%H:%M:%S', 'now', '-5 seconds')"
+            ).fetchone()
+        except sqlite3.OperationalError:
+            return None
+        return int(row[0]) if row else None
+
     def check_sqlite(self) -> None:
+        """The whole-file audit. Correct to run; wrong to run *while writing*.
+
+        `PRAGMA integrity_check` reads every page, so it holds one read snapshot
+        for the length of the file — 2,391 ms on a 1.7 GB database, and growing
+        with it. Nothing can reset the write-ahead log for that whole time, so
+        on a busy database the audit itself inflates the thing an operator ran
+        it to inspect.
+
+        It is not made incremental and it is not slice-able: an integrity check
+        of half a file is not an integrity check. Instead the contract is
+        stated. This belongs to a quiescent moment — before load, after a
+        drain, or on a fresh process — and running it against live writers is
+        allowed but never silent.
+        """
+        recent = self._writers_look_active()
+        if recent:
+            self.report.add(Finding(
+                "INTEGRITY_AUDIT_WITH_ACTIVE_WRITERS", Severity.WARN.value, "sqlite",
+                f"{self.integrity_pragma} is running while writers are active "
+                f"({recent} event(s) in the last five seconds). It reads the whole "
+                f"file in one read snapshot, so the write-ahead log cannot be "
+                f"reclaimed until it finishes.",
+                evidence={"pragma": self.integrity_pragma, "recent_events": recent},
+                repairable=False,
+                suggested_action="run the deep audit on a quiescent database: before "
+                                 "load, after the queue drains, or from a fresh process",
+            ))
         verdict = self._integrity_verdict()
         if verdict == "ok":
             self.report.add(Finding(
