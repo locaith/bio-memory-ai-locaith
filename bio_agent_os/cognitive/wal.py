@@ -29,10 +29,11 @@ import os
 import sqlite3
 import threading
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 logger = logging.getLogger("bio_agent_os.wal")
 
@@ -350,7 +351,9 @@ class WALCheckpointManager:
                               DEFAULT_TRUNCATE_COOLDOWN_SECONDS)
         )
         self._lock = threading.Lock()
-        self._readers: dict[str, float] = {}
+        self._readers: dict[str, tuple[float, str]] = {}
+        self._hold_ms: list[float] = []
+        self._hold_sample_cap = 5000
         self._last_run: float = 0.0
         self._last_result: CheckpointResult | None = None
         self._consecutive_busy = 0
@@ -381,28 +384,95 @@ class WALCheckpointManager:
             "time_above_soft_seconds": 0.0,
             "time_above_hard_seconds": 0.0,
             "by_state": {},
+            # -- reader instrumentation, added after Run 8 --
+            "reader_holds": 0,
+            "reader_hold_max_ms": 0.0,
+            "reader_hold_ms_by_source": {},
         }
 
     # -- readers -----------------------------------------------------------
 
-    def note_reader(self, reader_id: str) -> None:
-        """Register a long-lived read snapshot so its age can be reported.
+    def note_reader(self, reader_id: str, source: str = "other") -> None:
+        """Register a read snapshot so its age and duration can be reported.
 
-        Optional. SQLite has no API for this, so an unregistered reader is
-        invisible here and shows up only as a busy checkpoint.
+        Optional in the sense that SQLite has no API for it, so an unregistered
+        reader is invisible here and shows up only as a busy checkpoint. Not
+        optional in practice: Run 8 recorded `registered_readers = 0` for all
+        122 of its samples while a reader was demonstrably pinning the log, and
+        the post-mortem had to infer from correlation what one counter would
+        have shown directly.
+
+        `source` labels *which* reader, so a distribution can be attributed
+        rather than aggregated into a single useless number.
         """
         with self._lock:
-            self._readers.setdefault(reader_id, time.time())
+            self._readers.setdefault(reader_id, (time.perf_counter(), source))
 
     def release_reader(self, reader_id: str) -> None:
         with self._lock:
-            self._readers.pop(reader_id, None)
+            entry = self._readers.pop(reader_id, None)
+            if entry is None:
+                return
+            started, source = entry
+            held_ms = (time.perf_counter() - started) * 1000
+            self._hold_ms.append(held_ms)
+            if len(self._hold_ms) > self._hold_sample_cap:
+                # Keep the tail: a percentile over the last N holds describes
+                # current behaviour, and an unbounded list is a memory leak in a
+                # process meant to run for twenty-four hours.
+                del self._hold_ms[: len(self._hold_ms) - self._hold_sample_cap]
+            by_source = self.metrics["reader_hold_ms_by_source"].setdefault(
+                source, {"count": 0, "total_ms": 0.0, "max_ms": 0.0})
+            by_source["count"] += 1
+            by_source["total_ms"] += held_ms
+            by_source["max_ms"] = max(by_source["max_ms"], held_ms)
+            self.metrics["reader_holds"] += 1
+            self.metrics["reader_hold_max_ms"] = max(
+                self.metrics["reader_hold_max_ms"], held_ms)
+
+    @contextmanager
+    def reading(self, reader_id: str, source: str = "other") -> Iterator[None]:
+        """Hold a read snapshot for exactly the body of this block.
+
+        The `finally` is the point. A registration that survives an exception
+        looks to the manager like a reader that never left, and every later
+        reclaim is then skipped in deference to a snapshot that closed long ago.
+        """
+        self.note_reader(reader_id, source)
+        try:
+            yield
+        finally:
+            self.release_reader(reader_id)
 
     def oldest_reader_age(self) -> float | None:
         with self._lock:
             if not self._readers:
                 return None
-            return round(time.time() - min(self._readers.values()), 3)
+            oldest = min(started for started, _ in self._readers.values())
+            return round(time.perf_counter() - oldest, 3)
+
+    def reader_hold_percentiles(self) -> dict[str, float | None]:
+        """p50/p95/p99/max over recent holds, in milliseconds.
+
+        Run 8's report could only quote a maximum, which cannot distinguish one
+        bad scan from a systematically slow one. A distribution can.
+        """
+        with self._lock:
+            samples = sorted(self._hold_ms)
+            max_ms = self.metrics["reader_hold_max_ms"]
+            active = len(self._readers)
+        def pct(q: float) -> float | None:
+            if not samples:
+                return None
+            return round(samples[min(len(samples) - 1, int(len(samples) * q))], 3)
+        return {
+            "reader_hold_p50_ms": pct(0.50),
+            "reader_hold_p95_ms": pct(0.95),
+            "reader_hold_p99_ms": pct(0.99),
+            "reader_hold_max_ms": round(max_ms, 3) if max_ms else 0.0,
+            "reader_hold_samples": len(samples),
+            "active_reader_count": active,
+        }
 
     # -- observation -------------------------------------------------------
 

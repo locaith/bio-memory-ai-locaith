@@ -88,6 +88,18 @@ class DoctorReport:
     queries: int = 0
     scan_error: str | None = None
     counts: dict[str, int] = field(default_factory=dict)
+    #: Per-check read-hold accounting, added after Run 8. A doctor that takes
+    #: thirty seconds in three hundred hundred-millisecond slices is safe; one
+    #: that takes ten seconds in a single slice is not. Only this distinguishes
+    #: them, so the total duration is no longer the number to watch.
+    reader_holds: dict[str, dict] = field(default_factory=dict)
+
+    @property
+    def max_hold_ms(self) -> float:
+        return max((e["max_ms"] for e in self.reader_holds.values()), default=0.0)
+
+    def holds_ranked(self) -> list[tuple[str, dict]]:
+        return sorted(self.reader_holds.items(), key=lambda kv: -kv[1]["max_ms"])
 
     def add(self, finding: Finding) -> None:
         self.findings.append(finding)
@@ -198,20 +210,62 @@ class DoctorReport:
 class DeepDoctor:
     """Read-only consistency diagnosis across the projection pipeline."""
 
-    def __init__(self, conn: sqlite3.Connection, *, tenant_id: str | None = None) -> None:
+    def __init__(self, conn: sqlite3.Connection, *, tenant_id: str | None = None,
+                 wal_manager: Any = None, reader_source: str = "doctor_deep",
+                 hold_report_threshold_ms: float = 25.0) -> None:
         self.conn = conn
         self.conn.row_factory = sqlite3.Row
         self.tenant_id = tenant_id
         self.report = DoctorReport()
+        #: Optional. When given, holds above the threshold are reported to the
+        #: WAL manager so a reclaim campaign can see who is in its way.
+        self.wal_manager = wal_manager
+        self._reader_source = reader_source
+        self.hold_report_threshold_ms = hold_report_threshold_ms
+        self._active_check: str | None = None
 
     # -- plumbing ----------------------------------------------------------
 
     def _q(self, sql: str, params: tuple = ()) -> list[sqlite3.Row]:
+        """One read, held for exactly as long as the fetch takes.
+
+        `fetchall()` matters and is not decoration: a lazily-iterated cursor
+        keeps the read transaction — and therefore the WAL — open for as long as
+        the caller takes to consume it, which is unbounded. Fetching completes
+        the statement and drops the snapshot before any Python touches the rows.
+
+        The timing is here because Run 8's post-mortem could only correlate: the
+        log grew 30–43 MB during 8–12 second doctor runs, and nothing recorded
+        *which* of the twenty-four queries was doing the holding. Now each one
+        says so.
+        """
         self.report.queries += 1
+        started = time.perf_counter()
         try:
-            return self.conn.execute(sql, params).fetchall()
+            rows = self.conn.execute(sql, params).fetchall()
         except sqlite3.OperationalError:
-            return []
+            rows = []
+        held_ms = (time.perf_counter() - started) * 1000
+        self._record_hold(sql, held_ms, len(rows))
+        return rows
+
+    def _record_hold(self, sql: str, held_ms: float, rows: int) -> None:
+        label = self._active_check or "unattributed"
+        entry = self.report.reader_holds.setdefault(
+            label, {"queries": 0, "total_ms": 0.0, "max_ms": 0.0, "rows": 0,
+                    "slowest_sql": ""})
+        entry["queries"] += 1
+        entry["total_ms"] += held_ms
+        entry["rows"] += rows
+        if held_ms > entry["max_ms"]:
+            entry["max_ms"] = held_ms
+            entry["slowest_sql"] = " ".join(sql.split())[:160]
+        if self.wal_manager is not None and held_ms >= self.hold_report_threshold_ms:
+            # Only the holds worth a manager's attention. Registering every
+            # sub-millisecond read would drown the signal it exists to carry.
+            self.wal_manager.note_reader(f"doctor:{label}:{self.report.queries}",
+                                         source=self._reader_source)
+            self.wal_manager.release_reader(f"doctor:{label}:{self.report.queries}")
 
     def _scalar(self, sql: str, params: tuple = (), default: Any = 0) -> Any:
         rows = self._q(sql, params)
@@ -232,7 +286,11 @@ class DeepDoctor:
 
     def _check(self, fn) -> None:
         self.report.checks_run += 1
-        fn()
+        self._active_check = getattr(fn, "__name__", "unknown")
+        try:
+            fn()
+        finally:
+            self._active_check = None
 
     #: Set by `IncrementalDoctor` for the duration of one windowed check, as
     #: `(alias, floor_rowid)`. The base class knows nothing else about it.
