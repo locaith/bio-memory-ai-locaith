@@ -86,6 +86,7 @@ class DoctorReport:
     findings: list[Finding] = field(default_factory=list)
     checks_run: int = 0
     queries: int = 0
+    chunks: int = 0
     scan_error: str | None = None
     counts: dict[str, int] = field(default_factory=dict)
     #: Per-check read-hold accounting, added after Run 8. A doctor that takes
@@ -334,6 +335,118 @@ class DeepDoctor:
     def _projection_exists(self, column: str) -> str:
         return self._PROJECTION_EXISTS.format(column=column)
 
+    # -- bounded scanning ---------------------------------------------------
+
+    #: Where a chunked scan starts, and the corridor it may adapt within.
+    #:
+    #: Conservative on purpose. The tuning goal is a short *snapshot*, not a
+    #: fast doctor — a scan that takes thirty seconds in three hundred
+    #: hundred-millisecond slices is safe, and one that takes ten seconds in a
+    #: single slice is not. Run 8 measured the second shape: an 8–12 second
+    #: hold every five minutes, and 30–43 MB of write-ahead log accumulating
+    #: inside each one because nothing could reset the log while it ran.
+    CHUNK_ROWS_START = 500
+    CHUNK_ROWS_MIN = 50
+    CHUNK_ROWS_MAX = 20_000
+    #: The hold each chunk aims for. Below the floor the chunk may grow; above
+    #: the ceiling it must shrink.
+    CHUNK_TARGET_MS = 100.0
+    CHUNK_GROW_BELOW_MS = 25.0
+
+    def _chunked(self, table: str, sql: str, params: tuple = (),
+                 *, alias: str | None = None, floor: int = 0,
+                 ceiling: int | None = None):
+        """Scan `table` by rowid in slices, yielding rows, holding nothing between.
+
+        `sql` must contain `{window}`, which is replaced by the keyset predicate
+        and ordering. Every slice is a complete statement: it opens, fetches,
+        and closes before a single row reaches Python. Keyset rather than
+        OFFSET, because OFFSET re-walks everything it has already skipped and
+        the last slice of a large table then costs more than the first.
+
+        The ceiling is read once, before the first slice. Rows appended while
+        the scan runs stay outside this pass and belong to the next one — a
+        scan that chases its own tail never finishes and never reports.
+        """
+        # The alias the caller's SQL actually uses. Defaulting to the table
+        # name would emit `shadow_memories.rowid` into a query that aliased it
+        # `s`, which SQLite rejects — and a doctor that dies mid-scan reports
+        # exit 3, not a clean bill of health, which is how this was caught.
+        ref = alias or table
+        if ceiling is None:
+            try:
+                row = self.conn.execute(f"SELECT MAX(rowid) FROM {table}").fetchone()
+            except sqlite3.OperationalError:
+                return
+            ceiling = int(row[0]) if row and row[0] is not None else 0
+        last = int(floor)
+        size = self.CHUNK_ROWS_START
+        # The window bounds the rowid RANGE, not the result count. `LIMIT` was
+        # the obvious first attempt and it does not work: a limit caps output,
+        # and a predicate that matches nothing never fills it, so SQLite still
+        # walks every remaining row to prove the absence. Measured — the shadow
+        # leak scan stayed at 2,077 ms behind a LIMIT of 500. A closed rowid
+        # interval is what makes a slice cost a bounded amount of reading.
+        window = " AND {t}.rowid > ? AND {t}.rowid <= ? ORDER BY {t}.rowid"
+        while last < ceiling:
+            upper = min(ceiling, last + size)
+            stmt = sql.format(window=window.format(t=ref))
+            started = time.perf_counter()
+            try:
+                rows = self.conn.execute(stmt, (*params, last, upper)).fetchall()
+            except sqlite3.OperationalError:
+                # Same tolerance `_q` has always had: a check that references a
+                # table this database has not created yet is a capability that
+                # is absent, not damage. Losing it turned a missing
+                # `projection_ledger` into `scan_error`, and a scan that could
+                # not finish reports exit 3 — which is louder than the CRITICAL
+                # the test was actually asserting. Stop this scan; do not fail
+                # the run, and do not loop.
+                return
+            held_ms = (time.perf_counter() - started) * 1000
+            self.report.queries += 1
+            self.report.chunks += 1
+            self._record_hold(stmt, held_ms, len(rows))
+            # Advance by the interval examined, never by the rows returned. An
+            # empty slice is the *normal* case for a check hoping to find
+            # nothing, and stopping there would end the scan at the first clean
+            # slice — leaving anything past it unreported by a check whose
+            # whole severity is CRITICAL.
+            last = upper
+            yield from rows
+            size = self._next_chunk_size(size, held_ms)
+
+    def _scan(self, table: str, sql: str, params: tuple = (), *, alias: str | None = None):
+        """A windowed check, sliced. The two bounds do different jobs.
+
+        The *window* is how much a scan must look at: an incremental run starts
+        from the cursor and ignores everything older. The *slice* is how long it
+        may hold the log while looking. Windowing alone is not enough, and the
+        regression suite caught exactly that — with an empty cursor the window
+        is the whole table, and a whole-table window in one statement is the
+        Run 8 failure again with extra steps. Measured: first pass 1,018 ms held,
+        every later pass 1–3 ms.
+        """
+        floor = 0
+        if self._active_window:
+            window_alias, window_floor = self._active_window
+            if (alias or "") == window_alias or not window_alias:
+                floor = max(0, int(window_floor))
+        return self._chunked(table, sql, params, alias=alias, floor=floor)
+
+    def _next_chunk_size(self, size: int, held_ms: float) -> int:
+        """Adapt toward the target hold. Shrinks fast, grows slowly.
+
+        Asymmetric deliberately: overshooting the hold is the failure this
+        whole module exists to prevent, and undershooting only costs a few
+        extra round trips.
+        """
+        if held_ms > self.CHUNK_TARGET_MS:
+            return max(self.CHUNK_ROWS_MIN, size // 2)
+        if held_ms < self.CHUNK_GROW_BELOW_MS:
+            return min(self.CHUNK_ROWS_MAX, int(size * 1.5) or self.CHUNK_ROWS_MIN)
+        return size
+
     # -- run ---------------------------------------------------------------
 
     def run(self, *, deep: bool = False) -> DoctorReport:
@@ -401,6 +514,12 @@ class DeepDoctor:
         "check_orphan_jobs": ("last_outbox_rowid", "o"),
         "check_ledger_consistency": ("last_ledger_rowid", "l"),
         "check_projection_consistency": ("last_outbox_rowid", "o"),
+        # Added after Run 8. `projection_key` can only become wrong when the row
+        # is written, so verifying it on every past row at every scan is work
+        # that can never find anything new. Measured on a 1.7 GB database it was
+        # 1,084 ms of held snapshot per run, above the 1,000 ms threshold on its
+        # own, for a check whose docstring called it cheap.
+        "check_job_lifecycle": ("last_outbox_rowid", ""),
     }
 
     # -- counts ------------------------------------------------------------
@@ -697,14 +816,15 @@ class DeepDoctor:
         remember(), which is legal — so only the inconsistent case is reported.
         """
         clause, params = self._tenant_clause("e")
-        rows = self._q(
-            "SELECT e.event_id, e.tenant_id FROM cognitive_events e "
-            "WHERE NOT EXISTS ("
-            "  SELECT 1 FROM projection_outbox o WHERE o.event_id = e.event_id)"
-            f"  AND {self._projection_exists('e.event_id')}"
-            f"{clause}",
-            params,
-        )
+        rows = list(self._scan(
+            "cognitive_events", alias="e",
+            sql="SELECT e.event_id, e.tenant_id FROM cognitive_events e "
+                "WHERE NOT EXISTS ("
+                "  SELECT 1 FROM projection_outbox o WHERE o.event_id = e.event_id)"
+                f"  AND {self._projection_exists('e.event_id')}"
+                f"{clause}{{window}}",
+            params=params,
+        ))
         # One finding per row, for a condition the docstring above calls legal
         # and the finding itself calls expected. Run 6 measured what that means
         # at scale: 234,745 identical INFO findings and a 111 MB report for a
@@ -732,11 +852,12 @@ class DeepDoctor:
 
     def check_orphan_jobs(self) -> None:
         clause, params = self._tenant_clause("o")
-        for row in self._q(
-            "SELECT o.job_id, o.event_id, o.tenant_id FROM projection_outbox o "
-            "WHERE NOT EXISTS (SELECT 1 FROM cognitive_events e WHERE e.event_id = o.event_id)"
-            f"{clause}",
-            params,
+        for row in self._scan(
+            "projection_outbox", alias="o",
+            sql="SELECT o.job_id, o.event_id, o.tenant_id FROM projection_outbox o "
+                "WHERE NOT EXISTS (SELECT 1 FROM cognitive_events e WHERE e.event_id = o.event_id)"
+                f"{clause}{{window}}",
+            params=params,
         ):
             self.report.add(Finding(
                 "OUTBOX_WITHOUT_EVENT", Severity.CRITICAL.value, "outbox",
@@ -799,12 +920,13 @@ class DeepDoctor:
 
     def check_projection_consistency(self) -> None:
         clause, params = self._tenant_clause("o")
-        for row in self._q(
-            "SELECT o.* FROM projection_outbox o "
-            "WHERE o.status = ? AND o.projection_type = 'cognitive_memory'"
-            f"  AND NOT {self._projection_exists('o.event_id')}"
-            f"{clause}",
-            (JobStatus.COMPLETED.value, *params),
+        for row in self._scan(
+            "projection_outbox", alias="o",
+            sql="SELECT o.* FROM projection_outbox o "
+                "WHERE o.status = ? AND o.projection_type = 'cognitive_memory'"
+                f"  AND NOT {self._projection_exists('o.event_id')}"
+                f"{clause}{{window}}",
+            params=(JobStatus.COMPLETED.value, *params),
         ):
             self.report.add(Finding(
                 "COMPLETED_WITHOUT_PROJECTION", Severity.FAIL.value, "projection",
@@ -814,12 +936,13 @@ class DeepDoctor:
                 suggested_action="reset the job to pending and let the worker rebuild it",
             ))
 
-        for row in self._q(
-            "SELECT o.* FROM projection_outbox o "
-            "WHERE o.status = ? AND EXISTS ("
-            "  SELECT 1 FROM projection_ledger l WHERE l.projection_key = o.projection_key)"
-            f"{clause}",
-            (JobStatus.SKIPPED.value, *params),
+        for row in self._scan(
+            "projection_outbox", alias="o",
+            sql="SELECT o.* FROM projection_outbox o "
+                "WHERE o.status = ? AND EXISTS ("
+                "  SELECT 1 FROM projection_ledger l WHERE l.projection_key = o.projection_key)"
+                f"{clause}{{window}}",
+            params=(JobStatus.SKIPPED.value, *params),
         ):
             self.report.add(Finding(
                 "SKIPPED_WITH_LEDGER", Severity.FAIL.value, "projection",
@@ -886,9 +1009,10 @@ class DeepDoctor:
         clause, params = self._tenant_clause("s")
         total = self.report.counts["shadow"]
 
-        for row in self._q(
-            "SELECT s.* FROM shadow_memories s WHERE s.comparison_status IS NULL"
-            f"{clause}", params
+        for row in self._chunked(
+            "shadow_memories", alias="s",
+            sql="SELECT s.* FROM shadow_memories s WHERE s.comparison_status IS NULL"
+                f"{clause}{{window}}", params=params,
         ):
             self.report.add(Finding(
                 "SHADOW_COMPARISON_MISSING", Severity.WARN.value, "shadow",
@@ -897,13 +1021,13 @@ class DeepDoctor:
                 repairable=True, suggested_action="re-run the shadow comparison",
             ))
 
-        bad = [
-            r for r in self._q(
-                "SELECT s.* FROM shadow_memories s WHERE s.comparison_status IS NOT NULL "
-                f"AND s.comparison_status NOT IN (?,?){clause}",
-                (ComparisonStatus.MATCH.value, ComparisonStatus.MATCH_NORMALIZED.value, *params),
-            )
-        ]
+        bad = list(self._chunked(
+            "shadow_memories", alias="s",
+            sql="SELECT s.* FROM shadow_memories s WHERE s.comparison_status IS NOT NULL "
+                f"AND s.comparison_status NOT IN (?,?){clause}{{window}}",
+            params=(ComparisonStatus.MATCH.value,
+                    ComparisonStatus.MATCH_NORMALIZED.value, *params),
+        ))
         for row in bad:
             self.report.add(Finding(
                 "SHADOW_MISMATCH", Severity.FAIL.value, "shadow",
@@ -913,10 +1037,15 @@ class DeepDoctor:
                 suggested_action="do not cut over until this is explained",
             ))
 
-        for row in self._q(
-            "SELECT s.*, e.tenant_id AS event_tenant FROM shadow_memories s "
-            "JOIN cognitive_events e ON e.event_id = s.source_event_id "
-            f"WHERE s.tenant_id != e.tenant_id{clause}", params
+        # 2,171 ms unbroken on a 1.7 GB database, returning nothing: the plan
+        # is `SCAN s` plus one index lookup per row, so proving no tenant
+        # crossed a boundary costs a walk of every shadow row. Irreducible
+        # work, reducible hold.
+        for row in self._chunked(
+            "shadow_memories", alias="s",
+            sql="SELECT s.*, e.tenant_id AS event_tenant FROM shadow_memories s "
+                "JOIN cognitive_events e ON e.event_id = s.source_event_id "
+                f"WHERE s.tenant_id != e.tenant_id{clause}{{window}}", params=params,
         ):
             self.report.add(Finding(
                 "SHADOW_TENANT_MISMATCH", Severity.CRITICAL.value, "shadow",
@@ -925,10 +1054,17 @@ class DeepDoctor:
                 repairable=False,
             ))
 
-        leaked = self._scalar(
-            "SELECT COUNT(*) FROM cognitive_memories m JOIN shadow_memories s "
-            "ON m.memory_id = s.shadow_projection_key", default=0
-        )
+        # Proving that nothing leaked means examining every shadow row, which
+        # is irreducible work — but it does not have to be one statement. Run 8
+        # measured this join at 2,147 ms of unbroken snapshot; sliced, the same
+        # verification holds for a hundred milliseconds at a time and the log
+        # gets a reset window between each slice.
+        leaked = sum(1 for _ in self._chunked(
+            "shadow_memories", alias="s", sql=
+            "SELECT s.rowid FROM shadow_memories s WHERE EXISTS ("
+            "  SELECT 1 FROM cognitive_memories m"
+            "  WHERE m.memory_id = s.shadow_projection_key){window}",
+        ))
         if leaked:
             self.report.add(Finding(
                 "SHADOW_LEAKED_INTO_PRODUCTION", Severity.CRITICAL.value, "shadow",
