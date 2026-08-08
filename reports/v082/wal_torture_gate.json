@@ -1,0 +1,553 @@
+{
+  "minutes": 30.0,
+  "doctor_every_seconds": 30.0,
+  "writes": 109600,
+  "doctor_runs": 59,
+  "soft_limit_bytes": 67108864,
+  "hard_limit_bytes": 134217728,
+  "reader_hold_ms": {
+    "p50": 25.54,
+    "p95": 114.3,
+    "p99": 130.6,
+    "max": 144.96,
+    "samples": 708
+  },
+  "wal_series": [
+    [
+      0.64,
+      73451392,
+      "pressure"
+    ],
+    [
+      1.13,
+      73521432,
+      "pressure"
+    ],
+    [
+      1.63,
+      152472,
+      "normal"
+    ],
+    [
+      2.13,
+      72503792,
+      "pressure"
+    ],
+    [
+      2.62,
+      71350192,
+      "pressure"
+    ],
+    [
+      3.13,
+      71766312,
+      "pressure"
+    ],
+    [
+      3.62,
+      53045032,
+      "normal"
+    ],
+    [
+      4.12,
+      70159512,
+      "pressure"
+    ],
+    [
+      4.62,
+      72396672,
+      "pressure"
+    ],
+    [
+      5.13,
+      64881792,
+      "normal"
+    ],
+    [
+      5.62,
+      60881272,
+      "normal"
+    ],
+    [
+      6.13,
+      71609752,
+      "pressure"
+    ],
+    [
+      6.62,
+      51178672,
+      "normal"
+    ],
+    [
+      7.13,
+      72627392,
+      "pressure"
+    ],
+    [
+      7.64,
+      80051632,
+      "pressure"
+    ],
+    [
+      8.13,
+      77245912,
+      "pressure"
+    ],
+    [
+      8.63,
+      53803112,
+      "normal"
+    ],
+    [
+      9.13,
+      55014392,
+      "normal"
+    ],
+    [
+      9.63,
+      57737712,
+      "normal"
+    ],
+    [
+      10.13,
+      67184872,
+      "pressure"
+    ],
+    [
+      10.63,
+      49514192,
+      "normal"
+    ],
+    [
+      11.13,
+      30492152,
+      "normal"
+    ],
+    [
+      11.63,
+      1112432,
+      "normal"
+    ],
+    [
+      12.13,
+      71556192,
+      "pressure"
+    ],
+    [
+      12.63,
+      58656472,
+      "normal"
+    ],
+    [
+      13.13,
+      73888112,
+      "pressure"
+    ],
+    [
+      13.63,
+      47009232,
+      "normal"
+    ],
+    [
+      14.13,
+      71918752,
+      "pressure"
+    ],
+    [
+      14.63,
+      53494112,
+      "normal"
+    ],
+    [
+      15.14,
+      72005272,
+      "pressure"
+    ],
+    [
+      15.63,
+      69454992,
+      "pressure"
+    ],
+    [
+      16.14,
+      71144192,
+      "pressure"
+    ],
+    [
+      16.64,
+      72046472,
+      "pressure"
+    ],
+    [
+      17.13,
+      71238952,
+      "pressure"
+    ],
+    [
+      17.64,
+      73150632,
+      "pressure"
+    ],
+    [
+      18.14,
+      52542392,
+      "normal"
+    ],
+    [
+      18.63,
+      27360952,
+      "normal"
+    ],
+    [
+      19.14,
+      144232,
+      "normal"
+    ],
+    [
+      19.64,
+      73871632,
+      "pressure"
+    ],
+    [
+      20.14,
+      70303712,
+      "pressure"
+    ],
+    [
+      20.64,
+      54070912,
+      "normal"
+    ],
+    [
+      21.14,
+      73434912,
+      "pressure"
+    ],
+    [
+      21.64,
+      67889392,
+      "pressure"
+    ],
+    [
+      22.14,
+      72495552,
+      "pressure"
+    ],
+    [
+      22.64,
+      72182432,
+      "pressure"
+    ],
+    [
+      23.14,
+      72734512,
+      "pressure"
+    ],
+    [
+      23.64,
+      65738752,
+      "normal"
+    ],
+    [
+      24.14,
+      67852312,
+      "pressure"
+    ],
+    [
+      24.64,
+      44475432,
+      "normal"
+    ],
+    [
+      25.14,
+      19685392,
+      "normal"
+    ],
+    [
+      25.64,
+      71140072,
+      "pressure"
+    ],
+    [
+      26.14,
+      59175592,
+      "normal"
+    ],
+    [
+      26.65,
+      75428992,
+      "pressure"
+    ],
+    [
+      27.15,
+      61416872,
+      "normal"
+    ],
+    [
+      27.65,
+      73875752,
+      "pressure"
+    ],
+    [
+      28.15,
+      57152672,
+      "normal"
+    ],
+    [
+      28.65,
+      56662392,
+      "normal"
+    ],
+    [
+      29.15,
+      55446992,
+      "normal"
+    ],
+    [
+      29.65,
+      69755752,
+      "pressure"
+    ]
+  ],
+  "doctor_detail": [
+    {
+      "at_minute": 20.14,
+      "duration_ms": 7549.6,
+      "max_hold_ms": 114.3,
+      "slowest_check": "check_dependencies",
+      "chunks": 236,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 20.64,
+      "duration_ms": 7419.5,
+      "max_hold_ms": 106.8,
+      "slowest_check": "check_dependencies",
+      "chunks": 236,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 21.14,
+      "duration_ms": 7712.3,
+      "max_hold_ms": 126.1,
+      "slowest_check": "check_dependencies",
+      "chunks": 236,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 21.64,
+      "duration_ms": 7770.5,
+      "max_hold_ms": 122.7,
+      "slowest_check": "check_dependencies",
+      "chunks": 235,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 22.14,
+      "duration_ms": 7692.0,
+      "max_hold_ms": 108.9,
+      "slowest_check": "check_dependencies",
+      "chunks": 235,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 22.64,
+      "duration_ms": 7648.6,
+      "max_hold_ms": 118.0,
+      "slowest_check": "check_dependencies",
+      "chunks": 239,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 23.14,
+      "duration_ms": 7617.8,
+      "max_hold_ms": 124.5,
+      "slowest_check": "check_dependencies",
+      "chunks": 235,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 23.64,
+      "duration_ms": 7667.6,
+      "max_hold_ms": 119.0,
+      "slowest_check": "check_dependencies",
+      "chunks": 238,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 24.14,
+      "duration_ms": 7743.8,
+      "max_hold_ms": 116.9,
+      "slowest_check": "check_dependencies",
+      "chunks": 237,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 24.64,
+      "duration_ms": 7783.1,
+      "max_hold_ms": 115.2,
+      "slowest_check": "check_dependencies",
+      "chunks": 236,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 25.14,
+      "duration_ms": 7822.5,
+      "max_hold_ms": 125.9,
+      "slowest_check": "check_dependencies",
+      "chunks": 236,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 25.64,
+      "duration_ms": 7748.3,
+      "max_hold_ms": 144.3,
+      "slowest_check": "check_dependencies",
+      "chunks": 238,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 26.14,
+      "duration_ms": 7738.1,
+      "max_hold_ms": 124.0,
+      "slowest_check": "check_dependencies",
+      "chunks": 238,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 26.65,
+      "duration_ms": 8059.4,
+      "max_hold_ms": 125.2,
+      "slowest_check": "check_dependencies",
+      "chunks": 236,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 27.15,
+      "duration_ms": 7934.9,
+      "max_hold_ms": 121.4,
+      "slowest_check": "check_dependencies",
+      "chunks": 237,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 27.65,
+      "duration_ms": 7973.6,
+      "max_hold_ms": 121.5,
+      "slowest_check": "check_dependencies",
+      "chunks": 237,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 28.15,
+      "duration_ms": 8098.2,
+      "max_hold_ms": 130.6,
+      "slowest_check": "check_dependencies",
+      "chunks": 238,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 28.65,
+      "duration_ms": 7971.8,
+      "max_hold_ms": 120.2,
+      "slowest_check": "check_dependencies",
+      "chunks": 238,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 29.15,
+      "duration_ms": 7837.7,
+      "max_hold_ms": 107.0,
+      "slowest_check": "check_dependencies",
+      "chunks": 238,
+      "exit_code": 0
+    },
+    {
+      "at_minute": 29.65,
+      "duration_ms": 7841.4,
+      "max_hold_ms": 106.2,
+      "slowest_check": "check_dependencies",
+      "chunks": 239,
+      "exit_code": 0
+    }
+  ],
+  "wal_manager": {
+    "db_path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\wal-torture\\torture.db",
+    "journal_mode": "wal",
+    "wal_bytes": 4181832,
+    "wal_mb": 4.0,
+    "shm_bytes": 163840,
+    "db_bytes": 2137923584,
+    "db_mb": 2038.9,
+    "wal_pct_of_database": 0.2,
+    "autocheckpoint_pages": 1000,
+    "page_size": 4096,
+    "soft_limit_mb": 64.0,
+    "hard_limit_mb": 128.0,
+    "level": "ok",
+    "registered_readers": 0,
+    "oldest_reader_age_seconds": null,
+    "consecutive_busy_checkpoints": 0,
+    "last_checkpoint": {
+      "mode": "TRUNCATE",
+      "busy": false,
+      "wal_frames": 0,
+      "frames_checkpointed": 0,
+      "duration_ms": 68.137,
+      "wal_bytes_before": 69755752,
+      "wal_bytes_after": 0,
+      "reclaimed_bytes": 69755752,
+      "error": null,
+      "refused": null,
+      "ok": true
+    },
+    "state": "pressure",
+    "resume_threshold_mb": 32.0,
+    "seconds_in_state": 1734.3,
+    "time_above_soft_seconds": 1727.7,
+    "time_above_hard_seconds": 0.0,
+    "truncate_attempts": 55,
+    "truncate_succeeded": 54,
+    "truncate_busy": 1,
+    "truncate_ineffective": 0,
+    "truncate_bytes_reclaimed": 3562759368,
+    "truncate_mb_reclaimed": 3397.7,
+    "truncate_skipped_cooldown": 0,
+    "truncate_skipped_reader": 0,
+    "state_transitions": 1
+  },
+  "checks": [
+    {
+      "name": "reader hold max under the fail threshold",
+      "ok": true,
+      "detail": "145 ms vs 1000 ms"
+    },
+    {
+      "name": "reader hold p95 under the warn threshold",
+      "ok": true,
+      "detail": "114 ms vs 250 ms"
+    },
+    {
+      "name": "the log is not climbing a staircase",
+      "ok": true,
+      "detail": "first third 76 MB, last third 72 MB"
+    },
+    {
+      "name": "time above the hard limit is ~0",
+      "ok": true,
+      "detail": "0 s"
+    },
+    {
+      "name": "reclaim was observed",
+      "ok": true,
+      "detail": "54 successful truncates, peak 76 MB"
+    },
+    {
+      "name": "no doctor scan failed",
+      "ok": true,
+      "detail": "0 scan error(s)"
+    }
+  ],
+  "passed": true,
+  "note": "stress gate, NOT durability evidence"
+}
