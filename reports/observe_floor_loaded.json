@@ -1,0 +1,42 @@
+{
+  "label": "canary Run 9 dang chay",
+  "samples": 2000,
+  "measured_at": "2026-08-08T17:26:09",
+  "layers": {
+    "1. bare SQLite, synchronous=FULL": {
+      "p50": 0.601,
+      "p95": 1.666,
+      "p99": 8.115,
+      "max": 110.374,
+      "min": 0.353,
+      "n": 2000
+    },
+    "2. bare SQLite, synchronous=NORMAL": {
+      "p50": 0.012,
+      "p95": 0.026,
+      "p99": 0.069,
+      "max": 12.652,
+      "min": 0.01,
+      "n": 2000
+    },
+    "3. observe() only, legacy": {
+      "p50": 0.229,
+      "p95": 0.338,
+      "p99": 0.964,
+      "max": 111.931,
+      "min": 0.115,
+      "n": 2000
+    },
+    "4. observe()+remember(), shadow": {
+      "p50": 0.911,
+      "p95": 1.886,
+      "p99": 20.223,
+      "max": 225.166,
+      "min": 0.473,
+      "n": 2000
+    }
+  },
+  "current_slo_p95_ms": 1.0,
+  "hardware_floor_p95_ms": 1.666,
+  "project_cost_over_floor_p95_ms": 0.22
+}
