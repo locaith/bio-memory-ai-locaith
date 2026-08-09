@@ -5,11 +5,12 @@
     harness       scripts/characterise_hippocampus.py
     corpus        tests/fixtures/hippocampus_corpus.json  (v1, 25 items)
     raw           reports/hippocampus_characterisation.json
-    status        PART 1 of 2 — failure behaviour done, cost and stability
-                  pending (the GPU is held by a LoCoMo re-run)
-    verdict       NEEDED FIXING BEFORE IT IS JOINED — the three defects below
-                  are fixed and pinned by tests/test_hippocampus_label_contract.py
-                  (10 tests; 9 of them fail against the pre-fix code)
+    status        COMPLETE — failure behaviour, cost, spread and stability
+    verdict       WORTH JOINING, ASYNCHRONOUSLY ONLY.
+                  The labels are good. The cost forbids the write path.
+                  Three defects found on the way are fixed and pinned by
+                  tests/test_hippocampus_label_contract.py (10 tests; 9 of
+                  them fail against the pre-fix code).
 
 Reproduce:
 
@@ -125,22 +126,67 @@ Both were caught by a result being *too* uniform to be true.
 
 ---
 
-## 4. Still to measure
+## 4. Cost, spread and stability — measured
 
-Needs the GPU, currently held by a LoCoMo re-run. In short batches with rests —
-the machine's power supply has not been replaced.
+12 corpus items, 2 repeats, gemma4:12b local, in batches of 6 with a rest
+between them because the machine's power supply has not been replaced.
 
-    stability   same input twice at temperature 0.1 -> same label?
-    spread      how importance_score is distributed; if everything lands on
-                7-8 the scale carries no information whatever its bounds
-    cost        p50 / p95 / max per event
+### 4.1 Cost — the number that decides the architecture
 
-The cost number decides the architecture, and the threshold is set in advance so
-the result cannot be argued with afterwards: **above a few hundred milliseconds
-per event, the hippocampus cannot sit on the write path** and must run
-asynchronously through the outbox.
+    p50   20,352 ms
+    p95   24,751 ms
+    max   29,031 ms
 
-    python scripts/characterise_hippocampus.py --repeats 2 --batch 6 --rest 15
+The threshold was set in advance, before any number existed, so the result could
+not be argued with afterwards: **above a few hundred milliseconds per event, the
+hippocampus cannot sit on the write path.** Twenty seconds is that threshold
+crossed by roughly two orders of magnitude.
+
+Independently corroborated by the LoCoMo run finishing the same day, where
+`ingest_turn()` — which calls `label_and_store()` — cost 39.9-48.2 s per turn
+against 0.06-0.09 s for naive-rag. Two different harnesses, same conclusion.
+
+### 4.2 Spread — the scale carries real information
+
+    importance   1  2  2  2  3  |  7  8  8  8  9  9
+    items        the five junk  |  the seven worth keeping
+
+Bimodal, not piled on 7-8, which was the specific worry. And the separation is
+perfect on this corpus: **12 of 12 correct** on the junk/keep decision, with no
+item landing on the wrong side.
+
+The topics are specific rather than generic — "Contract with Binh Minh Company",
+"Bank Account Information", "Server Port Configuration", "SQLite WAL behavior".
+These are labels something downstream could actually rank on.
+
+    fallback rate   0%   nothing failed, nothing was refused
+
+### 4.3 Stability — drifts, but not across any decision
+
+Ten of twelve items produced an identical label twice. The two that drifted
+moved by exactly one point:
+
+    junk-01   importance 1 <-> 2   both far below every gate
+    fact-01   importance 8 <-> 9   both above the >= 8 gate
+
+Neither crossed the junk boundary, and neither crossed `importance_score >= 8` —
+the gate that promotes a rule into the self-model. So on this corpus the drift
+is real and **decision-irrelevant**. That is a claim about twelve items at
+temperature 0.1, not a guarantee; an item sitting on 7/8 would flip, and nothing
+here says how often that happens.
+
+### 4.4 What this means
+
+The quality question and the cost question have opposite answers, and both are
+useful:
+
+    labels      good — accurate, specific, well spread, stable enough
+    cost        twenty seconds an event, which forbids the write path
+
+So the hippocampus is worth joining, and the only way it can be joined is the
+asynchronous two-phase one. Reproduce:
+
+    python scripts/characterise_hippocampus.py --repeats 2 --batch 6 --rest 12 --limit 12
 
 ---
 
@@ -174,9 +220,22 @@ It does mean §2.1 should be rewritten before any code is written against it.
 
 ---
 
-## 6. Verdict, and what was done about it
+## 6. Verdict
 
-**Needed fixing before it is joined.** Three defects, all small, all in the
+**Worth joining — asynchronously, and only asynchronously.**
+
+Phase 1 allowed three verdicts in advance: worth joining, needs fixing first,
+not worth joining. The honest answer is the first two together. The labels are
+good enough to be worth having. The cost settles *how* it can be had. And three
+defects had to be fixed before any of it went near a write path.
+
+The one thing this does not measure is whether the labels **improve retrieval**
+— that is Phase 3, and it is a different experiment. A good label is not the
+same as a better answer.
+
+### The three defects, and what was done about them
+
+Three defects, all small, all in the
 component about to be put on a write path. All three are now fixed:
 
     1. ge=1, le=10 on importance_score            hippocampus.py:31

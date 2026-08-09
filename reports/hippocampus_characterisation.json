@@ -1,13 +1,13 @@
 {
-  "measured_at": "2026-08-09T11:39:54",
+  "measured_at": "2026-08-09T23:33:21",
   "corpus": {
     "path": "tests\\fixtures\\hippocampus_corpus.json",
     "version": 1,
-    "items": 25
+    "items": 12
   },
   "env": {
-    "LLM_BACKEND": "unset",
-    "MODEL_ID": "unset",
+    "LLM_BACKEND": "ollama",
+    "MODEL_ID": "gemma4:12b",
     "EMBEDDING_BACKEND": "unset",
     "EMBEDDING_MODEL": "unset"
   },
@@ -16,7 +16,7 @@
       "scenario": "model dead (connection refused)",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 0.1,
+      "elapsed_ms": 0.2,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
@@ -31,7 +31,7 @@
       "scenario": "model slow 30 s, caller's own 2 s guard",
       "raised": false,
       "timed_out_at_caller": true,
-      "elapsed_ms": 1989.0,
+      "elapsed_ms": 2012.0,
       "logged_failure": false,
       "returned": null
     },
@@ -39,7 +39,7 @@
       "scenario": "model slow 30 s, label()'s timeout (0.5 s)",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 511.0,
+      "elapsed_ms": 502.7,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
@@ -54,7 +54,7 @@
       "scenario": "model says importance 99",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 1.7,
+      "elapsed_ms": 3.5,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
@@ -69,7 +69,7 @@
       "scenario": "model says importance 'high'",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 0.8,
+      "elapsed_ms": 0.6,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
@@ -99,7 +99,7 @@
       "scenario": "model omits a required field",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 0.7,
+      "elapsed_ms": 1.2,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
@@ -114,7 +114,7 @@
       "scenario": "model answers prose, no JSON",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 0.7,
+      "elapsed_ms": 0.6,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
@@ -139,5 +139,495 @@
         "label_pending": true
       }
     }
-  ]
+  ],
+  "corpus_run": {
+    "engine": {
+      "backend": "ollama",
+      "model": "gemma4:12b"
+    },
+    "observations": [
+      {
+        "id": "junk-01",
+        "repeat": 0,
+        "expect": "junk",
+        "elapsed_ms": 20352.7,
+        "fell_back": false,
+        "label": {
+          "topic": "Acknowledgment",
+          "importance_score": 1,
+          "is_junk_or_transient": true,
+          "user_state": "Casual interaction"
+        }
+      },
+      {
+        "id": "junk-02",
+        "repeat": 0,
+        "expect": "junk",
+        "elapsed_ms": 18151.4,
+        "fell_back": false,
+        "label": {
+          "topic": "Acknowledgement",
+          "importance_score": 2,
+          "is_junk_or_transient": true,
+          "user_state": "Agreeing"
+        }
+      },
+      {
+        "id": "junk-03",
+        "repeat": 0,
+        "expect": "junk",
+        "elapsed_ms": 18525.9,
+        "fell_back": false,
+        "label": {
+          "topic": "Gratitude",
+          "importance_score": 2,
+          "is_junk_or_transient": true,
+          "user_state": "Satisfied/Polite"
+        }
+      },
+      {
+        "id": "junk-04",
+        "repeat": 0,
+        "expect": "junk",
+        "elapsed_ms": 16548.3,
+        "fell_back": false,
+        "label": {
+          "topic": "Greeting",
+          "importance_score": 2,
+          "is_junk_or_transient": true,
+          "user_state": "Initiating contact"
+        }
+      },
+      {
+        "id": "junk-05",
+        "repeat": 0,
+        "expect": "junk",
+        "elapsed_ms": 23942.2,
+        "fell_back": false,
+        "label": {
+          "topic": "User acknowledgement",
+          "importance_score": 3,
+          "is_junk_or_transient": true,
+          "user_state": "Processing/Reviewing"
+        }
+      },
+      {
+        "id": "fact-01",
+        "repeat": 0,
+        "expect": "keep",
+        "elapsed_ms": 23979.3,
+        "fell_back": false,
+        "label": {
+          "topic": "Contract with Binh Minh Company",
+          "importance_score": 8,
+          "is_junk_or_transient": false,
+          "user_state": "Recording contract details"
+        }
+      },
+      {
+        "id": "fact-02",
+        "repeat": 0,
+        "expect": "keep",
+        "elapsed_ms": 20837.0,
+        "fell_back": false,
+        "label": {
+          "topic": "Server Port Configuration",
+          "importance_score": 9,
+          "is_junk_or_transient": false,
+          "user_state": "Providing technical instructions"
+        }
+      },
+      {
+        "id": "fact-03",
+        "repeat": 0,
+        "expect": "keep",
+        "elapsed_ms": 21641.8,
+        "fell_back": false,
+        "label": {
+          "topic": "Bank Account Information",
+          "importance_score": 9,
+          "is_junk_or_transient": false,
+          "user_state": "Providing company payment details"
+        }
+      },
+      {
+        "id": "fact-04",
+        "repeat": 0,
+        "expect": "keep",
+        "elapsed_ms": 20648.8,
+        "fell_back": false,
+        "label": {
+          "topic": "Meeting Schedule Update",
+          "importance_score": 8,
+          "is_junk_or_transient": false,
+          "user_state": "Client appointment rescheduled"
+        }
+      },
+      {
+        "id": "fact-05",
+        "repeat": 0,
+        "expect": "keep",
+        "elapsed_ms": 29031.0,
+        "fell_back": false,
+        "label": {
+          "topic": "Financial Records",
+          "importance_score": 8,
+          "is_junk_or_transient": false,
+          "user_state": "Providing monthly revenue and outstanding debt figures"
+        }
+      },
+      {
+        "id": "tech-01",
+        "repeat": 0,
+        "expect": "keep",
+        "elapsed_ms": 22672.7,
+        "fell_back": false,
+        "label": {
+          "topic": "SQLite WAL behavior",
+          "importance_score": 7,
+          "is_junk_or_transient": false,
+          "user_state": "Technical discussion on database performance"
+        }
+      },
+      {
+        "id": "tech-02",
+        "repeat": 0,
+        "expect": "keep",
+        "elapsed_ms": 20644.3,
+        "fell_back": false,
+        "label": {
+          "topic": "Database Storage Behavior",
+          "importance_score": 8,
+          "is_junk_or_transient": false,
+          "user_state": "Reporting technical constraints"
+        }
+      },
+      {
+        "id": "junk-01",
+        "repeat": 1,
+        "expect": "junk",
+        "elapsed_ms": 17202.5,
+        "fell_back": false,
+        "label": {
+          "topic": "Casual acknowledgment",
+          "importance_score": 2,
+          "is_junk_or_transient": true,
+          "user_state": "Informal interaction"
+        }
+      },
+      {
+        "id": "junk-02",
+        "repeat": 1,
+        "expect": "junk",
+        "elapsed_ms": 22370.9,
+        "fell_back": false,
+        "label": {
+          "topic": "Acknowledgment",
+          "importance_score": 2,
+          "is_junk_or_transient": true,
+          "user_state": "Affirmative response"
+        }
+      },
+      {
+        "id": "junk-03",
+        "repeat": 1,
+        "expect": "junk",
+        "elapsed_ms": 15960.2,
+        "fell_back": false,
+        "label": {
+          "topic": "Gratitude",
+          "importance_score": 2,
+          "is_junk_or_transient": true,
+          "user_state": "Polite/Satisfied"
+        }
+      },
+      {
+        "id": "junk-04",
+        "repeat": 1,
+        "expect": "junk",
+        "elapsed_ms": 16036.3,
+        "fell_back": false,
+        "label": {
+          "topic": "Greeting",
+          "importance_score": 2,
+          "is_junk_or_transient": true,
+          "user_state": "Initiating contact"
+        }
+      },
+      {
+        "id": "junk-05",
+        "repeat": 1,
+        "expect": "junk",
+        "elapsed_ms": 24751.5,
+        "fell_back": false,
+        "label": {
+          "topic": "Acknowledgment",
+          "importance_score": 3,
+          "is_junk_or_transient": true,
+          "user_state": "Acknowledging and preparing to review"
+        }
+      },
+      {
+        "id": "fact-01",
+        "repeat": 1,
+        "expect": "keep",
+        "elapsed_ms": 20549.8,
+        "fell_back": false,
+        "label": {
+          "topic": "Business Contract",
+          "importance_score": 9,
+          "is_junk_or_transient": false,
+          "user_state": "Providing contract details"
+        }
+      },
+      {
+        "id": "fact-02",
+        "repeat": 1,
+        "expect": "keep",
+        "elapsed_ms": 17328.7,
+        "fell_back": false,
+        "label": {
+          "topic": "Server Port Configuration",
+          "importance_score": 9,
+          "is_junk_or_transient": false,
+          "user_state": "Providing infrastructure specifications"
+        }
+      },
+      {
+        "id": "fact-03",
+        "repeat": 1,
+        "expect": "keep",
+        "elapsed_ms": 17649.3,
+        "fell_back": false,
+        "label": {
+          "topic": "Bank Account Information",
+          "importance_score": 9,
+          "is_junk_or_transient": false,
+          "user_state": "Providing payment details"
+        }
+      },
+      {
+        "id": "fact-04",
+        "repeat": 1,
+        "expect": "keep",
+        "elapsed_ms": 17488.7,
+        "fell_back": false,
+        "label": {
+          "topic": "Meeting Rescheduling",
+          "importance_score": 8,
+          "is_junk_or_transient": false,
+          "user_state": "Updating schedule"
+        }
+      },
+      {
+        "id": "fact-05",
+        "repeat": 1,
+        "expect": "keep",
+        "elapsed_ms": 18948.1,
+        "fell_back": false,
+        "label": {
+          "topic": "Finance",
+          "importance_score": 8,
+          "is_junk_or_transient": false,
+          "user_state": "Providing financial status"
+        }
+      },
+      {
+        "id": "tech-01",
+        "repeat": 1,
+        "expect": "keep",
+        "elapsed_ms": 17227.8,
+        "fell_back": false,
+        "label": {
+          "topic": "SQLite WAL mechanism",
+          "importance_score": 7,
+          "is_junk_or_transient": false,
+          "user_state": "Technical observation"
+        }
+      },
+      {
+        "id": "tech-02",
+        "repeat": 1,
+        "expect": "keep",
+        "elapsed_ms": 14961.1,
+        "fell_back": false,
+        "label": {
+          "topic": "Storage Management",
+          "importance_score": 8,
+          "is_junk_or_transient": false,
+          "user_state": "Technical Constraint"
+        }
+      }
+    ],
+    "latency_ms": {
+      "p50": 20352.7,
+      "p95": 24751.5,
+      "max": 29031.0,
+      "mean": 19893.8,
+      "n": 24
+    },
+    "importance_histogram": {
+      "1": 1,
+      "2": 7,
+      "3": 2,
+      "7": 2,
+      "8": 7,
+      "9": 5
+    },
+    "stability": [
+      {
+        "id": "junk-01",
+        "importance_values": [
+          1,
+          2
+        ],
+        "importance_spread": 1,
+        "junk_agrees": true,
+        "topics": [
+          "Acknowledgment",
+          "Casual acknowledgment"
+        ]
+      },
+      {
+        "id": "junk-02",
+        "importance_values": [
+          2,
+          2
+        ],
+        "importance_spread": 0,
+        "junk_agrees": true,
+        "topics": [
+          "Acknowledgement",
+          "Acknowledgment"
+        ]
+      },
+      {
+        "id": "junk-03",
+        "importance_values": [
+          2,
+          2
+        ],
+        "importance_spread": 0,
+        "junk_agrees": true,
+        "topics": [
+          "Gratitude"
+        ]
+      },
+      {
+        "id": "junk-04",
+        "importance_values": [
+          2,
+          2
+        ],
+        "importance_spread": 0,
+        "junk_agrees": true,
+        "topics": [
+          "Greeting"
+        ]
+      },
+      {
+        "id": "junk-05",
+        "importance_values": [
+          3,
+          3
+        ],
+        "importance_spread": 0,
+        "junk_agrees": true,
+        "topics": [
+          "Acknowledgment",
+          "User acknowledgement"
+        ]
+      },
+      {
+        "id": "fact-01",
+        "importance_values": [
+          8,
+          9
+        ],
+        "importance_spread": 1,
+        "junk_agrees": true,
+        "topics": [
+          "Business Contract",
+          "Contract with Binh Minh Company"
+        ]
+      },
+      {
+        "id": "fact-02",
+        "importance_values": [
+          9,
+          9
+        ],
+        "importance_spread": 0,
+        "junk_agrees": true,
+        "topics": [
+          "Server Port Configuration"
+        ]
+      },
+      {
+        "id": "fact-03",
+        "importance_values": [
+          9,
+          9
+        ],
+        "importance_spread": 0,
+        "junk_agrees": true,
+        "topics": [
+          "Bank Account Information"
+        ]
+      },
+      {
+        "id": "fact-04",
+        "importance_values": [
+          8,
+          8
+        ],
+        "importance_spread": 0,
+        "junk_agrees": true,
+        "topics": [
+          "Meeting Rescheduling",
+          "Meeting Schedule Update"
+        ]
+      },
+      {
+        "id": "fact-05",
+        "importance_values": [
+          8,
+          8
+        ],
+        "importance_spread": 0,
+        "junk_agrees": true,
+        "topics": [
+          "Finance",
+          "Financial Records"
+        ]
+      },
+      {
+        "id": "tech-01",
+        "importance_values": [
+          7,
+          7
+        ],
+        "importance_spread": 0,
+        "junk_agrees": true,
+        "topics": [
+          "SQLite WAL behavior",
+          "SQLite WAL mechanism"
+        ]
+      },
+      {
+        "id": "tech-02",
+        "importance_values": [
+          8,
+          8
+        ],
+        "importance_spread": 0,
+        "junk_agrees": true,
+        "topics": [
+          "Database Storage Behavior",
+          "Storage Management"
+        ]
+      }
+    ],
+    "fallback_rate": 0.0
+  }
 }
