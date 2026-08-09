@@ -1,0 +1,1445 @@
+{
+  "benchmark": "locomo",
+  "config": {
+    "max_conversations": 5,
+    "max_sessions": 10,
+    "max_questions_per_conversation": 30,
+    "categories": [
+      2
+    ],
+    "top_k": 10,
+    "sleep_every": 20
+  },
+  "metadata": {
+    "backend": "ollama",
+    "model": "gemma4:12b",
+    "started_at": "2026-08-09 11:17:09",
+    "dataset": "data\\evals\\locomo10.json",
+    "dataset_url": "https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json"
+  },
+  "conversations_evaluated": [
+    "conv-26",
+    "conv-30",
+    "conv-41",
+    "conv-42",
+    "conv-43"
+  ],
+  "systems": {
+    "naive-rag": {
+      "summary": {
+        "questions_total": 59,
+        "questions_answerable": 59,
+        "per_category": {
+          "temporal": {
+            "count": 59,
+            "f1": 0.3431,
+            "em": 0.0678
+          }
+        },
+        "f1_answerable": 0.3431,
+        "em_answerable": 0.0678,
+        "ingest_seconds_total": 57.19,
+        "answer_seconds_total": 1626.67
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 215,
+          "questions": [
+            {
+              "question": "When did Caroline go to the LGBTQ support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "7 May 2023",
+              "adversarial_answer": null,
+              "prediction": "Yesterday",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie paint a sunrise?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "Last year",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie run a charity race?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The sunday before 25 May 2023",
+              "adversarial_answer": null,
+              "prediction": "Last Saturday",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Melanie planning on going camping?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline give a speech at a school?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline meet up with her friends, family, and mentors?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "How long has Caroline had her current group of friends for?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "4 years",
+              "adversarial_answer": null,
+              "prediction": "4 years",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "How long ago was Caroline's 18th birthday?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "10 years ago",
+              "adversarial_answer": null,
+              "prediction": "Ten years ago.",
+              "f1": 0.6666666666666666,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie sign up for a pottery class?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2 July 2023",
+              "adversarial_answer": null,
+              "prediction": "July 2, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Caroline going to the transgender conference?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "July 2023",
+              "adversarial_answer": null,
+              "prediction": "This month.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie go to the museum?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "5 July 2023",
+              "adversarial_answer": null,
+              "prediction": "July 5, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline have a picnic?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 6 July 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline go to the LGBTQ conference?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "10 July 2023",
+              "adversarial_answer": null,
+              "prediction": "July 10",
+              "f1": 0.8,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie read the book \"nothing is impossible\"?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline go to the adoption meeting?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The friday before 15 July 2023",
+              "adversarial_answer": null,
+              "prediction": "Last Friday",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie go to the pottery workshop?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The Friday before 15 July 2023",
+              "adversarial_answer": null,
+              "prediction": "Last Fri",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie go camping in June?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 27 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline go to a pride parade during the summer?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 3 July 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie go camping in July?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "two weekends before 17 July 2023",
+              "adversarial_answer": null,
+              "prediction": "Two weekends ago",
+              "f1": 0.4444444444444444,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline join a mentorship program?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The weekend before 17 July 2023",
+              "adversarial_answer": null,
+              "prediction": "Last weekend",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline join a new activist group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The Tuesday before 20 July 2023",
+              "adversarial_answer": null,
+              "prediction": "Last Tuesday",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 12.36,
+          "answer_seconds": 542.03
+        },
+        {
+          "sample_id": "conv-30",
+          "turns_ingested": 190,
+          "questions": [
+            {
+              "question": "When Jon has lost his job as a banker?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "19 January, 2023",
+              "adversarial_answer": null,
+              "prediction": "January 19, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When Gina has lost her job at Door Dash?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "January, 2023",
+              "adversarial_answer": null,
+              "prediction": "January 2023",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Jon's group performing at a festival?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "February, 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Gina launch an ad campaign for her store?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "29 January, 2023",
+              "adversarial_answer": null,
+              "prediction": "January 29, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When was Jon in Paris?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "28 January 2023",
+              "adversarial_answer": null,
+              "prediction": "January 28, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Gina team up with a local artist for some cool designs?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "February, 2023",
+              "adversarial_answer": null,
+              "prediction": "9:32 am on 8 February, 2023",
+              "f1": 0.5,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Gina get her tattoo?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "A few years ago",
+              "adversarial_answer": null,
+              "prediction": "A few years ago.",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Jon start to go to the gym?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "March, 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Gina open her online clothing store?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "16 March, 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Jon start expanding his studio's social media presence?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "April, 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Jon host a dance competition?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "May, 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Jon go to a fair to get more exposure for his dance studio?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "24 April, 2023",
+              "adversarial_answer": null,
+              "prediction": "April 24, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 10.55,
+          "answer_seconds": 338.59
+        },
+        {
+          "sample_id": "conv-41",
+          "turns_ingested": 204,
+          "questions": [
+            {
+              "question": "When did Maria donate her car?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "21 December 2022",
+              "adversarial_answer": null,
+              "prediction": "December 21, 2022",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did John join the online support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 1 January 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Maria go to the beach?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "December 2022",
+              "adversarial_answer": null,
+              "prediction": "Last month",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Maria meet Jean?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "February 24, 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Maria's grandmother pass away?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 6 March 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week.",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did John get his degree?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 2 April 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 11.56,
+          "answer_seconds": 179.09
+        },
+        {
+          "sample_id": "conv-42",
+          "turns_ingested": 198,
+          "questions": [
+            {
+              "question": "When did Joanna first watch \"Eternal Sunshine of the Spotless Mind?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2019",
+              "adversarial_answer": null,
+              "prediction": "around 3 years ago",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Nate win his first video game tournament?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "the week before 21Janury, 2022",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.3333333333333333,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "How long has Nate had his first two turtles?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "three years",
+              "adversarial_answer": null,
+              "prediction": "3 years",
+              "f1": 0.5,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Joanna finish her first screenplay?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The Friday before 23January, 2022",
+              "adversarial_answer": null,
+              "prediction": "Last Friday",
+              "f1": 0.3333333333333333,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Nate get his first two turtles?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2019",
+              "adversarial_answer": null,
+              "prediction": "Three years ago",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What major achievement did Joanna accomplish in January 2022?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "finished her screenplay and printed it",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Joanna have an audition for a writing gig?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "23 March, 2022.",
+              "adversarial_answer": null,
+              "prediction": "March 23, 2022",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Nate get purple hair?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 15April, 2022.",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What physical transformation did Nate undergo in April 2022?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "dyed his hair purple",
+              "adversarial_answer": null,
+              "prediction": "Dyed his hair",
+              "f1": 0.8571428571428571,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What movie did Joanna watch on 1 May, 2022?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "Lord of the Rings",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Nate win his second tournament?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 2 May, 2022.",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 11.11,
+          "answer_seconds": 387.84
+        },
+        {
+          "sample_id": "conv-43",
+          "turns_ingested": 217,
+          "questions": [
+            {
+              "question": "In which month's game did John achieve a career-high score in points?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "July",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When was John in Seattle for a game?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "early August, 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What year did John start surfing?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2018",
+              "adversarial_answer": null,
+              "prediction": "2018",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "After how many weeks did Tim reconnect with the fellow Harry Potter fan from California?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "three weeks",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "Which city was John in before traveling to Chicago?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "Seattle",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did John meet with his teammates after returning from Chicago?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "August 15, 2023",
+              "adversarial_answer": null,
+              "prediction": "On the 15th.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Tim attending a book conference?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "September 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "Where was John between August 11 and August 15 2023?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "Chicago",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What month did Tim plan on going to Universal Studios?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "September, 2023",
+              "adversarial_answer": null,
+              "prediction": "September",
+              "f1": 0.6666666666666666,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 11.61,
+          "answer_seconds": 179.12
+        }
+      ]
+    },
+    "bio-memory": {
+      "summary": {
+        "questions_total": 59,
+        "questions_answerable": 59,
+        "per_category": {
+          "temporal": {
+            "count": 59,
+            "f1": 0.5643,
+            "em": 0.1525
+          }
+        },
+        "f1_answerable": 0.5643,
+        "em_answerable": 0.1525,
+        "ingest_seconds_total": 40819.99,
+        "answer_seconds_total": 1478.31
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 215,
+          "questions": [
+            {
+              "question": "When did Caroline go to the LGBTQ support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "7 May 2023",
+              "adversarial_answer": null,
+              "prediction": "May 7, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie paint a sunrise?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "Last year",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie run a charity race?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The sunday before 25 May 2023",
+              "adversarial_answer": null,
+              "prediction": "May 20, 2023",
+              "f1": 0.5,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Melanie planning on going camping?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline give a speech at a school?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "During the week of June 2-8, 2023.",
+              "f1": 0.5454545454545454,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline meet up with her friends, family, and mentors?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "During the week of June 2-8, 2023.",
+              "f1": 0.5454545454545454,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "How long has Caroline had her current group of friends for?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "4 years",
+              "adversarial_answer": null,
+              "prediction": "4 years",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "How long ago was Caroline's 18th birthday?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "10 years ago",
+              "adversarial_answer": null,
+              "prediction": "Ten years ago.",
+              "f1": 0.6666666666666666,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie sign up for a pottery class?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2 July 2023",
+              "adversarial_answer": null,
+              "prediction": "July 2, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Caroline going to the transgender conference?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "July 2023",
+              "adversarial_answer": null,
+              "prediction": "July 2023",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie go to the museum?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "5 July 2023",
+              "adversarial_answer": null,
+              "prediction": "July 5, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline have a picnic?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 6 July 2023",
+              "adversarial_answer": null,
+              "prediction": "The prior week.",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline go to the LGBTQ conference?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "10 July 2023",
+              "adversarial_answer": null,
+              "prediction": "On 10 July 2023.",
+              "f1": 0.8571428571428571,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie read the book \"nothing is impossible\"?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline go to the adoption meeting?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The friday before 15 July 2023",
+              "adversarial_answer": null,
+              "prediction": "The preceding Friday",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie go to the pottery workshop?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The Friday before 15 July 2023",
+              "adversarial_answer": null,
+              "prediction": "July 14, 2023",
+              "f1": 0.5,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie go camping in June?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 27 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline go to a pride parade during the summer?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 3 July 2023",
+              "adversarial_answer": null,
+              "prediction": "Early July 2023",
+              "f1": 0.5,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie go camping in July?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "two weekends before 17 July 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline join a mentorship program?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The weekend before 17 July 2023",
+              "adversarial_answer": null,
+              "prediction": "The weekend of July 16-17, 2023.",
+              "f1": 0.6,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline join a new activist group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The Tuesday before 20 July 2023",
+              "adversarial_answer": null,
+              "prediction": "Last Tuesday",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 6065.44,
+          "answer_seconds": 435.62
+        },
+        {
+          "sample_id": "conv-30",
+          "turns_ingested": 190,
+          "questions": [
+            {
+              "question": "When Jon has lost his job as a banker?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "19 January, 2023",
+              "adversarial_answer": null,
+              "prediction": "January 19, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When Gina has lost her job at Door Dash?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "January, 2023",
+              "adversarial_answer": null,
+              "prediction": "January 2023",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Jon's group performing at a festival?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "February, 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Gina launch an ad campaign for her store?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "29 January, 2023",
+              "adversarial_answer": null,
+              "prediction": "January 29, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When was Jon in Paris?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "28 January 2023",
+              "adversarial_answer": null,
+              "prediction": "January 28, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Gina team up with a local artist for some cool designs?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "February, 2023",
+              "adversarial_answer": null,
+              "prediction": "8 February, 2023",
+              "f1": 0.8,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Gina get her tattoo?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "A few years ago",
+              "adversarial_answer": null,
+              "prediction": "A few years ago.",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Jon start to go to the gym?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "March, 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Gina open her online clothing store?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "16 March, 2023",
+              "adversarial_answer": null,
+              "prediction": "16 March, 2023, at 2:35 pm.",
+              "f1": 0.6666666666666666,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Jon start expanding his studio's social media presence?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "April, 2023",
+              "adversarial_answer": null,
+              "prediction": "April 3, 2023",
+              "f1": 0.8,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Jon host a dance competition?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "May, 2023",
+              "adversarial_answer": null,
+              "prediction": "In May 2023.",
+              "f1": 0.8,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Jon go to a fair to get more exposure for his dance studio?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "24 April, 2023",
+              "adversarial_answer": null,
+              "prediction": "April 24, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 8479.96,
+          "answer_seconds": 349.82
+        },
+        {
+          "sample_id": "conv-41",
+          "turns_ingested": 204,
+          "questions": [
+            {
+              "question": "When did Maria donate her car?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "21 December 2022",
+              "adversarial_answer": null,
+              "prediction": "December 21, 2022",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did John join the online support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 1 January 2023",
+              "adversarial_answer": null,
+              "prediction": "the week of Dec 25, 2022",
+              "f1": 0.20000000000000004,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Maria go to the beach?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "December 2022",
+              "adversarial_answer": null,
+              "prediction": "Last month",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Maria meet Jean?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "February 24, 2023",
+              "adversarial_answer": null,
+              "prediction": "February 24, 2023",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Maria's grandmother pass away?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 6 March 2023",
+              "adversarial_answer": null,
+              "prediction": "March 6, 2023",
+              "f1": 0.7499999999999999,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did John get his degree?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 2 April 2023",
+              "adversarial_answer": null,
+              "prediction": "Late March or early April 2023.",
+              "f1": 0.3636363636363636,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 6278.84,
+          "answer_seconds": 171.3
+        },
+        {
+          "sample_id": "conv-42",
+          "turns_ingested": 198,
+          "questions": [
+            {
+              "question": "When did Joanna first watch \"Eternal Sunshine of the Spotless Mind?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2019",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Nate win his first video game tournament?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "the week before 21Janury, 2022",
+              "adversarial_answer": null,
+              "prediction": "The week before January 21, 2022.",
+              "f1": 0.6666666666666665,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "How long has Nate had his first two turtles?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "three years",
+              "adversarial_answer": null,
+              "prediction": "3 years",
+              "f1": 0.5,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Joanna finish her first screenplay?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The Friday before 23January, 2022",
+              "adversarial_answer": null,
+              "prediction": "January 23, 2022",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Nate get his first two turtles?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2019",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What major achievement did Joanna accomplish in January 2022?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "finished her screenplay and printed it",
+              "adversarial_answer": null,
+              "prediction": "Completed and printed her first full screenplay.",
+              "f1": 0.6153846153846153,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Joanna have an audition for a writing gig?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "23 March, 2022.",
+              "adversarial_answer": null,
+              "prediction": "March 23, 2022",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Nate get purple hair?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 15April, 2022.",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What physical transformation did Nate undergo in April 2022?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "dyed his hair purple",
+              "adversarial_answer": null,
+              "prediction": "Dyed his hair.",
+              "f1": 0.8571428571428571,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What movie did Joanna watch on 1 May, 2022?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "Lord of the Rings",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Nate win his second tournament?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 2 May, 2022.",
+              "adversarial_answer": null,
+              "prediction": "Last week (relative to May 2, 2022)",
+              "f1": 0.6666666666666666,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 13662.12,
+          "answer_seconds": 346.67
+        },
+        {
+          "sample_id": "conv-43",
+          "turns_ingested": 217,
+          "questions": [
+            {
+              "question": "In which month's game did John achieve a career-high score in points?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "July",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When was John in Seattle for a game?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "early August, 2023",
+              "adversarial_answer": null,
+              "prediction": "August 2023",
+              "f1": 0.8,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "What year did John start surfing?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2018",
+              "adversarial_answer": null,
+              "prediction": "2018",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "After how many weeks did Tim reconnect with the fellow Harry Potter fan from California?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "three weeks",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "Which city was John in before traveling to Chicago?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "Seattle",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did John meet with his teammates after returning from Chicago?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "August 15, 2023",
+              "adversarial_answer": null,
+              "prediction": "August 15, 2023",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Tim attending a book conference?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "September 2023",
+              "adversarial_answer": null,
+              "prediction": "September 2023",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "Where was John between August 11 and August 15 2023?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "Chicago",
+              "adversarial_answer": null,
+              "prediction": "Chicago",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "What month did Tim plan on going to Universal Studios?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "September, 2023",
+              "adversarial_answer": null,
+              "prediction": "September",
+              "f1": 0.6666666666666666,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 6333.63,
+          "answer_seconds": 174.9
+        }
+      ]
+    }
+  }
+}
