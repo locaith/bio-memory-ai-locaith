@@ -128,13 +128,36 @@ async def main() -> None:
 
         factories["bio-memory"] = bio_factory
 
+    # The embedding backend belongs in the record as much as the LLM does.
+    #
+    # Without it, a report cannot be read. Started a re-run of the June numbers
+    # on 2026-08-09 and the first line of output was "No real embedding backend
+    # active — semantic search is DEGRADED (hash mode, near-random recall)". The
+    # run would have produced a low score for bio-memory that had nothing to do
+    # with bio-memory — and the June reports, which record only `model`, cannot
+    # be checked for the same fault. A benchmark that does not say how it was
+    # configured is a number without a claim attached.
+    embedding = {
+        "backend": os.environ.get("EMBEDDING_BACKEND") or "unset",
+        "model": os.environ.get("EMBEDDING_MODEL") or "unset",
+        "dimensions": os.environ.get("EMBEDDING_DIMENSIONS") or "unset",
+        "base_url_host": (os.environ.get("EMBEDDING_BASE_URL") or "unset").split("/")[2]
+                         if "//" in (os.environ.get("EMBEDDING_BASE_URL") or "") else "unset",
+    }
+    embedding["degraded_hash_mode"] = embedding["backend"] == "unset"
+
     metadata = {
         "backend": engine.backend,
         "model": engine.model_id,
+        "embedding": embedding,
         "started_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "dataset": dataset_path,
         "dataset_url": LOCOMO_URL,
     }
+    if embedding["degraded_hash_mode"]:
+        print("  WARNING: no embedding backend configured. Semantic recall is in "
+              "hash fallback and any bio-memory score below is meaningless.",
+              flush=True)
 
     report = await run_locomo_eval(
         conversations,
