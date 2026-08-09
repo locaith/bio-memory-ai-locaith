@@ -1,5 +1,5 @@
 {
-  "measured_at": "2026-08-09T11:33:16",
+  "measured_at": "2026-08-09T11:39:54",
   "corpus": {
     "path": "tests\\fixtures\\hippocampus_corpus.json",
     "version": 1,
@@ -16,38 +16,72 @@
       "scenario": "model dead (connection refused)",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 0.0,
+      "elapsed_ms": 0.1,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
         "importance_score": 5,
         "is_junk_or_transient": false,
-        "user_state": "unknown"
+        "user_state": "unknown",
+        "label_pending": true,
+        "label_failed": "ConnectionError: connection refused"
       }
     },
     {
-      "scenario": "model slow (30 s), caller waits 2 s",
+      "scenario": "model slow 30 s, caller's own 2 s guard",
       "raised": false,
       "timed_out_at_caller": true,
-      "elapsed_ms": 2009.4,
+      "elapsed_ms": 1989.0,
       "logged_failure": false,
       "returned": null
+    },
+    {
+      "scenario": "model slow 30 s, label()'s timeout (0.5 s)",
+      "raised": false,
+      "timed_out_at_caller": false,
+      "elapsed_ms": 511.0,
+      "logged_failure": true,
+      "returned": {
+        "topic": "unknown",
+        "importance_score": 5,
+        "is_junk_or_transient": false,
+        "user_state": "unknown",
+        "label_pending": true,
+        "label_failed": "TimeoutError: "
+      }
     },
     {
       "scenario": "model says importance 99",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 5.4,
-      "logged_failure": false,
+      "elapsed_ms": 1.7,
+      "logged_failure": true,
       "returned": {
-        "topic": "x",
-        "importance_score": 99,
+        "topic": "unknown",
+        "importance_score": 5,
         "is_junk_or_transient": false,
-        "user_state": "ok"
+        "user_state": "unknown",
+        "label_pending": true,
+        "label_failed": "ValueError: Structured generation failed for MemoryLabel: 1 validation error for MemoryLabel\nimportance_score\n  Input should be less than or equal to 10 [type=less_than_equal, input_value=99, input_ty"
       }
     },
     {
       "scenario": "model says importance 'high'",
+      "raised": false,
+      "timed_out_at_caller": false,
+      "elapsed_ms": 0.8,
+      "logged_failure": true,
+      "returned": {
+        "topic": "unknown",
+        "importance_score": 5,
+        "is_junk_or_transient": false,
+        "user_state": "unknown",
+        "label_pending": true,
+        "label_failed": "ValueError: Structured generation failed for MemoryLabel: 1 validation error for MemoryLabel\nimportance_score\n  Input should be a valid integer, unable to parse string as an integer [type=int_parsing,"
+      }
+    },
+    {
+      "scenario": "model says importance -3",
       "raised": false,
       "timed_out_at_caller": false,
       "elapsed_ms": 0.7,
@@ -56,46 +90,39 @@
         "topic": "unknown",
         "importance_score": 5,
         "is_junk_or_transient": false,
-        "user_state": "unknown"
-      }
-    },
-    {
-      "scenario": "model says importance -3",
-      "raised": false,
-      "timed_out_at_caller": false,
-      "elapsed_ms": 0.3,
-      "logged_failure": false,
-      "returned": {
-        "topic": "x",
-        "importance_score": -3,
-        "is_junk_or_transient": false,
-        "user_state": "ok"
+        "user_state": "unknown",
+        "label_pending": true,
+        "label_failed": "ValueError: Structured generation failed for MemoryLabel: 1 validation error for MemoryLabel\nimportance_score\n  Input should be greater than or equal to 1 [type=greater_than_equal, input_value=-3, inp"
       }
     },
     {
       "scenario": "model omits a required field",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 0.4,
+      "elapsed_ms": 0.7,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
         "importance_score": 5,
         "is_junk_or_transient": false,
-        "user_state": "unknown"
+        "user_state": "unknown",
+        "label_pending": true,
+        "label_failed": "ValueError: Structured generation failed for MemoryLabel: 3 validation errors for MemoryLabel\nimportance_score\n  Field required [type=missing, input_value={'topic': 'x'}, input_type=dict]\n    For furt"
       }
     },
     {
       "scenario": "model answers prose, no JSON",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 0.4,
+      "elapsed_ms": 0.7,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
         "importance_score": 5,
         "is_junk_or_transient": false,
-        "user_state": "unknown"
+        "user_state": "unknown",
+        "label_pending": true,
+        "label_failed": "ValueError: Structured generation failed for MemoryLabel: No JSON object found in model output.. Raw output: Sure! Here is what I think about this memory."
       }
     },
     {

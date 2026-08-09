@@ -151,8 +151,11 @@ async def failure_scenarios() -> list[dict[str, Any]]:
     probe = "Hợp đồng ký ngày 12/03/2026, giá trị 84.000.000 đồng."
     out: list[dict[str, Any]] = []
 
-    async def run(name: str, engine: Any, *, timeout: float | None = None) -> dict[str, Any]:
+    async def run(name: str, engine: Any, *, timeout: float | None = None,
+                  own_timeout: float | None = None) -> dict[str, Any]:
         h = _hippo(engine)
+        if own_timeout is not None:
+            h.LABEL_TIMEOUT_SECONDS = own_timeout
         h.clear_logs()
         t0 = time.perf_counter()
         timed_out = False
@@ -176,7 +179,13 @@ async def failure_scenarios() -> list[dict[str, Any]]:
         return row
 
     await run("model dead (connection refused)", _DeadEngine())
-    await run("model slow (30 s), caller waits 2 s", _SlowEngine(30.0), timeout=2.0)
+    # Two rows, because they answer different questions. The first asks whether
+    # the caller can protect itself, which it always could. The second asks
+    # whether label() protects itself, which before 2026-08-09 it did not — it
+    # waited the full thirty seconds.
+    await run("model slow 30 s, caller's own 2 s guard", _SlowEngine(30.0), timeout=2.0)
+    await run("model slow 30 s, label()'s timeout (0.5 s)", _SlowEngine(30.0),
+              timeout=10.0, own_timeout=0.5)
     await run("model says importance 99", _engine_returning(
         '{"topic":"x","importance_score":99,'
         '"is_junk_or_transient":false,"user_state":"ok"}'))

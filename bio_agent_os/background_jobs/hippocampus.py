@@ -2,6 +2,7 @@
 Sleep consolidation and memory compilation.
 """
 
+import asyncio
 import math
 import os
 import re
@@ -28,7 +29,15 @@ from bio_agent_os.memory.l2_semantic import L2SemanticMemory
 
 class MemoryLabel(BaseModel):
     topic: str = Field(description="Main topic")
-    importance_score: int = Field(description="Importance from 1 to 10")
+    #: `ge`/`le`, not just the description. The range used to live only in the
+    #: prose sent to the model, so pydantic enforced `int` and nothing else and a
+    #: local model answering 99 or -3 had its answer stored verbatim. That value
+    #: is a gate, not a display field: `importance_score >= 8` promotes a rule
+    #: into the self-model and raises reasoning effort, so a 99 clears every gate
+    #: there is, permanently. With a bound, an out-of-range answer now fails
+    #: validation, gets one repair retry, and only then falls back — which is the
+    #: behaviour the fallback was written for.
+    importance_score: int = Field(ge=1, le=10, description="Importance from 1 to 10")
     is_junk_or_transient: bool = Field(description="Whether this should be forgotten quickly")
     user_state: str = Field(description="Observed user or agent state")
 
@@ -199,6 +208,13 @@ class Hippocampus:
     def clear_logs(self):
         self._log.clear()
 
+    #: Provisional. A model that hangs used to hang the caller with no upper
+    #: bound at all — measured at 30 s of stub delay producing 30 s of waiting.
+    #: Sixty seconds is deliberately generous because the real per-event p95 has
+    #: not been measured yet; tighten it once
+    #: `reports/hippocampus_characterisation.md` has the latency half.
+    LABEL_TIMEOUT_SECONDS = float(os.getenv("BIO_HIPPOCAMPUS_LABEL_TIMEOUT_S", "60"))
+
     async def label(self, raw_data: str, source: str = "unknown") -> Dict[str, Any]:
         self._log.append(f"Hippocampus labeling input from {source}.")
 
@@ -208,10 +224,13 @@ class Hippocampus:
             f"and observed state.\nData:\n{raw_data[:1200]}"
         )
         try:
-            metadata = await self.engine.generate_structured(
-                prompt,
-                schema=MemoryLabel,
-                temperature=0.1,
+            metadata = await asyncio.wait_for(
+                self.engine.generate_structured(
+                    prompt,
+                    schema=MemoryLabel,
+                    temperature=0.1,
+                ),
+                timeout=self.LABEL_TIMEOUT_SECONDS,
             )
             self._log.append(
                 "Labeled memory "
@@ -220,11 +239,19 @@ class Hippocampus:
             return metadata
         except Exception as exc:
             self._log.append(f"Label failed: {exc}")
+            # Marked, not silent. This dict used to be indistinguishable from a
+            # real label — a well-formed reading of importance 5 — so a stretch
+            # with the model down became a stretch of memories quietly scored 5
+            # that nothing could later identify to relabel. `label_pending` is
+            # the same key `_cheap_label` sets, which puts these into the backlog
+            # `relabel_pending()` already drains; `label_failed` records why.
             return {
                 "topic": "unknown",
                 "importance_score": 5,
                 "is_junk_or_transient": False,
                 "user_state": "unknown",
+                "label_pending": True,
+                "label_failed": f"{type(exc).__name__}: {exc}"[:200],
             }
 
     # Cheap markers for the deferred-label path. Deliberately crude: the point is

@@ -7,7 +7,9 @@
     raw           reports/hippocampus_characterisation.json
     status        PART 1 of 2 — failure behaviour done, cost and stability
                   pending (the GPU is held by a LoCoMo re-run)
-    verdict       NEEDS FIXING BEFORE IT IS JOINED
+    verdict       NEEDED FIXING BEFORE IT IS JOINED — the three defects below
+                  are fixed and pinned by tests/test_hippocampus_label_contract.py
+                  (10 tests; 9 of them fail against the pre-fix code)
 
 Reproduce:
 
@@ -172,15 +174,38 @@ It does mean §2.1 should be rewritten before any code is written against it.
 
 ---
 
-## 6. Verdict
+## 6. Verdict, and what was done about it
 
-**Needs fixing before it is joined.** Three defects, all small, all with
-one-line-ish fixes, all in the component about to be put on a write path:
+**Needed fixing before it is joined.** Three defects, all small, all in the
+component about to be put on a write path. All three are now fixed:
 
-    1. ge=1, le=10 on importance_score
-    2. a timeout on label(), configurable, defaulting to something short
-    3. a marker on the failure fallback, matching label_pending
+    1. ge=1, le=10 on importance_score            hippocampus.py:31
+    2. LABEL_TIMEOUT_SECONDS, env-configurable    hippocampus.py, label()
+    3. label_pending + label_failed on fallback   hippocampus.py, label()
 
-None is a reason to abandon the join. All three are reasons not to do the join
-first. Phase 1 said measure before joining, and this is what measuring bought:
-three hours of debugging a labelled corpus later, for two seconds of stubs now.
+Re-measured on the same harness:
+
+    scenario                                      before          after
+    model says importance 99                      99 stored       falls back, marked
+    model says importance -3                      -3 stored       falls back, marked
+    model slow 30 s, label()'s own timeout        waited 30 s     stopped at 511 ms
+    model dead                                    importance=5    importance=5 + marked
+    _cheap_label                                  unchanged       unchanged
+
+Fix 3 reuses the key that already exists rather than inventing one:
+`relabel_pending()` selects on `label_pending`, so a failed label now enters the
+backlog that consolidation already drains. `label_failed` records why. The
+timeout default of 60 s is deliberately generous and provisional — the real
+per-event p95 is the half of Phase 1 that has not run yet, and tightening it is
+a one-line change to an environment variable.
+
+Pinned by `tests/test_hippocampus_label_contract.py`, 10 tests. Checked against
+the pre-fix code by stashing the fix: 9 fail, and the one that passes is the
+guard asserting a *valid* score still comes through untouched — which was
+already true and which any lazy fix (always return the fallback) would break.
+The suite also runs in 0.5 s where it took 30.4 s before, because the hang test
+no longer hangs.
+
+None of this was a reason to abandon the join. All of it was a reason not to do
+the join first. Phase 1 said measure before joining, and the measuring cost two
+seconds of stubs and no GPU at all.
