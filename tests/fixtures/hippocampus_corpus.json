@@ -1,0 +1,38 @@
+{
+  "_about": "A fixed, de-sensitised corpus for characterising the hippocampus label path. Nothing here is real customer data: names, numbers and amounts are invented. Kept in the repo so a measurement taken today can be repeated in six months and compared. Do not edit items in place — append, and bump _version.",
+  "_version": 1,
+  "_created": "2026-08-09",
+  "items": [
+    {"id": "junk-01", "expect": "junk", "source": "chat", "content": "oke em"},
+    {"id": "junk-02", "expect": "junk", "source": "chat", "content": "vâng anh"},
+    {"id": "junk-03", "expect": "junk", "source": "chat", "content": "thanks"},
+    {"id": "junk-04", "expect": "junk", "source": "chat", "content": "hi"},
+    {"id": "junk-05", "expect": "junk", "source": "chat", "content": "ừ để anh xem"},
+
+    {"id": "fact-01", "expect": "keep", "source": "chat", "content": "Hợp đồng với Công ty Bình Minh ký ngày 12/03/2026, giá trị 84.000.000 đồng, thanh toán làm hai đợt."},
+    {"id": "fact-02", "expect": "keep", "source": "chat", "content": "Máy chủ staging đặt ở cổng 8899, máy chủ OCR ở cổng 8000. Đừng tắt nhầm."},
+    {"id": "fact-03", "expect": "keep", "source": "chat", "content": "Số tài khoản nhận thanh toán của công ty là 0123456789 tại một ngân hàng ở Hà Nội."},
+    {"id": "fact-04", "expect": "keep", "source": "email", "content": "Khách hàng An Phát dời buổi nghiệm thu từ thứ Ba sang thứ Năm tuần sau, 10 giờ sáng."},
+    {"id": "fact-05", "expect": "keep", "source": "chat", "content": "Doanh thu định kỳ tháng này là 9.960.000 đồng, công nợ đang treo 12.500.000 đồng."},
+
+    {"id": "tech-01", "expect": "keep", "source": "session", "content": "SQLite chỉ reset write-ahead log vào khoảnh khắc không có reader nào giữ snapshot. Một reader giữ 0,35 giây làm WAL phình từ 4 MB lên 1.284 MB."},
+    {"id": "tech-02", "expect": "keep", "source": "session", "content": "PASSIVE và RESTART checkpoint không trả lại dung lượng file. Chỉ TRUNCATE mới trả."},
+    {"id": "tech-03", "expect": "keep", "source": "session", "content": "LIMIT giới hạn số dòng trả ra, không giới hạn số dòng phải đọc. Một predicate không khớp gì thì SQLite vẫn duyệt hết bảng để chứng minh là không có."},
+    {"id": "tech-04", "expect": "keep", "source": "session", "content": "The projection builder runs inside the worker's open write transaction and must not commit on its own."},
+    {"id": "tech-05", "expect": "keep", "source": "session", "content": "Chuỗi ISO-8601 dùng chữ T, còn datetime('now') của SQLite trả về dấu cách. T sắp trên dấu cách nên phép so sánh luôn đúng."},
+
+    {"id": "pref-01", "expect": "keep", "source": "chat", "content": "Anh không thích báo cáo dài. Nói ngắn, có số, đừng vòng vo."},
+    {"id": "pref-02", "expect": "keep", "source": "chat", "content": "Đừng đụng vào ổ D, nó sắp hỏng rồi."},
+    {"id": "pref-03", "expect": "keep", "source": "chat", "content": "Một câu nói lúc mệt là chuyện xảy ra một lần, không phải sở thích lâu dài."},
+
+    {"id": "mixed-01", "expect": "keep", "source": "chat", "content": "Hôm nay mệt quá, mà nhớ mai gửi báo giá cho bên Trường Thịnh trước 5 giờ chiều nhé."},
+    {"id": "mixed-02", "expect": "keep", "source": "chat", "content": "Chắc thôi không làm cái đó nữa, để tuần sau tính lại."},
+
+    {"id": "en-01", "expect": "keep", "source": "session", "content": "A hypothesis is not a root cause until a test says so."},
+    {"id": "en-02", "expect": "keep", "source": "session", "content": "The invoice for the March retainer is 6,500,000 VND and is due on the fifth of each month."},
+
+    {"id": "edge-01", "expect": "unclear", "source": "chat", "content": "aaaa bbbb cccc"},
+    {"id": "edge-02", "expect": "unclear", "source": "chat", "content": "?"},
+    {"id": "edge-03", "expect": "unclear", "source": "chat", "content": "Cái đó ấy, em biết rồi đấy, làm như lần trước đi."}
+  ]
+}

@@ -1,7 +1,7 @@
 {
-  "measured_at": "2026-08-09T11:32:01",
+  "measured_at": "2026-08-09T11:33:16",
   "corpus": {
-    "path": "data\\fixtures\\hippocampus_corpus.json",
+    "path": "tests\\fixtures\\hippocampus_corpus.json",
     "version": 1,
     "items": 25
   },
@@ -29,7 +29,7 @@
       "scenario": "model slow (30 s), caller waits 2 s",
       "raised": false,
       "timed_out_at_caller": true,
-      "elapsed_ms": 2014.7,
+      "elapsed_ms": 2009.4,
       "logged_failure": false,
       "returned": null
     },
@@ -37,7 +37,7 @@
       "scenario": "model says importance 99",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 10.6,
+      "elapsed_ms": 5.4,
       "logged_failure": false,
       "returned": {
         "topic": "x",
@@ -50,7 +50,7 @@
       "scenario": "model says importance 'high'",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 3.0,
+      "elapsed_ms": 0.7,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
@@ -63,7 +63,7 @@
       "scenario": "model says importance -3",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 0.9,
+      "elapsed_ms": 0.3,
       "logged_failure": false,
       "returned": {
         "topic": "x",
@@ -76,7 +76,7 @@
       "scenario": "model omits a required field",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 0.9,
+      "elapsed_ms": 0.4,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",
@@ -89,7 +89,7 @@
       "scenario": "model answers prose, no JSON",
       "raised": false,
       "timed_out_at_caller": false,
-      "elapsed_ms": 0.6,
+      "elapsed_ms": 0.4,
       "logged_failure": true,
       "returned": {
         "topic": "unknown",

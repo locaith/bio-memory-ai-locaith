@@ -50,7 +50,9 @@ from pydantic import BaseModel  # noqa: E402
 
 from bio_agent_os.background_jobs.hippocampus import Hippocampus  # noqa: E402
 
-CORPUS = _REPO / "data" / "fixtures" / "hippocampus_corpus.json"
+# Under tests/, not data/: `data/` is gitignored, and a fixture that is not in
+# the repo cannot make a measurement repeatable six months from now.
+CORPUS = _REPO / "tests" / "fixtures" / "hippocampus_corpus.json"
 
 
 # --------------------------------------------------------------------------
