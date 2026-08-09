@@ -1,0 +1,116 @@
+{
+  "measured_at": "2026-08-09T11:32:01",
+  "corpus": {
+    "path": "data\\fixtures\\hippocampus_corpus.json",
+    "version": 1,
+    "items": 25
+  },
+  "env": {
+    "LLM_BACKEND": "unset",
+    "MODEL_ID": "unset",
+    "EMBEDDING_BACKEND": "unset",
+    "EMBEDDING_MODEL": "unset"
+  },
+  "failure_scenarios": [
+    {
+      "scenario": "model dead (connection refused)",
+      "raised": false,
+      "timed_out_at_caller": false,
+      "elapsed_ms": 0.0,
+      "logged_failure": true,
+      "returned": {
+        "topic": "unknown",
+        "importance_score": 5,
+        "is_junk_or_transient": false,
+        "user_state": "unknown"
+      }
+    },
+    {
+      "scenario": "model slow (30 s), caller waits 2 s",
+      "raised": false,
+      "timed_out_at_caller": true,
+      "elapsed_ms": 2014.7,
+      "logged_failure": false,
+      "returned": null
+    },
+    {
+      "scenario": "model says importance 99",
+      "raised": false,
+      "timed_out_at_caller": false,
+      "elapsed_ms": 10.6,
+      "logged_failure": false,
+      "returned": {
+        "topic": "x",
+        "importance_score": 99,
+        "is_junk_or_transient": false,
+        "user_state": "ok"
+      }
+    },
+    {
+      "scenario": "model says importance 'high'",
+      "raised": false,
+      "timed_out_at_caller": false,
+      "elapsed_ms": 3.0,
+      "logged_failure": true,
+      "returned": {
+        "topic": "unknown",
+        "importance_score": 5,
+        "is_junk_or_transient": false,
+        "user_state": "unknown"
+      }
+    },
+    {
+      "scenario": "model says importance -3",
+      "raised": false,
+      "timed_out_at_caller": false,
+      "elapsed_ms": 0.9,
+      "logged_failure": false,
+      "returned": {
+        "topic": "x",
+        "importance_score": -3,
+        "is_junk_or_transient": false,
+        "user_state": "ok"
+      }
+    },
+    {
+      "scenario": "model omits a required field",
+      "raised": false,
+      "timed_out_at_caller": false,
+      "elapsed_ms": 0.9,
+      "logged_failure": true,
+      "returned": {
+        "topic": "unknown",
+        "importance_score": 5,
+        "is_junk_or_transient": false,
+        "user_state": "unknown"
+      }
+    },
+    {
+      "scenario": "model answers prose, no JSON",
+      "raised": false,
+      "timed_out_at_caller": false,
+      "elapsed_ms": 0.6,
+      "logged_failure": true,
+      "returned": {
+        "topic": "unknown",
+        "importance_score": 5,
+        "is_junk_or_transient": false,
+        "user_state": "unknown"
+      }
+    },
+    {
+      "scenario": "_cheap_label (no model at all)",
+      "raised": false,
+      "timed_out_at_caller": false,
+      "elapsed_ms": 0.0,
+      "logged_failure": false,
+      "returned": {
+        "topic": "unlabeled",
+        "importance_score": 7,
+        "is_junk_or_transient": false,
+        "user_state": "unknown",
+        "label_pending": true
+      }
+    }
+  ]
+}
