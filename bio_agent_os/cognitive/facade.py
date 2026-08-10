@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -131,9 +132,17 @@ class MemoryOS:
         """What this observation owes, given the mode and what can be built.
 
         Legacy owes nothing, which is exactly the behaviour that shipped.
-        Shadow owes a cognitive_memory job and nothing else: the other four
-        types have no builder, and enqueueing work that can only dead-letter
-        would turn a missing capability into noise.
+        Shadow owes a cognitive_memory job, and — only when explicitly switched
+        on — a hippocampus_label job beside it. The remaining types have no
+        builder, and enqueueing work that can only dead-letter would turn a
+        missing capability into noise.
+
+        The label is **off by default**, deliberately. Turning it on for every
+        existing deployment as a side effect of the code landing would change
+        queue depth for databases nobody asked on behalf of. It is one
+        environment variable, and it is measured before it is recommended:
+
+            BIO_AGENT_HIPPOCAMPUS_LABEL=1
 
         Wrapped because deciding must never be able to fail an observe() that
         would otherwise have succeeded.
@@ -141,7 +150,12 @@ class MemoryOS:
         try:
             if self.projection_mode is ProjectionMode.LEGACY:
                 return ()
-            supported, skipped = enqueueable((COGNITIVE_MEMORY,))
+            wanted = (COGNITIVE_MEMORY,)
+            if os.environ.get("BIO_AGENT_HIPPOCAMPUS_LABEL", "0").strip() == "1":
+                from .projection_registry import ProjectionType
+
+                wanted = (*wanted, ProjectionType.HIPPOCAMPUS_LABEL.value)
+            supported, skipped = enqueueable(wanted)
             if skipped:
                 logger.warning("skipping unsupported projection types: %s", skipped)
             return supported

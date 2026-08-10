@@ -1,0 +1,6401 @@
+{
+  "started_at": "2026-08-10T07:26:16",
+  "deadline_hours": 0.03,
+  "events_per_arm": 250,
+  "model_used": false,
+  "note": "no model runs here; the PSU has not been replaced and nothing GPU-bound may run unattended overnight",
+  "cycles": [
+    {
+      "cycle": 1,
+      "at": "2026-08-10T07:26:16",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1493,
+            "p95": 0.2585,
+            "p99": 5.5733,
+            "max": 15.8375,
+            "mean": 0.2926
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1758,
+            "p95": 0.3513,
+            "p99": 4.6831,
+            "max": 5.6609,
+            "mean": 0.2613
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "at": "2026-08-10T07:26:18",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1784,
+            "p95": 0.419,
+            "p99": 5.1994,
+            "max": 5.6491,
+            "mean": 0.2728
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1612,
+            "p95": 0.3991,
+            "p99": 5.0372,
+            "max": 5.3494,
+            "mean": 0.2547
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 3,
+      "at": "2026-08-10T07:26:18",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1505,
+            "p95": 0.2976,
+            "p99": 4.4759,
+            "max": 5.6077,
+            "mean": 0.2413
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1791,
+            "p95": 0.3513,
+            "p99": 4.9329,
+            "max": 6.6282,
+            "mean": 0.2769
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.39,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 4,
+      "at": "2026-08-10T07:26:19",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1868,
+            "p95": 0.4322,
+            "p99": 5.2962,
+            "max": 5.7316,
+            "mean": 0.2812
+          },
+          "wal_peak_bytes": 4214792,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1508,
+            "p95": 0.3802,
+            "p99": 5.3481,
+            "max": 6.5851,
+            "mean": 0.2507
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 5,
+      "at": "2026-08-10T07:26:20",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1435,
+            "p95": 0.2793,
+            "p99": 5.1854,
+            "max": 5.639,
+            "mean": 0.2311
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1771,
+            "p95": 0.3749,
+            "p99": 5.6392,
+            "max": 6.8834,
+            "mean": 0.2797
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 6,
+      "at": "2026-08-10T07:26:20",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1984,
+            "p95": 0.3856,
+            "p99": 5.2924,
+            "max": 5.6295,
+            "mean": 0.2902
+          },
+          "wal_peak_bytes": 4190072,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1416,
+            "p95": 0.3017,
+            "p99": 4.703,
+            "max": 5.8714,
+            "mean": 0.2308
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 7,
+      "at": "2026-08-10T07:26:21",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.14,
+            "p95": 0.4175,
+            "p99": 4.6647,
+            "max": 5.7129,
+            "mean": 0.2427
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1781,
+            "p95": 0.404,
+            "p99": 4.6739,
+            "max": 7.4064,
+            "mean": 0.2793
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 8,
+      "at": "2026-08-10T07:26:21",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1784,
+            "p95": 0.4463,
+            "p99": 5.1778,
+            "max": 10.2343,
+            "mean": 0.2997
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1546,
+            "p95": 0.3315,
+            "p99": 4.9275,
+            "max": 5.3534,
+            "mean": 0.2475
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 9,
+      "at": "2026-08-10T07:26:22",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.143,
+            "p95": 0.2918,
+            "p99": 5.007,
+            "max": 6.1702,
+            "mean": 0.2411
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1816,
+            "p95": 0.3391,
+            "p99": 4.4951,
+            "max": 6.972,
+            "mean": 0.2775
+          },
+          "wal_peak_bytes": 4206552,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 10,
+      "at": "2026-08-10T07:26:22",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1757,
+            "p95": 0.3943,
+            "p99": 4.8579,
+            "max": 5.696,
+            "mean": 0.2675
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1488,
+            "p95": 0.3317,
+            "p99": 4.6824,
+            "max": 6.1103,
+            "mean": 0.242
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 11,
+      "at": "2026-08-10T07:26:23",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1544,
+            "p95": 0.3282,
+            "p99": 4.3633,
+            "max": 6.7124,
+            "mean": 0.2497
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1777,
+            "p95": 0.3973,
+            "p99": 4.8637,
+            "max": 12.2866,
+            "mean": 0.3007
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 12,
+      "at": "2026-08-10T07:26:24",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1805,
+            "p95": 0.3904,
+            "p99": 5.1696,
+            "max": 5.6605,
+            "mean": 0.2713
+          },
+          "wal_peak_bytes": 4206552,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1419,
+            "p95": 0.296,
+            "p99": 4.8204,
+            "max": 5.5958,
+            "mean": 0.2312
+          },
+          "wal_peak_bytes": 4190072,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 13,
+      "at": "2026-08-10T07:26:24",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1464,
+            "p95": 0.3092,
+            "p99": 4.2735,
+            "max": 6.0733,
+            "mean": 0.2381
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.48,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1741,
+            "p95": 0.3367,
+            "p99": 4.6633,
+            "max": 5.8679,
+            "mean": 0.2518
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 14,
+      "at": "2026-08-10T07:26:25",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1805,
+            "p95": 0.375,
+            "p99": 4.93,
+            "max": 5.6128,
+            "mean": 0.2693
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.36,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1457,
+            "p95": 0.3508,
+            "p99": 4.6873,
+            "max": 5.1089,
+            "mean": 0.2302
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 15,
+      "at": "2026-08-10T07:26:26",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1493,
+            "p95": 0.308,
+            "p99": 4.6596,
+            "max": 5.7725,
+            "mean": 0.2342
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1758,
+            "p95": 0.3079,
+            "p99": 4.3864,
+            "max": 6.363,
+            "mean": 0.2641
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 16,
+      "at": "2026-08-10T07:26:26",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1722,
+            "p95": 0.3976,
+            "p99": 4.9055,
+            "max": 5.323,
+            "mean": 0.2658
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1428,
+            "p95": 0.3198,
+            "p99": 4.927,
+            "max": 5.6269,
+            "mean": 0.2372
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 17,
+      "at": "2026-08-10T07:26:27",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1621,
+            "p95": 0.3761,
+            "p99": 4.5692,
+            "max": 6.7663,
+            "mean": 0.2536
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1799,
+            "p95": 0.3815,
+            "p99": 5.2784,
+            "max": 6.7436,
+            "mean": 0.2774
+          },
+          "wal_peak_bytes": 4210672,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 18,
+      "at": "2026-08-10T07:26:28",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1844,
+            "p95": 0.3743,
+            "p99": 4.751,
+            "max": 5.6223,
+            "mean": 0.2769
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.28,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1386,
+            "p95": 0.2862,
+            "p99": 4.9338,
+            "max": 5.8549,
+            "mean": 0.2296
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 19,
+      "at": "2026-08-10T07:26:28",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1557,
+            "p95": 0.3206,
+            "p99": 4.4612,
+            "max": 5.4394,
+            "mean": 0.2487
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1924,
+            "p95": 0.4555,
+            "p99": 5.07,
+            "max": 6.4997,
+            "mean": 0.3031
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 20,
+      "at": "2026-08-10T07:26:29",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1859,
+            "p95": 0.4085,
+            "p99": 5.2114,
+            "max": 5.7886,
+            "mean": 0.2788
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1442,
+            "p95": 0.2957,
+            "p99": 4.608,
+            "max": 5.6207,
+            "mean": 0.2337
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 21,
+      "at": "2026-08-10T07:26:29",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1423,
+            "p95": 0.4311,
+            "p99": 4.7924,
+            "max": 5.9531,
+            "mean": 0.2462
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.18,
+            "p95": 0.3414,
+            "p99": 4.711,
+            "max": 5.6669,
+            "mean": 0.2709
+          },
+          "wal_peak_bytes": 4190072,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 22,
+      "at": "2026-08-10T07:26:30",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1792,
+            "p95": 0.3975,
+            "p99": 4.529,
+            "max": 124.5031,
+            "mean": 0.7556
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1443,
+            "p95": 0.2807,
+            "p99": 4.4982,
+            "max": 5.2076,
+            "mean": 0.2206
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.15,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 23,
+      "at": "2026-08-10T07:26:31",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1452,
+            "p95": 0.2853,
+            "p99": 4.5964,
+            "max": 6.8756,
+            "mean": 0.238
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1768,
+            "p95": 0.3131,
+            "p99": 4.7855,
+            "max": 6.9818,
+            "mean": 0.2729
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 24,
+      "at": "2026-08-10T07:26:31",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1917,
+            "p95": 0.4063,
+            "p99": 5.3344,
+            "max": 7.1165,
+            "mean": 0.298
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1446,
+            "p95": 0.3233,
+            "p99": 4.1055,
+            "max": 5.1642,
+            "mean": 0.2321
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 25,
+      "at": "2026-08-10T07:26:32",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1456,
+            "p95": 0.2674,
+            "p99": 4.2669,
+            "max": 6.4048,
+            "mean": 0.2367
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.26,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1949,
+            "p95": 0.3494,
+            "p99": 4.6783,
+            "max": 6.5013,
+            "mean": 0.2834
+          },
+          "wal_peak_bytes": 4198312,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 26,
+      "at": "2026-08-10T07:26:33",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1997,
+            "p95": 0.4074,
+            "p99": 5.1415,
+            "max": 5.4497,
+            "mean": 0.2908
+          },
+          "wal_peak_bytes": 4198312,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1622,
+            "p95": 0.3408,
+            "p99": 5.1071,
+            "max": 5.4194,
+            "mean": 0.253
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 27,
+      "at": "2026-08-10T07:26:33",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1434,
+            "p95": 0.3041,
+            "p99": 4.8102,
+            "max": 6.1635,
+            "mean": 0.2393
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.2144,
+            "p95": 0.3708,
+            "p99": 5.2506,
+            "max": 6.8203,
+            "mean": 0.3127
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 28,
+      "at": "2026-08-10T07:26:34",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1788,
+            "p95": 0.3391,
+            "p99": 5.0423,
+            "max": 5.203,
+            "mean": 0.262
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1505,
+            "p95": 0.3723,
+            "p99": 4.8092,
+            "max": 10.855,
+            "mean": 0.2654
+          },
+          "wal_peak_bytes": 4144752,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 29,
+      "at": "2026-08-10T07:26:35",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.143,
+            "p95": 0.2945,
+            "p99": 4.3744,
+            "max": 5.4604,
+            "mean": 0.2297
+          },
+          "wal_peak_bytes": 4144752,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1799,
+            "p95": 0.344,
+            "p99": 4.5907,
+            "max": 6.3267,
+            "mean": 0.2707
+          },
+          "wal_peak_bytes": 4202432,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 30,
+      "at": "2026-08-10T07:26:35",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.183,
+            "p95": 0.329,
+            "p99": 4.9337,
+            "max": 5.9424,
+            "mean": 0.2685
+          },
+          "wal_peak_bytes": 4198312,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1461,
+            "p95": 0.3204,
+            "p99": 3.9827,
+            "max": 5.2776,
+            "mean": 0.2316
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.45,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 31,
+      "at": "2026-08-10T07:26:36",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1443,
+            "p95": 0.2944,
+            "p99": 4.8085,
+            "max": 5.7156,
+            "mean": 0.23
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.182,
+            "p95": 0.3193,
+            "p99": 4.9765,
+            "max": 6.9899,
+            "mean": 0.2713
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 32,
+      "at": "2026-08-10T07:26:37",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1772,
+            "p95": 0.2978,
+            "p99": 4.6109,
+            "max": 10.8754,
+            "mean": 0.2801
+          },
+          "wal_peak_bytes": 4210672,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1444,
+            "p95": 0.2917,
+            "p99": 4.9629,
+            "max": 5.9277,
+            "mean": 0.2324
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 33,
+      "at": "2026-08-10T07:26:37",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1402,
+            "p95": 0.2834,
+            "p99": 5.2321,
+            "max": 5.8612,
+            "mean": 0.2341
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1751,
+            "p95": 0.3118,
+            "p99": 4.1656,
+            "max": 6.1231,
+            "mean": 0.2636
+          },
+          "wal_peak_bytes": 4132392,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 34,
+      "at": "2026-08-10T07:26:38",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1746,
+            "p95": 0.3146,
+            "p99": 5.2517,
+            "max": 5.8247,
+            "mean": 0.2645
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.143,
+            "p95": 0.3048,
+            "p99": 4.2552,
+            "max": 7.0058,
+            "mean": 0.2345
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 35,
+      "at": "2026-08-10T07:26:38",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1483,
+            "p95": 0.306,
+            "p99": 4.266,
+            "max": 5.8576,
+            "mean": 0.2356
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.2104,
+            "p95": 0.4521,
+            "p99": 5.9544,
+            "max": 12.566,
+            "mean": 0.3406
+          },
+          "wal_peak_bytes": 4198312,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 36,
+      "at": "2026-08-10T07:26:39",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1808,
+            "p95": 0.3465,
+            "p99": 4.7773,
+            "max": 5.4025,
+            "mean": 0.2642
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1426,
+            "p95": 0.2957,
+            "p99": 4.7066,
+            "max": 5.6517,
+            "mean": 0.2312
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.25,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 37,
+      "at": "2026-08-10T07:26:40",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1394,
+            "p95": 0.358,
+            "p99": 5.1605,
+            "max": 5.7108,
+            "mean": 0.2381
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1868,
+            "p95": 0.3856,
+            "p99": 4.8863,
+            "max": 6.2896,
+            "mean": 0.281
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 38,
+      "at": "2026-08-10T07:26:40",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1876,
+            "p95": 0.3518,
+            "p99": 5.317,
+            "max": 5.8407,
+            "mean": 0.2804
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1403,
+            "p95": 0.2943,
+            "p99": 4.5424,
+            "max": 5.8092,
+            "mean": 0.2311
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 39,
+      "at": "2026-08-10T07:26:41",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1481,
+            "p95": 0.3955,
+            "p99": 4.316,
+            "max": 7.2772,
+            "mean": 0.2468
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.178,
+            "p95": 0.365,
+            "p99": 4.6048,
+            "max": 6.6443,
+            "mean": 0.275
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.54,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 40,
+      "at": "2026-08-10T07:26:42",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1711,
+            "p95": 0.2824,
+            "p99": 5.004,
+            "max": 6.382,
+            "mean": 0.2536
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1407,
+            "p95": 0.3332,
+            "p99": 4.454,
+            "max": 6.195,
+            "mean": 0.2271
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 41,
+      "at": "2026-08-10T07:26:42",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1449,
+            "p95": 0.2803,
+            "p99": 5.1932,
+            "max": 5.8914,
+            "mean": 0.2365
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1813,
+            "p95": 0.3338,
+            "p99": 4.9709,
+            "max": 6.3819,
+            "mean": 0.2703
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 42,
+      "at": "2026-08-10T07:26:43",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1857,
+            "p95": 0.3696,
+            "p99": 5.2987,
+            "max": 5.5849,
+            "mean": 0.2727
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.29,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1456,
+            "p95": 0.2692,
+            "p99": 5.8204,
+            "max": 10.7146,
+            "mean": 0.2572
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.19,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 43,
+      "at": "2026-08-10T07:26:44",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1486,
+            "p95": 0.3354,
+            "p99": 4.9623,
+            "max": 13.1646,
+            "mean": 0.2744
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.19,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1805,
+            "p95": 0.3543,
+            "p99": 6.333,
+            "max": 13.1865,
+            "mean": 0.309
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.3,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 44,
+      "at": "2026-08-10T07:26:44",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1807,
+            "p95": 0.3387,
+            "p99": 5.754,
+            "max": 11.8903,
+            "mean": 0.2994
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.32,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1471,
+            "p95": 0.3738,
+            "p99": 5.3626,
+            "max": 14.7891,
+            "mean": 0.3137
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 45,
+      "at": "2026-08-10T07:26:45",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1453,
+            "p95": 0.3138,
+            "p99": 5.0985,
+            "max": 13.0089,
+            "mean": 0.2957
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1873,
+            "p95": 0.3684,
+            "p99": 4.9594,
+            "max": 13.1089,
+            "mean": 0.3128
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.31,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 46,
+      "at": "2026-08-10T07:26:46",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1759,
+            "p95": 0.3935,
+            "p99": 5.4829,
+            "max": 12.9905,
+            "mean": 0.3268
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.28,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1428,
+            "p95": 0.3192,
+            "p99": 5.8405,
+            "max": 11.5147,
+            "mean": 0.2648
+          },
+          "wal_peak_bytes": 4144752,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 47,
+      "at": "2026-08-10T07:26:46",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1428,
+            "p95": 0.3442,
+            "p99": 5.294,
+            "max": 12.9556,
+            "mean": 0.2972
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1791,
+            "p95": 0.3767,
+            "p99": 4.7253,
+            "max": 13.5763,
+            "mean": 0.3358
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.7,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 48,
+      "at": "2026-08-10T07:26:47",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1753,
+            "p95": 0.3524,
+            "p99": 5.6154,
+            "max": 12.2265,
+            "mean": 0.2852
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.31,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1415,
+            "p95": 0.2604,
+            "p99": 4.5101,
+            "max": 13.0057,
+            "mean": 0.2757
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.19,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 49,
+      "at": "2026-08-10T07:26:48",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1442,
+            "p95": 0.3687,
+            "p99": 6.2454,
+            "max": 11.5626,
+            "mean": 0.294
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.19,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1858,
+            "p95": 0.3355,
+            "p99": 5.281,
+            "max": 13.3902,
+            "mean": 0.3351
+          },
+          "wal_peak_bytes": 4202432,
+          "drain_seconds": 0.31,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 50,
+      "at": "2026-08-10T07:26:49",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1866,
+            "p95": 0.3404,
+            "p99": 5.6625,
+            "max": 12.4264,
+            "mean": 0.3038
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.31,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1469,
+            "p95": 0.3638,
+            "p99": 5.7841,
+            "max": 6.6601,
+            "mean": 0.2552
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 51,
+      "at": "2026-08-10T07:26:49",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.153,
+            "p95": 0.3441,
+            "p99": 4.8207,
+            "max": 7.2783,
+            "mean": 0.2522
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1741,
+            "p95": 0.3252,
+            "p99": 4.7607,
+            "max": 12.9604,
+            "mean": 0.321
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.29,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 52,
+      "at": "2026-08-10T07:26:50",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1738,
+            "p95": 0.3558,
+            "p99": 5.458,
+            "max": 12.4381,
+            "mean": 0.3189
+          },
+          "wal_peak_bytes": 4202432,
+          "drain_seconds": 0.3,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1423,
+            "p95": 0.3173,
+            "p99": 4.649,
+            "max": 16.6622,
+            "mean": 0.3036
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 53,
+      "at": "2026-08-10T07:26:51",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1419,
+            "p95": 0.2916,
+            "p99": 6.1501,
+            "max": 10.888,
+            "mean": 0.263
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1985,
+            "p95": 0.5258,
+            "p99": 5.6155,
+            "max": 12.8861,
+            "mean": 0.3514
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.29,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 54,
+      "at": "2026-08-10T07:26:51",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.177,
+            "p95": 0.3821,
+            "p99": 5.7409,
+            "max": 12.2722,
+            "mean": 0.3027
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.29,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1436,
+            "p95": 0.2925,
+            "p99": 6.3548,
+            "max": 12.0377,
+            "mean": 0.2775
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 55,
+      "at": "2026-08-10T07:26:52",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1425,
+            "p95": 0.3492,
+            "p99": 6.1856,
+            "max": 12.0861,
+            "mean": 0.2796
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1763,
+            "p95": 0.4006,
+            "p99": 33.9891,
+            "max": 296.8214,
+            "mean": 1.7502
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.36,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 56,
+      "at": "2026-08-10T07:26:53",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.2024,
+            "p95": 0.3587,
+            "p99": 5.9985,
+            "max": 29.8616,
+            "mean": 0.3946
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.39,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1539,
+            "p95": 0.3449,
+            "p99": 5.6927,
+            "max": 20.0966,
+            "mean": 0.3099
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.21,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 57,
+      "at": "2026-08-10T07:26:54",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1482,
+            "p95": 0.359,
+            "p99": 5.919,
+            "max": 22.7151,
+            "mean": 0.3784
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.2,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1757,
+            "p95": 0.3221,
+            "p99": 5.4675,
+            "max": 21.2285,
+            "mean": 0.3756
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.35,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 58,
+      "at": "2026-08-10T07:26:55",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1845,
+            "p95": 0.477,
+            "p99": 5.6611,
+            "max": 22.8039,
+            "mean": 0.4116
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.34,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1468,
+            "p95": 0.4108,
+            "p99": 4.8221,
+            "max": 24.6263,
+            "mean": 0.3858
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.21,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 59,
+      "at": "2026-08-10T07:26:56",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.147,
+            "p95": 0.353,
+            "p99": 4.4271,
+            "max": 24.8478,
+            "mean": 0.3851
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.2,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1727,
+            "p95": 0.4114,
+            "p99": 6.776,
+            "max": 22.8719,
+            "mean": 0.3501
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.36,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 60,
+      "at": "2026-08-10T07:26:56",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1806,
+            "p95": 0.4059,
+            "p99": 5.577,
+            "max": 21.2928,
+            "mean": 0.3395
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.35,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1466,
+            "p95": 0.4216,
+            "p99": 5.6198,
+            "max": 24.465,
+            "mean": 0.3937
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.22,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 61,
+      "at": "2026-08-10T07:26:57",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1486,
+            "p95": 0.3402,
+            "p99": 5.6492,
+            "max": 22.4462,
+            "mean": 0.3814
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.22,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1877,
+            "p95": 0.399,
+            "p99": 6.3114,
+            "max": 22.6723,
+            "mean": 0.4218
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.35,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 62,
+      "at": "2026-08-10T07:26:58",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1792,
+            "p95": 0.3479,
+            "p99": 5.4198,
+            "max": 19.4511,
+            "mean": 0.3762
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.35,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1421,
+            "p95": 0.2494,
+            "p99": 4.3649,
+            "max": 20.5643,
+            "mean": 0.2827
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.24,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 63,
+      "at": "2026-08-10T07:26:59",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1534,
+            "p95": 0.3265,
+            "p99": 5.959,
+            "max": 20.9841,
+            "mean": 0.3155
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.23,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1793,
+            "p95": 0.3588,
+            "p99": 6.4051,
+            "max": 21.9641,
+            "mean": 0.3493
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.35,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 64,
+      "at": "2026-08-10T07:27:00",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1856,
+            "p95": 0.3915,
+            "p99": 5.915,
+            "max": 19.9113,
+            "mean": 0.3428
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.36,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1474,
+            "p95": 0.3191,
+            "p99": 5.572,
+            "max": 18.7225,
+            "mean": 0.2968
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.31,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 65,
+      "at": "2026-08-10T07:27:01",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1466,
+            "p95": 0.327,
+            "p99": 4.8593,
+            "max": 20.8597,
+            "mean": 0.3534
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.21,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1747,
+            "p95": 0.3493,
+            "p99": 4.7832,
+            "max": 23.3447,
+            "mean": 0.3933
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.34,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 66,
+      "at": "2026-08-10T07:27:02",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1818,
+            "p95": 0.3785,
+            "p99": 5.8032,
+            "max": 19.7889,
+            "mean": 0.3365
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.34,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1484,
+            "p95": 0.3246,
+            "p99": 4.6592,
+            "max": 20.4324,
+            "mean": 0.3089
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.21,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 67,
+      "at": "2026-08-10T07:27:02",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1429,
+            "p95": 0.3183,
+            "p99": 4.9587,
+            "max": 13.7582,
+            "mean": 0.2724
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.19,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1781,
+            "p95": 0.3923,
+            "p99": 4.5272,
+            "max": 14.102,
+            "mean": 0.3366
+          },
+          "wal_peak_bytes": 4190072,
+          "drain_seconds": 0.3,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 68,
+      "at": "2026-08-10T07:27:03",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1804,
+            "p95": 0.3823,
+            "p99": 5.471,
+            "max": 12.7,
+            "mean": 0.3096
+          },
+          "wal_peak_bytes": 4128272,
+          "drain_seconds": 0.3,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1553,
+            "p95": 0.3447,
+            "p99": 5.7393,
+            "max": 12.3912,
+            "mean": 0.283
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.41,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 69,
+      "at": "2026-08-10T07:27:04",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1487,
+            "p95": 0.2263,
+            "p99": 5.1749,
+            "max": 12.9798,
+            "mean": 0.2872
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.19,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1785,
+            "p95": 0.3273,
+            "p99": 5.3533,
+            "max": 13.772,
+            "mean": 0.3278
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.31,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 70,
+      "at": "2026-08-10T07:27:05",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.173,
+            "p95": 0.3064,
+            "p99": 5.1556,
+            "max": 20.8949,
+            "mean": 0.3513
+          },
+          "wal_peak_bytes": 4198312,
+          "drain_seconds": 0.3,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1393,
+            "p95": 0.2983,
+            "p99": 5.2116,
+            "max": 12.9861,
+            "mean": 0.2898
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.19,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 71,
+      "at": "2026-08-10T07:27:05",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1445,
+            "p95": 0.3143,
+            "p99": 5.3389,
+            "max": 13.6527,
+            "mean": 0.3015
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1796,
+            "p95": 0.3542,
+            "p99": 6.8159,
+            "max": 12.3876,
+            "mean": 0.3078
+          },
+          "wal_peak_bytes": 4144752,
+          "drain_seconds": 0.3,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 72,
+      "at": "2026-08-10T07:27:06",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1778,
+            "p95": 0.3794,
+            "p99": 5.0199,
+            "max": 13.0674,
+            "mean": 0.2994
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.3,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.151,
+            "p95": 0.2846,
+            "p99": 5.6758,
+            "max": 12.7821,
+            "mean": 0.2711
+          },
+          "wal_peak_bytes": 4144752,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 73,
+      "at": "2026-08-10T07:27:07",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1496,
+            "p95": 0.307,
+            "p99": 10.9922,
+            "max": 13.1347,
+            "mean": 0.3263
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1795,
+            "p95": 0.3856,
+            "p99": 5.2465,
+            "max": 6.4575,
+            "mean": 0.2774
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 74,
+      "at": "2026-08-10T07:27:07",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1798,
+            "p95": 0.4147,
+            "p99": 5.7177,
+            "max": 6.0715,
+            "mean": 0.2812
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.29,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1535,
+            "p95": 0.2941,
+            "p99": 5.4406,
+            "max": 11.7437,
+            "mean": 0.2788
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 75,
+      "at": "2026-08-10T07:27:08",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1486,
+            "p95": 0.3751,
+            "p99": 5.9478,
+            "max": 12.9823,
+            "mean": 0.2816
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.28,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1834,
+            "p95": 0.3766,
+            "p99": 5.7571,
+            "max": 12.7933,
+            "mean": 0.3303
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.44,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 76,
+      "at": "2026-08-10T07:27:09",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1778,
+            "p95": 0.3905,
+            "p99": 5.4682,
+            "max": 6.4415,
+            "mean": 0.2804
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.152,
+            "p95": 0.2699,
+            "p99": 4.2592,
+            "max": 6.0364,
+            "mean": 0.2287
+          },
+          "wal_peak_bytes": 4144752,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 77,
+      "at": "2026-08-10T07:27:10",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1427,
+            "p95": 0.3056,
+            "p99": 4.5198,
+            "max": 5.1475,
+            "mean": 0.2251
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1779,
+            "p95": 0.3545,
+            "p99": 4.4577,
+            "max": 6.3897,
+            "mean": 0.2676
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 78,
+      "at": "2026-08-10T07:27:10",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1729,
+            "p95": 0.3332,
+            "p99": 5.0017,
+            "max": 5.3856,
+            "mean": 0.2563
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.28,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1444,
+            "p95": 0.3192,
+            "p99": 2.9175,
+            "max": 5.4523,
+            "mean": 0.22
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 79,
+      "at": "2026-08-10T07:27:11",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1494,
+            "p95": 0.3137,
+            "p99": 4.4293,
+            "max": 6.048,
+            "mean": 0.238
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1726,
+            "p95": 0.3241,
+            "p99": 5.2353,
+            "max": 6.4139,
+            "mean": 0.2626
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 80,
+      "at": "2026-08-10T07:27:12",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1788,
+            "p95": 0.3525,
+            "p99": 5.0557,
+            "max": 5.9223,
+            "mean": 0.2695
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1413,
+            "p95": 0.3104,
+            "p99": 4.0357,
+            "max": 4.8252,
+            "mean": 0.2194
+          },
+          "wal_peak_bytes": 4144752,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 81,
+      "at": "2026-08-10T07:27:12",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1435,
+            "p95": 0.327,
+            "p99": 5.3545,
+            "max": 6.6729,
+            "mean": 0.2465
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1755,
+            "p95": 0.3331,
+            "p99": 4.8237,
+            "max": 6.1707,
+            "mean": 0.2647
+          },
+          "wal_peak_bytes": 4144752,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 82,
+      "at": "2026-08-10T07:27:13",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1764,
+            "p95": 0.361,
+            "p99": 5.3724,
+            "max": 5.8536,
+            "mean": 0.268
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.36,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1422,
+            "p95": 0.3706,
+            "p99": 4.2867,
+            "max": 5.3231,
+            "mean": 0.2351
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.15,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 83,
+      "at": "2026-08-10T07:27:13",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1442,
+            "p95": 0.3191,
+            "p99": 5.1747,
+            "max": 6.8708,
+            "mean": 0.2427
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.15,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1772,
+            "p95": 0.3595,
+            "p99": 4.555,
+            "max": 8.6804,
+            "mean": 0.2909
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 84,
+      "at": "2026-08-10T07:27:14",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1797,
+            "p95": 0.3481,
+            "p99": 5.2927,
+            "max": 5.9976,
+            "mean": 0.2692
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1413,
+            "p95": 0.2972,
+            "p99": 4.8946,
+            "max": 5.25,
+            "mean": 0.2305
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 85,
+      "at": "2026-08-10T07:27:15",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1423,
+            "p95": 0.3491,
+            "p99": 4.9929,
+            "max": 6.1393,
+            "mean": 0.2414
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.15,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1772,
+            "p95": 0.318,
+            "p99": 4.8717,
+            "max": 5.6529,
+            "mean": 0.2557
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 86,
+      "at": "2026-08-10T07:27:16",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1757,
+            "p95": 0.3085,
+            "p99": 4.9783,
+            "max": 5.3125,
+            "mean": 0.2527
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1417,
+            "p95": 0.2874,
+            "p99": 5.1635,
+            "max": 5.3279,
+            "mean": 0.2288
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 87,
+      "at": "2026-08-10T07:27:16",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.146,
+            "p95": 0.3287,
+            "p99": 4.925,
+            "max": 5.359,
+            "mean": 0.2357
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1788,
+            "p95": 0.3766,
+            "p99": 4.7956,
+            "max": 6.6845,
+            "mean": 0.2704
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 88,
+      "at": "2026-08-10T07:27:17",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1847,
+            "p95": 0.3381,
+            "p99": 5.3315,
+            "max": 6.0833,
+            "mean": 0.2813
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1529,
+            "p95": 0.3151,
+            "p99": 4.5749,
+            "max": 5.3088,
+            "mean": 0.2424
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 89,
+      "at": "2026-08-10T07:27:17",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1481,
+            "p95": 0.3509,
+            "p99": 4.5997,
+            "max": 5.6318,
+            "mean": 0.242
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1787,
+            "p95": 0.3569,
+            "p99": 4.504,
+            "max": 7.5766,
+            "mean": 0.2786
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 90,
+      "at": "2026-08-10T07:27:18",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1849,
+            "p95": 0.3712,
+            "p99": 5.0008,
+            "max": 5.3652,
+            "mean": 0.2698
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1441,
+            "p95": 0.3724,
+            "p99": 4.323,
+            "max": 5.731,
+            "mean": 0.2411
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 91,
+      "at": "2026-08-10T07:27:19",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1459,
+            "p95": 0.3564,
+            "p99": 5.0938,
+            "max": 6.0818,
+            "mean": 0.2447
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1804,
+            "p95": 0.3913,
+            "p99": 4.8752,
+            "max": 5.8733,
+            "mean": 0.274
+          },
+          "wal_peak_bytes": 4202432,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 92,
+      "at": "2026-08-10T07:27:19",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.182,
+            "p95": 0.3368,
+            "p99": 5.1305,
+            "max": 5.8415,
+            "mean": 0.2685
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1713,
+            "p95": 0.4441,
+            "p99": 5.0988,
+            "max": 5.8452,
+            "mean": 0.2765
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 93,
+      "at": "2026-08-10T07:27:20",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1516,
+            "p95": 0.3562,
+            "p99": 4.4523,
+            "max": 5.4927,
+            "mean": 0.2418
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1899,
+            "p95": 0.3274,
+            "p99": 5.7515,
+            "max": 6.4104,
+            "mean": 0.2804
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 94,
+      "at": "2026-08-10T07:27:20",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1798,
+            "p95": 0.3504,
+            "p99": 4.9854,
+            "max": 5.1508,
+            "mean": 0.2648
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.68,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1612,
+            "p95": 0.3274,
+            "p99": 4.5589,
+            "max": 6.0386,
+            "mean": 0.2468
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 95,
+      "at": "2026-08-10T07:27:21",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1422,
+            "p95": 0.2476,
+            "p99": 4.1855,
+            "max": 6.72,
+            "mean": 0.2197
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1744,
+            "p95": 0.3196,
+            "p99": 4.2435,
+            "max": 6.6964,
+            "mean": 0.2662
+          },
+          "wal_peak_bytes": 4190072,
+          "drain_seconds": 0.28,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 96,
+      "at": "2026-08-10T07:27:22",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1797,
+            "p95": 0.3075,
+            "p99": 4.7378,
+            "max": 6.7285,
+            "mean": 0.2663
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1447,
+            "p95": 0.3364,
+            "p99": 5.1412,
+            "max": 5.4163,
+            "mean": 0.2358
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 97,
+      "at": "2026-08-10T07:27:22",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1477,
+            "p95": 0.2943,
+            "p99": 4.0479,
+            "max": 10.332,
+            "mean": 0.2528
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1825,
+            "p95": 0.4089,
+            "p99": 4.3756,
+            "max": 6.4822,
+            "mean": 0.2792
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 98,
+      "at": "2026-08-10T07:27:23",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1769,
+            "p95": 0.3422,
+            "p99": 4.9488,
+            "max": 5.9951,
+            "mean": 0.264
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1449,
+            "p95": 0.3124,
+            "p99": 4.1503,
+            "max": 5.5642,
+            "mean": 0.2307
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 99,
+      "at": "2026-08-10T07:27:24",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1433,
+            "p95": 0.3763,
+            "p99": 5.4879,
+            "max": 6.1697,
+            "mean": 0.2494
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1919,
+            "p95": 0.3931,
+            "p99": 5.6012,
+            "max": 7.4114,
+            "mean": 0.2934
+          },
+          "wal_peak_bytes": 4198312,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 100,
+      "at": "2026-08-10T07:27:24",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1802,
+            "p95": 0.37,
+            "p99": 5.006,
+            "max": 5.7643,
+            "mean": 0.2685
+          },
+          "wal_peak_bytes": 4144752,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1426,
+            "p95": 0.3188,
+            "p99": 5.3261,
+            "max": 6.7653,
+            "mean": 0.2412
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 101,
+      "at": "2026-08-10T07:27:25",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1408,
+            "p95": 0.2889,
+            "p99": 4.2918,
+            "max": 6.1943,
+            "mean": 0.2319
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1766,
+            "p95": 0.3652,
+            "p99": 4.3142,
+            "max": 6.2048,
+            "mean": 0.2659
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 102,
+      "at": "2026-08-10T07:27:25",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1923,
+            "p95": 0.3597,
+            "p99": 5.0155,
+            "max": 6.0877,
+            "mean": 0.2787
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1424,
+            "p95": 0.3262,
+            "p99": 4.5742,
+            "max": 6.1847,
+            "mean": 0.2338
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.18,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 103,
+      "at": "2026-08-10T07:27:26",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1538,
+            "p95": 0.3331,
+            "p99": 4.3809,
+            "max": 5.928,
+            "mean": 0.2472
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.56,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1835,
+            "p95": 0.3108,
+            "p99": 4.4779,
+            "max": 5.9587,
+            "mean": 0.2637
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 104,
+      "at": "2026-08-10T07:27:27",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1826,
+            "p95": 0.3857,
+            "p99": 6.7114,
+            "max": 15.6358,
+            "mean": 0.3376
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.35,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1508,
+            "p95": 0.4808,
+            "p99": 5.2684,
+            "max": 21.175,
+            "mean": 0.3224
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.22,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 105,
+      "at": "2026-08-10T07:27:28",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1695,
+            "p95": 0.4155,
+            "p99": 6.4706,
+            "max": 20.8604,
+            "mean": 0.3343
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.22,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1927,
+            "p95": 0.3687,
+            "p99": 5.5421,
+            "max": 22.828,
+            "mean": 0.4243
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.35,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 106,
+      "at": "2026-08-10T07:27:29",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1792,
+            "p95": 0.3977,
+            "p99": 5.5231,
+            "max": 20.5698,
+            "mean": 0.3892
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.35,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1433,
+            "p95": 0.4208,
+            "p99": 5.3502,
+            "max": 22.309,
+            "mean": 0.3714
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.22,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 107,
+      "at": "2026-08-10T07:27:29",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1446,
+            "p95": 0.3458,
+            "p99": 5.6997,
+            "max": 21.5469,
+            "mean": 0.3659
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.22,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1935,
+            "p95": 0.4256,
+            "p99": 4.219,
+            "max": 31.5644,
+            "mean": 0.3905
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.35,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 108,
+      "at": "2026-08-10T07:27:30",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.2213,
+            "p95": 0.4113,
+            "p99": 5.8927,
+            "max": 22.1657,
+            "mean": 0.4372
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.39,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1477,
+            "p95": 0.4293,
+            "p99": 5.6003,
+            "max": 32.944,
+            "mean": 0.4287
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.21,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 109,
+      "at": "2026-08-10T07:27:31",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1515,
+            "p95": 0.4229,
+            "p99": 6.1535,
+            "max": 21.6762,
+            "mean": 0.3305
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.23,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1821,
+            "p95": 0.4833,
+            "p99": 5.5971,
+            "max": 30.3196,
+            "mean": 0.3955
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.65,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 110,
+      "at": "2026-08-10T07:27:32",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.174,
+            "p95": 0.3265,
+            "p99": 5.4442,
+            "max": 30.8202,
+            "mean": 0.4338
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.49,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1421,
+            "p95": 0.3114,
+            "p99": 5.3423,
+            "max": 34.3923,
+            "mean": 0.4251
+          },
+          "wal_peak_bytes": 4198312,
+          "drain_seconds": 0.23,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 111,
+      "at": "2026-08-10T07:27:33",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1502,
+            "p95": 0.3374,
+            "p99": 6.4563,
+            "max": 23.9932,
+            "mean": 0.3256
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.26,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1976,
+            "p95": 0.4371,
+            "p99": 6.0056,
+            "max": 34.9659,
+            "mean": 0.4166
+          },
+          "wal_peak_bytes": 4198312,
+          "drain_seconds": 0.43,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 112,
+      "at": "2026-08-10T07:27:34",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1872,
+            "p95": 0.3387,
+            "p99": 5.3444,
+            "max": 34.795,
+            "mean": 0.3974
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.42,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1483,
+            "p95": 0.2937,
+            "p99": 5.368,
+            "max": 21.4516,
+            "mean": 0.3034
+          },
+          "wal_peak_bytes": 4190072,
+          "drain_seconds": 0.24,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 113,
+      "at": "2026-08-10T07:27:35",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1458,
+            "p95": 0.2813,
+            "p99": 4.4214,
+            "max": 6.5902,
+            "mean": 0.2367
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1795,
+            "p95": 0.3364,
+            "p99": 5.7625,
+            "max": 6.9288,
+            "mean": 0.2817
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.32,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 114,
+      "at": "2026-08-10T07:27:36",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1832,
+            "p95": 0.4359,
+            "p99": 6.3464,
+            "max": 31.5465,
+            "mean": 0.3879
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.41,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.149,
+            "p95": 0.37,
+            "p99": 5.4473,
+            "max": 31.2087,
+            "mean": 0.417
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.22,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 115,
+      "at": "2026-08-10T07:27:37",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1518,
+            "p95": 0.3752,
+            "p99": 5.0101,
+            "max": 21.175,
+            "mean": 0.3137
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.24,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1796,
+            "p95": 0.4094,
+            "p99": 5.8099,
+            "max": 33.2191,
+            "mean": 0.3982
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.62,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 116,
+      "at": "2026-08-10T07:27:38",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1796,
+            "p95": 0.4162,
+            "p99": 5.7989,
+            "max": 33.8579,
+            "mean": 0.4552
+          },
+          "wal_peak_bytes": 4190072,
+          "drain_seconds": 0.37,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1469,
+            "p95": 0.2878,
+            "p99": 5.941,
+            "max": 22.6794,
+            "mean": 0.3694
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.22,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 117,
+      "at": "2026-08-10T07:27:39",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1485,
+            "p95": 0.3316,
+            "p99": 5.2304,
+            "max": 22.4502,
+            "mean": 0.3779
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.22,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1756,
+            "p95": 0.3156,
+            "p99": 5.7459,
+            "max": 21.9084,
+            "mean": 0.3966
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.37,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 118,
+      "at": "2026-08-10T07:27:39",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1789,
+            "p95": 0.36,
+            "p99": 5.4477,
+            "max": 20.9105,
+            "mean": 0.3428
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.37,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1449,
+            "p95": 0.3054,
+            "p99": 5.907,
+            "max": 21.3668,
+            "mean": 0.3675
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.2,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 119,
+      "at": "2026-08-10T07:27:40",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1522,
+            "p95": 0.3096,
+            "p99": 6.8842,
+            "max": 61.8126,
+            "mean": 0.605
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.55,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1773,
+            "p95": 0.497,
+            "p99": 64.871,
+            "max": 79.6433,
+            "mean": 1.1145
+          },
+          "wal_peak_bytes": 4144752,
+          "drain_seconds": 1.05,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 120,
+      "at": "2026-08-10T07:27:42",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1802,
+            "p95": 0.4488,
+            "p99": 80.9392,
+            "max": 89.0176,
+            "mean": 1.3208
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 1.44,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1412,
+            "p95": 0.2917,
+            "p99": 72.7557,
+            "max": 105.2597,
+            "mean": 1.2008
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.52,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 121,
+      "at": "2026-08-10T07:27:45",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1513,
+            "p95": 0.3907,
+            "p99": 65.17,
+            "max": 81.7971,
+            "mean": 1.0548
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.51,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1831,
+            "p95": 0.5103,
+            "p99": 61.8637,
+            "max": 75.3518,
+            "mean": 1.0343
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.5,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 122,
+      "at": "2026-08-10T07:27:47",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.178,
+            "p95": 0.4417,
+            "p99": 4.9864,
+            "max": 6.6033,
+            "mean": 0.2817
+          },
+          "wal_peak_bytes": 4202432,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1442,
+            "p95": 0.2931,
+            "p99": 4.9794,
+            "max": 5.2195,
+            "mean": 0.2335
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 123,
+      "at": "2026-08-10T07:27:47",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1446,
+            "p95": 0.3138,
+            "p99": 4.6814,
+            "max": 6.4155,
+            "mean": 0.2406
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1767,
+            "p95": 0.3783,
+            "p99": 5.8078,
+            "max": 6.5656,
+            "mean": 0.279
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 124,
+      "at": "2026-08-10T07:27:48",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1793,
+            "p95": 0.4694,
+            "p99": 5.2229,
+            "max": 5.5948,
+            "mean": 0.2797
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1515,
+            "p95": 0.3699,
+            "p99": 4.9711,
+            "max": 7.2643,
+            "mean": 0.2548
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 125,
+      "at": "2026-08-10T07:27:49",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1481,
+            "p95": 0.3809,
+            "p99": 4.6102,
+            "max": 5.3996,
+            "mean": 0.2361
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.177,
+            "p95": 0.348,
+            "p99": 4.2376,
+            "max": 6.511,
+            "mean": 0.2641
+          },
+          "wal_peak_bytes": 4190072,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 126,
+      "at": "2026-08-10T07:27:49",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1846,
+            "p95": 0.3409,
+            "p99": 4.8394,
+            "max": 5.7699,
+            "mean": 0.2767
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1485,
+            "p95": 0.301,
+            "p99": 4.7355,
+            "max": 5.8071,
+            "mean": 0.2342
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 127,
+      "at": "2026-08-10T07:27:50",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1643,
+            "p95": 0.3254,
+            "p99": 4.5753,
+            "max": 5.8511,
+            "mean": 0.2467
+          },
+          "wal_peak_bytes": 4161232,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1867,
+            "p95": 0.3736,
+            "p99": 3.1048,
+            "max": 6.0866,
+            "mean": 0.2697
+          },
+          "wal_peak_bytes": 4190072,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 128,
+      "at": "2026-08-10T07:27:51",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1776,
+            "p95": 0.3606,
+            "p99": 4.6919,
+            "max": 6.9496,
+            "mean": 0.2688
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1444,
+            "p95": 0.2738,
+            "p99": 4.7407,
+            "max": 6.0569,
+            "mean": 0.2299
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 129,
+      "at": "2026-08-10T07:27:51",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1409,
+            "p95": 0.3006,
+            "p99": 4.3633,
+            "max": 6.8371,
+            "mean": 0.2353
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1773,
+            "p95": 0.3333,
+            "p99": 4.4381,
+            "max": 6.7859,
+            "mean": 0.2715
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 130,
+      "at": "2026-08-10T07:27:52",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1841,
+            "p95": 0.3468,
+            "p99": 5.421,
+            "max": 6.4116,
+            "mean": 0.2798
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1577,
+            "p95": 0.4112,
+            "p99": 4.1455,
+            "max": 5.6114,
+            "mean": 0.2503
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 131,
+      "at": "2026-08-10T07:27:52",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1446,
+            "p95": 0.3195,
+            "p99": 3.9581,
+            "max": 6.267,
+            "mean": 0.2405
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1971,
+            "p95": 0.4886,
+            "p99": 4.7241,
+            "max": 6.9828,
+            "mean": 0.3018
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 132,
+      "at": "2026-08-10T07:27:53",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1961,
+            "p95": 0.3724,
+            "p99": 3.643,
+            "max": 5.4763,
+            "mean": 0.2785
+          },
+          "wal_peak_bytes": 4198312,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1632,
+            "p95": 0.3392,
+            "p99": 4.8012,
+            "max": 5.9396,
+            "mean": 0.2531
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 133,
+      "at": "2026-08-10T07:27:54",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1568,
+            "p95": 0.385,
+            "p99": 4.5205,
+            "max": 5.5912,
+            "mean": 0.2482
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.2061,
+            "p95": 0.3751,
+            "p99": 5.0622,
+            "max": 6.6712,
+            "mean": 0.2974
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 134,
+      "at": "2026-08-10T07:27:54",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1946,
+            "p95": 0.4068,
+            "p99": 4.4146,
+            "max": 106.4243,
+            "mean": 0.6859
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.24,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1564,
+            "p95": 0.2486,
+            "p99": 4.7761,
+            "max": 5.1364,
+            "mean": 0.2289
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 135,
+      "at": "2026-08-10T07:27:55",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1422,
+            "p95": 0.2464,
+            "p99": 4.6935,
+            "max": 5.4283,
+            "mean": 0.2197
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1742,
+            "p95": 0.3189,
+            "p99": 4.6521,
+            "max": 6.1164,
+            "mean": 0.2658
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 136,
+      "at": "2026-08-10T07:27:56",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1757,
+            "p95": 0.2983,
+            "p99": 5.0696,
+            "max": 6.159,
+            "mean": 0.2637
+          },
+          "wal_peak_bytes": 4132392,
+          "drain_seconds": 0.28,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1652,
+            "p95": 0.329,
+            "p99": 5.1754,
+            "max": 5.3391,
+            "mean": 0.2558
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 137,
+      "at": "2026-08-10T07:27:56",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1594,
+            "p95": 0.4053,
+            "p99": 4.767,
+            "max": 5.7461,
+            "mean": 0.257
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.172,
+            "p95": 0.3338,
+            "p99": 5.3418,
+            "max": 7.0917,
+            "mean": 0.2725
+          },
+          "wal_peak_bytes": 4140632,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 138,
+      "at": "2026-08-10T07:27:57",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1756,
+            "p95": 0.3169,
+            "p99": 4.9232,
+            "max": 7.0631,
+            "mean": 0.2677
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.143,
+            "p95": 0.3654,
+            "p99": 4.7049,
+            "max": 6.1492,
+            "mean": 0.239
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 139,
+      "at": "2026-08-10T07:27:58",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1483,
+            "p95": 0.3675,
+            "p99": 5.1322,
+            "max": 6.9376,
+            "mean": 0.2542
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1764,
+            "p95": 0.4148,
+            "p99": 4.6967,
+            "max": 5.6808,
+            "mean": 0.2733
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 140,
+      "at": "2026-08-10T07:27:58",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1783,
+            "p95": 0.3439,
+            "p99": 5.3672,
+            "max": 5.7875,
+            "mean": 0.2688
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1452,
+            "p95": 0.3139,
+            "p99": 5.3694,
+            "max": 5.4645,
+            "mean": 0.2408
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 141,
+      "at": "2026-08-10T07:27:59",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1459,
+            "p95": 0.4057,
+            "p99": 4.5591,
+            "max": 6.8146,
+            "mean": 0.2464
+          },
+          "wal_peak_bytes": 4165352,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1806,
+            "p95": 0.4362,
+            "p99": 5.6177,
+            "max": 7.9245,
+            "mean": 0.2873
+          },
+          "wal_peak_bytes": 4190072,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 142,
+      "at": "2026-08-10T07:27:59",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.182,
+            "p95": 0.3483,
+            "p99": 4.9172,
+            "max": 6.9757,
+            "mean": 0.2749
+          },
+          "wal_peak_bytes": 4148872,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1451,
+            "p95": 0.3145,
+            "p99": 4.2123,
+            "max": 5.7017,
+            "mean": 0.2328
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.56,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 143,
+      "at": "2026-08-10T07:28:00",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1465,
+            "p95": 0.222,
+            "p99": 4.3267,
+            "max": 5.8263,
+            "mean": 0.2232
+          },
+          "wal_peak_bytes": 4169472,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.199,
+            "p95": 0.3719,
+            "p99": 4.6806,
+            "max": 6.9643,
+            "mean": 0.2803
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.29,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 144,
+      "at": "2026-08-10T07:28:01",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.184,
+            "p95": 0.3453,
+            "p99": 4.7527,
+            "max": 6.7937,
+            "mean": 0.2822
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1443,
+            "p95": 0.2937,
+            "p99": 4.5724,
+            "max": 6.6896,
+            "mean": 0.2346
+          },
+          "wal_peak_bytes": 4157112,
+          "drain_seconds": 0.17,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 145,
+      "at": "2026-08-10T07:28:02",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1426,
+            "p95": 0.3336,
+            "p99": 5.0039,
+            "max": 5.4585,
+            "mean": 0.2376
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1825,
+            "p95": 0.3405,
+            "p99": 5.2936,
+            "max": 6.0296,
+            "mean": 0.2751
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.26,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 146,
+      "at": "2026-08-10T07:28:02",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1734,
+            "p95": 0.4084,
+            "p99": 5.1684,
+            "max": 5.3326,
+            "mean": 0.2624
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1489,
+            "p95": 0.2788,
+            "p99": 2.8984,
+            "max": 5.288,
+            "mean": 0.2248
+          },
+          "wal_peak_bytes": 4173592,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 147,
+      "at": "2026-08-10T07:28:03",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1409,
+            "p95": 0.31,
+            "p99": 4.6835,
+            "max": 6.3554,
+            "mean": 0.2391
+          },
+          "wal_peak_bytes": 4152992,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        },
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.2013,
+            "p95": 0.4881,
+            "p99": 5.4864,
+            "max": 7.3197,
+            "mean": 0.3175
+          },
+          "wal_peak_bytes": 4177712,
+          "drain_seconds": 0.25,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        }
+      ]
+    },
+    {
+      "cycle": 148,
+      "at": "2026-08-10T07:28:03",
+      "first": "joined",
+      "arms": [
+        {
+          "arm": "joined",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1775,
+            "p95": 0.3552,
+            "p99": 5.4033,
+            "max": 5.8652,
+            "mean": 0.2706
+          },
+          "wal_peak_bytes": 4185952,
+          "drain_seconds": 0.27,
+          "completed": 500,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 250
+        },
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1456,
+            "p95": 0.3411,
+            "p99": 5.1866,
+            "max": 5.5323,
+            "mean": 0.2406
+          },
+          "wal_peak_bytes": 4194192,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    },
+    {
+      "cycle": 149,
+      "at": "2026-08-10T07:28:04",
+      "first": "baseline",
+      "arms": [
+        {
+          "arm": "baseline",
+          "events": 250,
+          "observe_ms": {
+            "p50": 0.1453,
+            "p95": 0.3108,
+            "p99": 4.7777,
+            "max": 6.0893,
+            "mean": 0.2401
+          },
+          "wal_peak_bytes": 4181832,
+          "drain_seconds": 0.16,
+          "completed": 250,
+          "skipped": 0,
+          "failed": 0,
+          "dead_lettered": 0,
+          "labels_pending": 0
+        }
+      ]
+    }
+  ],
+  "cycles_completed": 149,
+  "last_write": "2026-08-10T07:28:04",
+  "ended_at": "2026-08-10T07:28:04"
+}
