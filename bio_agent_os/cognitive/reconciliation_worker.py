@@ -536,11 +536,19 @@ def worker_for(memory_os: Any, *, manage_wal: bool = True, **kwargs: Any) -> Rec
 def build_default_builders(memory_store: Any) -> dict[str, ProjectionBuilder]:
     """The builders shipped with the kernel.
 
-    Only `cognitive_memory` today. The other four registry types have no
-    builder yet, and a job for one of them dead-letters with that stated
+    `cognitive_memory` and `hippocampus_label`. The other three registry types
+    have no builder yet, and a job for one of them dead-letters with that stated
     reason rather than silently doing nothing.
+
+    The two are independent by design: a `hippocampus_label` job that fails must
+    not stop a memory being written or retrieved. Enrichment, not a dependency.
     """
-    return {CognitiveMemoryBuilder.projection_type: CognitiveMemoryBuilder(memory_store)}
+    from .hippocampus_label import HippocampusLabelBuilder
+
+    return {
+        CognitiveMemoryBuilder.projection_type: CognitiveMemoryBuilder(memory_store),
+        HippocampusLabelBuilder.projection_type: HippocampusLabelBuilder(),
+    }
 
 
 __all__ = [

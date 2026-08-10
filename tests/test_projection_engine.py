@@ -50,9 +50,13 @@ def engine(store: SQLiteEventStore) -> ProjectionReplayEngine:
 # -- registry ---------------------------------------------------------------
 
 
-def test_registry_covers_all_six_stores():
+def test_registry_covers_every_target_store():
+    # Named for the property, not the count: the old name said "six stores"
+    # while asserting five, and then a sixth arrived.
     stores = {s.target_store for s in REGISTRY.values()}
-    assert stores == {"memories", "self_model", "prospective", "context_blocks", "checkpoints"}
+    assert stores == {"memories", "self_model", "prospective", "context_blocks",
+                      "checkpoints", "hippocampus_labels"}
+    assert len(stores) == len(REGISTRY), "two types share a target store"
 
 
 def test_context_and_checkpoint_depend_on_memory():

@@ -263,21 +263,17 @@ class Hippocampus:
     )
 
     def _cheap_label(self, content: str) -> Dict[str, Any]:
-        text = " ".join(str(content).split())
-        stripped = text.lower().strip(" .!?,:;")
-        is_junk = len(stripped) <= 24 and any(
-            stripped == marker or stripped.startswith(marker + " ") for marker in self._JUNK_MARKERS
-        )
-        # Digits often carry the facts worth keeping (codes, dates, amounts).
-        importance = 3 if is_junk else (7 if any(char.isdigit() for char in text) else 5)
-        return {
-            "topic": "unlabeled",
-            "importance_score": importance,
-            "is_junk_or_transient": is_junk,
-            "user_state": "unknown",
-            # Consolidation looks for this to fill in the real label later.
-            "label_pending": True,
-        }
+        # Delegates to `cognitive/hippocampus_label.py`, which is the same code
+        # the write-path builder runs. Two copies of "what counts as junk" would
+        # drift, and then a memory labelled one way at write time would be
+        # labelled another way at consolidation for no visible reason.
+        #
+        # The import points background_jobs -> cognitive and never the other
+        # way: cognitive/ must keep working with no model, no engine and no
+        # Qdrant, so it cannot depend on anything here.
+        from bio_agent_os.cognitive.hippocampus_label import cheap_label
+
+        return cheap_label(content).as_dict()
 
     async def label_and_store(
         self,

@@ -120,7 +120,9 @@ def test_unsupported_capabilities_are_reported_as_capability_gaps(os_):
 
 def test_summary_never_hides_unsupported_types(os_):
     data = _scan(os_).as_dict()
-    assert data["supported_projection_types"] == [MEMORY]
+    assert set(data["supported_projection_types"]) == {
+        MEMORY, ProjectionType.HIPPOCAMPUS_LABEL.value
+    }
     assert set(data["unsupported_projection_types"]) == set(unsupported_types())
     assert "unsupported" in _scan(os_).render()
 

@@ -73,6 +73,19 @@ CAPABILITIES: dict[str, ProjectionCapability] = {
         ProjectionType.CHECKPOINT_REFERENCE, builder=False, shadow=False,
         reason="no builder implemented; pins a memory version and is not replayable",
     ),
+    #: `shadow_supported=False` is the honest value, and it does **not** mean
+    #: what the join plan calls "running in the shadow". Shadow mode here
+    #: compares a projection against a legacy implementation of the same thing;
+    #: there has never been a legacy hippocampus label, so there is nothing to
+    #: compare against and claiming otherwise would fabricate a comparison.
+    #: The plan's sense — written, but never read for ranking — is enforced by
+    #: nothing in retrieval reading `hippocampus_labels`, and holds until
+    #: Phase 3 shows the labels make answers better.
+    ProjectionType.HIPPOCAMPUS_LABEL.value: _capability(
+        ProjectionType.HIPPOCAMPUS_LABEL, builder=True, shadow=False,
+        reason="deterministic builder only; the model upgrades labels "
+               "asynchronously and is never on the write path",
+    ),
 }
 
 

@@ -85,8 +85,14 @@ def _observe_and_remember(os_: MemoryOS, content="hello world", tenant="t1",
 # ==========================================================================
 
 
-def test_only_cognitive_memory_is_supported():
-    assert supported_types() == (COGNITIVE_MEMORY,)
+def test_which_types_have_a_builder():
+    # Was `test_only_cognitive_memory_is_supported`. `hippocampus_label` gained
+    # a builder on 2026-08-10 — a deterministic one that writes a cheap label
+    # inside the write transaction, with the model call moved outside it.
+    assert set(supported_types()) == {
+        COGNITIVE_MEMORY,
+        ProjectionType.HIPPOCAMPUS_LABEL.value,
+    }
     assert set(unsupported_types()) == {
         ProjectionType.SELF_MODEL_UPDATE.value,
         ProjectionType.PROSPECTIVE_MEMORY.value,
@@ -121,8 +127,19 @@ def test_enqueueable_splits_supported_from_missing():
     assert skipped == (ProjectionType.CONTEXT_BLOCK.value,)
 
 
-def test_shadow_types_matches_supported_types():
-    assert shadow_types() == supported_types()
+def test_shadow_types_are_a_subset_of_supported_types():
+    """This used to assert equality, and equality held only because there was
+    exactly one type. It is not the invariant.
+
+    The invariant is one-directional: you cannot shadow what you cannot build,
+    so every shadow type must be supported — but a supported type need not be
+    shadowable. `hippocampus_label` is the case that separates them: it has a
+    builder, and it has no legacy implementation to be compared against,
+    because there has never been one. Asserting equality again would force a
+    future type to fabricate a comparison in order to pass.
+    """
+    assert set(shadow_types()) <= set(supported_types())
+    assert set(shadow_types()) == {COGNITIVE_MEMORY}
 
 
 # ==========================================================================

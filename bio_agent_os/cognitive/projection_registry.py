@@ -34,6 +34,7 @@ class ProjectionType(str, Enum):
     PROSPECTIVE_MEMORY = "prospective_memory"
     CONTEXT_BLOCK = "context_block"
     CHECKPOINT_REFERENCE = "checkpoint_reference"
+    HIPPOCAMPUS_LABEL = "hippocampus_label"
 
 
 class DependencyState(str, Enum):
@@ -104,6 +105,18 @@ REGISTRY: dict[ProjectionType, ProjectionSpec] = {
         #: is not the same checkpoint. Repair must be reported, not automatic.
         replayable=False,
         description="Agent checkpoint pinned to a memory version.",
+    ),
+    ProjectionType.HIPPOCAMPUS_LABEL: ProjectionSpec(
+        projection_type=ProjectionType.HIPPOCAMPUS_LABEL,
+        version=1,
+        target_store="hippocampus_labels",
+        #: No `depends_on`, on purpose. If the label path dies the memory must
+        #: still be written and still be retrievable — enrichment, never a
+        #: prerequisite. Declaring a dependency on cognitive_memory would make
+        #: a label failure able to block a memory, which is backwards.
+        replayable=True,
+        description="Deterministic label written on the write path; a model "
+                    "upgrades it later, outside any transaction.",
     ),
 }
 
