@@ -53,7 +53,9 @@ BODY = (
 )
 JUNK = "oke em"
 
-LABEL_ENV = "BIO_AGENT_HIPPOCAMPUS_LABEL"
+# There used to be a BIO_AGENT_HIPPOCAMPUS_LABEL switch here, because labels
+# were enqueued inside observe(). They are not any more — the soak measured that
+# design at +0.196 ms p95 on every write — so there is nothing left to switch.
 
 
 def _pct(values: list[float], q: float) -> float:
@@ -68,12 +70,19 @@ def _wal_bytes(db: Path) -> int:
 
 def run_window(db: Path, *, with_label: bool, events: int,
                drain: bool) -> dict[str, Any]:
-    """One arm: write `events` observations, then optionally drain the queue."""
-    from bio_agent_os.cognitive.facade import MemoryOS
-    from bio_agent_os.cognitive.hippocampus_label import pending_count
-    from bio_agent_os.cognitive.reconciliation_worker import worker_for
+    """One arm: write `events` observations, then optionally drain the queue.
 
-    os.environ[LABEL_ENV] = "1" if with_label else "0"
+    `with_label` no longer changes what `observe()` does — that is the whole
+    point of the redesign. Labels are enqueued by `backfill_labels()` *after*
+    the write window closes, so the latency being compared is the latency of an
+    identical write path in both arms. If the two arms now differ, the
+    difference is measurement noise and not the feature.
+    """
+    from bio_agent_os.cognitive.facade import MemoryOS
+    from bio_agent_os.cognitive.hippocampus_label import (
+        backfill_labels, pending_count, unlabelled_count,
+    )
+    from bio_agent_os.cognitive.reconciliation_worker import worker_for
 
     memory_os = MemoryOS(db, projection_mode="shadow")
     latencies: list[float] = []
@@ -89,6 +98,26 @@ def run_window(db: Path, *, with_label: bool, events: int,
             wal_peak = max(wal_peak, _wal_bytes(db))
 
     wal_peak = max(wal_peak, _wal_bytes(db))
+
+    # Off the write path, after the window that is being timed. Bounded and
+    # looped rather than unbounded: an unbounded scan on a large database holds
+    # a read snapshot, and a held read snapshot is what ended canary runs 8
+    # and 9.
+    backfill: dict[str, Any] = {}
+    if with_label:
+        started = time.perf_counter()
+        enqueued = 0
+        while True:
+            batch = backfill_labels(memory_os.events.conn, memory_os.events.outbox,
+                                    limit=1_000)
+            enqueued += batch
+            if batch == 0:
+                break
+        backfill = {
+            "backfill_seconds": round(time.perf_counter() - started, 3),
+            "backfill_enqueued": enqueued,
+            "still_unlabelled": unlabelled_count(memory_os.events.conn),
+        }
 
     drained: dict[str, Any] = {}
     if drain:
@@ -121,6 +150,7 @@ def run_window(db: Path, *, with_label: bool, events: int,
             "mean": round(statistics.fmean(latencies), 4),
         },
         "wal_peak_bytes": wal_peak,
+        **backfill,
         **drained,
     }
 
@@ -136,6 +166,13 @@ def main() -> int:
                     help="seconds between cycles; keeps a 36-hour run from "
                          "pinning a core flat out and turning the measurement "
                          "into a thermal-throttling curve")
+    ap.add_argument("--aa", action="store_true",
+                    help="run BOTH arms as baseline. This measures the noise "
+                         "floor — what 'no difference' looks like on this "
+                         "machine — so a threshold can be derived from data "
+                         "instead of picked because it is a round number. The "
+                         "previous run failed a 0.10 ms bar that was chosen "
+                         "before anyone knew what 0.10 ms meant here.")
     ap.add_argument("--out", default="reports/join_soak.json")
     args = ap.parse_args()
 
@@ -161,19 +198,24 @@ def main() -> int:
             # Alternate which arm goes first so a machine that drifts over the
             # run cannot hand one arm a penalty it did not earn.
             order = [False, True] if cycle % 2 else [True, False]
+            if args.aa:
+                order = [False, False]
             record: dict[str, Any] = {"cycle": cycle,
                                       "at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                                       "first": "joined" if order[0] else "baseline",
                                       "arms": []}
-            for with_label in order:
+            for slot, with_label in enumerate(order):
                 if time.time() >= deadline:
                     break
-                db = workdir / f"c{cycle}-{'j' if with_label else 'b'}.db"
+                db = workdir / f"c{cycle}-{slot}-{'j' if with_label else 'b'}.db"
                 try:
-                    record["arms"].append(
-                        run_window(db, with_label=with_label,
-                                   events=args.events, drain=args.drain)
-                    )
+                    arm = run_window(db, with_label=with_label,
+                                     events=args.events, drain=args.drain)
+                    # In A/A both arms are baseline, so they need distinct
+                    # names or the comparison collapses into one bucket.
+                    if args.aa:
+                        arm["arm"] = "baseline" if slot == 0 else "joined"
+                    record["arms"].append(arm)
                 except Exception as exc:               # a cycle may fail; the run continues
                     record["arms"].append({
                         "arm": "joined" if with_label else "baseline",

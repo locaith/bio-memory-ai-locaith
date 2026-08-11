@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -132,17 +131,27 @@ class MemoryOS:
         """What this observation owes, given the mode and what can be built.
 
         Legacy owes nothing, which is exactly the behaviour that shipped.
-        Shadow owes a cognitive_memory job, and — only when explicitly switched
-        on — a hippocampus_label job beside it. The remaining types have no
-        builder, and enqueueing work that can only dead-letter would turn a
-        missing capability into noise.
+        Shadow owes a cognitive_memory job and nothing else. The other types
+        have no builder, and enqueueing work that can only dead-letter would
+        turn a missing capability into noise.
 
-        The label is **off by default**, deliberately. Turning it on for every
-        existing deployment as a side effect of the code landing would change
-        queue depth for databases nobody asked on behalf of. It is one
-        environment variable, and it is measured before it is recommended:
+        **The hippocampus label is deliberately not here**, and the 36-hour A/B
+        soak of 2026-08-11 is why. Enqueueing a second outbox row per
+        observation cost +0.196 ms at p95 and took the share of cycles breaching
+        the 1.0 ms SLO from 0.21% to 2.31%. Nothing degraded over 36 hours and
+        no job was ever lost — the write path handled it — but it was a real
+        cost paid on every single write, for ever.
 
-            BIO_AGENT_HIPPOCAMPUS_LABEL=1
+        The outbox exists so a projection cannot be lost: leases, retries,
+        dead-letter, exactly-once. A memory needs that, because a memory that
+        goes missing is gone. A label does not: it is derived data, recomputable
+        from an immutable event at any later time. "Unlabelled" is a property of
+        the data, discoverable by a join, not a fact that has to be remembered
+        in a queue at the moment of writing.
+
+        So labels are enqueued by `backfill_labels()`, off this path, in
+        batches. `observe()` pays nothing, and stays byte-identical to the path
+        nine canary runs hardened. See `reports/join_soak_verdict.md`.
 
         Wrapped because deciding must never be able to fail an observe() that
         would otherwise have succeeded.
@@ -150,12 +159,7 @@ class MemoryOS:
         try:
             if self.projection_mode is ProjectionMode.LEGACY:
                 return ()
-            wanted = (COGNITIVE_MEMORY,)
-            if os.environ.get("BIO_AGENT_HIPPOCAMPUS_LABEL", "0").strip() == "1":
-                from .projection_registry import ProjectionType
-
-                wanted = (*wanted, ProjectionType.HIPPOCAMPUS_LABEL.value)
-            supported, skipped = enqueueable(wanted)
+            supported, skipped = enqueueable((COGNITIVE_MEMORY,))
             if skipped:
                 logger.warning("skipping unsupported projection types: %s", skipped)
             return supported

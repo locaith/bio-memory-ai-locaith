@@ -180,6 +180,77 @@ class HippocampusLabelBuilder:
         return BuildResult(BuildOutcome.BUILT.value, target_id=job.key)
 
 
+def backfill_labels(conn: sqlite3.Connection, outbox: Any, *,
+                    limit: int = 500, commit: bool = True) -> int:
+    """Enqueue label jobs for events that do not have one yet.
+
+    This is the whole reason `observe()` stays free. The 36-hour soak measured
+    what enqueueing at write time costs — +0.196 ms at p95 on every write, and
+    2.31% of cycles breaching the 1.0 ms SLO against a baseline of 0.21% — so
+    the enqueue moved here, where it is paid once per batch instead of once per
+    observation, and never while a user is waiting.
+
+    Safe to run at any time, from anywhere, as often as you like:
+
+    * `outbox.enqueue` is a no-op on `(event_id, projection_type, version)`,
+      so a job is never created twice
+    * "needs a label" is derived by a join rather than remembered in a queue,
+      so an event cannot be missed by having been written while nothing was
+      listening — which is exactly the failure a queue is meant to prevent and
+      cannot prevent for work that was never enqueued in the first place
+    * `limit` bounds the work, and the caller loops. An unbounded backfill on a
+      large database is a long-held read snapshot, and a long-held read snapshot
+      is what killed canary runs 8 and 9.
+
+    Returns the number of jobs enqueued, so a caller can loop until it is 0.
+    """
+    from .outbox import ProjectionJob
+
+    rows = conn.execute(
+        """
+        SELECT e.event_id, e.tenant_id
+        FROM cognitive_events e
+        LEFT JOIN projection_outbox o
+               ON o.event_id = e.event_id
+              AND o.projection_type = ?
+        WHERE o.event_id IS NULL
+        ORDER BY e.rowid
+        LIMIT ?
+        """,
+        (HippocampusLabelBuilder.projection_type, limit),
+    ).fetchall()          # fetchall, not a lazy cursor: this releases the read
+                          # transaction before the writes below begin.
+
+    for event_id, tenant_id in rows:
+        outbox.enqueue(
+            ProjectionJob(
+                event_id=event_id,
+                projection_type=HippocampusLabelBuilder.projection_type,
+                tenant_id=tenant_id,
+                projection_version=1,
+            ),
+            commit=False,
+        )
+    if commit and rows:
+        conn.commit()
+    return len(rows)
+
+
+def unlabelled_count(conn: sqlite3.Connection) -> int:
+    """How much work backfill has left to do. Reports 0 when the capability is
+    not enabled on this database, which is absence rather than damage."""
+    try:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM cognitive_events e "
+            "LEFT JOIN projection_outbox o ON o.event_id = e.event_id "
+            "AND o.projection_type = ? WHERE o.event_id IS NULL",
+            (HippocampusLabelBuilder.projection_type,),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return 0
+    return int(row[0]) if row else 0
+
+
 def _now_iso() -> str:
     from datetime import datetime, timezone
 
@@ -192,7 +263,9 @@ __all__ = [
     "SCHEMA",
     "CheapLabel",
     "HippocampusLabelBuilder",
+    "backfill_labels",
     "cheap_label",
     "ensure_schema",
     "pending_count",
+    "unlabelled_count",
 ]
