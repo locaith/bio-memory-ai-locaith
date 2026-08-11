@@ -30,7 +30,7 @@ from bio_agent_os.evals.runner import EvalConfig, run_locomo_eval, write_report
 from bio_agent_os.evals.systems import BioMemorySystem, NaiveRagSystem, NoMemorySystem
 
 DEFAULT_DATASET_PATH = os.path.join("data", "evals", "locomo10.json")
-SYSTEM_CHOICES = ("no-memory", "naive-rag", "bio-memory")
+SYSTEM_CHOICES = ("no-memory", "naive-rag", "bio-memory", "mem0")
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,6 +61,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--storage-dir", default=os.path.join("data", "evals", "runs"))
     parser.add_argument("--out-dir", default="benchmark_reports")
     parser.add_argument("--tag", default=None)
+    parser.add_argument(
+        "--mem0-profile", choices=("local", "cloud"), default="local",
+        help="How mem0 is driven. 'local' keeps everything on this machine and "
+             "costs nothing, but mem0 can fairly say they were not run the way "
+             "they recommend. 'cloud' runs them as documented and produces the "
+             "result that survives an argument.",
+    )
     return parser.parse_args()
 
 
@@ -128,6 +135,33 @@ async def main() -> None:
 
         factories["bio-memory"] = bio_factory
 
+    if "mem0" in requested:
+        # The comparison that decides whether this is a solution or a demo.
+        #
+        # Deliberately fair in both directions: mem0 answers through the *same*
+        # engine as every other system, because the answering model moves the
+        # score more than the memory does — quoting their published numbers
+        # against ours would compare two different experiments, not two
+        # memories. And mem0 gets its optional extras installed (spaCy, BM25);
+        # the first smoke run had them missing, mem0 silently ran degraded and
+        # retrieved nothing, which would have produced a flattering number that
+        # said nothing about either system.
+        from bio_agent_os.evals.mem0_system import Mem0System, cloud_config, local_config
+
+        mem0_cfg = cloud_config if args.mem0_profile == "cloud" else local_config
+
+        def mem0_factory(conversation):
+            store = os.path.join(args.storage_dir, f"mem0-{args.mem0_profile}",
+                                 conversation.sample_id)
+            return Mem0System(
+                engine,
+                user_id=conversation.sample_id,   # isolation, same job as workspace_id
+                config=mem0_cfg(store_dir=store),
+                top_k=config.top_k,
+            )
+
+        factories["mem0"] = mem0_factory
+
     # The embedding backend belongs in the record as much as the LLM does.
     #
     # Without it, a report cannot be read. Started a re-run of the June numbers
@@ -150,6 +184,8 @@ async def main() -> None:
         "backend": engine.backend,
         "model": engine.model_id,
         "embedding": embedding,
+        "systems": requested,
+        "mem0_profile": args.mem0_profile if "mem0" in requested else None,
         "started_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "dataset": dataset_path,
         "dataset_url": LOCOMO_URL,
