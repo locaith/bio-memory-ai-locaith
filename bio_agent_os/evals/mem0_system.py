@@ -62,6 +62,44 @@ def local_config(*, ollama_url: str = "http://localhost:11434",
     }
 
 
+def gemini_config(*, model: str = "gemini-2.5-flash",
+                  embed_model: str = "models/gemini-embedding-001",
+                  embed_dims: int = 3072,
+                  store_dir: str = "data/evals/mem0-gemini") -> dict[str, Any]:
+    """mem0 on Gemini — a real hosted model, and no GPU.
+
+    Worth having as its own profile rather than folding into `cloud_config`:
+    it is the configuration this project can actually run today, it keeps the
+    machine's GPU (and its unreplaced power supply) out of the experiment
+    entirely, and it is close enough to how mem0 is meant to be run that the
+    result is much harder to wave away than the Ollama one.
+
+    Model names are pinned to what this key actually serves, checked against
+    `models.list()` rather than taken from documentation: `gemini-2.0-flash` and
+    `text-embedding-004` both 404 as of 2026-08-12 — retired — and the failure
+    is silent in the place it matters, because mem0 catches the embedding error
+    and simply stores nothing. Two turns went in, zero memories came out, and
+    the benchmark would have scored mem0 at zero for a dead model name.
+
+    Stable releases on purpose, not `-latest` or `-preview`: a number that
+    cannot be reproduced in six months is not evidence.
+
+    Needs GEMINI_API_KEY.
+    """
+    return {
+        "llm": {"provider": "gemini",
+                "config": {"model": model, "temperature": 0.1}},
+        "embedder": {"provider": "gemini",
+                     "config": {"model": embed_model,
+                                "embedding_dims": embed_dims}},
+        "vector_store": {
+            "provider": "qdrant",
+            "config": {"path": store_dir, "on_disk": True,
+                       "embedding_model_dims": embed_dims},
+        },
+    }
+
+
 def cloud_config(*, model: str = "gpt-4o-mini",
                  embed_model: str = "text-embedding-3-small",
                  embed_dims: int = 1536,
@@ -154,4 +192,4 @@ class Mem0System:
         return await self._engine.generate(prompt, temperature=0.0)
 
 
-__all__ = ["Mem0System", "cloud_config", "local_config"]
+__all__ = ["Mem0System", "cloud_config", "gemini_config", "local_config"]

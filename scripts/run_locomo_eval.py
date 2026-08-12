@@ -62,7 +62,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out-dir", default="benchmark_reports")
     parser.add_argument("--tag", default=None)
     parser.add_argument(
-        "--mem0-profile", choices=("local", "cloud"), default="local",
+        "--mem0-profile", choices=("local", "gemini", "cloud"), default="local",
         help="How mem0 is driven. 'local' keeps everything on this machine and "
              "costs nothing, but mem0 can fairly say they were not run the way "
              "they recommend. 'cloud' runs them as documented and produces the "
@@ -146,9 +146,11 @@ async def main() -> None:
         # the first smoke run had them missing, mem0 silently ran degraded and
         # retrieved nothing, which would have produced a flattering number that
         # said nothing about either system.
-        from bio_agent_os.evals.mem0_system import Mem0System, cloud_config, local_config
+        from bio_agent_os.evals.mem0_system import (
+            Mem0System, cloud_config, gemini_config, local_config,
+        )
 
-        mem0_cfg = cloud_config if args.mem0_profile == "cloud" else local_config
+        mem0_cfg = {"cloud": cloud_config, "gemini": gemini_config}.get(args.mem0_profile, local_config)
 
         def mem0_factory(conversation):
             store = os.path.join(args.storage_dir, f"mem0-{args.mem0_profile}",
