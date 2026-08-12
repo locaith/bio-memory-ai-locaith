@@ -68,7 +68,17 @@ class LLMEngine:
         if self.backend == "ollama":
             return os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         if self.backend == "openai":
-            return os.getenv("OPENAI_BASE_URL", "http://localhost:8000/v1")
+            # api.openai.com, not localhost. This defaulted to
+            # http://localhost:8000/v1 — presumably for a local
+            # OpenAI-compatible server — and the consequence is worse than a
+            # confusing 404: `LLM_BACKEND=openai` with a real API key sends that
+            # key, in an Authorization header, together with whatever text is
+            # being processed, to whatever happens to be listening on port 8000.
+            # On this machine that is a PDF OCR backend. It could be anything.
+            #
+            # A local server is still one environment variable away; pointing at
+            # the vendor whose name the backend carries is the safe default.
+            return os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
         if self.backend == "grok":
             return os.getenv("XAI_BASE_URL", "https://api.x.ai/v1")
         return ""

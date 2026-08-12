@@ -68,6 +68,12 @@ def parse_args() -> argparse.Namespace:
              "they recommend. 'cloud' runs them as documented and produces the "
              "result that survives an argument.",
     )
+    parser.add_argument(
+        "--budget-usd", type=float, default=None,
+        help="Hard ceiling in USD. The run raises the moment it is crossed, "
+             "counted from the usage each OpenAI response returns rather than "
+             "from /v1/usage, which lags by hours.",
+    )
     return parser.parse_args()
 
 
@@ -98,6 +104,16 @@ async def main() -> None:
     unknown = set(requested) - set(SYSTEM_CHOICES)
     if unknown:
         raise SystemExit(f"Unknown systems: {sorted(unknown)}")
+
+    # Meter first, before anything builds a client — including mem0, which
+    # builds its own. `/v1/usage` is authoritative but lags by hours; it
+    # reported $0.0000 for a run that had just made hundreds of calls, which is
+    # fine for an invoice and useless for a budget.
+    if args.budget_usd:
+        from bio_agent_os.evals.openai_meter import install as install_meter
+
+        install_meter(budget_usd=args.budget_usd)
+        print(f"Budget ceiling: ${args.budget_usd:.2f} — the run raises when it is hit")
 
     from bio_agent_os.core.embedder import Embedder
     from bio_agent_os.core.llm_engine import LLMEngine
@@ -211,6 +227,12 @@ async def main() -> None:
     paths = write_report(report, args.out_dir, tag)
     print(f"Report written: {paths['json']}")
     print(f"Report written: {paths['markdown']}")
+
+    if args.budget_usd:
+        from bio_agent_os.evals.openai_meter import render as render_meter
+
+        print()
+        print(render_meter())
 
     for name, data in report["systems"].items():
         summary = data["summary"]
