@@ -194,6 +194,98 @@ def backfill_embeddings(conn: sqlite3.Connection, embedder: SupportsEmbed, *,
     return written
 
 
+CALIBRATION_SCHEMA = """
+CREATE TABLE IF NOT EXISTS embedding_calibration (
+    model       TEXT PRIMARY KEY,
+    dims        INTEGER NOT NULL,
+    samples     INTEGER NOT NULL,
+    mean        REAL NOT NULL,
+    p95         REAL NOT NULL,
+    p99         REAL NOT NULL,
+    floor       REAL NOT NULL,
+    measured_at TEXT NOT NULL
+);
+"""
+
+
+def calibrate(conn: sqlite3.Connection, *, sample: int = 60,
+              margin: float = 0.08) -> dict[str, Any] | None:
+    """Measure what "unrelated" looks like for whichever embedder is in use.
+
+    A fixed threshold cannot work across embedding models and the failure is
+    silent. Measured on 2026-08-13:
+
+        gemini-embedding-001      unrelated ~0.58, matching 0.67-0.75
+        text-embedding-3-small    unrelated ~0.08, matching 0.57-0.69
+
+    A floor of 0.64 is sensible for the first and destroys the second — it
+    rejected a genuine match at 0.574 and took `cognitive` to 0.084 on LoCoMo,
+    against 0.41 for the same content without a floor. The comment above
+    `EMBEDDING_FLOOR` warned about exactly this, and the warning did not
+    survive contact with a second model.
+
+    So the floor is derived from the data instead of written down: sample
+    random pairs of *different* memories, which are overwhelmingly unrelated,
+    and put the floor a margin above the 99th percentile of that. Cheap — the
+    vectors are already stored, no model call is needed.
+    """
+    conn.executescript(CALIBRATION_SCHEMA)
+    try:
+        rows = conn.execute(
+            "SELECT memory_id, model, dims, vector FROM memory_embeddings "
+            "ORDER BY RANDOM() LIMIT ?", (sample,)
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return None
+    if len(rows) < 8:
+        return None                # too few to say anything; leave the default
+
+    model, dims = rows[0][1], rows[0][2]
+    vectors = [unpack(r[3]) for r in rows]
+    scores: list[float] = []
+    for i in range(len(vectors)):
+        for j in range(i + 1, len(vectors)):
+            scores.append(cosine(vectors[i], vectors[j]))
+    if not scores:
+        return None
+
+    scores.sort()
+    def pct(q: float) -> float:
+        return scores[min(len(scores) - 1, int(len(scores) * q))]
+
+    p99 = pct(0.99)
+    floor = round(min(0.95, p99 + margin), 4)
+    from datetime import datetime, timezone
+    result = {
+        "model": model, "dims": dims, "samples": len(scores),
+        "mean": round(sum(scores) / len(scores), 4),
+        "p95": round(pct(0.95), 4), "p99": round(p99, 4), "floor": floor,
+        "measured_at": datetime.now(timezone.utc).isoformat(),
+    }
+    conn.execute(
+        "INSERT INTO embedding_calibration(model,dims,samples,mean,p95,p99,floor,measured_at)"
+        " VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(model) DO UPDATE SET"
+        " dims=excluded.dims, samples=excluded.samples, mean=excluded.mean,"
+        " p95=excluded.p95, p99=excluded.p99, floor=excluded.floor,"
+        " measured_at=excluded.measured_at",
+        (result["model"], result["dims"], result["samples"], result["mean"],
+         result["p95"], result["p99"], result["floor"], result["measured_at"]),
+    )
+    conn.commit()
+    return result
+
+
+def calibrated_floor(conn: sqlite3.Connection) -> float | None:
+    """The measured floor for this store, or None if it has not been measured."""
+    try:
+        row = conn.execute(
+            "SELECT floor FROM embedding_calibration ORDER BY measured_at DESC LIMIT 1"
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return None
+    return float(row[0]) if row else None
+
+
 def load_vectors(conn: sqlite3.Connection, memory_ids: list[str]) -> dict[str, array.array]:
     """Vectors for the candidates under consideration, in one query.
 
@@ -243,6 +335,8 @@ __all__ = [
     "SCHEMA",
     "SupportsEmbed",
     "backfill_embeddings",
+    "calibrate",
+    "calibrated_floor",
     "content_hash",
     "cosine",
     "coverage",

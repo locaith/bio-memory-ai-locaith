@@ -177,14 +177,24 @@ class HybridRetrievalEngine:
         # token overlap, which is what this layer did before.
         query_vector: list[float] | None = None
         vectors: dict[str, Any] = {}
+        floor = EMBEDDING_FLOOR
         if self.embedder is not None and candidates:
             try:
                 from .semantic_index import load_vectors
+
+                from .semantic_index import calibrated_floor
 
                 query_vector = self.embedder.embed(query)
                 vectors = load_vectors(
                     self.store.conn, [m.memory_id for m in candidates]
                 )
+                # A floor measured on this store's own vectors beats one
+                # written down for a different embedder. `EMBEDDING_FLOOR`
+                # stays as the fallback for a store that has never been
+                # calibrated.
+                measured = calibrated_floor(self.store.conn)
+                if measured is not None:
+                    floor = measured
             except Exception:
                 query_vector, vectors = None, {}
 
@@ -220,7 +230,7 @@ class HybridRetrievalEngine:
             # off by default and the meaningful one is applied to the embedding
             # when there is an embedding to apply it to.
             if similarity is not None:
-                if similarity < EMBEDDING_FLOOR:
+                if similarity < floor:
                     continue
             else:
                 relevance = score_parts["semantic"] + score_parts["lexical"]

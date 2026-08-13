@@ -28,7 +28,7 @@ from typing import Any, List
 
 from bio_agent_os.cognitive.facade import MemoryOS
 from bio_agent_os.cognitive.models import AccessContext, MemoryType
-from bio_agent_os.cognitive.semantic_index import backfill_embeddings, coverage
+from bio_agent_os.cognitive.semantic_index import backfill_embeddings, calibrate, coverage
 from bio_agent_os.evals.locomo import LocomoTurn
 from bio_agent_os.evals.systems import ANSWER_INSTRUCTION, format_turn
 
@@ -81,7 +81,16 @@ class CognitiveMemorySystem:
             total += written
             if written == 0:
                 break
-        self.stats = {"embedded": total, **coverage(self._os.memories.conn)}
+        # Measure this embedder's own notion of "unrelated" before any question
+        # is asked. A floor written down for one model destroys another: 0.64
+        # was derived on gemini-embedding-001, whose unrelated baseline is
+        # ~0.58, and applied unchanged to text-embedding-3-small, whose
+        # baseline is ~0.08. It rejected genuine matches at 0.574 and scored
+        # this system 0.084 on LoCoMo against 0.41 for the same content with no
+        # floor at all.
+        calibration = calibrate(self._os.memories.conn)
+        self.stats = {"embedded": total, "calibration": calibration,
+                      **coverage(self._os.memories.conn)}
 
     def _retrieve_context(self, question: str) -> str:
         results = self._os.recall(question, context=self._ctx, limit=self._top_k)
