@@ -30,7 +30,7 @@ from bio_agent_os.evals.runner import EvalConfig, run_locomo_eval, write_report
 from bio_agent_os.evals.systems import BioMemorySystem, NaiveRagSystem, NoMemorySystem
 
 DEFAULT_DATASET_PATH = os.path.join("data", "evals", "locomo10.json")
-SYSTEM_CHOICES = ("no-memory", "naive-rag", "bio-memory", "mem0")
+SYSTEM_CHOICES = ("no-memory", "naive-rag", "bio-memory", "cognitive", "mem0")
 
 
 def parse_args() -> argparse.Namespace:
@@ -150,6 +150,27 @@ async def main() -> None:
             )
 
         factories["bio-memory"] = bio_factory
+
+    if "cognitive" in requested:
+        # The layer that ships, scored on the same questions as everything else.
+        # Every number published before today described `bio-memory` — the
+        # biological stack — while users ran this one, which had no semantic
+        # representation at all until 2026-08-13. Closing that gap matters more
+        # than the score it produces.
+        from bio_agent_os.evals.cognitive_system import CognitiveMemorySystem
+
+        cog_stamp = time.strftime("%Y%m%d-%H%M%S")
+
+        def cognitive_factory(conversation):
+            return CognitiveMemorySystem(
+                engine, Embedder(),
+                db_path=os.path.join(args.storage_dir, f"cognitive-{cog_stamp}",
+                                     f"{conversation.sample_id}.db"),
+                workspace_id=conversation.sample_id,
+                top_k=config.top_k,
+            )
+
+        factories["cognitive"] = cognitive_factory
 
     if "mem0" in requested:
         # The comparison that decides whether this is a solution or a demo.
