@@ -51,7 +51,15 @@ from bio_agent_os.context_fabric import (
 class MemoryOS:
     """High-level facade for Bio-AGI Memory OS v0.8 Alpha."""
 
-    def __init__(self, db_path: str | Path = ":memory:", *, projection_mode: str | None = None):
+    def __init__(self, db_path: str | Path = ":memory:", *, projection_mode: str | None = None,
+                 embedder: Any | None = None):
+        """`embedder` is optional and injected, never imported.
+
+        With one, retrieval can tell a paraphrase from a coincidence and can
+        refuse to answer; without one it behaves exactly as it did before, which
+        is what nine canary runs hardened. Anything with
+        `.embed(text) -> list[float]` works. See `cognitive/semantic_index.py`.
+        """
         # Six stores below open six connections. With plain ":memory:" SQLite
         # gives each of them a *private* database, so they cannot see one
         # another and any consistency test passes while proving nothing. The
@@ -63,7 +71,7 @@ class MemoryOS:
         self.memories = SQLiteMemoryStore(path)
         self.governance = GovernanceEngine()
         self.immune = MemoryImmuneSystem()
-        self.retrieval = HybridRetrievalEngine(self.memories, self.governance)
+        self.retrieval = HybridRetrievalEngine(self.memories, self.governance, embedder=embedder)
         self.evidence = EvidenceLedger(self.events)
         self.world_model = WorldModel()
         self.self_model = SelfModel(path)

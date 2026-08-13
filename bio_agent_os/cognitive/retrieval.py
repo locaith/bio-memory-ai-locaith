@@ -66,6 +66,36 @@ from .models import (
 #: local if wanted, so it does not breach the no-model rule this layer keeps.
 RELEVANCE_FLOOR = float(os.getenv("BIO_RETRIEVAL_RELEVANCE_FLOOR", "0.0"))
 
+#: The floor that actually means something — cosine between the query and the
+#: memory, in [-1, 1]. Unlike token overlap this separates the two populations,
+#: because a paraphrase is near its memory in vector space while an unrelated
+#: question is not.
+#:
+#: Measured, on gemini-embedding-001 at 3072 dims, over 5 matching and 6
+#: unrelated queries against a mixed English/Vietnamese corpus:
+#:
+#:     matching     lowest 0.672   and all five retrieved the right memory
+#:     unrelated    highest 0.607
+#:
+#: including the three pairs that score exactly 0.000 on token overlap — they
+#: land at 0.672, 0.750 and 0.679 here and find their own memory. That is the
+#: whole case for this layer having vectors.
+#:
+#: 0.64 is the midpoint of that gap. Two warnings that matter more than the
+#: number:
+#:
+#: * **It is model-dependent.** This embedder puts unrelated text at ~0.58, so
+#:   0.64 is a small margin above its own noise floor. A model whose unrelated
+#:   baseline sits at 0.1 would need a completely different value, and reusing
+#:   0.64 there would admit everything. Re-derive whenever the embedding model
+#:   changes: `scripts/derive_embedding_floor.py`.
+#: * **The gap is narrow** — 0.065 — on a small sample. It separates cleanly
+#:   here and should be re-measured on real data before being leaned on.
+#:
+#: Applied only to memories that have a vector, so a partially embedded store
+#: keeps working while the backfill runs.
+EMBEDDING_FLOOR = float(os.getenv("BIO_RETRIEVAL_EMBEDDING_FLOOR", "0.64"))
+
 
 def tokenize(text: str) -> list[str]:
     return [t for t in re.findall(r"\w+", text.lower(), flags=re.UNICODE) if len(t) > 1]
@@ -90,9 +120,15 @@ class RetrievalResult:
 class HybridRetrievalEngine:
     """State-, time-, governance- and epistemics-aware retrieval."""
 
-    def __init__(self, store: SQLiteMemoryStore, governance: GovernanceEngine | None = None):
+    def __init__(self, store: SQLiteMemoryStore, governance: GovernanceEngine | None = None,
+                 embedder: Any | None = None):
         self.store = store
         self.governance = governance or GovernanceEngine()
+        #: Optional, and injected rather than imported. Anything with
+        #: `.embed(text) -> list[float]` will do. Absent, retrieval behaves
+        #: exactly as it did before semantic scoring existed — this layer has
+        #: to keep answering when the model host is down.
+        self.embedder = embedder
 
     @staticmethod
     def classify_query(query: str) -> str:
@@ -135,6 +171,23 @@ class HybridRetrievalEngine:
         candidates = self.store.candidate_pool(
             ctx.tenant_id, query, ctx.workspace_id, as_of=effective_as_of, limit=max(100, limit * 20)
         )
+        # One embedding for the query, then one query for the candidates'
+        # vectors. Both outside the loop: the cost must not scale with the pool.
+        # Any failure here leaves `vectors` empty and scoring falls back to
+        # token overlap, which is what this layer did before.
+        query_vector: list[float] | None = None
+        vectors: dict[str, Any] = {}
+        if self.embedder is not None and candidates:
+            try:
+                from .semantic_index import load_vectors
+
+                query_vector = self.embedder.embed(query)
+                vectors = load_vectors(
+                    self.store.conn, [m.memory_id for m in candidates]
+                )
+            except Exception:
+                query_vector, vectors = None, {}
+
         results: list[RetrievalResult] = []
         for memory in candidates:
             allowed, access_reasons = self.governance.can_read(memory, ctx)
@@ -145,12 +198,34 @@ class HybridRetrievalEngine:
             overlap = len(set(q_counter) & set(tokenize(memory.content)))
             score_parts["lexical"] = min(overlap * 0.30, 1.20)
 
+            # Semantic similarity when there is a vector for this memory, and
+            # nothing when there is not — a missing vector must never delete a
+            # memory that the old scoring would have found.
+            vector = vectors.get(memory.memory_id) if query_vector else None
+            if vector is not None:
+                from .semantic_index import cosine
+
+                similarity = cosine(query_vector, vector)
+                score_parts["embedding"] = similarity * 2.0
+            else:
+                similarity = None
+
             # The gate. Everything below this line can only describe how good a
-            # memory is, never whether it answers *this* question, so the two
-            # query-dependent components decide admission on their own.
-            relevance = score_parts["semantic"] + score_parts["lexical"]
-            if relevance < RELEVANCE_FLOOR:
-                continue
+            # memory is, never whether it answers *this* question, so only the
+            # query-dependent components decide admission.
+            #
+            # Which floor applies depends on what signal exists. Token overlap
+            # cannot carry a floor at all — three genuine pairs in this
+            # project's own corpus score 0.000 on it — so the token floor stays
+            # off by default and the meaningful one is applied to the embedding
+            # when there is an embedding to apply it to.
+            if similarity is not None:
+                if similarity < EMBEDDING_FLOOR:
+                    continue
+            else:
+                relevance = score_parts["semantic"] + score_parts["lexical"]
+                if relevance < RELEVANCE_FLOOR:
+                    continue
 
             score_parts["confidence"] = memory.confidence * 0.55
             score_parts["trust"] = (int(memory.trust_tier) / int(TrustTier.SIGNED_POLICY)) * 0.45
