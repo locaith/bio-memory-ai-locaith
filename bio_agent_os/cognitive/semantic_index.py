@@ -208,6 +208,92 @@ CREATE TABLE IF NOT EXISTS embedding_calibration (
 """
 
 
+#: Deliberately off-topic questions, spread across unrelated domains, phrased as
+#: questions because that is what a query is.
+#:
+#: Calibrating on random *memory pairs* was the first attempt and it fails on any
+#: corpus about one subject. Measured on 111 memories from a single AI course:
+#: random memory pairs averaged 0.725 and put the floor at 0.950, which rejected
+#: all 38 genuine questions — recall 0/38. The same corpus separates cleanly on
+#: query scores:
+#:
+#:     real questions    0.743 - 0.798
+#:     off-topic         0.499 - 0.557
+#:
+#: The mistake was using the wrong reference population. Memories are statements
+#: and queries are questions; they do not live on the same scale, and in a
+#: single-subject corpus every memory resembles every other one. What the floor
+#: has to clear is *an unrelated question*, so that is what gets measured.
+PROBE_QUERIES = (
+    "giá vàng hôm nay bao nhiêu",
+    "công thức nấu phở bò truyền thống",
+    "lịch thi đấu bóng đá tối nay",
+    "cách trồng lan hồ điệp trong nhà",
+    "thời tiết cuối tuần này thế nào",
+    "phim nào đáng xem trên rạp",
+    "how do I repair a bicycle puncture",
+    "what time does the pharmacy close",
+)
+
+
+def calibrate_with_probes(conn: sqlite3.Connection, embedder: SupportsEmbed, *,
+                          margin: float = 0.08,
+                          drop_highest: int = 1) -> dict[str, Any] | None:
+    """Measure what an *unrelated question* scores against this store.
+
+    Costs one embedding per probe, once. The highest probe is dropped before
+    taking the maximum: if the corpus happens to be about bicycles, the bicycle
+    probe stops being a probe and would inflate the floor on its own.
+    """
+    conn.executescript(CALIBRATION_SCHEMA)
+    try:
+        rows = conn.execute(
+            "SELECT model, dims, vector FROM memory_embeddings LIMIT 400"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return None
+    if len(rows) < 5:
+        return None
+
+    model, dims = rows[0][0], rows[0][1]
+    vectors = [unpack(r[2]) for r in rows]
+
+    tops: list[float] = []
+    for probe in PROBE_QUERIES:
+        try:
+            qv = embedder.embed(probe)
+        except Exception:
+            continue
+        tops.append(max(cosine(qv, v) for v in vectors))
+    if len(tops) < 3:
+        return None
+
+    tops.sort()
+    usable = tops[:-drop_highest] if drop_highest and len(tops) > drop_highest else tops
+    ceiling = usable[-1]
+    floor = round(min(0.95, ceiling + margin), 4)
+
+    from datetime import datetime, timezone
+    result = {
+        "model": model, "dims": dims, "samples": len(tops),
+        "mean": round(sum(tops) / len(tops), 4),
+        "p95": round(usable[-1], 4), "p99": round(ceiling, 4), "floor": floor,
+        "measured_at": datetime.now(timezone.utc).isoformat(),
+        "method": "off-topic query probes",
+    }
+    conn.execute(
+        "INSERT INTO embedding_calibration(model,dims,samples,mean,p95,p99,floor,measured_at)"
+        " VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(model) DO UPDATE SET"
+        " dims=excluded.dims, samples=excluded.samples, mean=excluded.mean,"
+        " p95=excluded.p95, p99=excluded.p99, floor=excluded.floor,"
+        " measured_at=excluded.measured_at",
+        (result["model"], result["dims"], result["samples"], result["mean"],
+         result["p95"], result["p99"], result["floor"], result["measured_at"]),
+    )
+    conn.commit()
+    return result
+
+
 def calibrate(conn: sqlite3.Connection, *, sample: int = 60,
               margin: float = 0.08) -> dict[str, Any] | None:
     """Measure what "unrelated" looks like for whichever embedder is in use.
@@ -335,7 +421,9 @@ __all__ = [
     "SCHEMA",
     "SupportsEmbed",
     "backfill_embeddings",
+    "PROBE_QUERIES",
     "calibrate",
+    "calibrate_with_probes",
     "calibrated_floor",
     "content_hash",
     "cosine",

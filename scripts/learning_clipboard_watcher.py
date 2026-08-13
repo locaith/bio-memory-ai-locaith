@@ -61,15 +61,36 @@ def extract_json_blocks(text: str) -> list[dict]:
         blob = blob.strip()
         if not blob or blob[0] not in "[{":
             continue
+
+        # One object, or an array of them.
         try:
             parsed = json.loads(blob)
         except json.JSONDecodeError:
-            continue
-        for item in (parsed if isinstance(parsed, list) else [parsed]):
-            if isinstance(item, dict) and item.get("schema") == SCHEMA:
-                found.append(item)
-        if found:
-            break            # a fenced block that parsed is the intended one
+            parsed = None
+        if parsed is not None:
+            for item in (parsed if isinstance(parsed, list) else [parsed]):
+                if isinstance(item, dict) and item.get("schema") == SCHEMA:
+                    found.append(item)
+            if found:
+                break
+
+        # JSONL — one object per line, which is the format this project asked
+        # for and the format the first version of this parser could not read.
+        # `json.loads` on the whole blob fails immediately on the second line,
+        # so a perfectly good capture was dropped in silence.
+        lines = [line.strip() for line in blob.splitlines() if line.strip()]
+        if len(lines) > 1:
+            for line in lines:
+                if not line.startswith("{"):
+                    continue
+                try:
+                    item = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(item, dict) and item.get("schema") == SCHEMA:
+                    found.append(item)
+            if found:
+                break
     return found
 
 

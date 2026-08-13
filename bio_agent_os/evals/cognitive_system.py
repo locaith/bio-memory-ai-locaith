@@ -28,7 +28,9 @@ from typing import Any, List
 
 from bio_agent_os.cognitive.facade import MemoryOS
 from bio_agent_os.cognitive.models import AccessContext, MemoryType
-from bio_agent_os.cognitive.semantic_index import backfill_embeddings, calibrate, coverage
+from bio_agent_os.cognitive.semantic_index import (
+    backfill_embeddings, calibrate_with_probes, coverage,
+)
 from bio_agent_os.evals.locomo import LocomoTurn
 from bio_agent_os.evals.systems import ANSWER_INSTRUCTION, format_turn
 
@@ -88,7 +90,7 @@ class CognitiveMemorySystem:
         # baseline is ~0.08. It rejected genuine matches at 0.574 and scored
         # this system 0.084 on LoCoMo against 0.41 for the same content with no
         # floor at all.
-        calibration = calibrate(self._os.memories.conn)
+        calibration = calibrate_with_probes(self._os.memories.conn, self._embedder)
         self.stats = {"embedded": total, "calibration": calibration,
                       **coverage(self._os.memories.conn)}
 
