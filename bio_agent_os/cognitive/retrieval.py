@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import os
 import re
 from collections import Counter
 from dataclasses import dataclass
@@ -18,6 +19,52 @@ from .models import (
     TrustTier,
     VerificationStatus,
 )
+
+
+#: A memory has to be *about* the query to be returned at all.
+#:
+#: Of the thirteen score components below, only `semantic` and `lexical` depend
+#: on the query. The rest — confidence, trust, utility, salience, reinforcement,
+#: governance — describe the memory on its own, so a memory stored with
+#: confidence 0.98 contributes 0.539 before the query is even read. Summed
+#: against the old `total <= 0.05` threshold, that meant every confident memory
+#: was returned for every query ever asked. Measured on the live database on
+#: 2026-08-07:
+#:
+#:     "bedroom paint colour"  ->  a bank account, score 1.624
+#:     "aaaa bbbb cccc"        ->  the same account, score 1.624
+#:
+#: So relevance is a **gate**, applied before the sum: no amount of confidence
+#: rescues a memory the query never mentioned.
+#:
+#: Derived, not chosen. On a fixed corpus, 8 matching and 10 unrelated queries:
+#:
+#:     matching     lowest 1.913   median 2.440
+#:     unrelated    highest 0.734  median 0.000
+#:
+#: **Off by default (0.0), because on this scoring function no floor works.**
+#:
+#: The calibration above used queries that reuse the memory's own words. Real
+#: queries paraphrase, and measured against the project's own domain corpus:
+#:
+#:     "Blender non destructive scale"   -> its memory scores 0.000
+#:     "child pickup reminder"           -> its memory scores 0.000
+#:     "experiment causal conclusion"    -> its memory scores 0.000
+#:     "cong thuc nau pho bo" (unrelated) -> best memory scores 0.734
+#:
+#: Genuine matches with zero token overlap are indistinguishable from nonsense,
+#: so any floor above zero deletes real answers — 16 tests failed at 1.0, 5 at
+#: 0.55, and the three above cannot be rescued by any threshold. IDF weighting
+#: was tried and does not separate them either (lowest match 1.252, highest
+#: non-match 1.252).
+#:
+#: The two symptoms are one defect: `cognitive/` ranks by token counts and has
+#: no semantic representation, so it can neither reject the irrelevant nor
+#: recognise a paraphrase. The fix is embeddings in this layer — the mechanism
+#: is kept here, wired and tested, and switches on the moment relevance means
+#: something. Note an embedder is not an LLM: milliseconds, deterministic, and
+#: local if wanted, so it does not breach the no-model rule this layer keeps.
+RELEVANCE_FLOOR = float(os.getenv("BIO_RETRIEVAL_RELEVANCE_FLOOR", "0.0"))
 
 
 def tokenize(text: str) -> list[str]:
@@ -97,6 +144,14 @@ class HybridRetrievalEngine:
             score_parts["semantic"] = cosine_counter(q_counter, Counter(tokenize(memory.content))) * 2.0
             overlap = len(set(q_counter) & set(tokenize(memory.content)))
             score_parts["lexical"] = min(overlap * 0.30, 1.20)
+
+            # The gate. Everything below this line can only describe how good a
+            # memory is, never whether it answers *this* question, so the two
+            # query-dependent components decide admission on their own.
+            relevance = score_parts["semantic"] + score_parts["lexical"]
+            if relevance < RELEVANCE_FLOOR:
+                continue
+
             score_parts["confidence"] = memory.confidence * 0.55
             score_parts["trust"] = (int(memory.trust_tier) / int(TrustTier.SIGNED_POLICY)) * 0.45
             score_parts["utility"] = memory.utility * 0.25
