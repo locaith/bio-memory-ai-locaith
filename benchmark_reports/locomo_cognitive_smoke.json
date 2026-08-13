@@ -1,0 +1,289 @@
+{
+  "benchmark": "locomo",
+  "config": {
+    "max_conversations": 1,
+    "max_sessions": 4,
+    "max_questions_per_conversation": 10,
+    "categories": [
+      2
+    ],
+    "top_k": 10,
+    "sleep_every": 20
+  },
+  "metadata": {
+    "backend": "gemini",
+    "model": "gemini-2.5-flash",
+    "embedding": {
+      "backend": "openai",
+      "model": "gemini-embedding-001",
+      "dimensions": "3072",
+      "base_url_host": "generativelanguage.googleapis.com",
+      "degraded_hash_mode": false
+    },
+    "systems": [
+      "naive-rag",
+      "cognitive"
+    ],
+    "mem0_profile": null,
+    "started_at": "2026-08-13 12:05:24",
+    "dataset": "data\\evals\\locomo10.json",
+    "dataset_url": "https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json"
+  },
+  "conversations_evaluated": [
+    "conv-26"
+  ],
+  "systems": {
+    "naive-rag": {
+      "summary": {
+        "questions_total": 9,
+        "questions_answerable": 9,
+        "per_category": {
+          "temporal": {
+            "count": 9,
+            "f1": 0.5582,
+            "em": 0.1111
+          }
+        },
+        "f1_answerable": 0.5582,
+        "em_answerable": 0.1111,
+        "ingest_seconds_total": 25.27,
+        "answer_seconds_total": 20.55
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 76,
+          "questions": [
+            {
+              "question": "When did Caroline go to the LGBTQ support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "7 May 2023",
+              "adversarial_answer": null,
+              "prediction": "May 7, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie paint a sunrise?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "Last year.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie run a charity race?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The sunday before 25 May 2023",
+              "adversarial_answer": null,
+              "prediction": "May 20, 2023",
+              "f1": 0.5,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Melanie planning on going camping?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month (June)",
+              "f1": 0.4,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline give a speech at a school?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week from June 9, 2023",
+              "f1": 0.7272727272727272,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline meet up with her friends, family, and mentors?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "How long has Caroline had her current group of friends for?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "4 years",
+              "adversarial_answer": null,
+              "prediction": "4 years",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "How long ago was Caroline's 18th birthday?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "10 years ago",
+              "adversarial_answer": null,
+              "prediction": "Ten years ago",
+              "f1": 0.6666666666666666,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie go camping in June?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 27 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week of June",
+              "f1": 0.4444444444444445,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 25.27,
+          "answer_seconds": 20.55
+        }
+      ]
+    },
+    "cognitive": {
+      "summary": {
+        "questions_total": 9,
+        "questions_answerable": 9,
+        "per_category": {
+          "temporal": {
+            "count": 9,
+            "f1": 0.3867,
+            "em": 0.1111
+          }
+        },
+        "f1_answerable": 0.3867,
+        "em_answerable": 0.1111,
+        "ingest_seconds_total": 24.53,
+        "answer_seconds_total": 22.34
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 76,
+          "questions": [
+            {
+              "question": "When did Caroline go to the LGBTQ support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "7 May 2023",
+              "adversarial_answer": null,
+              "prediction": "May 7, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie paint a sunrise?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "Last year",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie run a charity race?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The sunday before 25 May 2023",
+              "adversarial_answer": null,
+              "prediction": "Last Saturday",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Melanie planning on going camping?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline give a speech at a school?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week (before June 9, 2023)",
+              "f1": 0.9090909090909091,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Caroline meet up with her friends, family, and mentors?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 9 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "How long has Caroline had her current group of friends for?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "4 years",
+              "adversarial_answer": null,
+              "prediction": "4 years",
+              "f1": 1.0,
+              "em": 1.0,
+              "abstained": null
+            },
+            {
+              "question": "How long ago was Caroline's 18th birthday?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "10 years ago",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie go camping in June?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The week before 27 June 2023",
+              "adversarial_answer": null,
+              "prediction": "Last week",
+              "f1": 0.28571428571428575,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 24.53,
+          "answer_seconds": 22.34
+        }
+      ]
+    }
+  }
+}
