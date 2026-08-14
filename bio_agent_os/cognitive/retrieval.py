@@ -121,6 +121,31 @@ def tokenize(text: str) -> list[str]:
     return [t for t in re.findall(r"\w+", text.lower(), flags=re.UNICODE) if len(t) > 1]
 
 
+#: A date or a clock time stated in the text itself.
+#:
+#: Covers the shapes this corpus actually contains — "[13 May, 2023]",
+#: "12/03/2026", "8:30 pm", "last spring", "on Wednesdays" — rather than every
+#: date format in existence. Deliberately cheap: it runs per candidate on every
+#: temporal query, and a slow regex here would cost more than the ranking gains.
+_TIME_PATTERNS = re.compile(
+    r"\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}"
+    r"|\d{4}-\d{2}-\d{2}"
+    r"|\d{1,2}\s*(?:am|pm)"
+    r"|\d{1,2}:\d{2}"
+    r"|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}"
+    r"|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*"
+    r"|(?:mon|tues|wednes|thurs|fri|satur|sun)day"
+    r"|(?:yesterday|today|tomorrow|last\s+\w+|next\s+\w+|this\s+morning)"
+    r"|(?:hôm\s+qua|hôm\s+nay|ngày\s+mai|tuần\s+trước|tháng\s+\d{1,2})"
+    r"|\b(?:19|20)\d{2}\b)",
+    re.IGNORECASE,
+)
+
+
+def _states_a_time(text: str) -> bool:
+    return bool(_TIME_PATTERNS.search(str(text or "")))
+
+
 def cosine_counter(a: Counter[str], b: Counter[str]) -> float:
     if not a or not b:
         return 0.0
@@ -371,13 +396,28 @@ class HybridRetrievalEngine:
 
     @staticmethod
     def _temporal_score(memory: CognitiveMemory, as_of: str | None, query_type: str) -> float:
+        """Score a memory's usefulness to a "when did X happen" question.
+
+        The validity window was the only signal here, and in practice it is
+        never set — LoCoMo memories carry no `valid_from`, so this returned 0.0
+        for every memory on every temporal question and the branch was dead.
+
+        What the memories *do* carry is a date in the text: `format_turn`
+        prefixes `[13 May, 2023] Caroline: ...`, and 72 of 72 temporal questions
+        in the benchmark ask *when*. Only a memory that states a time can answer
+        one, so a stated time is the signal — read from the content, since that
+        is where it is.
+
+        Deterministic, no model, one regex. Applied only to temporal queries, so
+        nothing else moves.
+        """
         if query_type != "temporal":
             return 0.0
         if as_of and memory.valid_from and memory.valid_from <= as_of and (memory.valid_to is None or as_of < memory.valid_to):
             return 0.65
         if memory.valid_from or memory.valid_to:
             return 0.25
-        return 0.0
+        return 0.55 if _states_a_time(memory.content) else 0.0
 
     def _governance_score(self, memory: CognitiveMemory) -> float:
         score = 0.0

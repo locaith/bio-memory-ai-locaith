@@ -56,17 +56,46 @@ Không vẽ biểu đồ mô phỏng — đây là **số đo thật, tái lập
 
 **Nơi bio-memory thắng đậm — suy luận thời gian (temporal):** **0.372** vs **0.136** của Naive-RAG — **gấp 2.7×**. Đây chính là luận điểm cốt lõi ("biết quên · biết nhớ") phát huy: ngày tháng được giữ nguyên qua chu kỳ consolidation thay vì bị nhấn chìm trong rác.
 
-**Lợi thế TĂNG theo chất lượng model "hồi hải mã"** (slice 90 câu, cùng config):
+**Lợi thế qua ba model** (slice 90 câu, cùng config):
 
-| Model | Bio-Agent OS | Naive-RAG | bio temporal |
-|:---|:---:|:---:|:---:|
-| gemma4:e2b (5B) | 0.406 | 0.391 | 0.349 |
-| qwen2.5:7b (7B) | 0.421 | 0.308 | 0.525 |
-| gemma4:12b (12B) | **0.498** | 0.461 | **0.603** |
+| Model | Bio-Agent OS | Naive-RAG | bio temporal | naive temporal | cách biệt temporal |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| gemma4:e2b (5B) | 0.406 | 0.391 | 0.349 | 0.326 | **+7%** |
+| qwen2.5:7b (7B) | 0.421 | 0.308 | 0.525 | 0.215 | **+144%** |
+| gemma4:12b (12B) | **0.498** | 0.461 | **0.603** | 0.416 | **+45%** |
 
-Bio-memory thắng Naive-RAG trên **cả ba** model. Temporal scale 0.349 → 0.525 → 0.603 — kiến trúc càng *hữu ích hơn* khi model mạnh hơn, không phải kịch trần. (gemma4:12b chạy gọn 8.4GB VRAM trên RTX 3060 — ứng viên "hồi hải mã" mặc định cho máy phổ thông.)
+Bio-memory thắng Naive-RAG trên **cả ba** model.
 
-**Trung thực:** Bio-memory hiện vẫn **thua** Naive-RAG ở nhóm multi-hop (0.246 vs 0.315) — chúng tôi công bố thẳng, đây là mục tiêu cải thiện kế tiếp. Toàn bộ hành trình phát triển (F1 0.0 → 0.498 qua nhiều lần vá, kể cả các lần thua) đều nằm trong git: mọi report, kể cả bản xấu nhất.
+**Đính chính 14/08/2026.** Bản trước của bảng này chỉ hiện cột `bio temporal` (0.349 → 0.525 → 0.603) và kết luận *"kiến trúc càng hữu ích hơn khi model mạnh hơn"*. Kết luận đó **sai**, và số bác bỏ nó vốn đã nằm trong chính các report nguồn — chỉ là chưa ai đặt hai cột cạnh nhau. Baseline cũng khá lên theo model (0.326 → 0.215 → 0.416), nên **cách biệt không đơn điệu**: +7%, +144%, rồi +45%. Có một dải giữa nơi trí nhớ giúp được nhiều nhất; model quá yếu thì không dùng nổi context tốt, model quá mạnh thì tự trả lời được từ ít context hơn. Cột `naive temporal` được thêm vào để người đọc tự kiểm tra.
+
+(gemma4:12b chạy gọn 8.4GB VRAM trên RTX 3060 — ứng viên "hồi hải mã" mặc định cho máy phổ thông.)
+
+### Đối đầu mem0 — 13/08/2026
+
+Cùng bộ câu hỏi, cùng model trả lời (`gpt-4o-mini` — chính model mem0 dùng để công bố số của họ), cùng embedder, cùng harness. 150 câu, đủ 4 nhóm. mem0 được cài đủ extras (spaCy, BM25) và **0 lỗi trích xuất** trong lần chạy này.
+
+| Hệ | Tổng F1 | temporal | single-hop | multi-hop | open-domain |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **Bio-Agent OS** | **0.4424** | **0.5008** | **0.5508** | 0.3691 | 0.0634 |
+| Naive-RAG | 0.3970 | 0.3773 | 0.5310 | 0.3929 | 0.0723 |
+| mem0 | 0.3958 | 0.4392 | 0.4284 | **0.4191** | **0.1223** |
+
+Thắng tổng thể **+11.8%** so với mem0, và **+14%** ở suy luận thời gian — nhóm mà kiến trúc này được thiết kế để mạnh.
+
+Nguồn: [`reports/head2head_openai_2026_08_13.md`](reports/head2head_openai_2026_08_13.md) · chi phí đo: $1.62, đếm từng lời gọi.
+
+### Giới hạn đã biết
+
+Công bố thẳng, kèm số:
+
+- **Thua mem0 ở multi-hop** (0.3691 vs 0.4191) và **open-domain** (0.0634 vs 0.1223). Multi-hop là điểm yếu lặp lại qua hai lần đo cách nhau hai tháng.
+- **Hồi hải mã chưa chứng minh được làm truy xuất tốt hơn.** Đo 14/08 trên 194 câu hỏi thật: bật nhãn và tắt nhãn cho **kết quả y hệt** (148/194), không một câu thay đổi. Nhãn mô tả ký ức; xếp hạng cần biết ký ức có liên quan tới câu hỏi hay không — hai đại lượng khác nhau.
+- **Hợp nhất ký ức cũng chưa chứng minh được.** 45 cụm hợp nhất: sửa được 4 câu, làm hỏng 4 câu, tổng không đổi. Và dữ liệu tháng 6 cho thấy chạy với `sleep_every=0` (tắt hợp nhất) đạt temporal **0.603** — cao hơn cả hai lần có hợp nhất.
+- **Thứ tạo ra kết quả là embedding**, không phải cơ chế sinh học. Thêm vector vào tầng `cognitive/` đưa nó từ 0.0048 lên 0.3658 trên LoCoMo.
+- **Hai tầng chưa ngang nhau.** Số ở trên là của tầng sinh học (`bio-memory`). Tầng mà hook Claude Code thực sự chạy (`cognitive/`) hiện đạt 0.3658. Khoảng cách này là việc đang làm.
+- Bộ 194 câu hỏi nội bộ **toàn là recall** — chưa có case cho phát hiện mâu thuẫn, ký ức cũ, hay quên có kiểm soát.
+
+Toàn bộ hành trình phát triển (F1 0.0 → 0.498 qua nhiều lần vá, kể cả các lần thua và các giả thuyết bị bác bỏ) đều nằm trong git: mọi report, kể cả bản xấu nhất.
 
 **Tự kiểm chứng (3 dòng lệnh):**
 ```bash
