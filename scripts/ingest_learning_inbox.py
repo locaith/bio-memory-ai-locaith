@@ -39,6 +39,52 @@ SCHEMA = "locaith.learning.v1"
 REQUIRED = ("schema", "course", "lesson_id", "summary")
 
 
+DEFAULT_CONFIDENCE = 0.7
+
+
+def repair(record: dict) -> list[str]:
+    """Fix what can be fixed without inventing knowledge. Returns what was done.
+
+    The line this draws matters, and it is not "never fill anything in":
+
+    * `confidence` arriving as the word "high" is a **metadata format** problem.
+      Fifteen files of real facts were rejected over it. Translating "high" to
+      0.9 would be picking a number and calling it the author's certainty, so
+      the word is kept verbatim and the numeric field falls back to the same
+      neutral default used when it is absent — recorded as defaulted, so nobody
+      later reads it as a measurement.
+    * `lesson_id` is an **identifier**, not a claim. Deriving a stable one from
+      the title loses nothing and keeps the lesson.
+    * `summary` and `key_facts` are the knowledge itself. Missing means the
+      capture is empty, and an empty capture stays rejected — there is nothing
+      to repair, and inventing a summary would put a sentence nobody wrote into
+      a memory nobody could tell from a real one.
+    """
+    notes: list[str] = []
+
+    confidence = record.get("confidence")
+    if confidence is not None and not (
+        isinstance(confidence, (int, float)) and not isinstance(confidence, bool)
+        and 0 <= confidence <= 1
+    ):
+        record["confidence_raw"] = confidence
+        record["confidence"] = DEFAULT_CONFIDENCE
+        record["confidence_defaulted"] = True
+        notes.append(f"confidence {confidence!r} không phải số 0..1 — giữ nguyên "
+                     f"chữ gốc, dùng mặc định {DEFAULT_CONFIDENCE}")
+
+    if not str(record.get("lesson_id") or "").strip():
+        title = str(record.get("lesson_title") or "").strip()
+        if title:
+            import hashlib
+            record["lesson_id"] = "auto-" + hashlib.sha256(
+                (str(record.get("course")) + title).encode("utf-8")
+            ).hexdigest()[:8]
+            record["lesson_id_derived"] = True
+            notes.append(f"lesson_id thiếu — suy từ tên bài: {record['lesson_id']}")
+    return notes
+
+
 def problems(record: dict) -> list[str]:
     issues = []
     if record.get("schema") != SCHEMA:
@@ -124,6 +170,9 @@ def main() -> int:
         except json.JSONDecodeError as exc:
             record, issues = {}, [f"JSON hỏng: {exc}"]
         else:
+            notes = repair(record)
+            for note in notes:
+                print(f"    sửa: {note}")
             issues = problems(record)
 
         if issues:

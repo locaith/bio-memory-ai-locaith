@@ -96,6 +96,26 @@ RELEVANCE_FLOOR = float(os.getenv("BIO_RETRIEVAL_RELEVANCE_FLOOR", "0.0"))
 #: keeps working while the backfill runs.
 EMBEDDING_FLOOR = float(os.getenv("BIO_RETRIEVAL_EMBEDDING_FLOOR", "0.64"))
 
+#: Should the hippocampus label influence ranking?
+#:
+#: The label exists on the write path and until now nothing read it, which made
+#: the "biological" half of this product a name rather than a mechanism. Two
+#: uses, both conservative:
+#:
+#: * a memory the hippocampus called junk is pushed down, not deleted — the
+#:   label is a model's opinion, and a model's opinion should not be able to
+#:   make a memory unfindable
+#: * `importance_score` becomes a small tie-breaker, worth at most 0.3 against
+#:   a semantic score already scaled to 2.0, so it can reorder near-ties and
+#:   cannot overturn relevance
+#:
+#: Off by default until it is measured. This is Phase 3 of the join plan and the
+#: whole question is whether it helps; shipping it on by assumption would be the
+#: opposite of finding out.
+USE_HIPPOCAMPUS_LABELS = os.getenv("BIO_RETRIEVAL_USE_LABELS", "0").strip() == "1"
+LABEL_JUNK_PENALTY = float(os.getenv("BIO_RETRIEVAL_JUNK_PENALTY", "0.60"))
+LABEL_IMPORTANCE_WEIGHT = float(os.getenv("BIO_RETRIEVAL_IMPORTANCE_WEIGHT", "0.03"))
+
 
 def tokenize(text: str) -> list[str]:
     return [t for t in re.findall(r"\w+", text.lower(), flags=re.UNICODE) if len(t) > 1]
@@ -198,6 +218,16 @@ class HybridRetrievalEngine:
             except Exception:
                 query_vector, vectors = None, {}
 
+        labels: dict[str, Any] = {}
+        if USE_HIPPOCAMPUS_LABELS and candidates:
+            try:
+                from .hippocampus_label import load_labels_for_events
+
+                event_ids = [e for m in candidates for e in (m.source_event_ids or [])]
+                labels = load_labels_for_events(self.store.conn, event_ids)
+            except Exception:
+                query_vector, vectors = None, {}
+
         results: list[RetrievalResult] = []
         for memory in candidates:
             allowed, access_reasons = self.governance.can_read(memory, ctx)
@@ -248,6 +278,22 @@ class HybridRetrievalEngine:
             score_parts["query_type"] = self._type_score(memory, query_type)
             score_parts["temporal"] = self._temporal_score(memory, as_of, query_type)
             score_parts["governance"] = self._governance_score(memory)
+
+            if labels:
+                for event_id in (memory.source_event_ids or []):
+                    label = labels.get(event_id)
+                    if not label:
+                        continue
+                    if label["is_junk"]:
+                        score_parts["label_junk"] = -LABEL_JUNK_PENALTY
+                    importance = label.get("importance_score")
+                    if isinstance(importance, (int, float)):
+                        # Centred on 5 so an average memory is neutral and only
+                        # the tails move anything.
+                        score_parts["label_importance"] = (
+                            (float(importance) - 5.0) * LABEL_IMPORTANCE_WEIGHT
+                        )
+                    break
             score_parts["epistemic"] = self._epistemic_score(memory, state)
             total = sum(score_parts.values())
             if total <= 0.05:

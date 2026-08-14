@@ -251,6 +251,38 @@ def unlabelled_count(conn: sqlite3.Connection) -> int:
     return int(row[0]) if row else 0
 
 
+def load_labels_for_events(conn: sqlite3.Connection,
+                           event_ids: list[str]) -> dict[str, dict[str, Any]]:
+    """Labels keyed by the event that produced them.
+
+    Retrieval holds memories, and a memory carries the events it came from, so
+    the join happens on `event_id`. Missing labels are simply absent — a memory
+    with no label must rank exactly as it does today, or switching this on could
+    hide something that used to be findable.
+    """
+    if not event_ids:
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    chunk = 500                       # SQLite's parameter limit is not infinite
+    for start in range(0, len(event_ids), chunk):
+        window = event_ids[start:start + chunk]
+        placeholders = ",".join("?" * len(window))
+        try:
+            rows = conn.execute(
+                f"SELECT event_id, importance_score, is_junk_or_transient, topic,"
+                f" label_source FROM hippocampus_labels "
+                f"WHERE event_id IN ({placeholders})",
+                window,
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return {}                 # capability not enabled here; absent, not broken
+        for event_id, importance, junk, topic, source in rows:
+            out[event_id] = {"importance_score": importance,
+                             "is_junk": bool(junk), "topic": topic,
+                             "label_source": source}
+    return out
+
+
 def _now_iso() -> str:
     from datetime import datetime, timezone
 
@@ -266,6 +298,7 @@ __all__ = [
     "backfill_labels",
     "cheap_label",
     "ensure_schema",
+    "load_labels_for_events",
     "pending_count",
     "unlabelled_count",
 ]
