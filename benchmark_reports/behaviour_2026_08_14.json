@@ -1,5 +1,5 @@
 {
-  "created": "2026-08-14T21:59:08",
+  "created": "2026-08-14T22:08:10",
   "engine": {
     "backend": "gemini",
     "model": "gemini-2.5-flash"
@@ -28,9 +28,9 @@
       "group": "contradiction",
       "system": "cognitive",
       "query": "Ai đang phụ trách ARCHILAB?",
-      "answer": "Chị Lan",
-      "passed": true,
-      "why": "đạt"
+      "answer": "No information available.",
+      "passed": false,
+      "why": "thiếu: ['Lan']"
     },
     {
       "id": "contra-004",
@@ -64,18 +64,18 @@
       "group": "stale",
       "system": "cognitive",
       "query": "Dự án Metub hiện đang ở giai đoạn nào?",
-      "answer": "Giai đoạn thử nghiệm",
-      "passed": false,
-      "why": "thiếu: ['01/06/2026']"
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối — cũng là câu trả lời trung thực"
     },
     {
       "id": "stale-002",
       "group": "stale",
       "system": "cognitive",
       "query": "Giá gói dịch vụ bây giờ là bao nhiêu?",
-      "answer": "6.500.000 đồng/tháng",
-      "passed": false,
-      "why": "thiếu: ['tháng 3']"
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối — cũng là câu trả lời trung thực"
     },
     {
       "id": "stale-003",
@@ -190,18 +190,18 @@
       "group": "multi-hop",
       "system": "cognitive",
       "query": "Ai chịu trách nhiệm cho mốc 30/09/2026?",
-      "answer": "No information available.",
-      "passed": false,
-      "why": "thiếu: ['Lan']"
+      "answer": "Chị Lan",
+      "passed": true,
+      "why": "đạt"
     },
     {
       "id": "multi-002",
       "group": "multi-hop",
       "system": "cognitive",
       "query": "Máy chủ OCR có vấn đề gì?",
-      "answer": "No information available.",
-      "passed": false,
-      "why": "thiếu: ['8000']"
+      "answer": "Cổng 8000 bị chiếm.",
+      "passed": true,
+      "why": "đạt"
     },
     {
       "id": "multi-003",

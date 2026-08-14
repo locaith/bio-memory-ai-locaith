@@ -117,6 +117,22 @@ LABEL_JUNK_PENALTY = float(os.getenv("BIO_RETRIEVAL_JUNK_PENALTY", "0.60"))
 LABEL_IMPORTANCE_WEIGHT = float(os.getenv("BIO_RETRIEVAL_IMPORTANCE_WEIGHT", "0.03"))
 
 
+def _staleness_of(memory: CognitiveMemory) -> dict[str, Any]:
+    """Age facts for the explanation block.
+
+    Both this system and plain RAG scored 0/3 on stale memories, and the cause
+    was that `observed_at` never left the store. A caller cannot say "as of
+    March" if retrieval does not tell it March. Wrapped because a date parse
+    must never be able to fail a recall that would otherwise have succeeded.
+    """
+    try:
+        from .staleness import describe
+
+        return describe(memory)
+    except Exception:
+        return {}
+
+
 def tokenize(text: str) -> list[str]:
     return [t for t in re.findall(r"\w+", text.lower(), flags=re.UNICODE) if len(t) > 1]
 
@@ -240,6 +256,18 @@ class HybridRetrievalEngine:
                 measured = calibrated_floor(self.store.conn)
                 if measured is not None:
                     floor = measured
+                else:
+                    # Never calibrated — usually because the store is too small
+                    # to have a "typical unrelated" at all. Falling back to a
+                    # written-down number is what broke the behaviour benchmark:
+                    # with one to three memories, 0.64 rejected every one of
+                    # them and recall returned "no information" for questions
+                    # whose answer was sitting right there.
+                    #
+                    # No reference distribution, no threshold. A store this
+                    # small cannot mislead at scale, and returning the only
+                    # memory it holds beats returning nothing.
+                    floor = 0.0
             except Exception:
                 query_vector, vectors = None, {}
 
@@ -341,6 +369,7 @@ class HybridRetrievalEngine:
                         "simulation_id": memory.simulation_id,
                         "governed_exception_for": memory.governed_exception_for,
                         "approved_by": memory.approved_by,
+                        "staleness": _staleness_of(memory),
                         "access": "allowed",
                         "access_reasons": access_reasons,
                         "candidate_pool_size": len(candidates),

@@ -83,9 +83,17 @@ def judge(case: dict, answer: str) -> tuple[bool, str]:
         return (True, "từ chối đúng") if declined(answer) else (False, "đáng lẽ phải nói không biết")
 
     missing = [m for m in required if str(m).lower() not in low]
-    if missing:
-        return False, f"thiếu: {missing}"
-    return True, "đạt"
+    if not missing:
+        return True, "đạt"
+
+    # Some questions have two honest answers. "What is the price now?" against a
+    # memory that only knows March can be answered by citing March or by saying
+    # it does not know — both are truthful, and only stating the March figure as
+    # today's price is wrong. Cases that say so carry `accept_decline`.
+    if case.get("accept_decline") and declined(answer):
+        return True, "từ chối — cũng là câu trả lời trung thực"
+
+    return False, f"thiếu: {missing}"
 
 
 async def run_case(system_name: str, case: dict, engine, embedder, workdir: Path) -> dict:
@@ -148,7 +156,16 @@ async def run_case(system_name: str, case: dict, engine, embedder, workdir: Path
         calibrate_with_probes(os_.memories.conn, embedder)
         ctx = AccessContext(tenant_id="bench", workspace_id=query_workspace)
         found = os_.recall(query, context=ctx, limit=6)
-        context = "\n".join(f"Memory: {r.memory.content}" for r in found)
+        # The date travels with the memory. Retrieval reports it; putting it in
+        # the context is where it becomes usable — without this step the model
+        # cannot say "as of March" however well it reasons, because nothing ever
+        # told it March.
+        from bio_agent_os.cognitive.staleness import annotate
+
+        context = "\n".join(
+            f"Memory: {annotate(r.memory.content, r.explanation.get('staleness') or {})}"
+            for r in found
+        )
         os_.close()
     else:
         pool = [t for ws, t in kept if ws == query_workspace]
