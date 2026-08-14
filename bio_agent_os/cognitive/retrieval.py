@@ -241,19 +241,37 @@ class HybridRetrievalEngine:
         floor = EMBEDDING_FLOOR
         if self.embedder is not None and candidates:
             try:
-                from .semantic_index import load_vectors
+                from .semantic_index import _describe, calibrated_floor, load_vectors
 
-                from .semantic_index import calibrated_floor
+                # Which space this query lives in. A store can hold more than
+                # one — a migration, or an ingest run with a different default
+                # embedder — and vectors from another space are not comparable
+                # with this one. `cosine` scores such a pair 0.0, which the
+                # floor below then reads as "unrelated" and drops. Measured on
+                # the live learning store on 2026-08-14, that made 60 of 413
+                # memories unreachable by any query, silently. Restricting by
+                # model leaves them without a vector instead, which is true,
+                # and the branch below already handles it by falling back to
+                # token overlap.
+                query_model = _describe(self.embedder)
 
                 query_vector = self.embedder.embed(query)
+                # Dimensionality is the reliable half of "same space": this
+                # store records the backend name ("openai"), not the model, so
+                # 1536-dim and 3072-dim vectors share one label. The query
+                # vector's own length is the only description that cannot be
+                # wrong.
                 vectors = load_vectors(
-                    self.store.conn, [m.memory_id for m in candidates]
+                    self.store.conn, [m.memory_id for m in candidates],
+                    model=query_model if query_model != "unknown" else None,
+                    dims=len(query_vector) if query_vector else None,
                 )
                 # A floor measured on this store's own vectors beats one
-                # written down for a different embedder. `EMBEDDING_FLOOR`
-                # stays as the fallback for a store that has never been
-                # calibrated.
-                measured = calibrated_floor(self.store.conn)
+                # written down for a different embedder, and a floor measured
+                # on a *different model's* vectors is worse than none at all.
+                # `EMBEDDING_FLOOR` stays as the fallback for a store that has
+                # never been calibrated.
+                measured = calibrated_floor(self.store.conn, model=query_model)
                 if measured is not None:
                     floor = measured
                 # No `else` branch. Setting the floor to zero when calibration

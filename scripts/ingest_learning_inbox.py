@@ -36,10 +36,72 @@ if str(_REPO) not in sys.path:
 INBOX = Path(r"C:\locaith\learning-inbox")
 EXAM_BANK = _REPO / "data" / "learning" / "exam_bank.jsonl"
 SCHEMA = "locaith.learning.v1"
-REQUIRED = ("schema", "course", "lesson_id", "summary")
+
+#: Two shapes arrive through the same inbox and they are not the same record.
+#:
+#: Measured on 2026-08-14: 34 of 82 captures sat in `_rejected`, every one of
+#: them an assessment, every one rejected for "thiếu lesson_id" and "thiếu
+#: summary" — fields an assessment does not have and was never going to have.
+#: A lesson has a summary and key facts; an assessment has an item, attempts,
+#: a score and a list of what went wrong. Requiring the lesson shape of both
+#: threw away 41% of everything captured, including 12 self-recorded weak
+#: topics and 12 questions answered wrongly, which this file's own docstring
+#: calls the most valuable thing in a capture.
+#: A third shape turned up the moment the second was handled: a course
+#: completion, carrying a certificate id and a final grade and none of the
+#: fields either of the others has. Adding kinds one rejection at a time is the
+#: pattern to notice — the inbox accepts whatever the capture tool emits, so the
+#: validator has to describe shapes rather than demand one.
+LESSON = "lesson"
+ASSESSMENT = "assessment"
+COMPLETION = "completion"
+
+REQUIRED_BY_KIND: dict[str, tuple[str, ...]] = {
+    LESSON: ("schema", "course", "lesson_id", "summary"),
+    ASSESSMENT: ("schema", "course", "lesson_id"),
+    COMPLETION: ("schema", "course"),
+}
+
+#: The same thing under different names across captures. Three shapes of
+#: `wrong_or_partial` were observed in one pile of 34 files, so reading a single
+#: key would silently drop whichever shape it did not match — the failure this
+#: whole file keeps producing. First present wins.
+_QUESTION_KEYS = ("question", "question_summary")
+_ANSWER_KEYS = ("correct_answer", "ai_suggested_answer",
+                "ai_suggested_or_confirmed_answer")
+_CHOSEN_KEYS = ("user_selected_answer", "user_selected")
+_RESULT_KEYS = ("points_awarded", "result")
 
 
 DEFAULT_CONFIDENCE = 0.7
+
+
+def kind_of(record: dict) -> str:
+    """Lesson or assessment, decided by what the record carries.
+
+    Not by `type` alone: 26 of the 34 rejected assessments had no `type` field
+    at all, so a check that trusted it would still reject three quarters of
+    them.
+    """
+    if str(record.get("item_type") or "").strip().lower() in {
+        "course-completion", "course_completion", "certificate"
+    } or record.get("certificate_id") or record.get("final_grade_percent") is not None:
+        return COMPLETION
+    if str(record.get("type") or "").strip().lower() in {
+        "quiz", "exam", "assessment", "graded_quiz", "test"
+    }:
+        return ASSESSMENT
+    if any(record.get(k) for k in ("item_id", "item_title", "item_type")):
+        return ASSESSMENT
+    return LESSON
+
+
+def _first(mapping: dict, keys: tuple[str, ...]) -> str:
+    for key in keys:
+        value = str(mapping.get(key) or "").strip()
+        if value:
+            return value
+    return ""
 
 
 def repair(record: dict) -> list[str]:
@@ -74,8 +136,15 @@ def repair(record: dict) -> list[str]:
                      f"chữ gốc, dùng mặc định {DEFAULT_CONFIDENCE}")
 
     if not str(record.get("lesson_id") or "").strip():
-        title = str(record.get("lesson_title") or "").strip()
-        if title:
+        # An assessment names its item rather than a lesson, and `item_id` is
+        # already a stable identifier — no need to derive one from a title.
+        explicit = str(record.get("item_id") or "").strip()
+        title = str(record.get("lesson_title") or record.get("item_title") or "").strip()
+        if explicit:
+            record["lesson_id"] = explicit
+            record["lesson_id_derived"] = True
+            notes.append(f"lesson_id thiếu — dùng item_id: {explicit}")
+        elif title:
             import hashlib
             record["lesson_id"] = "auto-" + hashlib.sha256(
                 (str(record.get("course")) + title).encode("utf-8")
@@ -86,16 +155,137 @@ def repair(record: dict) -> list[str]:
 
 
 def problems(record: dict) -> list[str]:
+    """What is missing, judged against the shape this record actually is.
+
+    An assessment needs no `summary`: what it carries instead is a score, the
+    questions that went wrong, and the topics the learner flagged as weak. It
+    is rejected when it carries none of those, because then nothing was
+    captured — the same rule as an empty lesson, applied to the right fields.
+    """
     issues = []
+    kind = kind_of(record)
     if record.get("schema") != SCHEMA:
         issues.append(f"schema phải là {SCHEMA}")
-    for field in REQUIRED:
+    for field in REQUIRED_BY_KIND[kind]:
         if not str(record.get(field, "")).strip():
             issues.append(f"thiếu hoặc rỗng: {field}")
     for field in ("key_facts", "qa", "attempts"):
         if field in record and not isinstance(record[field], list):
             issues.append(f"{field} phải là danh sách")
+    if kind in (ASSESSMENT, COMPLETION) and not memory_texts(record):
+        issues.append(f"{kind}: không có nội dung nào đáng ghi nhớ")
     return issues
+
+
+def wrong_questions(record: dict) -> set[str]:
+    """Every question this capture says was answered wrongly, both shapes.
+
+    A lesson marks them `attempts[].was_correct == False`; an assessment nests
+    them under `attempts[].wrong_or_partial[]`. The exam-bank leak guard reads
+    this, so a shape it cannot see is a question that lands verbatim in memory
+    *and* in the question bank — recall would then find the card instead of the
+    knowledge, and the score would mean nothing.
+    """
+    out: set[str] = set()
+    for attempt in record.get("attempts") or []:
+        if not isinstance(attempt, dict):
+            continue
+        if attempt.get("was_correct") is False:
+            question = str(attempt.get("question", "")).strip()
+            if question:
+                out.add(question.lower())
+        for item in attempt.get("wrong_or_partial") or []:
+            if isinstance(item, dict):
+                question = _first(item, _QUESTION_KEYS)
+                if question:
+                    out.add(question.lower())
+    return out
+
+
+def _assessment_texts(record: dict, prefix: str) -> list[str]:
+    """What is worth remembering from a graded attempt.
+
+    Ordered by how much it says about the learner rather than the score: a
+    topic they flagged as weak is a standing instruction to themselves, a
+    question they got wrong marks where understanding actually failed, and the
+    percentage is context for both.
+    """
+    out: list[str] = []
+
+    for attempt in record.get("attempts") or []:
+        if not isinstance(attempt, dict):
+            continue
+
+        for topic in attempt.get("weak_topics") or []:
+            text = str(topic).strip()
+            if text:
+                out.append(f"{prefix} Điểm yếu tự ghi nhận: {text}")
+
+        for item in attempt.get("wrong_or_partial") or []:
+            if not isinstance(item, dict):
+                text = str(item).strip()
+                if text:
+                    out.append(f"{prefix} Làm sai: {text}")
+                continue
+            question = _first(item, _QUESTION_KEYS)
+            answer = _first(item, _ANSWER_KEYS)
+            chosen = _first(item, _CHOSEN_KEYS)
+            why = str(item.get("explanation") or item.get("note") or "").strip()
+            if not (question or why):
+                continue
+            line = f"{prefix} Làm sai câu: \"{question}\"." if question \
+                else f"{prefix} Làm sai một câu."
+            if chosen and chosen != answer:
+                line += f" Đã chọn: {chosen}."
+            if answer:
+                line += f" Đáp án đúng: {answer}."
+            if why:
+                line += f" Vì: {why}"
+            out.append(line)
+
+        score = attempt.get("score_percent")
+        if score is not None:
+            passed = attempt.get("passed")
+            verdict = "đạt" if passed else ("chưa đạt" if passed is False else "")
+            number = attempt.get("attempt_no")
+            out.append(
+                f"{prefix} Kết quả {score}%"
+                + (f" ở lần thứ {number}" if number else "")
+                + (f", {verdict}" if verdict else "") + "."
+            )
+    return out
+
+
+def _completion_texts(record: dict) -> list[str]:
+    """A finished course is a milestone, and milestones are what a progress
+    question is asking about. Stored as facts with their verification id, so
+    "how far am I through the program" has an answer that can be checked."""
+    course = str(record.get("course") or "").strip()
+    if not course:
+        return []
+
+    out: list[str] = []
+    grade = record.get("final_grade_percent")
+    when = str(record.get("completion_date") or "").strip()
+    line = f"Đã hoàn thành khoá {course}"
+    if grade is not None:
+        line += f" với điểm tổng kết {grade}%"
+    if when:
+        line += f", ngày {when}"
+    out.append(line + ".")
+
+    index = record.get("course_number_in_program")
+    total = record.get("total_courses_in_program")
+    if index and total:
+        out.append(f"Tiến độ chương trình: đã xong khoá {index}/{total} "
+                   f"({course}).")
+
+    certificate = str(record.get("certificate_id") or "").strip()
+    if certificate:
+        url = str(record.get("verify_url") or "").strip()
+        out.append(f"Chứng chỉ {course}: mã {certificate}"
+                   + (f", kiểm tra tại {url}" if url else "") + ".")
+    return out
 
 
 def memory_texts(record: dict) -> list[str]:
@@ -109,7 +299,14 @@ def memory_texts(record: dict) -> list[str]:
     deployment models are public, private and hybrid" is unanchored six months
     later — anchored, it can answer "what did I learn in the cloud course".
     """
-    prefix = f"[{record.get('course')} / {record.get('lesson_title') or record.get('lesson_id')}]"
+    prefix = (f"[{record.get('course')} / "
+              f"{record.get('lesson_title') or record.get('item_title') or record.get('lesson_id')}]")
+    kind = kind_of(record)
+    if kind == ASSESSMENT:
+        return _assessment_texts(record, prefix)
+    if kind == COMPLETION:
+        return _completion_texts(record)
+
     out: list[str] = []
     for fact in record.get("key_facts") or []:
         text = str(fact).strip()
@@ -156,6 +353,17 @@ def main() -> int:
 
     embedder = None
     if args.embed:
+        # `.env` holds OPENAI_API_KEY, and `Embedder()` picks its backend by
+        # whether that key is in the *process* environment. Without this load
+        # it silently chose the local model instead, wrote 60 vectors into a
+        # 384-dimension space beside 353 in a 3072-dimension one, and split the
+        # store in two: `cosine` scores mismatched dimensions 0.0, retrieval
+        # reads 0.0 as "unrelated", and those 60 memories became unreachable by
+        # any query. Nothing raised, nothing logged.
+        from dotenv import load_dotenv
+
+        load_dotenv(_REPO / ".env")
+
         from bio_agent_os.core.embedder import Embedder
         embedder = Embedder()
 
@@ -197,11 +405,7 @@ def main() -> int:
         # and the score means nothing. Facts overlapping answers is fine and
         # necessary — a memory that does not contain the fact has nothing to
         # recall. A verbatim pair is not.
-        attempted = {
-            str(a.get("question", "")).strip().lower()
-            for a in (record.get("attempts") or [])
-            if isinstance(a, dict) and a.get("was_correct") is False
-        }
+        attempted = wrong_questions(record)
         overlap = [q for q in qa if str(q["question"]).strip().lower() in attempted]
         if overlap:
             qa = [q for q in qa if str(q["question"]).strip().lower() not in attempted]
@@ -250,14 +454,37 @@ def main() -> int:
 
     if memory_os is not None:
         if embedder is not None:
-            from bio_agent_os.cognitive.semantic_index import backfill_embeddings, coverage
+            from bio_agent_os.cognitive.semantic_index import (
+                backfill_embeddings, coverage, models_present,
+            )
+            before = models_present(memory_os.memories.conn)
             total = 0
             while True:
                 written = backfill_embeddings(memory_os.memories.conn, embedder, limit=100)
                 total += written
                 if written == 0:
                     break
-            print(f"\n  vector: +{total}  ({coverage(memory_os.memories.conn)})")
+            report = coverage(memory_os.memories.conn)
+            print(f"\n  vector: +{total}  ({report})")
+
+            # A store acquiring a second embedding space is the moment to say
+            # so out loud. Vectors from different spaces cannot be compared:
+            # `cosine` returns 0.0 for mismatched dimensions and retrieval
+            # reads that as "unrelated", so each half becomes invisible to
+            # queries embedded by the other. This was found by reading a
+            # coverage line, which is not a way to find things.
+            after = models_present(memory_os.memories.conn)
+            spaces = {(m["model"], m["dims"]) for m in report.get("models", [])}
+            if len(spaces) > 1:
+                print("\n  ⚠  KHO CÓ NHIỀU KHÔNG GIAN VECTOR:")
+                for name, dims in sorted(spaces):
+                    print(f"       {name} ({dims} chiều)")
+                print("     Vector khác không gian không so sánh được với nhau.")
+                print("     Truy vấn nhúng bằng model nào chỉ 'thấy' vector của")
+                print("     model đó; phần còn lại rơi về so khớp từ.")
+                if after - before:
+                    print(f"     Lần chạy này vừa thêm: {sorted(after - before)}")
+                print("     Nạp lại toàn bộ bằng một model để gộp về một không gian.")
         memory_os.close()
 
     print(f"\n  {len(files)} file | {stored} ký ức | {exams} câu hỏi vào đề "

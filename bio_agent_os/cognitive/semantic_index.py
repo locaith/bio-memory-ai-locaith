@@ -367,22 +367,70 @@ def calibrate(conn: sqlite3.Connection, *, sample: int = 60,
     return result
 
 
-def calibrated_floor(conn: sqlite3.Connection) -> float | None:
-    """The measured floor for this store, or None if it has not been measured."""
+def calibrated_floor(conn: sqlite3.Connection, *,
+                     model: str | None = None) -> float | None:
+    """The measured floor, for the model doing the asking.
+
+    `embedding_calibration` has always been keyed by model, and this function
+    ignored that and returned whichever row was written last. Measured on the
+    live learning store on 2026-08-14: the stored floor was 0.6153 from OpenAI,
+    while two arbitrary sentence-transformers vectors in the same store already
+    scored 0.8525 — so on that half of the store the floor rejected nothing.
+
+    An unmeasured model returns None rather than borrowing. Borrowing is what
+    produced the number above, and a floor from the wrong space is worse than
+    no floor, because the caller believes it means something.
+    """
     try:
-        row = conn.execute(
-            "SELECT floor FROM embedding_calibration ORDER BY measured_at DESC LIMIT 1"
-        ).fetchone()
+        if model:
+            row = conn.execute(
+                "SELECT floor FROM embedding_calibration WHERE model=?", (model,)
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT floor FROM embedding_calibration ORDER BY measured_at DESC LIMIT 1"
+            ).fetchone()
     except sqlite3.OperationalError:
         return None
     return float(row[0]) if row else None
 
 
-def load_vectors(conn: sqlite3.Connection, memory_ids: list[str]) -> dict[str, array.array]:
+def models_present(conn: sqlite3.Connection) -> set[str]:
+    """Which embedding spaces this store holds. More than one means vectors
+    that cannot be compared with each other live side by side."""
+    try:
+        return {row[0] for row in conn.execute(
+            "SELECT DISTINCT model FROM memory_embeddings")}
+    except sqlite3.OperationalError:
+        return set()
+
+
+def load_vectors(conn: sqlite3.Connection, memory_ids: list[str], *,
+                 model: str | None = None,
+                 dims: int | None = None) -> dict[str, array.array]:
     """Vectors for the candidates under consideration, in one query.
 
     Returns whatever exists. A missing id is not an error — the caller scores
     that memory the old way, so switching this on cannot make anything vanish.
+
+    `model` restricts the result to one embedding space, and passing it is the
+    difference between an honest answer and a silent one. `cosine()` returns
+    0.0 for vectors of different lengths, and retrieval drops anything under
+    the floor, so a vector from another model is rendered exactly like a
+    memory about something else. Measured on the live learning store on
+    2026-08-14: 60 of 413 memories were unreachable by any query, with nothing
+    logged and no count showing it.
+
+    `dims` is the stronger of the two filters and should be the length of the
+    query vector. The model *name* is not enough on its own: this store records
+    the backend ("openai"), not the specific model, so
+    `text-embedding-3-small` at 1536 dims and `text-embedding-3-large` at 3072
+    are written under one name into one table. Filtering by name alone would
+    pass both, `cosine` would score the mismatched pair 0.0, and the silent
+    split would come straight back under a different disguise.
+
+    Omitting both keeps the old behaviour, for callers that have no embedder to
+    name.
     """
     if not memory_ids:
         return {}
@@ -391,12 +439,17 @@ def load_vectors(conn: sqlite3.Connection, memory_ids: list[str]) -> dict[str, a
     for start in range(0, len(memory_ids), chunk):
         window = memory_ids[start:start + chunk]
         placeholders = ",".join("?" * len(window))
+        sql = (f"SELECT memory_id, vector FROM memory_embeddings "
+               f"WHERE memory_id IN ({placeholders})")
+        params = list(window)
+        if model:
+            sql += " AND model = ?"
+            params.append(model)
+        if dims:
+            sql += " AND dims = ?"
+            params.append(int(dims))
         try:
-            rows = conn.execute(
-                f"SELECT memory_id, vector FROM memory_embeddings "
-                f"WHERE memory_id IN ({placeholders})",
-                window,
-            ).fetchall()
+            rows = conn.execute(sql, params).fetchall()
         except sqlite3.OperationalError:
             return {}
         for memory_id, blob in rows:
