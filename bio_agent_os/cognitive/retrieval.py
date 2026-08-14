@@ -256,18 +256,12 @@ class HybridRetrievalEngine:
                 measured = calibrated_floor(self.store.conn)
                 if measured is not None:
                     floor = measured
-                else:
-                    # Never calibrated — usually because the store is too small
-                    # to have a "typical unrelated" at all. Falling back to a
-                    # written-down number is what broke the behaviour benchmark:
-                    # with one to three memories, 0.64 rejected every one of
-                    # them and recall returned "no information" for questions
-                    # whose answer was sitting right there.
-                    #
-                    # No reference distribution, no threshold. A store this
-                    # small cannot mislead at scale, and returning the only
-                    # memory it holds beats returning nothing.
-                    floor = 0.0
+                # No `else` branch. Setting the floor to zero when calibration
+                # was missing looked like the fix for tiny stores and simply
+                # moved the failure: nothing was rejected at all, and the
+                # unrelated-query test went red. The real fix was to make
+                # calibration work on a small store — see
+                # `calibrate_with_probes`, which now needs one memory, not five.
             except Exception:
                 query_vector, vectors = None, {}
 

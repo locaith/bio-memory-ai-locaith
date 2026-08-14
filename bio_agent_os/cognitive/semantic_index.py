@@ -252,8 +252,14 @@ def calibrate_with_probes(conn: sqlite3.Connection, embedder: SupportsEmbed, *,
         ).fetchall()
     except sqlite3.OperationalError:
         return None
-    if len(rows) < 5:
+    if not rows:
         return None
+    # One memory is enough. The probes compare a *query* against whatever is
+    # stored, and the highest score an off-topic question reaches does not need
+    # a large store to be meaningful. Requiring five rows was the reason a
+    # three-memory store fell back to a written-down floor and rejected every
+    # answer it had — and disabling the floor instead simply moved the failure
+    # to the other side.
 
     model, dims = rows[0][0], rows[0][1]
     vectors = [unpack(r[2]) for r in rows]

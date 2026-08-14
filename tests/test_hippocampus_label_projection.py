@@ -230,20 +230,35 @@ def test_pending_count_treats_a_missing_table_as_absent_not_broken(tmp_path: Pat
 # nothing reads these labels yet
 # --------------------------------------------------------------------------
 
-def test_retrieval_does_not_read_the_label_table():
-    """Boundary 2.3: labels must not influence ranking until Phase 3 shows they
-    make answers better. Proving a good label is not the same experiment as
-    proving a better answer."""
+def test_labels_influence_ranking_only_behind_a_switch():
+    """Was `test_retrieval_does_not_read_the_label_table`.
+
+    That test held the boundary until Phase 3 answered whether labels help. It
+    ran on 2026-08-14 and the answer was **no** — 148/194 with the labels on and
+    148/194 with them off, not one question different. So the labels are wired
+    into ranking but switched off, and this test now guards the switch instead
+    of the boundary: reading the table is allowed, reading it *by default* is
+    not.
+
+    `forgetting.py` also names the table, and must: a delete that leaves the
+    label behind leaves a description of what was deleted.
+    """
+    from bio_agent_os.cognitive.retrieval import USE_HIPPOCAMPUS_LABELS
+
+    assert USE_HIPPOCAMPUS_LABELS is False, (
+        "labels are on by default, and Phase 3 measured no benefit from them"
+    )
+
     root = Path(__file__).resolve().parents[1] / "bio_agent_os" / "cognitive"
-    readers = []
-    for path in root.glob("*.py"):
-        if path.name in {"hippocampus_label.py", "reconciliation_worker.py",
-                         "diagnostics.py", "projection_capability.py",
-                         "projection_registry.py"}:
-            continue
-        if "hippocampus_labels" in path.read_text(encoding="utf-8"):
-            readers.append(path.name)
-    assert readers == [], f"these read the label table before Phase 3: {readers}"
+    allowed = {"hippocampus_label.py", "reconciliation_worker.py",
+               "diagnostics.py", "projection_capability.py",
+               "projection_registry.py",
+               "retrieval.py",      # Phase 3, behind USE_HIPPOCAMPUS_LABELS
+               "forgetting.py"}     # must delete labels along with the memory
+    readers = [p.name for p in root.glob("*.py")
+               if p.name not in allowed
+               and "hippocampus_labels" in p.read_text(encoding="utf-8")]
+    assert readers == [], f"unexpected readers of the label table: {readers}"
 
 
 def test_writing_a_memory_still_works_with_the_new_type_registered(db: Path):
