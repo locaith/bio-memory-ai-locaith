@@ -70,7 +70,11 @@ def _already_consolidated(conn: sqlite3.Connection) -> set[str]:
     used: set[str] = set()
     try:
         rows = conn.execute(
-            "SELECT metadata FROM cognitive_memories WHERE metadata LIKE ?",
+            # `metadata_json` is the column. Naming `metadata` raised
+            # OperationalError, which the handler below turned into "nothing has
+            # been consolidated" -- so every pass re-merged the same cluster.
+            # One morning's run produced 45 consolidated memories that way.
+            "SELECT metadata_json FROM cognitive_memories WHERE metadata_json LIKE ?",
             (f"%{CONSOLIDATED_MARKER}%",),
         ).fetchall()
     except sqlite3.OperationalError:

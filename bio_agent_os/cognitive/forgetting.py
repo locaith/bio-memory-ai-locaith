@@ -122,7 +122,9 @@ class ForgetReport:
     memories_deleted: int = 0
     derived: dict[str, int] = field(default_factory=dict)
     events_redacted: int = 0
-    verified_clean: bool = True
+    #: How many probes were actually searched for. Zero means the verification
+    #: never ran, which is not the same as finding nothing — see `verified_clean`.
+    checks_run: int = 0
     residue: list[dict[str, str]] = field(default_factory=list)
     #: True when the content can be rebuilt from something this scope did not
     #: touch — almost always the event log.
@@ -130,12 +132,27 @@ class ForgetReport:
     reversible_via: list[str] = field(default_factory=list)
     note: str = ""
 
+    @property
+    def verified_clean(self) -> bool:
+        """Nothing was found, *and* something was actually looked for.
+
+        Computed rather than assigned, because the bug being prevented is a
+        report that says clean having performed zero checks. Measured on
+        2026-08-14: `_probes()` produced nothing at all for four of six ordinary
+        Vietnamese sentences, so the verification loop never executed and this
+        flag was set True regardless.
+        """
+        if self.checks_run <= 0:
+            return False
+        return not self.residue
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "scope": self.scope,
             "memories_deleted": self.memories_deleted,
             "derived": self.derived,
             "events_redacted": self.events_redacted,
+            "checks_run": self.checks_run,
             "verified_clean": self.verified_clean,
             "residue": self.residue,
             "reversible": self.reversible,
@@ -219,30 +236,70 @@ def find_consolidated_containing(conn: sqlite3.Connection,
 
 def verify(conn: sqlite3.Connection, needle: str,
            columns: tuple[tuple[str, str], ...] = CONTENT_COLUMNS) -> list[dict[str, str]]:
-    """Anything still mentioning `needle`, anywhere in `columns`. The proof half."""
-    needle = str(needle or "").strip()
+    """Anything still mentioning `needle`, anywhere in `columns`. The proof half.
+
+    Matching happens in Python through `_normalise`, the same function
+    `find_by_subject` uses. The previous version matched with SQL `LIKE`, which
+    folds case for ASCII only:
+
+        LIKE '%đà nẵng%'  ->  ['đà nẵng']          (misses 'Đà Nẵng')
+        LIKE '%hanoi%'    ->  ['Hanoi', 'hanoi']   (ASCII folds fine)
+
+    So the deleter reached case variants the verifier could not see, and that
+    asymmetry is exactly what produces a false all-clear. One comparison rule,
+    used by both halves, is the fix — a faster query with different semantics
+    is how the two drift apart again.
+    """
+    needle = _normalise(needle)
     if not needle:
         return []
     residue: list[dict[str, str]] = []
     for table, column in columns:
-        for (value,) in _safe(
-            conn, f"SELECT {column} FROM {table} WHERE {column} LIKE ?",
-            (f"%{needle}%",),
-        ):
-            residue.append({"where": f"{table}.{column}", "excerpt": str(value)[:120]})
+        for (value,) in _safe(conn, f"SELECT {column} FROM {table}"):
+            if needle in _normalise(value):
+                residue.append({"where": f"{table}.{column}",
+                                "excerpt": str(value)[:120]})
     return residue
 
 
+#: Long enough to be distinctive rather than a coincidence. Applied to whole
+#: utterances, never to single words.
+_MIN_PROBE_CHARS = 8
+
+
 def _probes(contents: list[str], needle: str | None) -> list[str]:
-    """What to search for afterwards. A long token beats a common word."""
-    if needle:
-        return [needle]
+    """What to search for afterwards.
+
+    The previous version took the longest token matching `\\w{6,}`. Vietnamese
+    is monosyllabic, so measured on ordinary content it produced nothing at all:
+
+        "Anh sống ở Đà Nẵng"         -> no probe
+        "Lương tháng 8 là 25 triệu"  -> no probe
+        "Giá bán là 6.500.000 VND"   -> no probe
+        "He lives in Hanoi"          -> no probe
+
+    and a verification with no probes reported clean without looking. The two
+    examples that happened to work, `88888888` and `0912345678`, were the ones
+    the original tests used.
+
+    The whole utterance is the right probe: the leak that was actually measured
+    is a consolidated memory quoting its sources word for word, and no
+    single-token heuristic catches that better than the words themselves. Long
+    tokens are kept as well, since an id or an amount survives paraphrase and a
+    sentence does not.
+    """
+    if needle and str(needle).strip():
+        return [str(needle).strip()]
+
     out: list[str] = []
     for content in contents:
-        tokens = sorted(re.findall(r"\w{6,}", content), key=len, reverse=True)
-        if tokens:
-            out.append(tokens[0])
-    return out[:5]
+        text = " ".join(str(content or "").split())
+        if len(text) >= _MIN_PROBE_CHARS and text not in out:
+            out.append(text)
+        for token in re.findall(r"\S{6,}", text):
+            if token not in out:
+                out.append(token)
+    return out[:8]
 
 
 def _resolve(conn: sqlite3.Connection, memory_id: str | None,
@@ -335,6 +392,7 @@ def forget_projection(memory_os: Any, *, memory_id: str | None = None,
     conn.commit()
 
     probes = _probes(contents, needle)
+    report.checks_run = len(probes)
     for probe in probes:
         report.residue.extend(verify(conn, probe))
 
@@ -350,7 +408,6 @@ def forget_projection(memory_os: Any, *, memory_id: str | None = None,
             report.residue.append({"where": table,
                                    "excerpt": f"{rows[0][0]} dòng dẫn xuất còn lại"})
 
-    report.verified_clean = not report.residue
     _note_reversibility(_events_conn(memory_os), report, probes)
     return report
 
@@ -408,10 +465,10 @@ def forget_derived(memory_os: Any, *, memory_id: str | None = None,
     conn.commit()
 
     probes = _probes(contents, needle)
+    report.checks_run = len(probes)
     for probe in probes:
         report.residue.extend(verify(conn, probe))
 
-    report.verified_clean = not report.residue
     if report.residue:
         report.note = (report.note + " | " if report.note else "") + \
             f"CÒN SÓT ở {len(report.residue)} chỗ — chưa xoá sạch"
@@ -569,10 +626,10 @@ def erase_history(memory_os: Any, *, memory_id: str | None = None,
 
     # Proof, this time including the log the other levels leave alone.
     report.residue = []
+    report.checks_run = len(probes)
     for probe in probes:
         report.residue.extend(verify(conn, probe))
         report.residue.extend(verify(events, probe, EVENT_COLUMNS))
-    report.verified_clean = not report.residue
     report.reversible = bool(report.residue)
     report.reversible_via = sorted({h["where"] for h in report.residue}) \
         if report.residue else []

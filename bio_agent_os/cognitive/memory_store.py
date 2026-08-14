@@ -407,7 +407,13 @@ class SQLiteMemoryStore:
         data.update(changes)
         data["version"] = current.version + 1
         data["superseded_at"] = None
-        data["observed_at"] = changes.get("observed_at", now)
+        # `observed_at` records when the claim was learned, not when the row was
+        # rewritten. Defaulting it to `now` reset the staleness clock on every
+        # supersede: a memory 590 days old came back reading 0 days, so
+        # `staleness` -- the only memory-specific mechanism with a measured win
+        # -- could never fire again on it. A genuinely new observation still
+        # moves the clock, by passing `observed_at` explicitly.
+        data["observed_at"] = changes.get("observed_at", current.observed_at)
         successor = CognitiveMemory(**data)
         self.put(successor)
         return successor

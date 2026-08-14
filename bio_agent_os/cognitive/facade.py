@@ -107,10 +107,20 @@ class MemoryOS:
         security_label: SecurityLabel = SecurityLabel.INTERNAL,
         valid_from: str | None = None,
         valid_to: str | None = None,
+        observed_at: str | None = None,
         metadata: dict[str, Any] | None = None,
         modality: Modality = Modality.TEXT,
         epistemic_status: EpistemicStatus = EpistemicStatus.OBSERVED,
     ) -> EventRecord:
+        """Record an observation.
+
+        `observed_at` states when the observation happened. It is the one
+        temporal field that previously had no route in, while `valid_from` and
+        `valid_to` did — so a caller replaying a history could say when a fact
+        was *true* but not when it was *learned*, and every memory in a
+        simulated two-year history landed with an age of zero. `None` keeps the
+        previous behaviour: the moment of the call.
+        """
         decision = self.immune.inspect(
             content,
             memory_type=MemoryType.EPISODIC,
@@ -129,6 +139,7 @@ class MemoryOS:
             security_label=security_label,
             valid_from=valid_from,
             valid_to=valid_to,
+            **({"observed_at": observed_at} if observed_at else {}),
             metadata={**(metadata or {}), "immune_reasons": list(decision.reasons), "risk_score": decision.risk_score},
             modality=modality,
             epistemic_status=epistemic_status,
@@ -242,6 +253,11 @@ class MemoryOS:
             security_label=event.security_label,
             valid_from=event.valid_from,
             valid_to=event.valid_to,
+            # Inherited for the same reason as the two above: the claim was
+            # learned when its event was observed, not when the row was written.
+            # Without this a replayed history has every memory aged zero, and
+            # `staleness.annotate` stamps the run date onto a two-year-old price.
+            observed_at=event.observed_at,
             lifecycle_state=lifecycle_state,
             approved_by=approved_by,
             governed_exception_for=governed_exception_for,
