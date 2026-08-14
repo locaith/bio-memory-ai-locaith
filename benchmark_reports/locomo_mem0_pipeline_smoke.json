@@ -1,0 +1,179 @@
+{
+  "benchmark": "locomo",
+  "config": {
+    "max_conversations": 1,
+    "max_sessions": 2,
+    "max_questions_per_conversation": 6,
+    "categories": [
+      2
+    ],
+    "top_k": 10,
+    "sleep_every": 20
+  },
+  "metadata": {
+    "backend": "ollama",
+    "model": "gemma4:12b",
+    "embedding": {
+      "backend": "openai",
+      "model": "nomic-embed-text",
+      "dimensions": "768",
+      "base_url_host": "localhost:11434",
+      "degraded_hash_mode": false
+    },
+    "systems": [
+      "naive-rag",
+      "mem0"
+    ],
+    "mem0_profile": "local",
+    "started_at": "2026-08-11 22:44:26",
+    "dataset": "data\\evals\\locomo10.json",
+    "dataset_url": "https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json"
+  },
+  "conversations_evaluated": [
+    "conv-26"
+  ],
+  "systems": {
+    "naive-rag": {
+      "summary": {
+        "questions_total": 4,
+        "questions_answerable": 4,
+        "per_category": {
+          "temporal": {
+            "count": 4,
+            "f1": 0.25,
+            "em": 0.0
+          }
+        },
+        "f1_answerable": 0.25,
+        "em_answerable": 0.0,
+        "ingest_seconds_total": 4.34,
+        "answer_seconds_total": 84.96
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 35,
+          "questions": [
+            {
+              "question": "When did Caroline go to the LGBTQ support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "7 May 2023",
+              "adversarial_answer": null,
+              "prediction": "May 7, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie paint a sunrise?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "Last year.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie run a charity race?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The sunday before 25 May 2023",
+              "adversarial_answer": null,
+              "prediction": "Last Saturday",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Melanie planning on going camping?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 4.34,
+          "answer_seconds": 84.96
+        }
+      ]
+    },
+    "mem0": {
+      "summary": {
+        "questions_total": 4,
+        "questions_answerable": 4,
+        "per_category": {
+          "temporal": {
+            "count": 4,
+            "f1": 0.4167,
+            "em": 0.0
+          }
+        },
+        "f1_answerable": 0.4167,
+        "em_answerable": 0.0,
+        "ingest_seconds_total": 1161.47,
+        "answer_seconds_total": 39.04
+      },
+      "conversations": [
+        {
+          "sample_id": "conv-26",
+          "turns_ingested": 35,
+          "questions": [
+            {
+              "question": "When did Caroline go to the LGBTQ support group?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "7 May 2023",
+              "adversarial_answer": null,
+              "prediction": "May 7, 2023",
+              "f1": 1.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie paint a sunrise?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "2022",
+              "adversarial_answer": null,
+              "prediction": "Last year.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When did Melanie run a charity race?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "The sunday before 25 May 2023",
+              "adversarial_answer": null,
+              "prediction": "No information available.",
+              "f1": 0.0,
+              "em": 0.0,
+              "abstained": null
+            },
+            {
+              "question": "When is Melanie planning on going camping?",
+              "category": 2,
+              "category_name": "temporal",
+              "gold": "June 2023",
+              "adversarial_answer": null,
+              "prediction": "Next month (June 2023)",
+              "f1": 0.6666666666666666,
+              "em": 0.0,
+              "abstained": null
+            }
+          ],
+          "ingest_seconds": 1161.47,
+          "answer_seconds": 39.04
+        }
+      ]
+    }
+  }
+}
