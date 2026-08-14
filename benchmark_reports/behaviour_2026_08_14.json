@@ -1,0 +1,423 @@
+{
+  "created": "2026-08-14T21:59:08",
+  "engine": {
+    "backend": "gemini",
+    "model": "gemini-2.5-flash"
+  },
+  "results": [
+    {
+      "id": "contra-001",
+      "group": "contradiction",
+      "system": "cognitive",
+      "query": "Máy chủ staging chạy ở cổng nào?",
+      "answer": "9100",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-002",
+      "group": "contradiction",
+      "system": "cognitive",
+      "query": "Hợp đồng Bình Minh trị giá bao nhiêu?",
+      "answer": "76.000.000 đồng",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-003",
+      "group": "contradiction",
+      "system": "cognitive",
+      "query": "Ai đang phụ trách ARCHILAB?",
+      "answer": "Chị Lan",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-004",
+      "group": "contradiction",
+      "system": "cognitive",
+      "query": "Nghiệm thu vào thứ mấy?",
+      "answer": "Thứ Năm",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-005",
+      "group": "contradiction",
+      "system": "cognitive",
+      "query": "Ngưỡng WAL mềm là bao nhiêu?",
+      "answer": "64 MB",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-006",
+      "group": "contradiction",
+      "system": "cognitive",
+      "query": "Doanh thu định kỳ là bao nhiêu?",
+      "answer": "No information available.",
+      "passed": false,
+      "why": "thiếu: ['tháng']"
+    },
+    {
+      "id": "stale-001",
+      "group": "stale",
+      "system": "cognitive",
+      "query": "Dự án Metub hiện đang ở giai đoạn nào?",
+      "answer": "Giai đoạn thử nghiệm",
+      "passed": false,
+      "why": "thiếu: ['01/06/2026']"
+    },
+    {
+      "id": "stale-002",
+      "group": "stale",
+      "system": "cognitive",
+      "query": "Giá gói dịch vụ bây giờ là bao nhiêu?",
+      "answer": "6.500.000 đồng/tháng",
+      "passed": false,
+      "why": "thiếu: ['tháng 3']"
+    },
+    {
+      "id": "stale-003",
+      "group": "stale",
+      "system": "cognitive",
+      "query": "Số dư tài khoản là bao nhiêu?",
+      "answer": "45.000.000 đồng",
+      "passed": false,
+      "why": "thiếu: ['10/05/2026']"
+    },
+    {
+      "id": "forget-001",
+      "group": "forgetting",
+      "system": "cognitive",
+      "query": "Mật khẩu wifi văn phòng là gì?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "forget-002",
+      "group": "forgetting",
+      "system": "cognitive",
+      "query": "Anh Hùng có bệnh gì?",
+      "answer": "Bệnh tim.",
+      "passed": false,
+      "why": "chứa thứ bị cấm: 'tim'"
+    },
+    {
+      "id": "forget-003",
+      "group": "forgetting",
+      "system": "cognitive",
+      "query": "Liên hệ của An Phát thế nào?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "prov-001",
+      "group": "provenance",
+      "system": "cognitive",
+      "query": "WAL vượt ngưỡng cứng bao lâu trong Run 9?",
+      "answer": "602,8 giây",
+      "passed": false,
+      "why": "thiếu: ['Run 9']"
+    },
+    {
+      "id": "prov-002",
+      "group": "provenance",
+      "system": "cognitive",
+      "query": "Chi phí là bao nhiêu?",
+      "answer": "18.500.000 đồng",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "absent-001",
+      "group": "absence",
+      "system": "cognitive",
+      "query": "Máy chủ OCR dùng phiên bản Python nào?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "absent-002",
+      "group": "absence",
+      "system": "cognitive",
+      "query": "Ai là người ký hợp đồng Bình Minh?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "absent-003",
+      "group": "absence",
+      "system": "cognitive",
+      "query": "Chi phí vận hành hàng tháng là bao nhiêu?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "absent-004",
+      "group": "absence",
+      "system": "cognitive",
+      "query": "Anh được bao nhiêu điểm khoá đó?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "scope-001",
+      "group": "isolation",
+      "system": "cognitive",
+      "query": "Mã hợp đồng là gì?",
+      "answer": "HD-2026-001",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "scope-002",
+      "group": "isolation",
+      "system": "cognitive",
+      "query": "Ngân sách là bao nhiêu?",
+      "answer": "200 triệu",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "multi-001",
+      "group": "multi-hop",
+      "system": "cognitive",
+      "query": "Ai chịu trách nhiệm cho mốc 30/09/2026?",
+      "answer": "No information available.",
+      "passed": false,
+      "why": "thiếu: ['Lan']"
+    },
+    {
+      "id": "multi-002",
+      "group": "multi-hop",
+      "system": "cognitive",
+      "query": "Máy chủ OCR có vấn đề gì?",
+      "answer": "No information available.",
+      "passed": false,
+      "why": "thiếu: ['8000']"
+    },
+    {
+      "id": "multi-003",
+      "group": "multi-hop",
+      "system": "cognitive",
+      "query": "Cần bao nhiêu tháng doanh thu định kỳ để bù công nợ?",
+      "answer": "1.255 tháng",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-001",
+      "group": "contradiction",
+      "system": "naive-rag",
+      "query": "Máy chủ staging chạy ở cổng nào?",
+      "answer": "9100",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-002",
+      "group": "contradiction",
+      "system": "naive-rag",
+      "query": "Hợp đồng Bình Minh trị giá bao nhiêu?",
+      "answer": "76.000.000 đồng",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-003",
+      "group": "contradiction",
+      "system": "naive-rag",
+      "query": "Ai đang phụ trách ARCHILAB?",
+      "answer": "Chị Lan",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-004",
+      "group": "contradiction",
+      "system": "naive-rag",
+      "query": "Nghiệm thu vào thứ mấy?",
+      "answer": "Thứ Năm",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-005",
+      "group": "contradiction",
+      "system": "naive-rag",
+      "query": "Ngưỡng WAL mềm là bao nhiêu?",
+      "answer": "64 MB",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "contra-006",
+      "group": "contradiction",
+      "system": "naive-rag",
+      "query": "Doanh thu định kỳ là bao nhiêu?",
+      "answer": "No information available.",
+      "passed": false,
+      "why": "thiếu: ['tháng']"
+    },
+    {
+      "id": "stale-001",
+      "group": "stale",
+      "system": "naive-rag",
+      "query": "Dự án Metub hiện đang ở giai đoạn nào?",
+      "answer": "Giai đoạn thử nghiệm",
+      "passed": false,
+      "why": "thiếu: ['01/06/2026']"
+    },
+    {
+      "id": "stale-002",
+      "group": "stale",
+      "system": "naive-rag",
+      "query": "Giá gói dịch vụ bây giờ là bao nhiêu?",
+      "answer": "6.500.000 đồng/tháng",
+      "passed": false,
+      "why": "thiếu: ['tháng 3']"
+    },
+    {
+      "id": "stale-003",
+      "group": "stale",
+      "system": "naive-rag",
+      "query": "Số dư tài khoản là bao nhiêu?",
+      "answer": "45.000.000 đồng",
+      "passed": false,
+      "why": "thiếu: ['10/05/2026']"
+    },
+    {
+      "id": "forget-001",
+      "group": "forgetting",
+      "system": "naive-rag",
+      "query": "Mật khẩu wifi văn phòng là gì?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "forget-002",
+      "group": "forgetting",
+      "system": "naive-rag",
+      "query": "Anh Hùng có bệnh gì?",
+      "answer": "Bệnh tim.",
+      "passed": false,
+      "why": "chứa thứ bị cấm: 'tim'"
+    },
+    {
+      "id": "forget-003",
+      "group": "forgetting",
+      "system": "naive-rag",
+      "query": "Liên hệ của An Phát thế nào?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "prov-001",
+      "group": "provenance",
+      "system": "naive-rag",
+      "query": "WAL vượt ngưỡng cứng bao lâu trong Run 9?",
+      "answer": "602,8 giây",
+      "passed": false,
+      "why": "thiếu: ['Run 9']"
+    },
+    {
+      "id": "prov-002",
+      "group": "provenance",
+      "system": "naive-rag",
+      "query": "Chi phí là bao nhiêu?",
+      "answer": "18.500.000 đồng",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "absent-001",
+      "group": "absence",
+      "system": "naive-rag",
+      "query": "Máy chủ OCR dùng phiên bản Python nào?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "absent-002",
+      "group": "absence",
+      "system": "naive-rag",
+      "query": "Ai là người ký hợp đồng Bình Minh?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "absent-003",
+      "group": "absence",
+      "system": "naive-rag",
+      "query": "Chi phí vận hành hàng tháng là bao nhiêu?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "absent-004",
+      "group": "absence",
+      "system": "naive-rag",
+      "query": "Anh được bao nhiêu điểm khoá đó?",
+      "answer": "No information available.",
+      "passed": true,
+      "why": "từ chối đúng"
+    },
+    {
+      "id": "scope-001",
+      "group": "isolation",
+      "system": "naive-rag",
+      "query": "Mã hợp đồng là gì?",
+      "answer": "HD-2026-001",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "scope-002",
+      "group": "isolation",
+      "system": "naive-rag",
+      "query": "Ngân sách là bao nhiêu?",
+      "answer": "200 triệu",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "multi-001",
+      "group": "multi-hop",
+      "system": "naive-rag",
+      "query": "Ai chịu trách nhiệm cho mốc 30/09/2026?",
+      "answer": "Chị Lan",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "multi-002",
+      "group": "multi-hop",
+      "system": "naive-rag",
+      "query": "Máy chủ OCR có vấn đề gì?",
+      "answer": "Cổng 8000 bị chiếm.",
+      "passed": true,
+      "why": "đạt"
+    },
+    {
+      "id": "multi-003",
+      "group": "multi-hop",
+      "system": "naive-rag",
+      "query": "Cần bao nhiêu tháng doanh thu định kỳ để bù công nợ?",
+      "answer": "1.255 tháng",
+      "passed": true,
+      "why": "đạt"
+    }
+  ]
+}
