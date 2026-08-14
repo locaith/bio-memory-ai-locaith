@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import sqlite3
 import statistics
@@ -44,6 +45,13 @@ _REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO))
 
 SOURCE = _REPO / "data" / "learning" / "memory.db"
+
+#: The store as it was before the assessment records were ingested: 353 lesson
+#: memories, none of which contain the English text the cross-lingual queries
+#: are drawn from. Keeping query and content in separate files is what stops
+#: the query from finding a verbatim copy of itself.
+LESSONS_ONLY = _REPO / "data" / "learning" / "memory_before_assessment_ingest.db"
+
 WORK = _REPO / "data" / "learning" / "_space_compare"
 
 TOP_K = 10
@@ -72,7 +80,112 @@ def build_queries(conn: sqlite3.Connection, sample: int,
     return out
 
 
-def make_store(tag: str, backend: str):
+_VN = re.compile(r"[ăâđêôơưàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệ"
+                 r"ìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]", re.I)
+
+_COURSE_NOISE = re.compile(
+    r"\s*(\(ibm\)|-\s*ibm|\(kh[oó]a\s*h[oọ]c\s*\d*|with python|,)\s*", re.I)
+
+
+def norm_course(name: str) -> str:
+    """Course names arrive in several dresses for one course.
+
+    "Python for Data Science, AI & Development with Python" and "Python for
+    Data Science, AI & Development - IBM (Khóa học 4" are the same thing, and
+    scoring them as different courses would count correct answers as wrong —
+    the mistake this project has already made twice on its own benchmarks.
+    """
+    text = _COURSE_NOISE.sub(" ", str(name or "").lower())
+    return re.sub(r"[^a-z0-9& ]+", " ", text).split("(")[0].strip()
+
+
+def crosslingual_queries() -> list[tuple[str, str, str]]:
+    """(kind, course, query) taken from what the learner already wrote.
+
+    The corpus is 95% Vietnamese; these are the English topics and questions
+    recorded in the assessment captures. Nothing here is authored for the
+    benchmark, and the answer key is the course label, which is metadata.
+
+    The point is lexical distance: an English question about a Vietnamese note
+    shares almost no tokens with it, so the token-overlap baseline cannot win
+    by construction — which is exactly what sank the known-item protocol.
+    """
+    import json
+
+    inbox = Path(r"C:\locaith\learning-inbox")
+    out: list[tuple[str, str, str]] = []
+    for folder in (inbox / "_processed", inbox):
+        if not folder.exists():
+            continue
+        for path in sorted(folder.glob("*.json")):
+            try:
+                rec = json.loads(path.read_text(encoding="utf-8"))
+            except (ValueError, UnicodeDecodeError):
+                continue
+            course = str(rec.get("course") or "").strip()
+            if not course:
+                continue
+            for att in rec.get("attempts") or []:
+                if not isinstance(att, dict):
+                    continue
+                for topic in att.get("weak_topics") or []:
+                    text = str(topic).strip()
+                    if text and not _VN.search(text):
+                        out.append(("weak_topic", course, text))
+                for item in att.get("wrong_or_partial") or []:
+                    if not isinstance(item, dict):
+                        continue
+                    for key in ("question", "question_summary"):
+                        text = str(item.get(key) or "").strip()
+                        if text and not _VN.search(text):
+                            out.append(("wrong_q", course, text))
+                            break
+    return out
+
+
+def score_crosslingual(memory_os, queries: list[tuple[str, str, str]]) -> dict:
+    """Did the top hits come from the course the question belongs to?"""
+    from bio_agent_os.cognitive.models import AccessContext
+
+    ctx = AccessContext(tenant_id="tuananh", workspace_id="learning")
+    top1 = top3 = top10 = 0
+    latencies: list[float] = []
+    scored = 0
+
+    for _, course, query in queries:
+        want = norm_course(course)
+        if not want:
+            continue
+        scored += 1
+        started = time.perf_counter()
+        hits = memory_os.recall(query=query, context=ctx, limit=TOP_K) or []
+        latencies.append((time.perf_counter() - started) * 1000)
+
+        got = []
+        for hit in hits:
+            m = re.match(r"^\[([^/\]]+)", str(hit.memory.content))
+            got.append(norm_course(m.group(1)) if m else "")
+        if got[:1] == [want]:
+            top1 += 1
+        if want in got[:3]:
+            top3 += 1
+        if want in got:
+            top10 += 1
+
+    if not scored:
+        return {"n": 0}
+    return {
+        "n": scored,
+        "course@1": top1 / scored,
+        "course@3": top3 / scored,
+        "course@10": top10 / scored,
+        "hits@1": top1,
+        "p50_ms": statistics.median(latencies),
+        "p95_ms": sorted(latencies)[max(int(len(latencies) * 0.95) - 1, 0)],
+    }
+
+
+def make_store(tag: str, backend: str, source: Path = SOURCE):
     """A copy of the store, re-embedded end to end by one backend."""
     from bio_agent_os.cognitive.facade import MemoryOS
     from bio_agent_os.cognitive.semantic_index import (
@@ -82,7 +195,7 @@ def make_store(tag: str, backend: str):
     WORK.mkdir(parents=True, exist_ok=True)
     target = WORK / f"{tag}.db"
     for suffix in ("", "-wal", "-shm"):
-        src = Path(str(SOURCE) + suffix)
+        src = Path(str(source) + suffix)
         if src.exists():
             shutil.copy2(src, str(target) + suffix)
 
@@ -172,11 +285,113 @@ def score(memory_os, queries: list[tuple[str, str]]) -> dict:
     }
 
 
+def answerable_courses(store: Path) -> set[str]:
+    """Courses that actually have content to be found."""
+    conn = sqlite3.connect(f"file:{store}?mode=ro", uri=True)
+    out: set[str] = set()
+    for (text,) in conn.execute("SELECT content FROM cognitive_memories"):
+        m = re.match(r"^\[([^/\]]+)", str(text))
+        if m:
+            out.add(norm_course(m.group(1)))
+    conn.close()
+    return {c for c in out if c}
+
+
+def run_crosslingual() -> int:
+    if not LESSONS_ONLY.exists():
+        raise SystemExit(f"không thấy {LESSONS_ONLY}")
+
+    raw = crosslingual_queries()
+    have = answerable_courses(LESSONS_ONLY)
+
+    # A question whose course has no content in the store cannot be answered by
+    # anything, and scoring it drags every column toward zero equally while
+    # looking like a measurement. Measured here: 13 of 24. This project has
+    # already published two benchmarks that punished correct behaviour; the
+    # cheapest defence is to check that the answer exists before asking.
+    queries = [q for q in raw if norm_course(q[1]) in have]
+    dropped = len(raw) - len(queries)
+
+    print(f"\n{len(raw)} truy vấn tiếng Anh trên kho 95% tiếng Việt")
+    print(f"nội dung: {LESSONS_ONLY.name} (chỉ ký ức bài học, không có bài kiểm tra)")
+    if dropped:
+        missing = sorted({norm_course(q[1]) for q in raw
+                          if norm_course(q[1]) not in have})
+        print(f"\n  BỎ {dropped}/{len(raw)} câu: khoá của chúng không có ký ức nào")
+        for name in missing:
+            print(f"    - {name}")
+        print("  Chấm những câu này sẽ trừ điểm cả ba cột cho việc không ai làm được.")
+    print(f"\ncòn lại: {len(queries)} câu, {len({norm_course(q[1]) for q in queries})} khoá\n")
+
+    results = {}
+    for tag, backend in (("xl-openai", "openai"),
+                         ("xl-local", "sentence-transformers"),
+                         ("xl-no-vector", "none")):
+        memory_os, _ = make_store(tag, backend, source=LESSONS_ONLY)
+        results[tag] = score_crosslingual(memory_os, queries)
+        memory_os.close()
+
+    print(f"\n{'':<14}{'course@1':>10}{'@3':>8}{'@10':>8}{'đúng/n':>10}"
+          f"{'p50 ms':>10}")
+    for tag, r in results.items():
+        fraction = "{}/{}".format(r["hits@1"], r["n"])
+        print(f"{tag:<14}{r['course@1']:>10.3f}{r['course@3']:>8.3f}"
+              f"{r['course@10']:>8.3f}{fraction:>10}{r['p50_ms']:>10.1f}")
+
+    base = results["xl-no-vector"]["course@1"]
+    openai = results["xl-openai"]["course@1"]
+    local = results["xl-local"]["course@1"]
+    print(f"\n  đối chứng không vector: {base:.3f}")
+    print(f"  openai {openai:+.3f} so với đối chứng | "
+          f"cục bộ {local - base:+.3f} so với đối chứng")
+
+    n = results["xl-no-vector"]["n"]
+    classes = len({norm_course(q[1]) for q in queries})
+
+    # Three ways this protocol can fail to have a verdict, checked before any
+    # winner is announced. An earlier version declared "local wins 4/11" while
+    # all three of these were true, which is how a benchmark ends up
+    # confirming whatever it was pointed at.
+    blockers: list[str] = []
+    if n < 30:
+        blockers.append(
+            f"n = {n}. Chênh vài câu ở cỡ mẫu này không phân biệt được với may rủi.")
+    if classes < 3:
+        blockers.append(
+            f"đáp án chỉ còn {classes} lớp. Bài toán gần như thoái hoá: "
+            f"'đúng khoá nào' mà chỉ có một khoá thì chỉ còn là 'có trả về gì không'.")
+    if max(openai, local) - base < 0.08:
+        blockers.append(
+            "vector không hơn đối chứng đủ rõ — phép đo đang đo so khớp từ.")
+
+    # And one that is structural rather than statistical: course membership is a
+    # proxy for relevance, not relevance itself. A memory from a different
+    # course can be the correct answer, and this rubric marks it wrong.
+    blockers.append(
+        "chuẩn đúng là TÊN KHOÁ, không phải mức liên quan. Một ký ức đúng chủ "
+        "đề nhưng thuộc khoá khác vẫn bị chấm sai.")
+
+    print("\n  KHÔNG KẾT LUẬN ĐƯỢC VỀ CHẤT LƯỢNG. Lý do:")
+    for reason in blockers:
+        print(f"    - {reason}")
+    print("\n  Thứ đo được chắc chắn là độ trễ:")
+    for tag, r in results.items():
+        print(f"    {tag:<14} p50 {r['p50_ms']:>7.1f} ms")
+    print("\n  Chọn không gian nào nên dựa vào độ trễ, chi phí và quyền riêng "
+          "tư,\n  vì đó là những thứ phép đo này nói được — không phải chất lượng.")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sample", type=int, default=60)
     ap.add_argument("--seed", type=int, default=20260814)
+    ap.add_argument("--protocol", choices=("known-item", "crosslingual"),
+                    default="known-item")
     args = ap.parse_args()
+
+    if args.protocol == "crosslingual":
+        return run_crosslingual()
 
     if not SOURCE.exists():
         raise SystemExit(f"không thấy {SOURCE}")
