@@ -76,6 +76,11 @@ from uuid import uuid4
 DERIVED_TABLES: tuple[tuple[str, str], ...] = (
     ("memory_embeddings", "memory_id"),
     ("hippocampus_labels", "event_id"),
+    # Written on every claim state change. It holds ids and enum values only,
+    # never content — but it still records that a memory existed and when it
+    # changed, and a deletion that leaves that behind leaves a shadow of what
+    # was deleted.
+    ("memory_lifecycle_transitions", "memory_id"),
 )
 
 #: Tables whose text is scanned when proving nothing is left.
