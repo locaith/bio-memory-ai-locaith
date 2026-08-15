@@ -309,14 +309,16 @@ def questions_at(ledger: TruthLedger, people: list[Subject], tick: int, *,
                 value = never[0]
                 out.append(Question(
                     Family.EVER, tick,
-                    f"{subject.name} đã từng có {attribute} là {value} đúng không?",
+                    f"{subject.name} đã từng có {_BY_KEY[attribute].label_vi} "
+                    f"là {value} đúng không?",
                     Expect.NO, value, subject_id, attribute))
                 counts[Family.EVER] += 1
             elif past_values:
                 value = past_values[0]
                 out.append(Question(
                     Family.EVER, tick,
-                    f"{subject.name} đã từng có {attribute} là {value} đúng không?",
+                    f"{subject.name} đã từng có {_BY_KEY[attribute].label_vi} "
+                    f"là {value} đúng không?",
                     Expect.YES, value, subject_id, attribute,
                     after_supersession=True))
                 counts[Family.EVER] += 1

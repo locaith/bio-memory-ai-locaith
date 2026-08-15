@@ -72,6 +72,31 @@ _BELIEF_MODE = re.compile(
 
 _BEFORE = re.compile(r"(trước khi|trước lúc|trước đó thì|before\b)", re.IGNORECASE)
 _AFTER = re.compile(r"(sau khi|sau lúc|after\b)", re.IGNORECASE)
+#: What to probe the store with, once a predicate is known.
+#:
+#: Built from the words a *memory* would use, not the words a question uses.
+#: "chức vụ" appears in questions; "đang giữ chức trưởng nhóm" is what is
+#: stored, so the probe carries both sides of the vocabulary.
+_ASPECT_PROBE: dict = {}
+
+
+def _build_aspect_probes() -> None:
+    from .aspect_resolver import ONTOLOGY, Predicate
+
+    stored = {
+        Predicate.EMPLOYER: ("làm việc tại công ty", "công ty"),
+        Predicate.ROLE: ("đang giữ chức", "chức"),
+        Predicate.LOCATION: ("sống ở", "sống"),
+        Predicate.PHONE: ("số điện thoại của", "điện thoại"),
+        Predicate.BIRTHDAY: ("sinh ngày", "sinh"),
+        Predicate.PROJECT: ("phụ trách dự án", "dự án"),
+        Predicate.SALARY: ("lương của", "lương"),
+    }
+    for predicate, phrases in ONTOLOGY.items():
+        clean = tuple(p for p in phrases if "." not in p)
+        _ASPECT_PROBE[predicate] = stored.get(predicate, ()) + clean[:4]
+
+
 _HISTORY = re.compile(
     r"(những lần nào|mấy lần|bao nhiêu lần|đã (từng )?(đổi|thay đổi|chuyển)"
     r"|lịch sử|history of|how many times|list the changes)", re.IGNORECASE)
@@ -111,7 +136,13 @@ class TemporalIntent:
     #: The named event a "before"/"after" question hangs on, e.g. "Bình Minh".
     anchor: str | None = None
     subject: str | None = None
+    #: The text used to probe for the right slot. Derived from `predicate`
+    #: where one was identified, so it carries the predicate's whole
+    #: vocabulary instead of whichever word survived stopword removal.
     aspect: str | None = None
+    #: The normalised predicate, or "UNKNOWN". This is the part a store can be
+    #: asked with; `aspect` is only its surface form.
+    predicate: str = "UNKNOWN"
     mode: str = "world"           # "world" or "belief"
 
 
@@ -251,8 +282,29 @@ def parse_temporal(question: str) -> TemporalIntent:
         anchor = _anchor_after(text, _AFTER)
 
     subject = _subject_of(text, exclude=anchor)
-    intent = TemporalIntent(subject=subject, anchor=anchor,
-                            aspect=_aspect_of(text, subject, anchor))
+
+    # The aspect comes from the resolver, as a normalised predicate.
+    #
+    # Stripping stopwords and keeping the leftovers produced single words like
+    # "sống", and one common token cannot separate LOCATION from ROLE. That was
+    # 14 of 34 failures — the largest group — every one of them the right
+    # person answered from the wrong slot. The probe is now the predicate's own
+    # vocabulary rather than whatever survived the question.
+    from .aspect_resolver import Predicate, resolve_aspect
+
+    if not _ASPECT_PROBE:
+        _build_aspect_probes()
+    resolved = resolve_aspect(text)
+    if resolved.predicate is not Predicate.UNKNOWN:
+        aspect = " ".join(_ASPECT_PROBE.get(resolved.predicate, ()))
+    else:
+        # No predicate identified: fall back to the old leftovers rather than
+        # nothing, so a question the ontology does not cover still gets an
+        # answer. `stage_failed` records which path was taken.
+        aspect = _aspect_of(text, subject, anchor)
+
+    intent = TemporalIntent(subject=subject, anchor=anchor, aspect=aspect)
+    intent.predicate = resolved.predicate.name
     intent.mode = "belief" if _BELIEF_MODE.search(text) else "world"
 
     if _HISTORY.search(text):

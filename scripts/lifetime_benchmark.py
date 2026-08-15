@@ -421,6 +421,33 @@ def main() -> int:
         if n:
             print(f"    {family:<12} {hit:>3}/{n:<4} = {hit / n:.3f}")
 
+    # Aspect resolution, measured against the slot the question came from.
+    #
+    # `wrong_slot_rate` is the one that matters: a memory system that answers
+    # the right person's wrong predicate, confidently, is worse than one that
+    # says it does not know — nobody re-checks a confident answer, and 14 of
+    # 34 failures were exactly that.
+    from bio_agent_os.cognitive.aspect_resolver import Predicate, resolve_aspect
+
+    right = wrong = unknown = 0
+    for question in all_questions:
+        resolved = resolve_aspect(question.text)
+        if resolved.predicate is Predicate.UNKNOWN:
+            unknown += 1
+        elif resolved.predicate.attribute == question.attribute:
+            right += 1
+        else:
+            wrong += 1
+    n = max(right + wrong + unknown, 1)
+    print("\n" + "=" * 70)
+    print("ASPECT RESOLUTION")
+    print("=" * 70)
+    print(f"  aspect_resolution_accuracy : {right}/{n} = {right / n:.3f}")
+    print(f"  wrong_slot_rate            : {wrong}/{n} = {wrong / n:.3f}"
+          + ("   <- đúng người, sai vị từ, trả lời tự tin" if wrong else ""))
+    print(f"  aspect_unknown_rate        : {unknown}/{n} = {unknown / n:.3f}"
+          + ("   (UNKNOWN an toàn hơn đoán sai)" if unknown else ""))
+
     print("\n" + "=" * 70)
     print("TEMPORAL EXECUTION — toán tử có CHẠY không, tách khỏi đúng/sai")
     print("=" * 70)
