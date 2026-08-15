@@ -28,6 +28,23 @@ from bio_agent_os.evals.lifetime_world import EventKind, generate  # noqa: E402
 #: subject_id -> name, filled once the world is generated.
 _NAME_OF: dict[str, str] = {}
 
+#: folded question -> the stage trace for it, when one has been produced.
+_STAGE_TRACE: dict[str, dict] = {}
+
+
+def load_stage_trace(path: pathlib.Path) -> int:
+    """Read `trace_pipeline_stages.py` output, if it is there.
+
+    Optional on purpose: the trace rebuilds a store per checkpoint and is slow,
+    so the classifier stays usable without it — but when it exists, a watched
+    stage beats an inferred one every time.
+    """
+    if not path.exists():
+        return 0
+    for entry in json.loads(path.read_text(encoding="utf-8")):
+        _STAGE_TRACE[_fold(entry.get("question", ""))] = entry
+    return len(_STAGE_TRACE)
+
 
 def _fold(text: str) -> str:
     return " ".join(unicodedata.normalize("NFC", str(text or "")).lower().split())
@@ -36,8 +53,14 @@ def _fold(text: str) -> str:
 CAUSES = (
     # resolution
     "resolver_subject",        # never identified who the question is about
-    "resolver_aspect",         # right person, wrong slot
+    "resolver_aspect",         # RETIRED — see the note in main(); kept so an
+                               # old report can still be read, never assigned
     "ambiguous_subject",       # two people could answer; picked the other one
+    # located by walking the pipeline rather than guessing from the output
+    "claim_history_selection",  # the answer never reached the ordered spans
+    "lifecycle_relation",       # a supersede/correct/contradict read wrongly
+    "temporal_interval",        # right spans, wrong window chosen
+    "answer_synthesis",         # right span chosen, wrong text produced
     # history and intervals
     "no_history",              # the store held nothing for that slot
     "interval_wrong",          # history right, window picked wrong
@@ -141,6 +164,16 @@ def classify(trace: dict, events, ledger) -> str:
         # The right value was there and the answer still failed.
         return "ranking_wrong" if trace.get("retrieval_hit") is False else "synthesis"
 
+    # A stage trace, where one exists, always wins over a guess.
+    #
+    # This is the fix for the label that lied: the classifier used to infer a
+    # cause from the shape of the output, and named a resolver that had already
+    # been fixed. `trace_pipeline_stages.py` watches each stage and records
+    # where the value was actually lost.
+    staged = _STAGE_TRACE.get(_fold(trace["question"]))
+    if staged and staged.get("bucket"):
+        return str(staged["bucket"])
+
     # The right value was not retrieved at all. Which shape of change was it?
     values = [_fold(e.value) for e in history]
     if wanted and wanted not in values:
@@ -198,6 +231,10 @@ def main() -> int:
                                       subjects=config["subjects"],
                                       seed=config["seed"])
     _NAME_OF.update({p.subject_id: p.name for p in people})
+    loaded = load_stage_trace(
+        _REPO / "benchmark_reports" / "pipeline_stages_2026_08_15.json")
+    if loaded:
+        print(f"  (dùng {loaded} vết dò giai đoạn thay cho phỏng đoán)\n")
     fails = data["failures"]
     deletions = data.get("deletions") or []
 
@@ -218,10 +255,33 @@ def main() -> int:
         detail = " ".join(f"{k}:{v}" for k, v in families.most_common())
         print(f"  {cause:<24}{len(items):>5}{share:>8.0%}   {detail}")
 
+    # `resolver_aspect` is retired.
+    #
+    # It carried 11 failures while `aspect_resolution_accuracy` was 136/136 and
+    # `wrong_slot_rate` was 0 — both cannot be true. Walking those 11 through
+    # the pipeline stage by stage (`trace_pipeline_stages.py`) put every one of
+    # them past subject and aspect resolution, and located the first divergence
+    # further down:
+    #
+    #     subject_resolution        0
+    #     aspect_resolution         0
+    #     candidate_generation      0
+    #     claim_history_selection   2
+    #     temporal_interval         2
+    #     lifecycle_relation        6
+    #     ranking                   0
+    #     answer_synthesis          1
+    #
+    # The label named a module that had stopped failing, because it guessed
+    # from the shape of the output instead of watching where the value was
+    # lost. Keeping it would have sent the next round of work to a component
+    # that was already correct.
     groups = {
         "VÒNG ĐỜI (supersede/correct/coexist/conflict)": (
             "supersede_missed", "correct_as_supersede", "coexist_killed",
-            "conflict_unresolved"),
+            "conflict_unresolved", "lifecycle_relation"),
+        "CHỌN TRONG LỊCH SỬ CLAIM": ("claim_history_selection",),
+        "TỔNG HỢP CÂU TRẢ LỜI": ("answer_synthesis",),
         "PHÂN GIẢI (subject/aspect)": (
             "resolver_subject", "resolver_aspect", "ambiguous_subject"),
         "XOÁ — lỗi SẢN PHẨM": (
@@ -231,13 +291,27 @@ def main() -> int:
         "XOÁ — lỗi PHÉP ĐO": (
             "forget_new_fact_same_value", "grader_false_positive"),
         "KHOẢNG THỜI GIAN": ("interval_wrong", "ranking_wrong",
-                             "belief_time_mismatch"),
+                             "belief_time_mismatch", "temporal_interval"),
     }
     print()
+    grouped = 0
     for label, causes in groups.items():
         n = sum(len(buckets.get(c) or []) for c in causes)
+        grouped += n
         if n:
             print(f"  {label:<46}{n:>3}/{len(fails)} = {n / len(fails):.0%}")
+
+    # Every failure must appear in exactly one group. A table that silently
+    # drops rows is the same defect this whole exercise keeps finding: two
+    # `temporal_interval` cases vanished from the printout because the cause
+    # was not listed in `CAUSES`, and the totals still looked plausible.
+    if grouped != len(fails):
+        missing = collections.Counter(
+            cause for cause, items in buckets.items() for _ in items
+            if not any(cause in causes for causes in groups.values()))
+        print(f"\n  ⚠  BẢNG ĐẾM {grouped}/{len(fails)} — "
+              f"{len(fails) - grouped} lỗi không thuộc nhóm nào: "
+              f"{dict(missing)}")
 
     left = len(buckets.get("unclassified") or [])
     if left:

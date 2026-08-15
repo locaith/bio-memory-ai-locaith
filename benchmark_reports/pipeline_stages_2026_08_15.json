@@ -1,0 +1,360 @@
+[
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Phạm Vy' vs 'Phạm Vy'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "LOCATION vs city"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "1 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": true,
+        "detail": "3 span, 1 mang đáp án"
+      },
+      "temporal_interval": {
+        "ok": false,
+        "detail": "span đúng có mặt nhưng chọn: Phạm Vy đang giữ chức nhân viên kinh doanh."
+      }
+    },
+    "first_wrong_stage": "temporal_interval",
+    "note": "",
+    "question": "Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?",
+    "value": "Hà Nội",
+    "checkpoint": 10,
+    "bucket": "temporal_interval"
+  },
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Trần Hà' vs 'Trần Hà'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "ROLE vs job_title"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "1 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": true,
+        "detail": "2 span, 1 mang đáp án"
+      },
+      "temporal_interval": {
+        "ok": true,
+        "detail": "khoảng hợp lệ"
+      },
+      "lifecycle_relation": {
+        "ok": false,
+        "detail": "trả về giá trị từ ['assert', 'correct']"
+      }
+    },
+    "first_wrong_stage": "lifecycle_relation",
+    "note": "",
+    "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+    "value": "phó giám đốc",
+    "checkpoint": 50,
+    "bucket": "lifecycle_relation"
+  },
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Hoàng Yến' vs 'Hoàng Yến'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "ROLE vs job_title"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "2 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": true,
+        "detail": "2 span, 1 mang đáp án"
+      },
+      "temporal_interval": {
+        "ok": false,
+        "detail": "span đúng có mặt nhưng chọn: Hoàng Yến làm việc tại công ty Hoà Bình."
+      }
+    },
+    "first_wrong_stage": "temporal_interval",
+    "note": "",
+    "question": "Vào ngày 2024-10-09, Hoàng Yến đang giữ chức vụ gì?",
+    "value": "trưởng phòng",
+    "checkpoint": 50,
+    "bucket": "temporal_interval"
+  },
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Phạm Vy' vs 'Phạm Vy'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "EMPLOYER vs employer"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "1 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": false,
+        "detail": "1 span, 0 mang đáp án"
+      }
+    },
+    "first_wrong_stage": "claim_history_selection",
+    "note": "",
+    "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+    "value": "Đại Việt",
+    "checkpoint": 100,
+    "bucket": "claim_history_selection"
+  },
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Trần Hà' vs 'Trần Hà'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "ROLE vs job_title"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "1 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": true,
+        "detail": "2 span, 1 mang đáp án"
+      },
+      "temporal_interval": {
+        "ok": true,
+        "detail": "khoảng hợp lệ"
+      },
+      "lifecycle_relation": {
+        "ok": false,
+        "detail": "trả về giá trị từ ['assert', 'correct', 'repeat']"
+      }
+    },
+    "first_wrong_stage": "lifecycle_relation",
+    "note": "",
+    "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+    "value": "phó giám đốc",
+    "checkpoint": 100,
+    "bucket": "lifecycle_relation"
+  },
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Phạm Vy' vs 'Phạm Vy'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "EMPLOYER vs employer"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "1 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": false,
+        "detail": "2 span, 0 mang đáp án"
+      }
+    },
+    "first_wrong_stage": "claim_history_selection",
+    "note": "",
+    "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+    "value": "Đại Việt",
+    "checkpoint": 250,
+    "bucket": "claim_history_selection"
+  },
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Đặng Khanh' vs 'Đặng Khanh'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "ROLE vs job_title"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "2 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": true,
+        "detail": "2 span, 1 mang đáp án"
+      },
+      "temporal_interval": {
+        "ok": true,
+        "detail": "khoảng hợp lệ"
+      },
+      "lifecycle_relation": {
+        "ok": false,
+        "detail": "trả về giá trị từ ['assert', 'contradict', 'correct', 'repeat']"
+      }
+    },
+    "first_wrong_stage": "lifecycle_relation",
+    "note": "",
+    "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+    "value": "trưởng phòng",
+    "checkpoint": 500,
+    "bucket": "lifecycle_relation"
+  },
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Đặng Phúc' vs 'Đặng Phúc'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "ROLE vs job_title"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "2 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": true,
+        "detail": "4 span, 1 mang đáp án"
+      },
+      "temporal_interval": {
+        "ok": true,
+        "detail": "khoảng hợp lệ"
+      },
+      "lifecycle_relation": {
+        "ok": false,
+        "detail": "trả về giá trị từ ['assert', 'contradict', 'correct', 'repeat', 'supersede']"
+      }
+    },
+    "first_wrong_stage": "lifecycle_relation",
+    "note": "",
+    "question": "Vào ngày 2025-09-07, Đặng Phúc đang giữ chức vụ gì?",
+    "value": "phó giám đốc",
+    "checkpoint": 500,
+    "bucket": "lifecycle_relation"
+  },
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Đặng Khanh' vs 'Đặng Khanh'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "ROLE vs job_title"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "2 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": true,
+        "detail": "4 span, 1 mang đáp án"
+      },
+      "temporal_interval": {
+        "ok": true,
+        "detail": "khoảng hợp lệ"
+      },
+      "lifecycle_relation": {
+        "ok": false,
+        "detail": "trả về giá trị từ ['assert', 'contradict', 'correct', 'repeat', 'supersede']"
+      }
+    },
+    "first_wrong_stage": "lifecycle_relation",
+    "note": "",
+    "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+    "value": "trưởng phòng",
+    "checkpoint": 750,
+    "bucket": "lifecycle_relation"
+  },
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Đặng Phúc' vs 'Đặng Phúc'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "LOCATION vs city"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "3 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": true,
+        "detail": "3 span, 1 mang đáp án"
+      },
+      "temporal_interval": {
+        "ok": true,
+        "detail": "chọn đúng khoảng"
+      },
+      "lifecycle_relation": {
+        "ok": true,
+        "detail": ""
+      },
+      "ranking": {
+        "ok": true,
+        "detail": ""
+      },
+      "answer_synthesis": {
+        "ok": false,
+        "detail": "đúng span nhưng câu trả lời sai"
+      }
+    },
+    "first_wrong_stage": "answer_synthesis",
+    "note": "",
+    "question": "Vào ngày 2024-12-24, Đặng Phúc đang sống ở đâu?",
+    "value": "Huế",
+    "checkpoint": 1000,
+    "bucket": "answer_synthesis"
+  },
+  {
+    "stages": {
+      "subject_resolution": {
+        "ok": true,
+        "detail": "'Vũ An' vs 'Vũ An'"
+      },
+      "aspect_resolution": {
+        "ok": true,
+        "detail": "EMPLOYER vs employer"
+      },
+      "candidate_generation": {
+        "ok": true,
+        "detail": "1 ký ức chứa đáp án"
+      },
+      "claim_history_selection": {
+        "ok": true,
+        "detail": "12 span, 1 mang đáp án"
+      },
+      "temporal_interval": {
+        "ok": true,
+        "detail": "khoảng hợp lệ"
+      },
+      "lifecycle_relation": {
+        "ok": false,
+        "detail": "trả về giá trị từ ['assert', 'contradict', 'correct', 'repeat', 'supersede']"
+      }
+    },
+    "first_wrong_stage": "lifecycle_relation",
+    "note": "",
+    "question": "Vào ngày 2026-03-02, Vũ An đang làm ở công ty nào?",
+    "value": "Hoà Bình",
+    "checkpoint": 1000,
+    "bucket": "lifecycle_relation"
+  }
+]
