@@ -1,0 +1,490 @@
+"""A dated question is a lookup on a validity interval, not a search.
+
+Measured on the first real lifetime run, 15/08/2026:
+
+    29 of 55 failures were HISTORICAL
+    22 of those returned nothing at all
+    planner route, every one:  temporal -> recall
+
+The classifier was right every single time. `_CLASSES_FOR` had no entry for
+TEMPORAL, so the question fell through to vector search. A wiring bug, sitting
+in the gap between knowing what to do and doing it.
+
+"Vào ngày 2025-01-04, Phạm Vy đang giữ chức vụ gì?" is not answerable by
+similarity: three memories mention that person's job, all of them relevant, and
+the one that answers is chosen by *when*, not by *how alike*.
+
+    parse constraint -> resolve subject + aspect -> claim history
+    -> filter by interval -> apply lifecycle semantics -> answer + provenance
+
+Every stage reports whether it succeeded, so `temporal_execution_accuracy` can
+say *where* an answer was lost. Without that, the next investigation is another
+twenty-nine traces read by hand.
+
+INTERVALS ARE DERIVED AT READ TIME, on purpose. The store holds free text with
+an `observed_at`, and nothing yet detects supersession at write time — that is
+the next piece of work. Sorting one slot's claims by when they were observed
+gives each an interval ending where the next begins, which is enough to answer
+a dated question today and costs nothing to replace later.
+
+TWO INVARIANTS, designed in rather than patched on:
+
+**A restatement is not a new interval.** A fact from tick 100 repeated at tick
+700 must not create a boundary at 700, or a question about tick 500 resolves
+through a mention rather than through validity. That is precisely the mistake
+`latest_mention` makes in the oracle table, where it keeps 0.933 on current
+questions and drops to 0.533 on historical ones.
+
+**A correction is not a supersession.** "sinh năm 1990" then "xin lỗi, 1991":
+
+    world truth      -> 1991 always; 1990 was never true of the world
+    belief history   -> the system did believe 1990 in between, and can say so
+
+One answers about the world, the other about the system. Merging them answers a
+question about the world with a belief the world never held, and it looks
+exactly like working temporal reasoning.
+"""
+
+from __future__ import annotations
+
+import re
+import unicodedata
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any
+
+#: Markers that make a sentence a restatement of something already said.
+_RESTATEMENT = re.compile(
+    r"^\s*(nhắc lại|như đã nói|xin nhắc lại|lặp lại|again|as (i|we) said)\s*[,:.]?\s*",
+    re.IGNORECASE)
+
+#: Markers that make a sentence a retraction of what came before.
+_CORRECTION = re.compile(
+    r"(đính chính|xin lỗi[,;]?\s*(là|thông tin)?|nói lại|thực ra|thật ra"
+    r"|thông tin trước (là )?sai|correction|actually|i was wrong)",
+    re.IGNORECASE)
+
+#: Asking what the *system* believed, as opposed to what was true.
+_BELIEF_MODE = re.compile(
+    r"(hệ thống (tin|nghĩ|cho rằng|ghi nhận)|em (tin|nghĩ)|lúc đó (bạn|em|hệ) "
+    r"|what did you (think|believe)|you believed)", re.IGNORECASE)
+
+_BEFORE = re.compile(r"(trước khi|trước lúc|trước đó thì|before\b)", re.IGNORECASE)
+_AFTER = re.compile(r"(sau khi|sau lúc|after\b)", re.IGNORECASE)
+_HISTORY = re.compile(
+    r"(những lần nào|mấy lần|bao nhiêu lần|đã (từng )?(đổi|thay đổi|chuyển)"
+    r"|lịch sử|history of|how many times|list the changes)", re.IGNORECASE)
+_CURRENT = re.compile(
+    r"(hiện tại|bây giờ|hiện nay|đang|lúc này|currently|right now|now\b)",
+    re.IGNORECASE)
+
+_ISO = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
+_DMY = re.compile(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b")
+_MY = re.compile(r"tháng\s*(\d{1,2})\s*[/-]?\s*(\d{4})", re.IGNORECASE)
+_YEAR = re.compile(r"\b(20\d{2})\b")
+
+_TITLES = {"anh", "chị", "em", "ông", "bà", "cô", "chú", "bác", "mr", "mrs", "ms"}
+_STOP = {
+    "vào", "ngày", "tháng", "năm", "hồi", "lúc", "khi", "thì", "là", "gì",
+    "nào", "đâu", "ở", "của", "đang", "hiện", "tại", "bây", "giờ", "trước",
+    "sau", "đã", "từng", "những", "lần", "bao", "nhiêu", "mấy", "và", "có",
+    "hệ", "thống", "tin", "cho", "rằng", "sang", "rời", "chuyển", "đổi",
+    "in", "on", "at", "the", "was", "were", "is", "did", "what", "where",
+    "which", "who", "how", "many", "times", "currently", "now", "before",
+    "after", "system", "believe", "believed", "think", "you",
+}
+
+
+class TemporalKind(str, Enum):
+    POINT_IN_TIME = "point_in_time"
+    BEFORE = "before"
+    AFTER = "after"
+    HISTORY = "history"
+    CURRENT = "current"
+
+
+@dataclass
+class TemporalIntent:
+    kind: TemporalKind = TemporalKind.CURRENT
+    when: str | None = None
+    #: The named event a "before"/"after" question hangs on, e.g. "Bình Minh".
+    anchor: str | None = None
+    subject: str | None = None
+    aspect: str | None = None
+    mode: str = "world"           # "world" or "belief"
+
+
+@dataclass
+class ClaimSpan:
+    memory_id: str
+    content: str
+    #: When this became true of the world. A correction reaches back and takes
+    #: the validity of the claim it retracts, because the corrected value was
+    #: never true and something has to hold that interval.
+    valid_from: str
+    #: When the system was told. Different from `valid_from` exactly where a
+    #: correction is involved, and that difference is the whole belief/world
+    #: distinction: the world was always 1991, the system believed 1990 until
+    #: February. Answering "what did you think then" from `valid_from` returns
+    #: the correction, which the system did not yet have.
+    observed_at: str = ""
+    valid_to: str | None = None
+    kind: str = "asserted"        # asserted | corrected | superseded
+    confirmations: int = 0
+    #: Set when a later claim retracted this one rather than replacing it.
+    retracted_by: str | None = None
+
+    def holds_at(self, when: str) -> bool:
+        if self.retracted_by:
+            return False
+        if when < self.valid_from:
+            return False
+        return self.valid_to is None or when < self.valid_to
+
+
+@dataclass
+class TemporalAnswer:
+    executed: bool = False
+    answer_text: str = ""
+    spans: list[ClaimSpan] = field(default_factory=list)
+    provenance: list[dict[str, Any]] = field(default_factory=list)
+    intent: TemporalIntent = field(default_factory=TemporalIntent)
+    mode: str = "world"
+    stage_failed: str = ""
+    note: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"executed": self.executed, "kind": self.intent.kind.value,
+                "mode": self.mode, "answer": self.answer_text[:200],
+                "spans": len(self.spans), "stage_failed": self.stage_failed,
+                "note": self.note}
+
+
+# --------------------------------------------------------------------------
+# stage 1 — parse the constraint
+# --------------------------------------------------------------------------
+
+def _fold(text: str) -> str:
+    return " ".join(unicodedata.normalize("NFC", str(text or "")).split())
+
+
+def _extract_when(text: str) -> str | None:
+    match = _ISO.search(text)
+    if match:
+        return f"{match.group(1)}-{match.group(2)}-{match.group(3)}T00:00:00+00:00"
+    match = _DMY.search(text)
+    if match:
+        day, month, year = match.groups()
+        return f"{year}-{int(month):02d}-{int(day):02d}T00:00:00+00:00"
+    match = _MY.search(text)
+    if match:
+        month, year = match.groups()
+        return f"{year}-{int(month):02d}-01T00:00:00+00:00"
+    match = _YEAR.search(text)
+    if match:
+        return f"{match.group(1)}-01-01T00:00:00+00:00"
+    return None
+
+
+def _subject_of(text: str, exclude: str | None = None) -> str | None:
+    """The longest run of capitalised words that is not a title.
+
+    Vietnamese names are capitalised per syllable, so a run of them is a name.
+
+    `exclude` drops a name already claimed by something else. "Trước khi sang
+    Bình Minh thì Bùi Cường làm ở đâu" holds two two-word names, and taking the
+    longest run picked the anchor — the question was then answered about the
+    wrong person, or about a company as though it were one.
+    """
+    skip = {w.lower() for w in (exclude or "").split()}
+    runs: list[list[str]] = []
+    current: list[str] = []
+    for token in re.findall(r"[\w]+", _fold(text), re.UNICODE):
+        if token[:1].isupper() and token.lower() not in _TITLES \
+                and token.lower() not in _STOP and token.lower() not in skip:
+            current.append(token)
+        else:
+            if current:
+                runs.append(current)
+            current = []
+    if current:
+        runs.append(current)
+    return " ".join(max(runs, key=len)) if runs else None
+
+
+def _aspect_of(text: str, subject: str | None,
+               anchor: str | None = None) -> str | None:
+    """What the question is about, once the names are taken out.
+
+    The anchor has to go too, not just the subject. "Trước khi sang Bình Minh
+    thì Bùi Cường làm ở đâu" left an aspect of "bình minh làm", which then
+    matched a birthday memory more closely than an employment one — the
+    question was routed correctly, resolved to the right person, and still
+    answered from the wrong slot.
+    """
+    drop = {w.lower() for w in (subject or "").split()}
+    drop |= {w.lower() for w in (anchor or "").split()}
+    words = [w for w in re.findall(r"[\w]+", _fold(text).lower(), re.UNICODE)
+             if w not in _STOP and w not in drop
+             and w not in _TITLES and not w.isdigit() and len(w) > 1]
+    return " ".join(words) if words else None
+
+
+def parse_temporal(question: str) -> TemporalIntent:
+    """What kind of temporal question this is, and about what.
+
+    Order matters: BEFORE/AFTER are checked before POINT_IN_TIME because
+    "trước khi sang Bình Minh" carries no date but is still anchored in time,
+    and HISTORY before CURRENT because "đã đổi ... những lần nào" contains
+    "đã" and would otherwise read as a plain current-state question.
+    """
+    text = _fold(question)
+
+    # The anchor is resolved first so it can be kept out of the subject. Both
+    # are proper names, and picking the longest run without this reads "trước
+    # khi sang Bình Minh thì Bùi Cường …" as a question about Bình Minh.
+    anchor = None
+    if _BEFORE.search(text):
+        anchor = _anchor_after(text, _BEFORE)
+    elif _AFTER.search(text):
+        anchor = _anchor_after(text, _AFTER)
+
+    subject = _subject_of(text, exclude=anchor)
+    intent = TemporalIntent(subject=subject, anchor=anchor,
+                            aspect=_aspect_of(text, subject, anchor))
+    intent.mode = "belief" if _BELIEF_MODE.search(text) else "world"
+
+    if _HISTORY.search(text):
+        intent.kind = TemporalKind.HISTORY
+        return intent
+    if _BEFORE.search(text):
+        intent.kind = TemporalKind.BEFORE
+        return intent
+    if _AFTER.search(text):
+        intent.kind = TemporalKind.AFTER
+        return intent
+
+    when = _extract_when(text)
+    if when:
+        intent.kind = TemporalKind.POINT_IN_TIME
+        intent.when = when
+        return intent
+
+    intent.kind = TemporalKind.CURRENT if _CURRENT.search(text) \
+        else TemporalKind.POINT_IN_TIME
+    return intent
+
+
+def _anchor_after(text: str, marker: re.Pattern) -> str | None:
+    """The named thing a before/after question hangs on: "trước khi sang
+    **Bình Minh**"."""
+    match = marker.search(text)
+    if not match:
+        return None
+    tail = text[match.end():]
+    return _subject_of(tail)
+
+
+# --------------------------------------------------------------------------
+# stage 2 — the claim history for one slot
+# --------------------------------------------------------------------------
+
+def _core(content: str) -> str:
+    """The sentence with restatement and correction markers stripped.
+
+    Two memories saying the same thing must compare equal, or a restatement
+    becomes a new claim and invents an interval boundary.
+    """
+    text = _RESTATEMENT.sub("", _fold(content))
+    text = _CORRECTION.sub("", text)
+    text = re.sub(r"^[\s,;:]+", "", text)
+    return text.lower().rstrip(" .!?")
+
+
+def _mentions(content: str, subject: str) -> bool:
+    low = _fold(content).lower()
+    return all(part.lower() in low for part in subject.split())
+
+
+def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
+                  context: Any, hint: str | None = None) -> list[ClaimSpan]:
+    """Every claim about one (subject, aspect), in order, with intervals.
+
+    Intervals come from observation order: each claim holds until the next one
+    about the same slot. A restatement carries the same core sentence as an
+    earlier claim and does not open a new span — it raises that span's
+    confirmation count and nothing else.
+    """
+    conn = memory_os.memories.conn
+    rows = conn.execute(
+        "SELECT memory_id, content, observed_at FROM cognitive_memories "
+        "WHERE superseded_at IS NULL ORDER BY observed_at, rowid"
+    ).fetchall()
+
+    candidates = [(m, c, o) for m, c, o in rows if _mentions(str(c), subject)]
+
+    # `hint` is the anchor of a before/after question, and it identifies the
+    # slot when the aspect alone cannot. "Trước khi sang Bình Minh thì Bùi
+    # Cường làm ở đâu" reduces to the aspect "làm" — one weak word — and a
+    # single word discriminates nothing, so the candidate set stayed at every
+    # memory about the person and the walk stepped from an employment claim
+    # onto a birthday. "Bình Minh" names the slot precisely, because the
+    # question already told us which claim it is standing next to.
+    probe = " ".join(p for p in (aspect, hint) if p)
+    if probe:
+        candidates = _by_aspect(memory_os, candidates, probe)
+
+    spans: list[ClaimSpan] = []
+    by_core: dict[str, ClaimSpan] = {}
+    for memory_id, content, observed_at in candidates:
+        core = _core(str(content))
+        existing = by_core.get(core)
+        if existing is not None:
+            # Same thing said again. Freshness, not a change.
+            existing.confirmations += 1
+            continue
+        span = ClaimSpan(memory_id=memory_id, content=str(content),
+                         valid_from=str(observed_at),
+                         observed_at=str(observed_at))
+        if _CORRECTION.search(str(content)) and spans:
+            # A retraction: the previous claim was never true, so it is marked
+            # rather than closed. `holds_at` refuses it at every instant.
+            spans[-1].kind = "corrected"
+            spans[-1].retracted_by = memory_id
+            span.valid_from = spans[-1].valid_from
+        spans.append(span)
+        by_core[core] = span
+
+    live = [s for s in spans if not s.retracted_by]
+    for earlier, later in zip(live, live[1:]):
+        earlier.valid_to = later.valid_from
+        earlier.kind = "superseded" if earlier.kind == "asserted" else earlier.kind
+    return spans
+
+
+def _by_aspect(memory_os: Any, candidates: list[tuple], aspect: str) -> list[tuple]:
+    """Keep the claims about this aspect, by relative similarity.
+
+    Relative, for the reason measured while fixing deletion scope: an absolute
+    floor borrowed from retrieval calibration is a threshold from a different
+    scoring regime, and it rejected everything. "Which of this person's
+    memories are about X" is a comparative question.
+    """
+    from .forget_scope import _topic_members
+    from .semantic_index import cosine, load_vectors
+
+    embedder = getattr(getattr(memory_os, "retrieval", None), "embedder", None)
+    if embedder is None:
+        needles = [w for w in aspect.split() if len(w) > 2]
+        return [c for c in candidates
+                if any(n in _fold(c[1]).lower() for n in needles)] or candidates
+
+    vector = embedder.embed(aspect)
+    vectors = load_vectors(memory_os.memories.conn, [c[0] for c in candidates],
+                           dims=len(vector) or None)
+    scores = {c[0]: cosine(vector, vectors[c[0]])
+              for c in candidates if c[0] in vectors}
+    members = _topic_members(scores)
+    return [c for c in candidates if c[0] in members] or candidates
+
+
+# --------------------------------------------------------------------------
+# stage 3 — answer
+# --------------------------------------------------------------------------
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _provenance(spans: list[ClaimSpan]) -> list[dict[str, Any]]:
+    return [{"memory_id": s.memory_id, "valid_from": s.valid_from,
+             "valid_to": s.valid_to, "kind": s.kind,
+             "confirmations": s.confirmations} for s in spans]
+
+
+def answer_temporal(memory_os: Any, question: str, *, context: Any,
+                    mode: str | None = None) -> TemporalAnswer:
+    """Run the pipeline and say which stage gave up if one did."""
+    intent = parse_temporal(question)
+    if mode:
+        intent.mode = mode
+    result = TemporalAnswer(intent=intent, mode=intent.mode)
+
+    if not intent.subject:
+        result.stage_failed = "resolve_subject"
+        result.note = "không rút được chủ thể nào từ câu hỏi"
+        return result
+
+    spans = claim_history(
+        memory_os, subject=intent.subject, aspect=intent.aspect,
+        context=context,
+        hint=intent.anchor if intent.kind in (TemporalKind.BEFORE,
+                                              TemporalKind.AFTER) else None)
+    if not spans:
+        result.stage_failed = "claim_history"
+        result.note = (f"không có ký ức nào về '{intent.subject}'"
+                       + (f" thuộc khía cạnh '{intent.aspect}'" if intent.aspect else ""))
+        return result
+    result.spans = spans
+
+    # Belief history answers about the system, so a retracted claim is exactly
+    # what is being asked for. World truth refuses it at every instant.
+    usable = spans if intent.mode == "belief" else [s for s in spans if not s.retracted_by]
+
+    chosen: list[ClaimSpan] = []
+    if intent.kind is TemporalKind.HISTORY:
+        chosen = [s for s in spans if not s.retracted_by]
+    elif intent.kind is TemporalKind.CURRENT:
+        chosen = [s for s in usable if s.valid_to is None][-1:] or usable[-1:]
+    elif intent.kind in (TemporalKind.BEFORE, TemporalKind.AFTER):
+        chosen = _around_anchor(usable, intent)
+    else:
+        when = intent.when or _now()
+        if intent.mode == "belief":
+            # What the system had been told by then — `observed_at`, not
+            # `valid_from`. A correction backdates its validity to cover the
+            # interval the wrong claim occupied, so filtering on `valid_from`
+            # returns a correction the system did not yet have and answers
+            # "what did you think in February" with March's knowledge.
+            held = [s for s in spans if (s.observed_at or s.valid_from) <= when]
+            chosen = held[-1:] if held else []
+        else:
+            chosen = [s for s in usable if s.holds_at(when)]
+            if not chosen:
+                earlier = [s for s in usable if s.valid_from <= when]
+                chosen = earlier[-1:]
+
+    if not chosen:
+        result.stage_failed = "interval_selection"
+        result.note = (f"có {len(spans)} mốc nhưng không mốc nào phủ thời điểm "
+                       f"{intent.when or 'hiện tại'}")
+        return result
+
+    result.executed = True
+    result.answer_text = " ".join(s.content for s in chosen)
+    result.provenance = _provenance(chosen)
+    return result
+
+
+def _around_anchor(spans: list[ClaimSpan], intent: TemporalIntent) -> list[ClaimSpan]:
+    if not intent.anchor:
+        return spans[:1] if intent.kind is TemporalKind.BEFORE else spans[-1:]
+    anchor = intent.anchor.lower()
+    for index, span in enumerate(spans):
+        if anchor in _fold(span.content).lower():
+            if intent.kind is TemporalKind.BEFORE:
+                return spans[index - 1:index] if index else []
+            return spans[index + 1:index + 2]
+    return []
+
+
+__all__ = [
+    "ClaimSpan",
+    "TemporalAnswer",
+    "TemporalIntent",
+    "TemporalKind",
+    "answer_temporal",
+    "claim_history",
+    "parse_temporal",
+]

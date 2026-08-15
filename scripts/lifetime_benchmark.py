@@ -257,12 +257,14 @@ def main() -> int:
         totals = Counter()
         answers = Counter()
         answer_totals = Counter()
+        routes = Counter()
         latencies: list[float] = []
         started = time.perf_counter()
 
         for question in questions:
             result = adapter.query(question.text, tick=checkpoint)
             latencies.append(result.latency_ms)
+            routes[f"{result.query_kind}->{result.route}"] += 1
 
             got = retrieval_hit(question, result.retrieved)
             if got is not None:
@@ -286,9 +288,21 @@ def main() -> int:
                     "retrieval_hit": got, "answer_correct": said,
                 })
 
+        # Kept apart from `historical` on purpose. When a dated question is
+        # answered wrongly, "the memory was wrong" and "the operator never ran"
+        # need different fixes, and one combined number cannot tell them apart.
+        # Measured once already: the operator was correct and 28 of 28
+        # questions stopped at its first stage, which read as no effect at all.
+        temporal_total = sum(n for r, n in routes.items() if r.startswith("temporal->"))
+        temporal_ran = routes.get("temporal->temporal_operator", 0)
+
         snapshot = adapter.snapshot()
         row = {
             "checkpoint": checkpoint,
+            "routes": dict(routes),
+            "temporal_execution_accuracy": (
+                round(temporal_ran / temporal_total, 4) if temporal_total else None),
+            "temporal_fell_back": temporal_total - temporal_ran,
             "retrieval": {f: round(hits[f] / totals[f], 4)
                           for f in totals if totals[f]},
             "retrieval_n": dict(totals),
@@ -352,6 +366,32 @@ def main() -> int:
         print(line)
     print("\n  Mỗi ô kèm cỡ mẫu. Với n≈6, một câu đổi làm tỷ lệ nhảy 0.167 —")
     print("  đừng đọc chênh lệch nhỏ giữa hai mốc như một xu hướng.")
+
+    # The aggregate is the number to compare between runs. Each cell above is
+    # six questions; the column is thirty-eight.
+    print("\n  TỔNG HỢP toàn bộ mốc (đây mới là số để so giữa hai lần chạy):")
+    for family in families:
+        hit = sum(round(r["retrieval"][family] * r["retrieval_n"][family])
+                  for r in rows if family in r["retrieval"])
+        n = sum(r["retrieval_n"].get(family, 0) for r in rows)
+        if n:
+            print(f"    {family:<12} {hit:>3}/{n:<4} = {hit / n:.3f}")
+
+    print("\n" + "=" * 70)
+    print("TEMPORAL EXECUTION — toán tử có CHẠY không, tách khỏi đúng/sai")
+    print("=" * 70)
+    ran = sum(r.get("routes", {}).get("temporal->temporal_operator", 0) for r in rows)
+    asked = sum(n for r in rows for k, n in r.get("routes", {}).items()
+                if k.startswith("temporal->"))
+    print(f"  câu được phân loại TEMPORAL : {asked}")
+    print(f"  thực sự chạy toán tử        : {ran}"
+          + (f"  ({ran / asked:.1%})" if asked else ""))
+    print(f"  rơi về recall               : {asked - ran}")
+    if asked and ran < asked:
+        print("\n  Rơi về recall nghĩa là toán tử dừng ở một giai đoạn nào đó.")
+        print("  Xem `stage_failed` trong các vết lỗi để biết giai đoạn nào —")
+        print("  câu trả lời sai vì kho sai, và vì toán tử không chạy, là hai")
+        print("  lỗi khác nhau cần hai bản vá khác nhau.")
 
     out = _REPO / args.out
     out.parent.mkdir(parents=True, exist_ok=True)

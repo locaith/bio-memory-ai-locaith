@@ -194,6 +194,16 @@ def select_by_class(memory_os: Any, classes: list[MemoryClass], *,
     return out
 
 
+def _as_memory(memory_os: Any, span: Any) -> Any:
+    """The stored memory behind a temporal span, so callers keep one shape."""
+    conn = memory_os.memories.conn
+    conn.row_factory = sqlite3.Row
+    row = conn.execute(
+        "SELECT * FROM cognitive_memories WHERE memory_id=? "
+        "ORDER BY version DESC LIMIT 1", (span.memory_id,)).fetchone()
+    return memory_os.memories._row(row) if row is not None else span
+
+
 @dataclass
 class Plan:
     kind: QueryKind
@@ -217,6 +227,33 @@ def plan(memory_os: Any, question: str, *, context: Any,
     part of the result rather than a side effect.
     """
     kind = classify(question)
+
+    # A dated question goes to the temporal operator, not to vector search.
+    #
+    # This branch is the whole point: the classifier already recognised 29 of
+    # 55 failed questions as TEMPORAL and every one of them fell through to
+    # `recall`, because there was no route. Similarity cannot answer "who held
+    # this job in January" — several memories are equally about the job and the
+    # answer is chosen by *when*.
+    if kind is QueryKind.TEMPORAL:
+        from .temporal_operator import answer_temporal
+
+        answer = answer_temporal(memory_os, question, context=context)
+        if answer.executed:
+            return Plan(kind=kind, used="temporal_operator",
+                        memories=[_as_memory(memory_os, s) for s in answer.spans
+                                  if s.memory_id in
+                                  {p["memory_id"] for p in answer.provenance}])
+        # Falling back is a reported decision, not a silent one: a question the
+        # operator could not resolve is still better served by retrieval than
+        # by nothing, but the run has to be able to count how often that
+        # happened or `temporal_execution_accuracy` measures nothing.
+        found = memory_os.recall(query=question, context=context, limit=limit)
+        result = Plan(kind=kind, used="recall_after_temporal_failed",
+                      memories=[r.memory for r in (found or [])])
+        result.unanswerable_reason = f"{answer.stage_failed}: {answer.note}"
+        return result
+
     classes = list(_CLASSES_FOR.get(kind, ()))
 
     if not classes:

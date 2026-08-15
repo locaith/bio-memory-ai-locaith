@@ -271,9 +271,20 @@ def questions_at(ledger: TruthLedger, people: list[Subject], tick: int, *,
                 truth = ledger.at(subject_id, attribute, when, tick)
                 if truth is not None and truth.value == past.value:
                     date = tick_to_iso(when)[:10]
+                    # Only the first letter is lowered, never the whole phrase.
+                    #
+                    # `.lower()` on the sentence lowercased the person's name
+                    # too — "Vào ngày 2024-11-20, trần hà đang giữ chức vụ gì?"
+                    # — and nobody writes a name that way. Measured: it took
+                    # the subject resolver's only signal away and stopped the
+                    # temporal operator at its first stage on 28 of 28
+                    # historical questions, which then read as the operator
+                    # having no effect at all.
+                    phrase = _phrase(attribute, subject.name)
+                    phrase = phrase[:1].lower() + phrase[1:]
                     out.append(Question(
                         Family.HISTORICAL, tick,
-                        f"Vào ngày {date}, {_phrase(attribute, subject.name).lower()}",
+                        f"Vào ngày {date}, {phrase}",
                         Expect.VALUE, past.value, subject_id, attribute,
                         after_supersession=True))
                     counts[Family.HISTORICAL] += 1
