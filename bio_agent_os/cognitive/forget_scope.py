@@ -396,7 +396,35 @@ def forget_scoped(memory_os: Any, request: str, *, actor: str,
         result.unmatched_reason = f"còn sót ở {len(result.residue)} chỗ"
     else:
         result.status = ForgetStatus.DELETED
+
+    # RULE_002 runs on the real path, not only in a test.
+    #
+    # A constitution that lives entirely in its own test file constrains
+    # nothing: the rule holds until someone changes this function, and the
+    # only thing that notices is a suite nobody runs before shipping. Gating
+    # here means a report that claims clean without probing cannot leave.
+    _check_constitution(memory_os, result, actor=actor)
     return result
+
+
+def _check_constitution(memory_os: Any, result: ForgetResult, *,
+                        actor: str) -> None:
+    """Record and enforce the laws that apply to a deletion.
+
+    Wrapped so a missing constitution package cannot break deletion itself —
+    but a law that *ran* and refused is allowed to raise, which is the point of
+    a gate.
+    """
+    try:
+        from bio_agent_os.memory_constitution import gate
+        from bio_agent_os.memory_constitution.laws import (
+            check_memory_not_evidence,
+        )
+    except ImportError:            # pragma: no cover - package always present
+        return
+
+    gate(memory_os.memories.conn, [check_memory_not_evidence(result)],
+         operation="forget_scoped", actor=actor)
 
 
 __all__ = [

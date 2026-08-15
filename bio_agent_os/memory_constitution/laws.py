@@ -29,14 +29,53 @@ class LawId(str, Enum):
     CONFIDENCE_NOT_CERTAINTY = "RULE_006"
 
 
+#: Bumped whenever a law is added, removed or its meaning changes.
+#:
+#: Stamped onto every decision. When RULE_007 arrives, a replay has to be able
+#: to explain why the same input produced a different outcome last month, and
+#: "which laws were in force" is the only honest answer.
+CONSTITUTION_VERSION = "1.0.0"
+
+
+class Outcome(str, Enum):
+    """Four states, because two cannot tell silence from consent.
+
+    `NOT_APPLICABLE` means the law has nothing to say about this operation.
+    `NOT_EVALUABLE` means it does, and the evidence to decide was missing —
+    a checker that errored, a field that was not supplied, a timeout. Folding
+    the second into the first is how a law stops being enforced without anyone
+    editing it.
+    """
+
+    PASS = "pass"
+    FAIL = "fail"
+    NOT_APPLICABLE = "not_applicable"
+    NOT_EVALUABLE = "not_evaluable"
+
+
 @dataclass
 class Verdict:
     law_id: str
-    holds: bool
+    outcome: Outcome
     detail: str = ""
+    constitution_version: str = CONSTITUTION_VERSION
+
+    @property
+    def holds(self) -> bool:
+        return self.outcome is Outcome.PASS
 
     def __bool__(self) -> bool:
-        return self.holds
+        """Only PASS is truthy.
+
+        `NOT_EVALUABLE` is deliberately falsy. A caller writing `if verdict:`
+        around a dangerous operation gets fail-closed behaviour by default,
+        which is the direction an unchecked rule should fail in.
+        """
+        return self.outcome is Outcome.PASS
+
+    def blocks(self) -> bool:
+        """Should this stop the operation? FAIL and NOT_EVALUABLE both do."""
+        return self.outcome in (Outcome.FAIL, Outcome.NOT_EVALUABLE)
 
 
 @dataclass
@@ -56,7 +95,15 @@ class Law:
 
 
 def _verdict(law_id: LawId, holds: bool, detail: str = "") -> Verdict:
-    return Verdict(law_id.value, holds, detail)
+    return Verdict(law_id.value, Outcome.PASS if holds else Outcome.FAIL, detail)
+
+
+def _cannot_tell(law_id: LawId, detail: str) -> Verdict:
+    """The law applies and the evidence to decide it was not there.
+
+    Never `NOT_APPLICABLE`, which would read as "nothing to worry about here".
+    """
+    return Verdict(law_id.value, Outcome.NOT_EVALUABLE, detail)
 
 
 # --------------------------------------------------------------------------
@@ -115,6 +162,10 @@ def check_memory_not_evidence(report: Any) -> Verdict:
     ordinary Vietnamese sentences, and the report came back clean every time.
     """
     law_id = LawId.MEMORY_NOT_EVIDENCE
+    if not hasattr(report, "checks_run") or not hasattr(report, "verified_clean"):
+        return _cannot_tell(
+            law_id, "báo cáo không mang checks_run hoặc verified_clean — "
+                    "không có gì để kiểm, và điều đó KHÔNG phải là đạt")
     checks = int(getattr(report, "checks_run", 0) or 0)
     clean = bool(getattr(report, "verified_clean", False))
     if checks <= 0 and clean:
@@ -159,7 +210,8 @@ def check_recent_not_correct(resolved: Any, *, newest: Any) -> Verdict:
     """
     law_id = LawId.RECENT_NOT_CORRECT
     if resolved is None:
-        return _verdict(law_id, True, "không có câu trả lời nào để kiểm")
+        return Verdict(law_id.value, Outcome.NOT_APPLICABLE,
+                       "không có câu trả lời nào — luật không áp dụng")
     if getattr(resolved, "memory_id", None) == getattr(newest, "memory_id", None):
         window = getattr(resolved, "valid_to", "unset")
         if window is not None and window != "unset":
@@ -185,10 +237,18 @@ def check_success_not_good_learning(outcome: Any, *,
     an independent verifier, not the outcome alone.
     """
     law_id = LawId.SUCCESS_NOT_GOOD_LEARNING
+    if not hasattr(outcome, "verifier_passed"):
+        return _cannot_tell(
+            law_id, "kết quả không mang verifier_passed — không xác định được "
+                    "có bộ kiểm độc lập nào hay không, nên KHÔNG được cho qua")
+
     success = bool(getattr(outcome, "success", False))
     verified = bool(getattr(outcome, "verifier_passed", False))
     errors = tuple(getattr(outcome, "errors", ()) or ())
 
+    if not promoted:
+        return Verdict(law_id.value, Outcome.NOT_APPLICABLE,
+                       "không củng cố gì — luật này không có gì để nói")
     if promoted and not verified:
         return _verdict(law_id, False,
                         "củng cố một quy trình chỉ vì nó đạt mục tiêu, "
@@ -239,9 +299,12 @@ LAWS: dict[LawId, Law] = {
         "Nhắc lại có thể làm ký ức dễ tìm hơn và tươi hơn. Nó KHÔNG được "
         "mở rộng khoảng hiệu lực, tăng độ tin cậy, hay đổi trạng thái nhận "
         "thức khi chưa có bằng chứng mới.",
-        "Đo được trên bảng oracle: latest_mention giữ 0.933 ở câu hỏi hiện "
-        "tại nhưng tụt còn 0.533 ở câu hỏi lịch sử — nghe nhiều thành tin "
-        "hơn. Đó là familiarity effect, và não người có sẵn nó.",
+        "Đo được, và chỉ nêu đúng thứ đo được: một hệ CHỌN THEO LẦN NHẮC GẦN "
+        "NHẤT (latest_mention trong bảng oracle) giữ 0.933 ở câu hỏi hiện tại "
+        "nhưng tụt còn 0.533 ở câu hỏi lịch sử. Tức là: chọn theo độ mới / "
+        "theo số lần nhắc làm hỏng sự thật lịch sử. Cơ chế tâm lý phía sau "
+        "(familiarity effect) là động cơ đặt ra luật này, KHÔNG phải thứ phép "
+        "đo trên chứng minh.",
         check_repetition_not_truth,
         "reconfirm() cộng thêm vào confidence hoặc dời valid_to",
         ("cognitive/claim_lifecycle.py:reconfirm",)),
