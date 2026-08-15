@@ -150,7 +150,21 @@ class Claim:
     subject_id: str
     attribute: str
     value: str
+    #: When this became true of the world. A correction reaches back, because
+    #: the value it replaces was never true and something must hold that span.
     since: int
+    #: When the world *said* it — the tick of the event that created this claim.
+    #:
+    #: Separate from `since` for exactly one reason, and it is not a detail. A
+    #: correction at tick 400 backdates `since` to 1, and a question at tick 10
+    #: then expects a value nobody had been told yet. Measured: the key wanted
+    #: "Bình Minh" at checkpoint 10 while the world's only event so far was
+    #: "Hoà Bình" — the system answered correctly and was marked wrong for not
+    #: knowing the future.
+    #:
+    #: `since` answers "when was this true". `asserted_at` answers "when could
+    #: anyone have known". A benchmark grades the second.
+    asserted_at: int = 0
     until: int | None = None
     #: Set when a CORRECT event says this was never true. Distinct from
     #: superseded: a corrected claim has no historical window at all, and
@@ -162,6 +176,13 @@ class Claim:
     confirmed_at: list[int] = field(default_factory=list)
 
     def held_at(self, tick: int) -> bool:
+        """Was this true of the world at `tick`. Says nothing about knowing.
+
+        The knowability half lives in `current`/`at`, checked against the tick
+        the question is *asked* rather than the tick it is asked about. Asking
+        in August about January can use a correction made in March; asking in
+        January cannot.
+        """
         if self.retracted:
             return False
         if tick < self.since:
@@ -197,7 +218,8 @@ class TruthLedger:
 
     def assert_(self, subject_id: str, attribute: str, value: str,
                 tick: int) -> Claim:
-        claim = Claim(subject_id, attribute, value, since=tick)
+        claim = Claim(subject_id, attribute, value, since=tick,
+                      asserted_at=tick)
         self.claims.append(claim)
         return claim
 
@@ -218,7 +240,11 @@ class TruthLedger:
             if claim.until is None and not claim.retracted:
                 claim.retracted = True
                 replaced_since = min(replaced_since, claim.since)
-        claim = Claim(subject_id, attribute, value, since=replaced_since)
+        # `since` reaches back to cover the span the wrong value occupied;
+        # `asserted_at` stays at the moment the correction was actually made,
+        # so no question before that tick expects this value.
+        claim = Claim(subject_id, attribute, value, since=replaced_since,
+                      asserted_at=tick)
         self.claims.append(claim)
         return claim
 
@@ -241,7 +267,7 @@ class TruthLedger:
                 tick: int) -> Claim | None:
         """What is true at `tick`. None when nothing is, or when forgotten."""
         live = [c for c in self._slot(subject_id, attribute)
-                if c.held_at(tick)
+                if c.held_at(tick) and c.asserted_at <= tick
                 and not (c.forgotten_at is not None and c.forgotten_at <= tick)]
         return max(live, key=lambda c: c.since) if live else None
 
@@ -254,7 +280,7 @@ class TruthLedger:
         address" a promise the system quietly declines to keep.
         """
         live = [c for c in self._slot(subject_id, attribute)
-                if c.held_at(when)
+                if c.held_at(when) and c.asserted_at <= asked_at
                 and not (c.forgotten_at is not None
                          and c.forgotten_at <= asked_at)]
         return max(live, key=lambda c: c.since) if live else None
@@ -263,6 +289,7 @@ class TruthLedger:
              asked_at: int) -> bool:
         return any(
             c.value == value and not c.retracted
+            and c.asserted_at <= asked_at
             and not (c.forgotten_at is not None and c.forgotten_at <= asked_at)
             for c in self._slot(subject_id, attribute)
         )

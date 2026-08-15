@@ -65,6 +65,12 @@ class QueryResult:
     query_kind: str = ""
     latency_ms: float = 0.0
     prompt_chars: int = 0
+    #: Which stage of the temporal pipeline gave up, when one did. Carried out
+    #: to the trace because "answered wrongly" and "never got past stage one"
+    #: are different failures needing different fixes, and a rate alone cannot
+    #: tell them apart — measured once already, on 28 of 28 questions.
+    stage_failed: str = ""
+    note: str = ""
 
 
 class MemorySystem(Protocol):
@@ -144,11 +150,15 @@ class CognitiveAdapter:
         started = time.perf_counter()
         planned = plan(self.memory_os, question, context=context, limit=6)
         contents = [str(getattr(m, "content", "")) for m in planned.memories]
+        reason = str(getattr(planned, "unanswerable_reason", "") or "")
+        stage, _, note = reason.partition(": ")
         result = QueryResult(
             retrieved=contents,
             route=planned.used,
             query_kind=planned.kind.value,
             latency_ms=(time.perf_counter() - started) * 1000,
+            stage_failed=stage if note else "",
+            note=note or reason,
         )
         if self.engine is None:
             return result

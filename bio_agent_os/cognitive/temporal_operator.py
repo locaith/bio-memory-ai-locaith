@@ -303,8 +303,17 @@ def _core(content: str) -> str:
 
 
 def _mentions(content: str, subject: str) -> bool:
-    low = _fold(content).lower()
-    return all(part.lower() in low for part in subject.split())
+    """Does this memory talk about that person?
+
+    Word by word, never by substring. A one-syllable name is common enough to
+    appear inside ordinary words: the subject "An" matched "đ**an**g" and
+    answered a question about Vũ An with a sentence about Trần Thảo. Every
+    syllable must appear as its own word — "Trần An" must not match a memory
+    about An Phát either, or one person's question deletes into another's
+    records.
+    """
+    words = set(re.findall(r"\w+", _fold(content).lower(), re.UNICODE))
+    return all(part.lower() in words for part in subject.split())
 
 
 def claim_history(memory_os: Any, *, subject: str, aspect: str | None,

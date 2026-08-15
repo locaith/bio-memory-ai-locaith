@@ -271,20 +271,23 @@ def questions_at(ledger: TruthLedger, people: list[Subject], tick: int, *,
                 truth = ledger.at(subject_id, attribute, when, tick)
                 if truth is not None and truth.value == past.value:
                     date = tick_to_iso(when)[:10]
-                    # Only the first letter is lowered, never the whole phrase.
+                    # The phrase is not lowercased at all, because it begins
+                    # with the person's name.
                     #
-                    # `.lower()` on the sentence lowercased the person's name
-                    # too — "Vào ngày 2024-11-20, trần hà đang giữ chức vụ gì?"
-                    # — and nobody writes a name that way. Measured: it took
-                    # the subject resolver's only signal away and stopped the
-                    # temporal operator at its first stage on 28 of 28
-                    # historical questions, which then read as the operator
-                    # having no effect at all.
-                    phrase = _phrase(attribute, subject.name)
-                    phrase = phrase[:1].lower() + phrase[1:]
+                    # `.lower()` on the whole sentence took the resolver's only
+                    # signal away and stopped the operator at stage one on 28
+                    # of 28 questions. Lowering just the first letter looked
+                    # like the fix and was half of one: the template starts
+                    # with the name, so it produced "phạm Vy" and the resolver
+                    # recovered only the second syllable — then a one-syllable
+                    # subject matched other people's sentences through the
+                    # substring "an" inside "đang".
+                    #
+                    # Vietnamese keeps a proper noun capitalised after a comma.
+                    # Leaving it alone is both correct and natural.
                     out.append(Question(
                         Family.HISTORICAL, tick,
-                        f"Vào ngày {date}, {phrase}",
+                        f"Vào ngày {date}, {_phrase(attribute, subject.name)}",
                         Expect.VALUE, past.value, subject_id, attribute,
                         after_supersession=True))
                     counts[Family.HISTORICAL] += 1
