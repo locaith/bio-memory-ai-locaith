@@ -256,6 +256,38 @@ def _assessment_texts(record: dict, prefix: str) -> list[str]:
     return out
 
 
+def memory_items(record: dict) -> list[tuple[str, str]]:
+    """(text, memory_class) for everything this record contributes.
+
+    The class is what a memory *is*, not what it is about, and it is the thing
+    a question like "tôi từng làm sai gì" is actually asking for. Measured on
+    the live store before this existed: 24 mistake memories, 0 of them carrying
+    any label, so the question had nothing to select on and returned empty. No
+    similarity threshold reaches that — structured queries need structured
+    data.
+    """
+    kind = kind_of(record)
+    prefix = (f"[{record.get('course')} / "
+              f"{record.get('lesson_title') or record.get('item_title') or record.get('lesson_id')}]")
+
+    if kind == COMPLETION:
+        texts = _completion_texts(record)
+        return [(t, "progress" if "Tiến độ" in t else "completion") for t in texts]
+
+    if kind == ASSESSMENT:
+        out: list[tuple[str, str]] = []
+        for text in _assessment_texts(record, prefix):
+            if "Điểm yếu tự ghi nhận" in text:
+                out.append((text, "weakness"))
+            elif "Làm sai" in text:
+                out.append((text, "mistake"))
+            else:
+                out.append((text, "score"))
+        return out
+
+    return [(t, "lesson_fact") for t in memory_texts(record)]
+
+
 def _completion_texts(record: dict) -> list[str]:
     """A finished course is a milestone, and milestones are what a progress
     question is asking about. Stored as facts with their verification id, so
@@ -395,7 +427,8 @@ def main() -> int:
                 )
             continue
 
-        texts = memory_texts(record)
+        items = memory_items(record)
+        texts = [t for t, _ in items]
         qa = [q for q in (record.get("qa") or [])
               if isinstance(q, dict) and q.get("question") and q.get("answer")]
 
@@ -418,17 +451,22 @@ def main() -> int:
             exams += len(qa)
             continue
 
-        for text in texts:
+        for text, memory_class in items:
+            meta = {"course": record.get("course"),
+                    "lesson_id": record.get("lesson_id"),
+                    "captured_at": record.get("captured_at"),
+                    # What this memory IS. Without it, "tôi từng làm sai gì"
+                    # has nothing to select on and returns empty however good
+                    # the embeddings are.
+                    "memory_class": memory_class}
             event = memory_os.observe(
                 tenant_id=args.tenant, actor="tuananh", source="learning",
-                content=text, workspace_id=args.workspace,
-                metadata={"course": record.get("course"),
-                          "lesson_id": record.get("lesson_id"),
-                          "captured_at": record.get("captured_at")},
+                content=text, workspace_id=args.workspace, metadata=meta,
             )
             memory_os.remember(
                 event=event, memory_type=MemoryType.SEMANTIC, content=text,
                 confidence=float(record.get("confidence") or 0.7),
+                metadata=meta,
             )
         stored += len(texts)
 
