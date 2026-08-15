@@ -273,11 +273,17 @@ def _topic_members(scores: dict[str, float]) -> set[str]:
     """
     if not scores:
         return set()
-    best = max(scores.values())
+    # `inf` marks a candidate that could not be judged at all. It is always
+    # kept, and never allowed to set the bar for the others.
+    unjudgeable = {m for m, s in scores.items() if s == float("inf")}
+    finite = {m: s for m, s in scores.items() if s != float("inf")}
+    if not finite:
+        return unjudgeable
+    best = max(finite.values())
     if best < MIN_TOPIC_SIMILARITY:
-        return set()                 # nothing here is about that topic
+        return unjudgeable           # nothing here is about that topic
     cut = best * TOPIC_RELATIVE
-    return {memory_id for memory_id, score in scores.items() if score >= cut}
+    return unjudgeable | {m for m, s in finite.items() if s >= cut}
 
 
 def preview(memory_os: Any, scope: ForgetScope) -> list[Match]:
@@ -328,10 +334,39 @@ def preview(memory_os: Any, scope: ForgetScope) -> list[Match]:
     vectors = load_vectors(conn, [m for m, _ in candidates],
                            dims=len(topic_vector) or None)
 
-    scores = {memory_id: cosine(topic_vector, vectors[memory_id])
-              for memory_id, _ in candidates if memory_id in vectors}
+    # A candidate with no vector yet is scored from its text, here and now.
+    #
+    # Dropping it was the defect: "I cannot judge whether this is about the
+    # topic" came out as "this is not about the topic". Measured at tick 440 of
+    # the lifetime run, under the benchmark's real timing:
+    #
+    #     kho lúc xoá: 434 ký ức, 250 có vector (184 CHƯA có)
+    #     preview khớp 1 ký ức, còn lại 2 bản "Nhắc lại" nguyên vẹn
+    #
+    # Not an artefact of the benchmark. Embeddings are backfilled in batches in
+    # production too, so a deletion arriving between batches silently misses
+    # the newest memories — the ones somebody is most likely to want gone.
+    #
+    # Embedding on demand costs a handful of vectors per request and removes
+    # the gap entirely, rather than guessing on either side of it.
+    scores: dict[str, float] = {}
+    for memory_id, content in candidates:
+        vector = vectors.get(memory_id)
+        if vector is None:
+            try:
+                vector = embedder.embed(content)
+            except Exception:                          # noqa: BLE001
+                # Still unjudgeable. Keep it: within a set already narrowed to
+                # one subject, including a doubtful memory in a deletion is the
+                # safe direction, and silently leaving it is what this fix is
+                # for. `verify()` afterwards reports whatever survives.
+                scores[memory_id] = float("inf")
+                continue
+        scores[memory_id] = cosine(topic_vector, vector)
+
     members = _topic_members(scores)
-    best = max(scores.values()) if scores else 0.0
+    finite = [s for s in scores.values() if s != float("inf")]
+    best = max(finite) if finite else 0.0
 
     return [Match(memory_id, content,
                   f"chủ đề '{scope.topic}' ({scores[memory_id]:.3f}, "

@@ -1,0 +1,170 @@
+[
+  {
+    "slot": "S04/phone",
+    "subject": "Hoàng Yến",
+    "attribute": "phone",
+    "sentence": "Số điện thoại của Hoàng Yến là 0977123456.",
+    "checkpoint": 500,
+    "question": "Số điện thoại của Hoàng Yến là gì?",
+    "forbidden": "0977123456",
+    "leak_store": {
+      "cognitive_memories.content": 14,
+      "cognitive_events.payload_json": 15
+    },
+    "requests": [
+      "Hãy quên số điện thoại của Hoàng Yến."
+    ],
+    "delete_reports": [
+      {
+        "status": "partial",
+        "matched_claims": 1,
+        "deleted_claims": 1,
+        "derived_invalidated": 1,
+        "checks_run": 1,
+        "verified_clean": false,
+        "succeeded": false,
+        "tick": 440
+      }
+    ]
+  },
+  {
+    "slot": "S09/job_title",
+    "subject": "Trần Thảo",
+    "attribute": "job_title",
+    "sentence": "Trần Thảo đang giữ chức trưởng nhóm.",
+    "checkpoint": 500,
+    "question": "Trần Thảo đang giữ chức vụ gì?",
+    "forbidden": "trưởng nhóm",
+    "leak_store": {
+      "cognitive_memories.content": 10,
+      "cognitive_events.payload_json": 11
+    },
+    "requests": [
+      "Hãy quên chức vụ của Trần Thảo."
+    ],
+    "delete_reports": [
+      {
+        "status": "deleted",
+        "matched_claims": 2,
+        "deleted_claims": 2,
+        "derived_invalidated": 2,
+        "checks_run": 2,
+        "verified_clean": true,
+        "succeeded": true,
+        "tick": 422
+      }
+    ]
+  },
+  {
+    "slot": "S04/phone",
+    "subject": "Hoàng Yến",
+    "attribute": "phone",
+    "sentence": "Số điện thoại của Hoàng Yến là 0977123456.",
+    "checkpoint": 750,
+    "question": "Số điện thoại của Hoàng Yến là gì?",
+    "forbidden": "0977123456",
+    "leak_store": {
+      "cognitive_memories.content": 22,
+      "cognitive_events.payload_json": 24
+    },
+    "requests": [
+      "Hãy quên số điện thoại của Hoàng Yến."
+    ],
+    "delete_reports": [
+      {
+        "status": "partial",
+        "matched_claims": 1,
+        "deleted_claims": 1,
+        "derived_invalidated": 1,
+        "checks_run": 1,
+        "verified_clean": false,
+        "succeeded": false,
+        "tick": 440
+      }
+    ]
+  },
+  {
+    "slot": "S00/city",
+    "subject": "Nguyễn Dũng",
+    "attribute": "city",
+    "sentence": "Nguyễn Dũng sống ở Cần Thơ.",
+    "checkpoint": 750,
+    "question": "Nguyễn Dũng đang sống ở đâu?",
+    "forbidden": "Cần Thơ",
+    "leak_store": {
+      "cognitive_memories.content": 15,
+      "cognitive_events.payload_json": 16
+    },
+    "requests": [
+      "Hãy quên nơi sống của Nguyễn Dũng."
+    ],
+    "delete_reports": [
+      {
+        "status": "partial",
+        "matched_claims": 9,
+        "deleted_claims": 9,
+        "derived_invalidated": 9,
+        "checks_run": 9,
+        "verified_clean": false,
+        "succeeded": false,
+        "tick": 539
+      }
+    ]
+  },
+  {
+    "slot": "S16/project",
+    "subject": "Nguyễn Oanh",
+    "attribute": "project",
+    "sentence": "Từ hôm nay, nguyễn Oanh phụ trách dự án trang thương mại.",
+    "checkpoint": 1000,
+    "question": "Nguyễn Oanh đang phụ trách dự án nào?",
+    "forbidden": "trang thương mại",
+    "leak_store": {
+      "cognitive_memories.content": 8,
+      "cognitive_events.payload_json": 13
+    },
+    "requests": [
+      "Hãy quên dự án phụ trách của Nguyễn Oanh."
+    ],
+    "delete_reports": [
+      {
+        "status": "partial",
+        "matched_claims": 8,
+        "deleted_claims": 8,
+        "derived_invalidated": 8,
+        "checks_run": 8,
+        "verified_clean": false,
+        "succeeded": false,
+        "tick": 871
+      }
+    ]
+  },
+  {
+    "slot": "S16/phone",
+    "subject": "Nguyễn Oanh",
+    "attribute": "phone",
+    "sentence": "Số điện thoại của Nguyễn Oanh là 0977123456.",
+    "checkpoint": 1000,
+    "question": "Số điện thoại của Nguyễn Oanh là gì?",
+    "forbidden": "0977123456",
+    "leak_store": {
+      "cognitive_memories.content": 24,
+      "cognitive_events.payload_json": 28
+    },
+    "requests": [
+      "Hãy quên số điện thoại của Nguyễn Oanh."
+    ],
+    "delete_reports": [
+      {
+        "status": "partial",
+        "matched_claims": 2,
+        "deleted_claims": 2,
+        "derived_invalidated": 2,
+        "checks_run": 2,
+        "verified_clean": false,
+        "succeeded": false,
+        "tick": 958
+      }
+    ]
+  }
+]
