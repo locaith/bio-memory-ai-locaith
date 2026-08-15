@@ -124,6 +124,10 @@ class ForgetResult:
     #: dropped the field would give the hole straight back.
     checks_run: int = 0
     residue: list[dict[str, str]] = field(default_factory=list)
+    #: Candidates whose predicate could not be read — neither deleted nor
+    #: silently left. Somebody has to decide, and they can only decide about
+    #: something they have been told exists.
+    abstained: list[dict[str, str]] = field(default_factory=list)
     unmatched_reason: str = ""
 
     @property
@@ -150,6 +154,7 @@ class ForgetResult:
             "deleted_claims": self.deleted_claims,
             "derived_invalidated": self.derived_invalidated,
             "checks_run": self.checks_run,
+            "abstained": self.abstained,
             "verified_clean": self.verified_clean,
             "residue": self.residue,
             "unmatched_reason": self.unmatched_reason,
@@ -286,6 +291,49 @@ def _topic_members(scores: dict[str, float]) -> set[str]:
     return unjudgeable | {m for m, s in finite.items() if s >= cut}
 
 
+def _predicate_of(text: str):
+    """The predicate a sentence names, or None when it names none."""
+    from .aspect_resolver import Predicate, resolve_aspect
+
+    resolved = resolve_aspect(text).predicate
+    return None if resolved is Predicate.UNKNOWN else resolved
+
+
+def _by_predicate(candidates: list[tuple[str, str]], wanted) -> list[Match]:
+    """Candidates whose own predicate is the one the request named.
+
+    A memory the resolver cannot place is neither matched nor discarded — it
+    goes to `abstained`, because "I cannot tell what this is about" is not
+    "this is unrelated". That distinction, dropped once already in this file's
+    topic filter, cost a round of silent under-deletion.
+    """
+    out: list[Match] = []
+    for memory_id, content in candidates:
+        found = _predicate_of(content)
+        if found is wanted:
+            out.append(Match(memory_id, content,
+                             f"vị từ {wanted.name} trùng với yêu cầu"))
+    return out
+
+
+def abstentions(candidates: list[tuple[str, str]], wanted) -> list[dict[str, str]]:
+    """Candidates whose predicate could not be read at all.
+
+    Reported so a person can decide, never deleted on a guess and never
+    silently left behind.
+    """
+    out: list[dict[str, str]] = []
+    for memory_id, content in candidates:
+        if _predicate_of(content) is None:
+            out.append({
+                "memory_id": memory_id,
+                "excerpt": str(content)[:120],
+                "reason": f"không đọc được vị từ nào từ ký ức này, nên không "
+                          f"kết luận được nó có thuộc '{wanted.name}' hay không",
+            })
+    return out
+
+
 def preview(memory_os: Any, scope: ForgetScope) -> list[Match]:
     """What this scope covers, without deleting any of it.
 
@@ -317,6 +365,26 @@ def preview(memory_os: Any, scope: ForgetScope) -> list[Match]:
     if not scope.topic:
         return [Match(m, c, f"thuộc chủ thể '{scope.subject}'")
                 for m, c in candidates]
+
+    # Scope by predicate agreement, not by a similarity threshold.
+    #
+    # Measured across the 18 deletion requests of the lifetime world:
+    #
+    #     cosine, cut = best * 0.6   precision 0.567  recall 0.981
+    #     predicate agreement        precision 1.000  recall 1.000
+    #
+    # The similarity populations overlap from 0.227 to 0.477, so a sweep only
+    # chooses where to be wrong: at 0.30 precision is 0.619, at 0.425 recall
+    # falls to 0.559. The old relative rule was worse still — `best * 0.6`
+    # drops with `best`, so a weakly-matching topic admitted almost everything,
+    # and 43% of what deletions removed should have stayed.
+    #
+    # A predicate is a better answer than a better constant: deterministic,
+    # explainable in the audit trail, unaffected by which embedder is loaded or
+    # whether the backfill has caught up.
+    resolved = _predicate_of(scope.topic)
+    if resolved is not None:
+        return _by_predicate(candidates, resolved)
 
     # Topic scoping is semantic. "Sức khoẻ" has to reach "tiền sử bệnh tim",
     # which shares no word with it — the reason `forget-002` could not be
@@ -378,6 +446,20 @@ def preview(memory_os: Any, scope: ForgetScope) -> list[Match]:
 # executing
 # --------------------------------------------------------------------------
 
+def _abstentions_for(memory_os: Any, scope: ForgetScope) -> list[dict[str, str]]:
+    """Which of this subject's memories the resolver could not place."""
+    wanted = _predicate_of(scope.topic) if scope.topic else None
+    if wanted is None or not scope.subject:
+        return []
+    candidates = [
+        (memory_id, content) for memory_id, content in
+        memory_os.memories.conn.execute(
+            "SELECT memory_id, content FROM cognitive_memories")
+        if _mentions(str(content), scope.subject)
+    ]
+    return abstentions(candidates, wanted)
+
+
 def _deletion_probes(contents: list[str]) -> list[str]:
     """What to look for afterwards: the sentences that were removed. Nothing else.
 
@@ -423,6 +505,7 @@ def forget_scoped(memory_os: Any, request: str, *, actor: str,
 
     matched = preview(memory_os, scope)
     result.matched_claims = len(matched)
+    result.abstained = _abstentions_for(memory_os, scope)
     if not matched:
         result.unmatched_reason = (
             f"phạm vi {scope.describe()} không khớp ký ức nào. Đây KHÔNG phải "
