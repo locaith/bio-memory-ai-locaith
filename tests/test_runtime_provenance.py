@@ -74,6 +74,13 @@ def test_the_fingerprint_ignores_what_changes_on_every_honest_restart():
     assert base.fingerprint == _identity(host="laptop").fingerprint
 
 
+def test_writing_a_report_does_not_change_the_fingerprint():
+    """Measured the hard way: the first benchmark run wrote its report into the
+    working tree, and the second run refused to match the first. A fingerprint
+    that moves when the tool writes its own output cannot gate anything."""
+    assert _identity().fingerprint == _identity(untracked_files=3).fingerprint
+
+
 def test_an_uncommitted_edit_changes_the_fingerprint():
     """The one case where the sha lies about what is running."""
     assert _identity(git_dirty=True).fingerprint != _identity().fingerprint

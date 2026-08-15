@@ -338,7 +338,8 @@ def main() -> int:
     print("RUNTIME")
     print(f"  vân tay   : {who.fingerprint}")
     print(f"  git       : {who.git_sha[:12]}"
-          f"{'  ⚠ CÓ THAY ĐỔI CHƯA COMMIT' if who.git_dirty else ''}")
+          f"{'  ⚠ CÓ THAY ĐỔI CHƯA COMMIT' if who.git_dirty else ''}"
+          f"{f'  ({who.untracked_files} file chưa theo dõi)' if who.untracked_files else ''}")
     print(f"  gói       : {who.package_version} | python {who.python_version}")
     print(f"  cấu hình  : {who.config_hash}")
     print(f"  embedding : {who.embedding_model or 'không'} "

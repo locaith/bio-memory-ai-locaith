@@ -124,6 +124,11 @@ class RuntimeIdentity:
 
     package_version: str
     git_sha: str
+    #: Tracked files modified. Untracked files are counted separately below and
+    #: deliberately excluded — the first run of the benchmark wrote a report
+    #: into the working tree and changed the fingerprint of the second, which
+    #: made `--expect-runtime` unusable within one sitting. An artifact nobody
+    #: imports does not change what the code does.
     git_dirty: bool
     config_hash: str
     embedding_model: str
@@ -133,6 +138,10 @@ class RuntimeIdentity:
     pid: int
     python_version: str
     process_start_time: float
+    #: Recorded, not fingerprinted. A new untracked module *could* change
+    #: behaviour if something imports it, so the number is printed where a
+    #: person can see it rather than dropped.
+    untracked_files: int = 0
 
     #: Everything above that changes behaviour. A ClassVar, so it stays out of
     #: `__init__` and `asdict`. Order is fixed on purpose: a fingerprint that
@@ -228,8 +237,11 @@ def identity(*, db_path: str | Path = "", embedder: Any = None,
              environ: dict[str, str] | None = None) -> RuntimeIdentity:
     """Describe this process. Cheap enough to call on every startup."""
     sha = _git("rev-parse", "HEAD") or "unknown"
-    status = _git("status", "--porcelain")
-    dirty = bool(status) if status is not None else False
+    tracked = _git("status", "--porcelain", "--untracked-files=no")
+    dirty = bool(tracked) if tracked is not None else False
+    everything = _git("status", "--porcelain") or ""
+    untracked = sum(1 for line in everything.splitlines()
+                    if line.startswith("??"))
 
     model, dims = "", 0
     if embedder is not None:
@@ -250,6 +262,7 @@ def identity(*, db_path: str | Path = "", embedder: Any = None,
         pid=os.getpid(),
         python_version=platform.python_version(),
         process_start_time=_process_start_time(),
+        untracked_files=untracked,
     )
 
 
