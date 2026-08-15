@@ -25,6 +25,13 @@ logger = logging.getLogger("bio_agent_os.embedder")
 
 class Embedder:
     def __init__(self):
+        # `_detect_backend` chooses from the process environment. A script that
+        # never loaded `.env` therefore gets the defaults, which is how an
+        # ingest run wrote 60 vectors into a 384-dimension space beside 353 in a
+        # 3072-dimension one and split the store in two without raising.
+        from .env import load_project_env
+
+        load_project_env()
         self.backend = self._detect_backend()
         self.model_id = self._default_model()
         self._client = None

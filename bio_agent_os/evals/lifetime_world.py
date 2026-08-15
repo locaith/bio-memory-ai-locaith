@@ -80,6 +80,15 @@ class Attribute:
     question_vi: str
     volatility: Volatility
     values: tuple[str, ...]
+    #: What a person calls this aspect out loud.
+    #:
+    #: Deletion requests used `key` at first — "Hãy quên thông tin về city của
+    #: Bùi Cường" — and nobody says that. It made the request cross-lingual
+    #: against a Vietnamese store and pushed every topic-scoped deletion below
+    #: the similarity floor: 2 of 18 requests matched anything. The benchmark
+    #: was testing whether the system could bridge its own internal identifier
+    #: into another language, which is not a memory capability.
+    label_vi: str = ""
 
 
 #: Deliberately small and concrete. A world of plausible facts about twenty
@@ -88,22 +97,25 @@ class Attribute:
 ATTRIBUTES: tuple[Attribute, ...] = (
     Attribute("job_title", "{name} đang giữ chức vụ gì?", Volatility.FAST,
               ("nhân viên kinh doanh", "trưởng nhóm", "trưởng phòng",
-               "phó giám đốc", "giám đốc kỹ thuật")),
+               "phó giám đốc", "giám đốc kỹ thuật"), "chức vụ"),
     Attribute("employer", "{name} đang làm ở công ty nào?", Volatility.MEDIUM,
-              ("Locaith", "An Phát", "Bình Minh", "Đại Việt", "Hoà Bình")),
+              ("Locaith", "An Phát", "Bình Minh", "Đại Việt", "Hoà Bình"),
+              "nơi làm việc"),
     Attribute("city", "{name} đang sống ở đâu?", Volatility.SLOW,
-              ("Hà Nội", "Đà Nẵng", "Cần Thơ", "Hải Phòng", "Huế")),
+              ("Hà Nội", "Đà Nẵng", "Cần Thơ", "Hải Phòng", "Huế"),
+              "nơi sống"),
     Attribute("phone", "Số điện thoại của {name} là gì?", Volatility.SLOW,
               ("0912345678", "0987654321", "0903111222", "0938777666",
-               "0977123456")),
+               "0977123456"), "số điện thoại"),
     Attribute("birthday", "{name} sinh ngày nào?", Volatility.IMMUTABLE,
               ("12/03/1990", "05/07/1988", "21/11/1995", "30/01/1992",
-               "17/09/1985")),
+               "17/09/1985"), "ngày sinh"),
     Attribute("project", "{name} đang phụ trách dự án nào?", Volatility.FAST,
               ("cổng thanh toán", "kho dữ liệu", "ứng dụng bán hàng",
-               "hệ thống OCR", "trang thương mại")),
+               "hệ thống OCR", "trang thương mại"), "dự án phụ trách"),
     Attribute("salary", "Lương của {name} là bao nhiêu?", Volatility.VOLATILE,
-              ("18 triệu", "25 triệu", "32 triệu", "40 triệu", "55 triệu")),
+              ("18 triệu", "25 triệu", "32 triệu", "40 triệu", "55 triệu"),
+              "lương"),
 )
 
 FIRST_NAMES = ("An", "Bình", "Cường", "Dũng", "Giang", "Hà", "Hùng", "Khanh",
@@ -352,7 +364,7 @@ def generate(*, ticks: int = 1000, subjects: int = 20,
             ledger.forget(*slot, tick)
             events.append(WorldEvent(
                 tick, kind,
-                f"Hãy quên thông tin về {attribute.key} của {subject.name}.",
+                f"Hãy quên {attribute.label_vi} của {subject.name}.",
                 subject.subject_id, attribute.key, None))
             continue
 

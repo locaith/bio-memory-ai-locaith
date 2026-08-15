@@ -41,6 +41,13 @@ class LLMEngine:
 
     @classmethod
     def from_env(cls) -> "LLMEngine":
+        # The environment this reads has to include `.env`, or a script that
+        # never loaded it silently gets the defaults. That produced a benchmark
+        # run against `gemini-3-flash-preview` with no Gemini key, minutes after
+        # `LLM_BACKEND=openai` was written to the file.
+        from .env import load_project_env
+
+        load_project_env()
         backend = os.getenv("LLM_BACKEND", "gemini")
         model_id = os.getenv("MODEL_ID", "gemini-3-flash-preview")
         api_key = os.getenv("LLM_API_KEY")

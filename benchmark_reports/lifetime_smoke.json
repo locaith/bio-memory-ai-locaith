@@ -1,0 +1,186 @@
+{
+  "created": "2026-08-15T09:28:31",
+  "config": {
+    "ticks": 100,
+    "subjects": 8,
+    "seed": 20260814,
+    "per_family": 4,
+    "embedder": "sentence-transformers",
+    "engine": null
+  },
+  "integrity": {
+    "n": 31,
+    "by_family": {
+      "current": 12,
+      "historical": 9,
+      "ever": 10
+    },
+    "by_expect": {
+      "value": 21,
+      "yes": 5,
+      "no": 5
+    },
+    "deletion_questions_with_proven_value": 0,
+    "questions_after_a_real_change": 19,
+    "world_events": {
+      "assert": 41,
+      "noise": 19,
+      "repeat": 25,
+      "correct": 7,
+      "supersede": 6,
+      "contradict": 2
+    },
+    "reference_scores": {
+      "perfect": 1.0,
+      "first_value": 0.5483870967741935,
+      "latest_mention": 0.45161290322580644,
+      "never_declines": 0.3870967741935484,
+      "always_declines": 0.0,
+      "plausible_wrong": 0.16129032258064516
+    },
+    "warnings": [
+      "nhóm current: 12/12 câu cùng kỳ vọng 'value' — trả lời 'value' cho mọi câu là qua được",
+      "nhóm historical: 9/9 câu cùng kỳ vọng 'value' — trả lời 'value' cho mọi câu là qua được",
+      "nhóm forgotten: chỉ 0 câu — dưới 8, tỷ lệ tính trên đó là số học chứ không phải phép đo",
+      "thế giới chỉ có 6 sự kiện supersede — phân biệt này gần như không được kiểm",
+      "thế giới chỉ có 7 sự kiện correct — phân biệt này gần như không được kiểm",
+      "thế giới chỉ có 0 sự kiện forget — phân biệt này gần như không được kiểm"
+    ]
+  },
+  "checkpoints": [
+    {
+      "checkpoint": 10,
+      "retrieval": {
+        "current": 1.0,
+        "historical": 1.0
+      },
+      "retrieval_n": {
+        "current": 4,
+        "historical": 1
+      },
+      "answer": {},
+      "memories": 10,
+      "bytes": 1355296,
+      "p50_ms": 13.8,
+      "wall_s": 0.1
+    },
+    {
+      "checkpoint": 50,
+      "retrieval": {
+        "current": 0.75,
+        "historical": 0.5
+      },
+      "retrieval_n": {
+        "current": 4,
+        "historical": 4
+      },
+      "answer": {},
+      "memories": 50,
+      "bytes": 4513512,
+      "p50_ms": 18.9,
+      "wall_s": 0.2
+    },
+    {
+      "checkpoint": 100,
+      "retrieval": {
+        "current": 1.0,
+        "historical": 0.5
+      },
+      "retrieval_n": {
+        "current": 4,
+        "historical": 4
+      },
+      "answer": {},
+      "memories": 100,
+      "bytes": 4722504,
+      "p50_ms": 23.6,
+      "wall_s": 0.2
+    }
+  ],
+  "failures": [
+    {
+      "checkpoint": 50,
+      "family": "current",
+      "question": "Vũ An đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "nhân viên kinh doanh",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Vũ An đang giữ chức giám đốc kỹ thuật.",
+        "Từ hôm nay, vũ An đang giữ chức trưởng nhóm.",
+        "Bùi Cường đang giữ chức trưởng nhóm.",
+        "Phạm Giang đang giữ chức trưởng nhóm."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "historical",
+      "question": "Vào ngày 2024-06-29, vũ an đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "giám đốc kỹ thuật",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [
+        "Nhắc lại, trần Hà sinh ngày 21/11/1995.",
+        "Nhắc lại, trần Hà sinh ngày 21/11/1995.",
+        "Hoàng Yến sinh ngày 21/11/1995."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "historical",
+      "question": "Vào ngày 2024-07-11, vũ an đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Bình Minh",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [
+        "Nhắc lại, phạm Giang làm việc tại công ty Hoà Bình.",
+        "Bùi Cường đang giữ chức trưởng nhóm.",
+        "Nhắc lại, trần Hà đang giữ chức phó giám đốc.",
+        "Hoàng Yến đang giữ chức phó giám đốc."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 100,
+      "family": "historical",
+      "question": "Vào ngày 2024-06-29, vũ an đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "giám đốc kỹ thuật",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 100,
+      "family": "historical",
+      "question": "Vào ngày 2024-07-11, vũ an đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Bình Minh",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    }
+  ]
+}

@@ -66,7 +66,60 @@ thật, ghi lại làm việc phải làm, không phải làm cho điểm đẹp
 nghĩa là khi xoá theo chủ đề có thật, test này *không trượt nữa* sẽ tự báo lỗi —
 không ai phải nhớ quay lại bật nó.
 
-### Số thay thế
+### Số thay thế — chạy lại 15/08/2026
 
-Chưa có. Nhóm `forgetting` phải chạy lại bằng harness đã sửa. Cho tới lúc đó,
-**không có số nào về năng lực xoá** được coi là đã đo.
+`benchmark_reports/behaviour_forgetting_2026_08_15.json`, engine
+`openai/gpt-4o-mini`, harness đã sửa.
+
+| Hệ thống | Nhóm | Điểm cũ (vô hiệu) | **Điểm mới** |
+|---|---|---|---|
+| cognitive | forgetting | 2/3 | **2/3 = 67%** |
+| naive-rag | forgetting | 2/3 | **0/3 = 0%** |
+
+Điểm của `cognitive` trùng nhau là ngẫu nhiên, không phải xác nhận. Thứ đổi là
+điểm của `naive-rag`: nó **rò cả ba** bí mật.
+
+| Ca | naive-rag trả lời |
+|---|---|
+| forget-001 | `88888888` |
+| forget-002 | `Bệnh tim.` |
+| forget-003 | `Số điện thoại: 0912345678.` |
+
+Đúng như phải thế — Naive-RAG không có cơ chế xoá nào. Việc trước đây nó bằng
+điểm hệ có `forget()` chính là dấu hiệu phép đo hỏng, và giờ khoảng cách
+**67% với 0%** là dấu hiệu nó đang đo đúng thứ.
+
+**Điều kiện tiên quyết đã chứng minh: 3/3.** Mỗi ca đều xác nhận dữ liệu truy
+hồi được trong kho *trước khi* xoá (`retrievable_before: true` trong báo cáo),
+rồi mới gọi `forget_derived()`, rồi mới hỏi. Không có bước đó thì "không tìm
+thấy" vẫn không chứng minh được gì.
+
+`forget-002` trượt vì lỗ hổng `topic_scoped_delete` đã ghi ở trên, không phải
+vì việc xoá hỏng.
+
+### Cập nhật cùng ngày — lỗ hổng đã vá, chạy lại lần hai
+
+`benchmark_reports/behaviour_forgetting_2026_08_15b.json`
+
+| Hệ thống | Nhóm | Lần 1 | **Lần 2** |
+|---|---|---|---|
+| cognitive | forgetting | 2/3 = 67% | **3/3 = 100%** |
+| naive-rag | forgetting | 0/3 = 0% | **0/3 = 0%** |
+
+`forget-002` giờ đạt. `bio_agent_os/cognitive/forget_scope.py` tách yêu cầu
+thành **chủ thể + chủ đề**, rồi chọn theo độ tương đồng **tương đối trong nhóm
+ký ức của chủ thể** thay vì một sàn tuyệt đối.
+
+Sàn tuyệt đối là chỗ sai gốc, đo được: chủ đề *"chức vụ"* so với *"… đang giữ
+chức nhân viên kinh doanh"* được 0.329, trong khi sàn truy xuất là 0.5189 —
+sàn đó hiệu chuẩn bằng **câu hỏi lạc đề so với cả câu văn**, một phép đo khác
+thang. Xếp hạng vốn đã đúng (0.414 / 0.329 cho ký ức chức vụ, so với 0.123 /
+−0.008 cho ngày sinh và nơi ở); chỉ có ngưỡng là hỏi sai loại câu hỏi.
+
+Marker `xfail(strict=True)` trên `forget-002` đã gỡ — đúng cơ chế đặt ra khi
+tạo nó: khi năng lực có thật, test *không trượt nữa* sẽ tự báo.
+
+Cả `behaviour_benchmark` lẫn adapter của Lifetime Benchmark nay dùng **một**
+định nghĩa phạm vi xoá. Hai định nghĩa sẽ bất đồng về phạm vi, và một phép xoá
+bất đồng với chính phần kiểm chứng của nó là cách một rò rỉ sống sót qua báo
+cáo sạch — thứ mà chính nhóm test này tồn tại để đo.

@@ -1,0 +1,1081 @@
+{
+  "created": "2026-08-15T09:53:07",
+  "config": {
+    "ticks": 1000,
+    "subjects": 20,
+    "seed": 20260814,
+    "per_family": 6,
+    "embedder": "sentence-transformers",
+    "engine": null
+  },
+  "integrity": {
+    "n": 138,
+    "by_family": {
+      "current": 42,
+      "historical": 38,
+      "ever": 40,
+      "forgotten": 18
+    },
+    "by_expect": {
+      "value": 89,
+      "yes": 20,
+      "no": 20,
+      "decline": 9
+    },
+    "deletion_questions_with_proven_value": 18,
+    "questions_after_a_real_change": 81,
+    "world_events": {
+      "assert": 154,
+      "noise": 203,
+      "repeat": 379,
+      "correct": 59,
+      "contradict": 84,
+      "supersede": 103,
+      "forget": 18
+    },
+    "reference_scores": {
+      "perfect": 1.0,
+      "first_value": 0.41304347826086957,
+      "latest_mention": 0.4855072463768116,
+      "never_declines": 0.2826086956521739,
+      "always_declines": 0.06521739130434782,
+      "plausible_wrong": 0.21014492753623187
+    },
+    "warnings": []
+  },
+  "checkpoints": [
+    {
+      "checkpoint": 10,
+      "retrieval": {
+        "current": 0.8333,
+        "historical": 0.0
+      },
+      "retrieval_n": {
+        "current": 6,
+        "historical": 2
+      },
+      "answer": {},
+      "memories": 10,
+      "bytes": 1367656,
+      "p50_ms": 13.1,
+      "wall_s": 0.2
+    },
+    {
+      "checkpoint": 50,
+      "retrieval": {
+        "current": 0.5,
+        "historical": 0.0
+      },
+      "retrieval_n": {
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 50,
+      "bytes": 4464096,
+      "p50_ms": 17.6,
+      "wall_s": 0.3
+    },
+    {
+      "checkpoint": 100,
+      "retrieval": {
+        "current": 0.8333,
+        "historical": 0.1667
+      },
+      "retrieval_n": {
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 100,
+      "bytes": 4664824,
+      "p50_ms": 20.7,
+      "wall_s": 0.3
+    },
+    {
+      "checkpoint": 250,
+      "retrieval": {
+        "current": 1.0,
+        "historical": 0.0
+      },
+      "retrieval_n": {
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 250,
+      "bytes": 5009176,
+      "p50_ms": 18.7,
+      "wall_s": 0.3
+    },
+    {
+      "checkpoint": 500,
+      "retrieval": {
+        "forgotten": 0.0,
+        "current": 1.0,
+        "historical": 0.5
+      },
+      "retrieval_n": {
+        "forgotten": 6,
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 493,
+      "bytes": 5738264,
+      "p50_ms": 25.4,
+      "wall_s": 0.6
+    },
+    {
+      "checkpoint": 750,
+      "retrieval": {
+        "forgotten": 0.0,
+        "current": 0.6667,
+        "historical": 0.5
+      },
+      "retrieval_n": {
+        "forgotten": 6,
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 740,
+      "bytes": 6635312,
+      "p50_ms": 28.0,
+      "wall_s": 0.6
+    },
+    {
+      "checkpoint": 1000,
+      "retrieval": {
+        "forgotten": 0.0,
+        "current": 0.8333,
+        "historical": 0.3333
+      },
+      "retrieval_n": {
+        "forgotten": 6,
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 980,
+      "bytes": 7585656,
+      "p50_ms": 28.7,
+      "wall_s": 0.7
+    }
+  ],
+  "failures": [
+    {
+      "checkpoint": 10,
+      "family": "historical",
+      "question": "Vào ngày 2025-01-04, phạm vy đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "nhân viên kinh doanh",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 10,
+      "family": "current",
+      "question": "Bùi Cường đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Bình Minh",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Bùi Cường làm việc tại công ty Hoà Bình.",
+        "Phạm Vy đang giữ chức nhân viên kinh doanh."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 10,
+      "family": "historical",
+      "question": "Vào ngày 2024-11-21, phạm vy đang sống ở đâu?",
+      "expect": "value",
+      "value": "Hà Nội",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "historical",
+      "question": "Vào ngày 2025-05-22, lê trang đang phụ trách dự án nào?",
+      "expect": "value",
+      "value": "trang thương mại",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [
+        "Nhắc lại, đặng Phúc phụ trách dự án hệ thống OCR."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "current",
+      "question": "Lương của Phạm Nam là bao nhiêu?",
+      "expect": "value",
+      "value": "32 triệu",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Lương của Phạm Nam là 18 triệu.",
+        "Lương của Vũ Minh là 55 triệu.",
+        "Lương của Trần Bình là 18 triệu.",
+        "Nhắc lại, lương của Bùi Cường là 18 triệu."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "historical",
+      "question": "Vào ngày 2024-11-30, lương của phạm nam là bao nhiêu?",
+      "expect": "value",
+      "value": "32 triệu",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "historical",
+      "question": "Vào ngày 2025-04-04, vũ an đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Đại Việt",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "current",
+      "question": "Phạm Nam sinh ngày nào?",
+      "expect": "value",
+      "value": "21/11/1995",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Phạm Nam sinh ngày 12/03/1990.",
+        "Hoàng Yến sinh ngày 17/09/1985.",
+        "Nhắc lại, lê Trang sinh ngày 17/09/1985.",
+        "Phạm Nam sống ở Đà Nẵng."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "current",
+      "question": "Trần Hà sinh ngày nào?",
+      "expect": "value",
+      "value": "12/03/1990",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Trần Hà sinh ngày 21/11/1995.",
+        "Hoàng Yến sinh ngày 17/09/1985."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "historical",
+      "question": "Vào ngày 2024-11-20, trần hà đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "phó giám đốc",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "historical",
+      "question": "Vào ngày 2024-12-04, số điện thoại của vũ minh là gì?",
+      "expect": "value",
+      "value": "0987654321",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [
+        "Số điện thoại của Đặng Phúc là 0977123456."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 50,
+      "family": "historical",
+      "question": "Vào ngày 2024-10-09, hoàng yến đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "trưởng phòng",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 100,
+      "family": "historical",
+      "question": "Vào ngày 2024-10-11, lê lan đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Locaith",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 100,
+      "family": "historical",
+      "question": "Vào ngày 2025-02-11, bùi cường đang sống ở đâu?",
+      "expect": "value",
+      "value": "Huế",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 100,
+      "family": "historical",
+      "question": "Vào ngày 2025-01-24, phạm vy đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Đại Việt",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 100,
+      "family": "current",
+      "question": "Lương của Bùi Cường là bao nhiêu?",
+      "expect": "value",
+      "value": "40 triệu",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Lương của Bùi Cường là 18 triệu."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 100,
+      "family": "historical",
+      "question": "Vào ngày 2024-12-13, số điện thoại của trần bình là gì?",
+      "expect": "value",
+      "value": "0977123456",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [
+        "Từ hôm nay, số điện thoại của Bùi Tuấn là 0903111222."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 100,
+      "family": "historical",
+      "question": "Vào ngày 2024-11-20, trần hà đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "phó giám đốc",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 250,
+      "family": "historical",
+      "question": "Vào ngày 2025-01-04, phạm vy đang phụ trách dự án nào?",
+      "expect": "value",
+      "value": "cổng thanh toán",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [
+        "Nhắc lại, phạm Nam phụ trách dự án hệ thống OCR.",
+        "Nhắc lại, đặng Phúc phụ trách dự án hệ thống OCR.",
+        "Nhắc lại, đặng Phúc phụ trách dự án hệ thống OCR.",
+        "Theo một nguồn khác, nguyễn Quân phụ trách dự án kho dữ liệu."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 250,
+      "family": "historical",
+      "question": "Vào ngày 2025-01-24, phạm vy đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Đại Việt",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [
+        "Nhắc lại, phạm Giang đang giữ chức nhân viên kinh doanh."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 250,
+      "family": "historical",
+      "question": "Vào ngày 2024-12-20, lê lan đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "trưởng phòng",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 250,
+      "family": "historical",
+      "question": "Vào ngày 2025-01-16, lương của đặng phúc là bao nhiêu?",
+      "expect": "value",
+      "value": "55 triệu",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 250,
+      "family": "historical",
+      "question": "Vào ngày 2024-11-21, phạm vy đang sống ở đâu?",
+      "expect": "value",
+      "value": "Hà Nội",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 250,
+      "family": "historical",
+      "question": "Vào ngày 2025-04-04, vũ an đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Đại Việt",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 500,
+      "family": "forgotten",
+      "question": "Lê Sơn đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "trưởng nhóm",
+      "forbidden": "nhân viên kinh doanh",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Lê Sơn đang giữ chức trưởng nhóm.",
+        "Lê Sơn đang giữ chức nhân viên kinh doanh.",
+        "Lê Lan đang giữ chức trưởng phòng.",
+        "Lê Trang đang giữ chức trưởng nhóm."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 500,
+      "family": "forgotten",
+      "question": "Trần Hà đang giữ chức vụ gì?",
+      "expect": "decline",
+      "value": "phó giám đốc",
+      "forbidden": "phó giám đốc",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Trần Hà đang giữ chức trưởng nhóm.",
+        "Trần Hà đang giữ chức phó giám đốc.",
+        "Trần Bình đang giữ chức trưởng phòng.",
+        "Trần Thảo đang giữ chức trưởng nhóm."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 500,
+      "family": "forgotten",
+      "question": "Số điện thoại của Hoàng Yến là gì?",
+      "expect": "value",
+      "value": "0903111222",
+      "forbidden": "0977123456",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Số điện thoại của Hoàng Yến là 0903111222.",
+        "Nhắc lại, số điện thoại của Hoàng Yến là 0977123456.",
+        "Nhắc lại, số điện thoại của Hoàng Yến là 0977123456.",
+        "Số điện thoại của Phạm Nam là 0903111222."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 500,
+      "family": "forgotten",
+      "question": "Đặng Khanh đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Hoà Bình",
+      "forbidden": "Đại Việt",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Đặng Khanh làm việc tại công ty Hoà Bình.",
+        "Đặng Khanh làm việc tại công ty Đại Việt.",
+        "Nhắc lại, đặng Khanh làm việc tại công ty Đại Việt.",
+        "Đặng Phúc làm việc tại công ty Bình Minh."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 500,
+      "family": "forgotten",
+      "question": "Trần Thảo đang giữ chức vụ gì?",
+      "expect": "decline",
+      "value": "trưởng nhóm",
+      "forbidden": "trưởng nhóm",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Trần Thảo đang giữ chức trưởng nhóm.",
+        "Trần Bình đang giữ chức trưởng phòng.",
+        "Trần Hà đang giữ chức trưởng nhóm.",
+        "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 500,
+      "family": "forgotten",
+      "question": "Trần Thảo đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Bình Minh",
+      "forbidden": "Hoà Bình",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Trần Thảo làm việc tại công ty Hoà Bình.",
+        "Trần Thảo làm việc tại công ty Bình Minh.",
+        "Nhắc lại, trần Thảo làm việc tại công ty Bình Minh.",
+        "Trần Bình làm việc tại công ty Đại Việt."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 500,
+      "family": "historical",
+      "question": "Vào ngày 2025-10-01, phạm vy đang sống ở đâu?",
+      "expect": "value",
+      "value": "Huế",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 500,
+      "family": "historical",
+      "question": "Vào ngày 2025-09-07, đặng phúc đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "phó giám đốc",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 500,
+      "family": "historical",
+      "question": "Vào ngày 2025-03-28, vũ minh đang phụ trách dự án nào?",
+      "expect": "value",
+      "value": "ứng dụng bán hàng",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "forgotten",
+      "question": "Số điện thoại của Hoàng Yến là gì?",
+      "expect": "value",
+      "value": "0903111222",
+      "forbidden": "0977123456",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Số điện thoại của Hoàng Yến là 0903111222.",
+        "Nhắc lại, số điện thoại của Hoàng Yến là 0903111222.",
+        "Nhắc lại, số điện thoại của Hoàng Yến là 0977123456.",
+        "Nhắc lại, số điện thoại của Hoàng Yến là 0977123456."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "forgotten",
+      "question": "Lê Sơn đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "trưởng nhóm",
+      "forbidden": "nhân viên kinh doanh",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Lê Sơn đang giữ chức trưởng nhóm.",
+        "Nhắc lại, lê Sơn đang giữ chức trưởng nhóm.",
+        "Lê Sơn đang giữ chức nhân viên kinh doanh.",
+        "Lê Lan đang giữ chức trưởng phòng."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "forgotten",
+      "question": "Trần Thảo đang giữ chức vụ gì?",
+      "expect": "decline",
+      "value": "trưởng nhóm",
+      "forbidden": "trưởng nhóm",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Trần Thảo đang giữ chức trưởng nhóm.",
+        "Trần Thảo đang giữ chức phó giám đốc.",
+        "Trần Bình đang giữ chức trưởng phòng.",
+        "Trần Hà đang giữ chức trưởng nhóm."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "forgotten",
+      "question": "Nguyễn Dũng đang sống ở đâu?",
+      "expect": "decline",
+      "value": "Cần Thơ",
+      "forbidden": "Cần Thơ",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Nguyễn Dũng sống ở Cần Thơ.",
+        "Nguyễn Dũng đang giữ chức phó giám đốc.",
+        "Nguyễn Quân sống ở Cần Thơ.",
+        "Nguyễn Oanh sống ở Đà Nẵng."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "forgotten",
+      "question": "Trần Hà đang giữ chức vụ gì?",
+      "expect": "decline",
+      "value": "phó giám đốc",
+      "forbidden": "phó giám đốc",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Trần Hà đang giữ chức trưởng nhóm.",
+        "Trần Hà đang giữ chức phó giám đốc.",
+        "Trần Bình đang giữ chức trưởng phòng.",
+        "Trần Thảo đang giữ chức trưởng nhóm."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "forgotten",
+      "question": "Trần Thảo đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Bình Minh",
+      "forbidden": "Hoà Bình",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Trần Thảo làm việc tại công ty Hoà Bình.",
+        "Trần Thảo làm việc tại công ty Bình Minh.",
+        "Nhắc lại, trần Thảo làm việc tại công ty Bình Minh.",
+        "Nhắc lại, trần Thảo làm việc tại công ty Bình Minh."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "current",
+      "question": "Hoàng Yến sinh ngày nào?",
+      "expect": "value",
+      "value": "30/01/1992",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Hoàng Yến sinh ngày 17/09/1985."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "current",
+      "question": "Nguyễn Dũng đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "giám đốc kỹ thuật",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Nguyễn Dũng đang giữ chức phó giám đốc.",
+        "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+        "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+        "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "historical",
+      "question": "Vào ngày 2025-07-15, nguyễn dũng đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "giám đốc kỹ thuật",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [
+        "Từ hôm nay, nguyễn Quân đang giữ chức trưởng nhóm.",
+        "Trần Hà đang giữ chức trưởng nhóm.",
+        "Nhắc lại, vũ Minh đang giữ chức trưởng phòng.",
+        "Nhắc lại, bùi Cường đang giữ chức trưởng nhóm."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "historical",
+      "question": "Vào ngày 2025-01-26, hoàng hùng đang sống ở đâu?",
+      "expect": "value",
+      "value": "Hà Nội",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [
+        "Nhắc lại, hoàng Hùng sống ở Cần Thơ.",
+        "Từ hôm nay, hoàng Hùng sống ở Cần Thơ.",
+        "Từ hôm nay, hoàng Yến sống ở Cần Thơ.",
+        "Nhắc lại, hoàng Yến sống ở Đà Nẵng."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 750,
+      "family": "historical",
+      "question": "Vào ngày 2025-10-18, phạm giang đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "An Phát",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "forgotten",
+      "question": "Lương của Phạm Vy là bao nhiêu?",
+      "expect": "decline",
+      "value": "40 triệu",
+      "forbidden": "40 triệu",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Lương của Phạm Vy là 40 triệu.",
+        "Lương của Phạm Vy là 40 triệu.",
+        "Nhắc lại, lương của Phạm Vy là 40 triệu.",
+        "Nhắc lại, lương của Phạm Vy là 40 triệu."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "forgotten",
+      "question": "Trần Hà đang giữ chức vụ gì?",
+      "expect": "decline",
+      "value": "phó giám đốc",
+      "forbidden": "phó giám đốc",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Trần Hà đang giữ chức trưởng nhóm.",
+        "Trần Hà đang giữ chức phó giám đốc.",
+        "Trần Bình đang giữ chức trưởng phòng.",
+        "Trần Thảo đang giữ chức trưởng nhóm."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "forgotten",
+      "question": "Lê Sơn đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "trưởng nhóm",
+      "forbidden": "nhân viên kinh doanh",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Lê Sơn đang giữ chức trưởng nhóm.",
+        "Nhắc lại, lê Sơn đang giữ chức trưởng nhóm.",
+        "Nhắc lại, lê Sơn đang giữ chức trưởng nhóm.",
+        "Lê Sơn đang giữ chức nhân viên kinh doanh."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "forgotten",
+      "question": "Trần Thảo đang giữ chức vụ gì?",
+      "expect": "decline",
+      "value": "trưởng nhóm",
+      "forbidden": "trưởng nhóm",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Trần Thảo đang giữ chức trưởng nhóm.",
+        "Trần Thảo đang giữ chức phó giám đốc.",
+        "Trần Bình đang giữ chức trưởng phòng.",
+        "Trần Hà đang giữ chức trưởng nhóm."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "forgotten",
+      "question": "Nguyễn Oanh đang phụ trách dự án nào?",
+      "expect": "value",
+      "value": "cổng thanh toán",
+      "forbidden": "trang thương mại",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Nguyễn Oanh phụ trách dự án hệ thống OCR.",
+        "Nhắc lại, nguyễn Oanh phụ trách dự án trang thương mại.",
+        "Nhắc lại, nguyễn Oanh phụ trách dự án trang thương mại.",
+        "Nguyễn Oanh phụ trách dự án cổng thanh toán."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "forgotten",
+      "question": "Số điện thoại của Nguyễn Oanh là gì?",
+      "expect": "decline",
+      "value": "0977123456",
+      "forbidden": "0977123456",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Số điện thoại của Nguyễn Oanh là 0977123456.",
+        "Nhắc lại, số điện thoại của Nguyễn Oanh là 0977123456.",
+        "Nhắc lại, số điện thoại của Nguyễn Oanh là 0977123456.",
+        "Nhắc lại, số điện thoại của Nguyễn Quân là 0903111222."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "historical",
+      "question": "Vào ngày 2024-12-24, đặng phúc đang sống ở đâu?",
+      "expect": "value",
+      "value": "Huế",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "current",
+      "question": "Vũ An đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Bình Minh",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "retrieved": [
+        "Theo một nguồn khác, vũ An làm việc tại công ty An Phát.",
+        "Vũ An làm việc tại công ty Đại Việt.",
+        "Nhắc lại, phạm Giang làm việc tại công ty An Phát.",
+        "Nhắc lại, vũ An làm việc tại công ty Đại Việt."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "historical",
+      "question": "Vào ngày 2025-10-18, phạm giang đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "An Phát",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "historical",
+      "question": "Vào ngày 2024-11-04, đặng khanh đang sống ở đâu?",
+      "expect": "value",
+      "value": "Cần Thơ",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "checkpoint": 1000,
+      "family": "historical",
+      "question": "Vào ngày 2025-06-13, lương của phạm nam là bao nhiêu?",
+      "expect": "value",
+      "value": "18 triệu",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "temporal",
+      "retrieved": [],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    }
+  ]
+}

@@ -195,11 +195,14 @@ async def run_case(system_name: str, case: dict, engine, embedder, workdir: Path
         if deleted:
             probe = str((case.get("must_not") or [""])[0])
             retrievable_before = _holds(os_, probe) if probe else None
-            targets = [mid for mid, text in os_.memories.conn.execute(
-                "SELECT memory_id, content FROM cognitive_memories")
-                if matches_delete_request(text, deleted)]
-            for memory_id in targets:
-                forget_derived(os_, memory_id=memory_id, needle=probe or None)
+            # One definition of what a deletion request covers, shared with the
+            # lifetime adapter. Two rules would disagree about scope, and a
+            # deletion disagreeing with its own verification is how a leak
+            # survives a clean report — which is what this group measures.
+            from bio_agent_os.cognitive.forget_scope import forget_scoped
+
+            for request in deleted:
+                forget_scoped(os_, request, actor="benchmark")
 
         ctx = AccessContext(tenant_id="bench", workspace_id=query_workspace)
         found = os_.recall(query, context=ctx, limit=6)

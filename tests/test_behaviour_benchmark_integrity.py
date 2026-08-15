@@ -93,17 +93,29 @@ def test_the_harness_confirms_the_fact_was_there_before_deleting_it():
 # --------------------------------------------------------------------------
 
 class FakeEmbedder:
-    model = "fake"
-    VOCAB = ["mật", "khẩu", "wifi", "văn", "phòng", "88888888", "hùng",
-             "tim", "bệnh", "an", "phát", "điện", "thoại", "0912345678",
-             "máy", "chủ", "cổng"]
+    """Topic-aware, because one of these cases is a topic-scoped deletion.
+
+    A bag-of-words embedder over a fixed vocabulary cannot place "sức khoẻ"
+    near "tiền sử bệnh tim" — the phrase is not in its vocabulary, so it
+    produces a null vector and `forget-002` fails here while passing against
+    the real multilingual model (3/3, measured 15/08/2026). A fixture too weak
+    to express the thing under test fails the product for the fixture's
+    shortcoming.
+    """
+
+    model = "fake-topic"
+    TOPICS = {
+        "sức khoẻ": ("bệnh", "tim", "huyết áp", "thuốc", "sức khoẻ", "khám"),
+        "liên hệ": ("điện thoại", "số", "0912345678", "email", "liên hệ"),
+        "bảo mật": ("mật khẩu", "wifi", "88888888", "khẩu", "mật"),
+        "hạ tầng": ("máy chủ", "cổng", "ocr", "server"),
+    }
 
     def embed(self, text: str) -> list[float]:
         low = str(text).lower()
-        vector = [1.0 if w in low else 0.0 for w in self.VOCAB] + [0.0]
-        if not any(vector):
-            vector[-1] = 1.0
-        return vector
+        vector = [float(sum(1 for w in words if w in low))
+                  for words in self.TOPICS.values()]
+        return vector + [0.0] if any(vector) else [0.0] * len(self.TOPICS) + [1.0]
 
 
 def _params():
@@ -139,7 +151,7 @@ def test_each_forgetting_case_really_deletes_something(tmp_path, case):
     fixed rather than counted.
     """
     from bio_agent_os.cognitive.facade import MemoryOS
-    from bio_agent_os.cognitive.forgetting import forget_derived
+    from bio_agent_os.cognitive.forget_scope import forget_scoped
     from bio_agent_os.cognitive.models import AccessContext, MemoryType
     from bio_agent_os.cognitive.semantic_index import backfill_embeddings
 
@@ -172,25 +184,19 @@ def test_each_forgetting_case_really_deletes_something(tmp_path, case):
         f"việc xoá, nó chỉ kiểm một kho rỗng"
     )
 
-    # 3. delete, using the harness's own matcher rather than a rule invented
-    #    here. A test that brings its own better matcher proves the product
-    #    works under conditions the product never sees.
-    targets = [mid for mid, text in memory_os.memories.conn.execute(
-        "SELECT memory_id, content FROM cognitive_memories")
-        if matches_delete_request(text, set(requests))]
-    assert targets, (
-        f"{case['id']}: matcher của harness không nhận ra ký ức nào thuộc "
-        f"yêu cầu {requests} — yêu cầu xoá này không thực thi được"
-    )
-    reports = [forget_derived(memory_os, memory_id=mid, needle=secret)
-               for mid in targets]
+    # 3. delete, through the same scope resolver the harness uses. A test that
+    #    brings its own better matcher proves the product works under
+    #    conditions the product never sees.
+    reports = [forget_scoped(memory_os, request, actor="test")
+               for request in requests]
 
-    assert any(r.memories_deleted for r in reports), (
+    assert any(r.deleted_claims for r in reports), (
         f"{case['id']}: không xoá được ký ức nào cho yêu cầu {requests}"
     )
     for report in reports:
-        if report.memories_deleted:
+        if report.deleted_claims:
             assert report.checks_run > 0, "xoá xong mà không chạy phép kiểm nào"
+            assert report.succeeded is True
 
     # 4. confirm it is gone
     left = memory_os.memories.conn.execute(
