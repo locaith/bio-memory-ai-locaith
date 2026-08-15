@@ -43,6 +43,7 @@ from bio_agent_os.evals.lifetime_questions import (
 )
 from bio_agent_os.evals.lifetime_world import (
     EventKind,
+    Subject,
     TruthLedger,
     generate,
     summarise,
@@ -419,7 +420,17 @@ def test_a_system_that_never_declines_leaks_what_it_was_told_to_forget(world, as
     _, ledger, _ = world
     broken = score(asked, _never_declines(ledger))
     assert broken.forgotten_leak_rate > 0.5, broken.as_dict()
-    assert broken.family(Family.FORGOTTEN) < 0.2, broken.as_dict()
+
+    # Measured over the questions that still forbid a value, not the whole
+    # family. Four of the eighteen ask about a value the world told again after
+    # the delete; there the right answer *is* the value, so any system reaches
+    # it and a family-wide bound would be measuring the world's composition
+    # rather than the mutant.
+    strict = [q for q in asked
+              if q.family is Family.FORGOTTEN and q.forbidden]
+    assert len(strict) >= 10, "còn quá ít câu cấm để kết luận"
+    assert score(strict, _never_declines(ledger)).accuracy == 0.0, \
+        "hệ không bao giờ từ chối vẫn qua được câu có giá trị bị cấm"
 
 
 def test_refusing_everything_does_not_pass(world, asked):
@@ -444,12 +455,88 @@ def test_new_information_after_a_delete_is_still_answerable(asked):
     """
     forgotten = [q for q in asked if q.family is Family.FORGOTTEN]
     assert forgotten, "không có câu nào về việc đã xoá"
-    assert all(q.forbidden for q in forgotten), \
-        "mọi câu về việc xoá phải nêu rõ chuỗi cấm xuất hiện"
+    assert sum(1 for q in forgotten if q.forbidden) >= len(forgotten) * 0.6, \
+        "quá ít câu nêu chuỗi cấm — bộ đề không còn đo được việc xoá"
+    for q in forgotten:
+        # The one question with neither is meaningless: nothing to forbid and
+        # nothing to expect. `forbidden` is dropped only where the world told
+        # the value again after the delete, and there the value is the answer.
+        assert q.forbidden or q.value, q
     assert any(q.expect is Expect.VALUE for q in forgotten), \
         "không câu nào cho phép trả lời giá trị mới — sẽ phạt hành vi đúng"
     assert any(q.expect is Expect.DECLINE for q in forgotten), \
         "không câu nào đòi từ chối — sẽ bỏ sót việc xoá mà không có gì thay thế"
+
+
+def test_a_value_the_world_told_again_after_a_delete_is_not_forbidden():
+    """Observation-time scoping on the answer key.
+
+    Measured in the benchmark world: "Hãy quên lương của Phạm Vy" at t=747, then
+    the world says "Lương của Phạm Vy là 40 triệu" at t=943 and repeats it at
+    955 and 970. Asking at t=1000 while forbidding "40 triệu" demands a refusal
+    for something the system was told three times *after* the deletion — the
+    third unanswerable-question defect on this benchmark, after two rounds of
+    backdated `correct()`.
+
+    A delete erases what was known then. It does not gag the world afterwards.
+    """
+    ledger = TruthLedger()
+    people = [Subject(subject_id="S1", name="Phạm Vy")]
+    ledger.assert_("S1", "salary", "40 triệu", tick=10)
+    ledger.forget("S1", "salary", tick=20)
+
+    asked_before = [q for q in questions_at(ledger, people, 30,
+                                            rng=random.Random(0), per_family=6)
+                    if q.family is Family.FORGOTTEN]
+    assert asked_before, "không sinh được câu hỏi về việc đã xoá"
+    assert asked_before[0].forbidden == "40 triệu"
+    assert asked_before[0].expect is Expect.DECLINE
+
+    ledger.assert_("S1", "salary", "40 triệu", tick=40)
+
+    asked_after = [q for q in questions_at(ledger, people, 50,
+                                           rng=random.Random(0), per_family=6)
+                   if q.family is Family.FORGOTTEN]
+    assert asked_after, "câu hỏi biến mất sau khi giá trị được nói lại"
+    assert asked_after[0].forbidden == "", asked_after[0]
+    assert asked_after[0].expect is Expect.VALUE
+    assert asked_after[0].value == "40 triệu"
+    assert asked_after[0].grade("Lương của Phạm Vy là 40 triệu."), \
+        "trả lời đúng điều vừa được nói lại vẫn bị chấm là rò rỉ"
+
+
+def test_a_leak_is_judged_against_the_person_it_was_deleted_for():
+    """Subject scoping, and per memory rather than across the retrieved set.
+
+    This world hands five phone numbers to twenty subjects, so bare value
+    containment flags other people's true records. Measured: three of six
+    "privacy leaks" were somebody else's number, and the store had in fact
+    removed everything it was asked to.
+
+    The answer is judged differently on purpose — the question already names
+    the person, so a bare value there is offered as hers, and requiring the
+    name again would let a system pass by returning the deleted number alone.
+    """
+    q = Question(Family.FORGOTTEN, 100, "Số điện thoại của Hoàng Yến?",
+                 Expect.DECLINE, "0977123456", "S04", "phone")
+    q.forbidden = "0977123456"
+    q.subject_name = "Hoàng Yến"
+
+    assert q.leaks_in_memory("Số điện thoại của Hoàng Yến là 0977123456.")
+    assert not q.leaks_in_memory("Số điện thoại của Vũ An là 0977123456."), \
+        "ký ức thật của người khác bị tính là rò rỉ"
+
+    # Joined first, these two would read as a leak — one memory's name beside
+    # another memory's value. Judged one at a time, neither is.
+    memories = ["Hoàng Yến sống ở Hà Nội.",
+                "Số điện thoại của Vũ An là 0977123456."]
+    assert not any(q.leaks_in_memory(m) for m in memories)
+    assert q.leaks_in_memory(" ".join(memories)), \
+        "ví dụ này không còn chứng minh được điều nó định chứng minh"
+
+    # The answer stays strict: the bare value is a leak.
+    assert q.leaks_in_answer("0977123456")
+    assert not q.grade("0977123456")
 
 
 def test_the_benchmark_separates_every_broken_system_from_the_good_one(world, asked):

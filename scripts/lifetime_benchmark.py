@@ -82,10 +82,15 @@ def retrieval_hit(question: Question, retrieved: list[str]) -> bool | None:
     Independent of any model, so it isolates the memory system. For a question
     whose right answer is a refusal, the test is the opposite: the forbidden
     value must be absent.
+
+    A leak is judged per memory, not across the whole blob. Joining everything
+    first lets one memory's subject name pair with another memory's value and
+    read as a leak — the twenty subjects of this world share five phone
+    numbers, so that pairing happens constantly.
     """
     blob = _fold(" ".join(retrieved))
     if question.forbidden:
-        return _fold(question.forbidden) not in blob
+        return not any(question.leaks_in_memory(memory) for memory in retrieved)
     if question.expect is Expect.VALUE:
         return _fold(question.value) in blob
     if question.expect is Expect.DECLINE:
@@ -93,7 +98,8 @@ def retrieval_hit(question: Question, retrieved: list[str]) -> bool | None:
     return None                      # yes/no needs reasoning, not retrieval
 
 
-def _where_it_survives(adapter, needle: str) -> dict[str, int]:
+def _where_it_survives(adapter, needle: str,
+                       subject_name: str = "") -> dict[str, dict[str, int]]:
     """Which store still holds a value that was supposed to be gone.
 
     "The deletion leaked" is one word for at least six different defects —
@@ -101,27 +107,100 @@ def _where_it_survives(adapter, needle: str) -> dict[str, int]:
     copy, a replay rebuilding it, or the grader mistaking a *new* fact with the
     same value for the old one. They live in different layers and need
     different fixes, so the layer is recorded rather than inferred later.
+
+    Two counts per layer, because one of them was misleading me:
+
+        this_subject  rows holding the value *and* the name it was deleted for
+        any_subject   rows holding the value at all
+
+    `any_subject` counted 21 rows for "phó giám đốc" when four people held that
+    title, and reading it as leakage is what turned five other people's true
+    records into a privacy incident. It stays in the report because it answers
+    a different question — whether the string exists anywhere — but only
+    `this_subject` is evidence that a deletion failed.
+
+    Read in Python with the same fold used everywhere else. An earlier version
+    compared with SQL LIKE while the deleter compared with Python `.lower()`,
+    so the deleter could reach case variants the verifier could not see.
     """
     import sqlite3
 
     if not needle:
         return {}
     conn = adapter.memory_os.memories.conn
-    found: dict[str, int] = {}
+    value = _fold(needle)
+    parts = [_fold(p) for p in subject_name.split()]
+    found: dict[str, dict[str, int]] = {}
     for table, column in (("cognitive_memories", "content"),
                           ("cognitive_memories", "metadata_json"),
                           ("cognitive_events", "payload_json"),
                           ("shadow_memories", "content"),
                           ("hippocampus_labels", "topic")):
         try:
-            n = conn.execute(
-                f"SELECT COUNT(*) FROM {table} WHERE {column} LIKE ?",
-                (f"%{needle}%",)).fetchone()[0]
+            rows = conn.execute(f"SELECT {column} FROM {table}").fetchall()
         except sqlite3.OperationalError:
             continue
-        if n:
-            found[f"{table}.{column}"] = int(n)
+        any_n = scoped_n = 0
+        for (cell,) in rows:
+            text = _fold(cell or "")
+            if value not in text:
+                continue
+            any_n += 1
+            if not parts or all(p in text for p in parts):
+                scoped_n += 1
+        if any_n:
+            found[f"{table}.{column}"] = {"this_subject": scoped_n,
+                                          "any_subject": any_n}
     return found
+
+
+def _read_back(adapter, ledger, people, event) -> dict[str, Any]:
+    """Check the store directly after a deletion, on every request.
+
+    Two properties this has and `forget()`'s own report does not:
+
+    * It runs whether or not a later question failed. Checking only on failure
+      makes the check disappear exactly when the grader stops noticing, which
+      is how a measurement change can pass for a product improvement.
+    * It reads the tables, not the deleter's accounting. `forget_scoped`
+      verifying its own work answers "did I do what I decided to do", never
+      "is it gone".
+
+    The values come from the ledger — the answer key, which the adapter is
+    never handed — and are scoped to the subject the request named.
+    """
+    from bio_agent_os.cognitive.forgetting import EVENT_COLUMNS
+
+    log_layers = {f"{table}.{column}" for table, column in EVENT_COLUMNS}
+
+    name = next((p.name for p in people if p.subject_id == event.subject_id), "")
+    values = sorted({c.value for c in ledger.claims
+                     if c.subject_id == event.subject_id
+                     and c.attribute == event.attribute
+                     and c.forgotten_at == event.tick})
+    residue: dict[str, dict[str, dict[str, int]]] = {}
+    undoable: dict[str, dict[str, dict[str, int]]] = {}
+    for value in values:
+        where = _where_it_survives(adapter, value, name)
+        scoped = {layer: counts for layer, counts in where.items()
+                  if counts["this_subject"]}
+        # Content surviving in the append-only log is the design, not a defect:
+        # `forget_scoped` runs at derived level and says so. It does mean a
+        # replay puts the value back, which is worth a number of its own —
+        # counting it as residue would report eighteen privacy failures where
+        # there are none, and counting it nowhere would hide that every one of
+        # these deletions is undoable.
+        in_log = {k: v for k, v in scoped.items() if k in log_layers}
+        in_store = {k: v for k, v in scoped.items() if k not in log_layers}
+        if in_store:
+            residue[value] = in_store
+        if in_log:
+            undoable[value] = in_log
+    return {"asked_to_remove": values, "subject_name": name,
+            "store_residue": residue,
+            "primary_present_after_store": bool(residue),
+            "survives_in_event_log": undoable,
+            "reversible_by_replay": bool(undoable)}
 
 
 def integrity_report(questions: list[Question], events, ledger,
@@ -275,6 +354,7 @@ def main() -> int:
                 report["request"] = event.text
                 report["tick"] = event.tick
                 report["slot"] = f"{event.subject_id}/{event.attribute}"
+                report.update(_read_back(adapter, ledger, people, event))
                 deletions.append(report)
             else:
                 adapter.ingest(event)
@@ -316,8 +396,10 @@ def main() -> int:
                 # Where a forbidden value survives decides which layer is at
                 # fault, and the store is gone by the time the report is read.
                 # Recorded at the moment of failure or not at all.
-                leak_store = (_where_it_survives(adapter, question.forbidden)
-                              if question.forbidden else {})
+                leak_store = (
+                    _where_it_survives(adapter, question.forbidden,
+                                       question.subject_name)
+                    if question.forbidden else {})
                 traces.append({
                     "leak_store": leak_store,
                     "checkpoint": checkpoint, "family": question.family.value,
@@ -327,7 +409,11 @@ def main() -> int:
                     "stage_failed": result.stage_failed, "note": result.note,
                     "subject_id": question.subject_id,
                     "attribute": question.attribute,
-                    "retrieved": result.retrieved[:4],
+                    # Was 4, which made a leak unattributable: the memory that
+                    # held the forbidden value sat outside the slice, so the
+                    # trace showed four innocent memories and no cause. Keep
+                    # enough of the set to say whose record it was.
+                    "retrieved": result.retrieved[:12],
                     "answer": result.answer[:200],
                     "retrieval_hit": got, "answer_correct": said,
                 })
@@ -379,6 +465,22 @@ def main() -> int:
     print(f"  yêu cầu xoá đã THỰC SỰ xoá được gì: {acted}/{len(deletions)}"
           + ("  ⚠ chưa yêu cầu nào xoá được — cột forgotten vô nghĩa"
              if deletions and not acted else ""))
+
+    # Read straight from the tables, on every request, whether or not any
+    # question later noticed. This is the number that says a deletion happened;
+    # the family score above only says the grader could not see it.
+    survived = [d for d in deletions if d.get("primary_present_after_store")]
+    undoable = [d for d in deletions if d.get("reversible_by_replay")]
+    print(f"  ĐỌC LẠI TỪ KHO — còn sót ở tầng phục vụ: "
+          f"{len(survived)}/{len(deletions)}")
+    for d in survived:
+        for value, layers in d["store_residue"].items():
+            where = ", ".join(f"{layer}×{c['this_subject']}"
+                              for layer, c in layers.items())
+            print(f"    ⚠ t={d['tick']:<5} {d['subject_name']:<12} "
+                  f"{value!r} còn ở {where}")
+    print(f"  còn trong nhật ký sự kiện (thiết kế, nhưng replay là quay lại): "
+          f"{len(undoable)}/{len(deletions)}")
     print("\n  các hệ tham chiếu:")
     for name, value in report["reference_scores"].items():
         print(f"    {name:<18} {value:.3f}")

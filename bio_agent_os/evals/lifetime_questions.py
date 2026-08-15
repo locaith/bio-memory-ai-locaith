@@ -84,6 +84,15 @@ class Question:
     #: Set when the answer changed at least once before this question was asked,
     #: which is what `supersession_accuracy` is measured over.
     after_supersession: bool = False
+    #: Whose record this question is about. A forbidden value only counts as a
+    #: leak when it appears *together with this name*.
+    #:
+    #: The world hands five phone numbers, five job titles and five cities to
+    #: twenty subjects, so a bare value check flags other people's legitimate
+    #: records. Measured: three of six "privacy leaks" were somebody else's
+    #: phone number surviving a deletion request about a different person, and
+    #: the store had in fact removed everything it was asked to.
+    subject_name: str = ""
     #: A string that must not appear in the answer, whatever else does.
     #:
     #: Separating this from `value` is what made deletion measurable. The first
@@ -95,12 +104,42 @@ class Question:
     #: whether or not something replaced it.
     forbidden: str = ""
 
+    def leaks_in_answer(self, answer: str) -> bool:
+        """Did the answer recite what was deleted?
+
+        Value containment, no name required. The question already names the
+        person — "Số điện thoại của Hoàng Yến là gì?" — so anything the answer
+        offers is offered *as hers*. Demanding the name again here would let a
+        system pass by returning the deleted number bare, which is the leak.
+        """
+        return bool(self.forbidden) and _fold(self.forbidden) in _fold(answer)
+
+    def leaks_in_memory(self, text: str) -> bool:
+        """Did this one stored memory survive the deletion it was covered by?
+
+        Here the name is required, because a memory carries its own subject and
+        this world hands five phone numbers to twenty people. "0977123456"
+        sitting in someone else's record is not Hoàng Yến's deleted number
+        surviving — it is a different person's true one.
+
+        Judge one memory at a time. Joining the retrieved set first lets one
+        memory's name pair with another memory's value and read as a leak.
+        """
+        if not self.forbidden:
+            return False
+        folded = _fold(text)
+        if _fold(self.forbidden) not in folded:
+            return False
+        if not self.subject_name:
+            return True                  # no name to scope by; stay strict
+        return all(_fold(part) in folded for part in self.subject_name.split())
+
     def grade(self, answer: str) -> bool:
         folded = _fold(answer)
 
         # Checked before anything else and for every family: an otherwise
         # correct answer that also recites deleted content has still leaked it.
-        if self.forbidden and _fold(self.forbidden) in folded:
+        if self.leaks_in_answer(answer):
             return False
 
         if not folded:
@@ -218,16 +257,38 @@ def questions_at(ledger: TruthLedger, people: list[Subject], tick: int, *,
         if not removed:
             continue
         gone = max(removed, key=lambda c: c.since).value
+
+        # Observation-time scoping: a value the world asserted *again* after the
+        # deletion is knowable again, and reciting it is obedience rather than a
+        # survival. Without this the key demands a refusal for a fact the system
+        # was told thirty ticks ago — the same shape of unanswerable question
+        # that backdated `correct()` produced twice before.
+        erased_at = min(c.forgotten_at for c in removed
+                        if c.forgotten_at is not None)
+        retold = any(
+            c.value == gone and erased_at < c.asserted_at <= tick
+            and (c.forgotten_at is None or c.forgotten_at > tick)
+            for c in ledger.claims
+            if c.subject_id == subject_id and c.attribute == attribute)
+
         survivor = ledger.current(subject_id, attribute, tick)
-        if survivor is not None and survivor.value != gone:
+        if retold:
+            # Asked for, told again, still live: the answer is the value, and
+            # nothing about this slot is forbidden any more.
+            question = Question(
+                Family.FORGOTTEN, tick, _phrase(attribute, subject.name),
+                Expect.VALUE, gone, subject_id, attribute)
+        elif survivor is not None and survivor.value != gone:
             question = Question(
                 Family.FORGOTTEN, tick, _phrase(attribute, subject.name),
                 Expect.VALUE, survivor.value, subject_id, attribute)
+            question.forbidden = gone
         else:
             question = Question(
                 Family.FORGOTTEN, tick, _phrase(attribute, subject.name),
                 Expect.DECLINE, gone, subject_id, attribute)
-        question.forbidden = gone
+            question.forbidden = gone
+        question.subject_name = subject.name
         out.append(question)
         counts[Family.FORGOTTEN] += 1
 
@@ -347,7 +408,7 @@ def score(questions: list[Question],
 
         if question.forbidden:
             card.leak_n += 1
-            if _fold(question.forbidden) in _fold(answer):
+            if question.leaks_in_answer(answer):
                 card.leaked += 1
 
     card.by_family = {k: (v[0], v[1]) for k, v in tally.items()}
