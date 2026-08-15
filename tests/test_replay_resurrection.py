@@ -69,6 +69,30 @@ def _store_and_forget(memory_os: MemoryOS) -> None:
     assert _holding(memory_os) == 0, "xoá còn chưa chạy được thì test này vô nghĩa"
 
 
+def test_the_report_says_which_of_the_three_erasures_it_ran(os_):
+    """One word doing three jobs is how a caller comes to believe a `forget()`
+    reached the event log.
+
+    The report has to say the level, say that it is reversible, and say by
+    what — a caller who reads `succeeded: true` and nothing else has been told
+    something true and misleading at once.
+    """
+    from bio_agent_os.cognitive.forget_scope import forget_scoped
+
+    event = os_.observe(tenant_id="t1", actor="a", source="u", content=SECRET,
+                        workspace_id="w1")
+    os_.remember(event=event, memory_type=MemoryType.SEMANTIC, content=SECRET,
+                 confidence=0.9)
+    report = forget_scoped(os_, "Hãy quên số điện thoại của Hoàng Yến.",
+                           actor="test").as_dict()
+
+    assert report["erasure_level"] == "forget_derived"
+    assert report["reversible"] is True
+    assert report["reversible_via"]
+    assert report["erases_event_payload"] is False
+    assert report["succeeded"] is True
+
+
 def test_the_event_log_keeps_the_payload_after_a_derived_delete(os_):
     """The precondition, stated so the xfail below cannot be misread.
 

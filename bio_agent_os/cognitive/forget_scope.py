@@ -69,6 +69,17 @@ _TITLES = {"anh", "chị", "em", "ông", "bà", "cô", "chú", "bác", "khách",
 #: Where the topic half of a scope tends to sit, and a hint that one exists.
 _TOPIC_MARKERS = ("về", "liên quan tới", "thuộc", "phần")
 
+#: Which of `forgetting.py`'s three erasures this module performs.
+#:
+#: Named as a constant rather than written into the report inline so that
+#: changing what this does forces changing what it claims. The three levels and
+#: what each reaches are documented in `forgetting.py`; the short version is
+#: that this one takes the projection, the vectors, the labels and the
+#: consolidated copies, and leaves the event log alone. `erase_history` is the
+#: only one that touches a payload, and it requires a confirmation, a reason
+#: and an actor because it cannot be undone.
+ERASURE_LEVEL = "forget_derived"
+
 
 class ForgetStatus(str, Enum):
     DELETED = "deleted"
@@ -159,6 +170,18 @@ class ForgetResult:
             "residue": self.residue,
             "unmatched_reason": self.unmatched_reason,
             "succeeded": self.succeeded,
+            # Which of the three erasures ran, said out loud. One word doing
+            # three jobs is how a caller ends up believing a `forget()` reached
+            # the event log; this one reaches embeddings, labels and
+            # consolidated copies and stops there.
+            "erasure_level": ERASURE_LEVEL,
+            "reversible": True,
+            "reversible_via": "replay/rebuild của event log",
+            # Stated on the same line as the success, because they are the same
+            # fact seen from two sides: the value is out of the serving path and
+            # still on disk. Reproduced in tests/test_replay_resurrection.py —
+            # a rebuild brings it back verbatim.
+            "erases_event_payload": False,
         }
 
 
