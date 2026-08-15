@@ -93,6 +93,37 @@ def retrieval_hit(question: Question, retrieved: list[str]) -> bool | None:
     return None                      # yes/no needs reasoning, not retrieval
 
 
+def _where_it_survives(adapter, needle: str) -> dict[str, int]:
+    """Which store still holds a value that was supposed to be gone.
+
+    "The deletion leaked" is one word for at least six different defects —
+    the primary row surviving, a vector surviving, a label, a consolidated
+    copy, a replay rebuilding it, or the grader mistaking a *new* fact with the
+    same value for the old one. They live in different layers and need
+    different fixes, so the layer is recorded rather than inferred later.
+    """
+    import sqlite3
+
+    if not needle:
+        return {}
+    conn = adapter.memory_os.memories.conn
+    found: dict[str, int] = {}
+    for table, column in (("cognitive_memories", "content"),
+                          ("cognitive_memories", "metadata_json"),
+                          ("cognitive_events", "payload_json"),
+                          ("shadow_memories", "content"),
+                          ("hippocampus_labels", "topic")):
+        try:
+            n = conn.execute(
+                f"SELECT COUNT(*) FROM {table} WHERE {column} LIKE ?",
+                (f"%{needle}%",)).fetchone()[0]
+        except sqlite3.OperationalError:
+            continue
+        if n:
+            found[f"{table}.{column}"] = int(n)
+    return found
+
+
 def integrity_report(questions: list[Question], events, ledger,
                      reference: dict[str, float]) -> dict:
     """Can this run's numbers be believed? Printed before any of them."""
@@ -240,7 +271,11 @@ def main() -> int:
             # Detecting that is a capability; if the system does not have it,
             # the historical column should say so.
             if event.kind is EventKind.FORGET:
-                deletions.append(adapter.forget(event.text))
+                report = adapter.forget(event.text)
+                report["request"] = event.text
+                report["tick"] = event.tick
+                report["slot"] = f"{event.subject_id}/{event.attribute}"
+                deletions.append(report)
             else:
                 adapter.ingest(event)
         if embedder is not None:
@@ -278,7 +313,13 @@ def main() -> int:
                 answers[question.family.value] += int(said)
 
             if got is False or said is False:
+                # Where a forbidden value survives decides which layer is at
+                # fault, and the store is gone by the time the report is read.
+                # Recorded at the moment of failure or not at all.
+                leak_store = (_where_it_survives(adapter, question.forbidden)
+                              if question.forbidden else {})
                 traces.append({
+                    "leak_store": leak_store,
                     "checkpoint": checkpoint, "family": question.family.value,
                     "question": question.text, "expect": question.expect.value,
                     "value": question.value, "forbidden": question.forbidden,
@@ -405,6 +446,7 @@ def main() -> int:
                    "embedder": getattr(embedder, "backend", None),
                    "engine": getattr(engine, "model_id", None)},
         "integrity": report, "checkpoints": rows, "failures": traces,
+        "deletions": deletions,
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\n  {len(traces)} câu sai đã lưu vết đầy đủ -> {out}")
     adapter.close()

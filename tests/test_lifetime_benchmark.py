@@ -284,6 +284,71 @@ def _always_declines(_):
     return answer
 
 
+def test_the_key_never_expects_something_nobody_had_been_told(world, asked):
+    """answer_information_cutoff <= observation_tick.
+
+    A benchmark must not grade a system on information it could not have had.
+    Measured on 2026-08-15, before this invariant existed: `correct()`
+    backdated a corrected value's `since` to the first claim in the slot, so a
+    correction made at tick ~400 became the expected answer at checkpoint 10 —
+    while the world's only event so far said something else. The system
+    answered from what it had been told and was marked wrong.
+
+        S07/employer   since=1  'Bình Minh'  (asserted at ~400)
+        world by t=10  T1 assert 'Hoà Bình'
+        key at t=10    'Bình Minh'
+
+    Third time this project has scored an unanswerable question. The invariant
+    is cheap; not having it cost two rounds of chasing a phantom regression.
+    """
+    _, ledger, _ = world
+    for question in asked:
+        if question.expect is not Expect.VALUE:
+            continue
+        supporting = [c for c in ledger.claims
+                      if c.subject_id == question.subject_id
+                      and c.attribute == question.attribute
+                      and c.value == question.value]
+        assert supporting, question
+        assert any(c.asserted_at <= question.tick for c in supporting), (
+            f"đáp án {question.value!r} cho mốc {question.tick} chỉ được nói ra "
+            f"ở tick {min(c.asserted_at for c in supporting)} — chấm hệ bằng "
+            f"thông tin nó chưa thể có"
+        )
+
+
+def test_an_oracle_using_future_corrections_is_caught(world):
+    """The mutant that must fail, kept for good.
+
+    A grader built on the pre-fix ledger semantics — validity backdated,
+    knowability ignored — expects a corrected value before the correction
+    happened. If this ever stops failing, the invariant above has been undone
+    and every historical number is measuring the wrong thing again.
+    """
+    events, ledger, people = world
+
+    leaks = []
+    for claim in ledger.claims:
+        if claim.asserted_at <= claim.since:
+            continue                     # not backdated; nothing to leak
+        # The old behaviour: `held_at` with no knowability check.
+        for tick in (10, 50, 100):
+            if claim.since <= tick < (claim.until or 10 ** 9) \
+                    and claim.asserted_at > tick:
+                leaks.append((claim.subject_id, claim.attribute, tick))
+    assert leaks, (
+        "thế giới này không còn claim nào bị lùi ngày — oracle đột biến không "
+        "chứng minh được gì, phải dựng lại ca thử"
+    )
+
+    # And the fixed ledger must refuse every one of them.
+    for subject_id, attribute, tick in leaks:
+        current = ledger.current(subject_id, attribute, tick)
+        assert current is None or current.asserted_at <= tick, (
+            f"ledger vẫn trả về một claim chỉ được nói ra sau mốc {tick}"
+        )
+
+
 def test_a_perfect_answerer_scores_high(world, asked):
     """If the ledger's own answers cannot pass, the rubric is unpassable and no
     other number from it means anything.

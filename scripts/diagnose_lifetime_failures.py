@@ -25,23 +25,89 @@ sys.path.insert(0, str(_REPO))
 from bio_agent_os.evals.lifetime_world import EventKind, generate  # noqa: E402
 
 
+#: subject_id -> name, filled once the world is generated.
+_NAME_OF: dict[str, str] = {}
+
+
 def _fold(text: str) -> str:
     return " ".join(unicodedata.normalize("NFC", str(text or "")).lower().split())
 
 
 CAUSES = (
+    # resolution
     "resolver_subject",        # never identified who the question is about
     "resolver_aspect",         # right person, wrong slot
+    "ambiguous_subject",       # two people could answer; picked the other one
+    # history and intervals
     "no_history",              # the store held nothing for that slot
+    "interval_wrong",          # history right, window picked wrong
+    "ranking_wrong",           # the right claim was retrieved but not chosen
+    "belief_time_mismatch",    # answered from a tick the system had not reached
+    # lifecycle relations
     "supersede_missed",        # a replacement happened and the old value won
     "correct_as_supersede",    # a retracted value answered a historical question
     "coexist_killed",          # two claims that can both hold, one dropped
-    "interval_wrong",          # history right, window picked wrong
-    "ranking_wrong",           # the right claim was retrieved but not chosen
-    "forget_leak",             # deleted content came back
+    "conflict_unresolved",     # sources disagree and one was picked silently
+    # deletion, split by the layer the value survived in
+    "forget_scope_no_match",           # the request matched nothing
+    "forget_primary_survives",         # the row itself is still there
+    "forget_embedding_survives",       # vector outlived the row
+    "forget_label_survives",           # hippocampus label outlived the row
+    "forget_consolidation_survives",   # a merged memory still quotes it
+    "forget_event_survives",           # the append-only log still holds it
+    "forget_new_fact_same_value",      # a *later* fact reuses the value
+    "grader_false_positive",           # nothing actually leaked
+    # everything else
     "synthesis",               # everything right, answer text wrong
+    "unsupported_query_type",  # the shape has no operator at all
     "unclassified",
 )
+
+#: Which bucket a surviving value maps to, by the store it survived in.
+_LEAK_LAYER = {
+    "cognitive_memories.content": "forget_primary_survives",
+    "cognitive_memories.metadata_json": "forget_consolidation_survives",
+    "cognitive_events.payload_json": "forget_event_survives",
+    "shadow_memories.content": "forget_primary_survives",
+    "hippocampus_labels.topic": "forget_label_survives",
+}
+
+
+def _classify_leak(trace: dict, events, ledger) -> str:
+    """A leak is at least six defects wearing one name. Name the layer.
+
+    The order matters. "A later fact happens to reuse the deleted value" is
+    checked first, because it is not a leak at all — the deletion worked and
+    the world simply said the same thing again, which a substring grader cannot
+    tell apart from a survival.
+    """
+    slot = (trace.get("subject_id"), trace.get("attribute"))
+    tick = trace["checkpoint"]
+    forbidden = _fold(trace.get("forbidden") or "")
+
+    deletions = trace.get("_deletions") or []
+    mine = [d for d in deletions if d.get("slot") == f"{slot[0]}/{slot[1]}"]
+    if mine and not any(d.get("deleted_claims") for d in mine):
+        return "forget_scope_no_match"
+
+    # Did the world re-assert this value *after* the deletion?
+    when_deleted = min((d.get("tick", 0) for d in mine), default=0)
+    later = [e for e in events
+             if (e.subject_id, e.attribute) == slot and e.value
+             and when_deleted < e.tick <= tick
+             and _fold(e.value) == forbidden]
+    if later:
+        return "forget_new_fact_same_value"
+
+    stores = trace.get("leak_store") or {}
+    if not stores:
+        return "grader_false_positive"
+    for where in ("cognitive_memories.content", "shadow_memories.content",
+                  "cognitive_memories.metadata_json", "hippocampus_labels.topic",
+                  "cognitive_events.payload_json"):
+        if where in stores:
+            return _LEAK_LAYER[where]
+    return "forget_embedding_survives"
 
 
 def classify(trace: dict, events, ledger) -> str:
@@ -61,7 +127,7 @@ def classify(trace: dict, events, ledger) -> str:
     forbidden = _fold(trace.get("forbidden") or "")
 
     if forbidden and forbidden in retrieved:
-        return "forget_leak"
+        return _classify_leak(trace, events, ledger)
     if not retrieved:
         return "no_history"
 
@@ -80,12 +146,42 @@ def classify(trace: dict, events, ledger) -> str:
     if wanted and wanted not in values:
         return "resolver_aspect"        # the slot never held it — wrong slot
 
+    # Whose sentence came back, and about what? Answering with the right
+    # person's wrong aspect and answering with a different person entirely are
+    # different bugs, and both were hiding in `unclassified`.
+    name = _fold(_NAME_OF.get(slot[0], ""))
+    if name:
+        subject_words = set(name.split())
+        got_words = set(retrieved.split())
+        if not subject_words <= got_words:
+            return "ambiguous_subject"
+        slot_values = {_fold(e.value) for e in events
+                       if (e.subject_id, e.attribute) == slot and e.value}
+        if slot_values and not any(v in retrieved for v in slot_values):
+            return "resolver_aspect"
+
+    # What was returned decides the name, not what merely happened in the slot.
+    #
+    # A disputed value winning is `conflict_unresolved`, whatever else the
+    # slot has been through. Checking SUPERSEDE first put two cases under
+    # "supersede missed" whose answers came from a CONTRADICT event — the
+    # engine had not failed to notice a replacement, it had silently picked a
+    # side in a disagreement, which is a different missing capability.
+    returned_from = {e.kind for e in history
+                     if e.value and _fold(e.value) in retrieved}
+    if EventKind.CONTRADICT in returned_from:
+        return "conflict_unresolved"
+    if EventKind.CORRECT in returned_from:
+        return "correct_as_supersede"
+
     if EventKind.CORRECT in kinds:
         return "correct_as_supersede"
     if EventKind.SUPERSEDE in kinds:
         return "supersede_missed"
     if EventKind.CONTRADICT in kinds:
         return "coexist_killed"
+    if EventKind.REPEAT in kinds:
+        return "ranking_wrong"
     return "unclassified"
 
 
@@ -98,13 +194,16 @@ def main() -> int:
 
     data = json.loads((_REPO / args.report).read_text(encoding="utf-8"))
     config = data["config"]
-    events, ledger, _ = generate(ticks=config["ticks"],
-                                 subjects=config["subjects"],
-                                 seed=config["seed"])
+    events, ledger, people = generate(ticks=config["ticks"],
+                                      subjects=config["subjects"],
+                                      seed=config["seed"])
+    _NAME_OF.update({p.subject_id: p.name for p in people})
     fails = data["failures"]
+    deletions = data.get("deletions") or []
 
     buckets: dict[str, list[dict]] = collections.defaultdict(list)
     for trace in fails:
+        trace["_deletions"] = deletions
         buckets[classify(trace, events, ledger)].append(trace)
 
     print(f"{len(fails)} câu sai, phân theo NGUYÊN NHÂN NGỮ NGHĨA\n")
@@ -119,14 +218,32 @@ def main() -> int:
         detail = " ".join(f"{k}:{v}" for k, v in families.most_common())
         print(f"  {cause:<24}{len(items):>5}{share:>8.0%}   {detail}")
 
-    lifecycle = sum(len(buckets.get(c) or []) for c in
-                    ("supersede_missed", "correct_as_supersede", "coexist_killed"))
-    print(f"\n  nhóm VÒNG ĐỜI (supersede/correct/coexist): {lifecycle}/{len(fails)}"
-          f" = {lifecycle / len(fails):.0%}")
-    resolver = sum(len(buckets.get(c) or []) for c in
-                   ("resolver_subject", "resolver_aspect"))
-    print(f"  nhóm PHÂN GIẢI (subject/aspect)          : {resolver}/{len(fails)}"
-          f" = {resolver / len(fails):.0%}")
+    groups = {
+        "VÒNG ĐỜI (supersede/correct/coexist/conflict)": (
+            "supersede_missed", "correct_as_supersede", "coexist_killed",
+            "conflict_unresolved"),
+        "PHÂN GIẢI (subject/aspect)": (
+            "resolver_subject", "resolver_aspect", "ambiguous_subject"),
+        "XOÁ — lỗi SẢN PHẨM": (
+            "forget_scope_no_match", "forget_primary_survives",
+            "forget_embedding_survives", "forget_label_survives",
+            "forget_consolidation_survives", "forget_event_survives"),
+        "XOÁ — lỗi PHÉP ĐO": (
+            "forget_new_fact_same_value", "grader_false_positive"),
+        "KHOẢNG THỜI GIAN": ("interval_wrong", "ranking_wrong",
+                             "belief_time_mismatch"),
+    }
+    print()
+    for label, causes in groups.items():
+        n = sum(len(buckets.get(c) or []) for c in causes)
+        if n:
+            print(f"  {label:<46}{n:>3}/{len(fails)} = {n / len(fails):.0%}")
+
+    left = len(buckets.get("unclassified") or [])
+    if left:
+        print(f"\n  ⚠  CÒN {left} LỖI CHƯA PHÂN LOẠI — chưa được kết luận gì")
+    else:
+        print("\n  không còn lỗi nào chưa phân loại")
 
     print("\n" + "=" * 70)
     print("TÁI HIỆN TỐI THIỂU")
