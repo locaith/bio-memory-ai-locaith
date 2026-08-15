@@ -1,0 +1,155 @@
+[
+  {
+    "slot": "S04/phone",
+    "subject": "Hoàng Yến",
+    "attribute": "phone",
+    "checkpoint": 500,
+    "question": "Số điện thoại của Hoàng Yến là gì?",
+    "forbidden": "0977123456",
+    "leak_store": {
+      "cognitive_memories.content": 12,
+      "cognitive_events.payload_json": 15
+    },
+    "requests": [
+      "Hãy quên số điện thoại của Hoàng Yến."
+    ],
+    "delete_reports": [
+      {
+        "status": "deleted",
+        "matched_claims": 3,
+        "deleted_claims": 3,
+        "derived_invalidated": 1,
+        "checks_run": 3,
+        "verified_clean": true,
+        "succeeded": true,
+        "tick": 440
+      }
+    ],
+    "world_history": [
+      {
+        "tick": 235,
+        "kind": "assert",
+        "value": "0977123456",
+        "text": "Số điện thoại của Hoàng Yến là 0977123456."
+      },
+      {
+        "tick": 390,
+        "kind": "repeat",
+        "value": "0977123456",
+        "text": "Nhắc lại, số điện thoại của Hoàng Yến là 0977123456."
+      },
+      {
+        "tick": 402,
+        "kind": "repeat",
+        "value": "0977123456",
+        "text": "Nhắc lại, số điện thoại của Hoàng Yến là 0977123456."
+      },
+      {
+        "tick": 440,
+        "kind": "forget",
+        "value": null,
+        "text": "Hãy quên số điện thoại của Hoàng Yến."
+      },
+      {
+        "tick": 463,
+        "kind": "assert",
+        "value": "0903111222",
+        "text": "Số điện thoại của Hoàng Yến là 0903111222."
+      }
+    ]
+  },
+  {
+    "slot": "S09/job_title",
+    "subject": "Trần Thảo",
+    "attribute": "job_title",
+    "checkpoint": 500,
+    "question": "Trần Thảo đang giữ chức vụ gì?",
+    "forbidden": "trưởng nhóm",
+    "leak_store": {
+      "cognitive_memories.content": 10,
+      "cognitive_events.payload_json": 11
+    },
+    "requests": [
+      "Hãy quên chức vụ của Trần Thảo."
+    ],
+    "delete_reports": [
+      {
+        "status": "deleted",
+        "matched_claims": 7,
+        "deleted_claims": 7,
+        "derived_invalidated": 2,
+        "checks_run": 7,
+        "verified_clean": true,
+        "succeeded": true,
+        "tick": 422
+      }
+    ],
+    "world_history": [
+      {
+        "tick": 48,
+        "kind": "assert",
+        "value": "trưởng nhóm",
+        "text": "Trần Thảo đang giữ chức trưởng nhóm."
+      },
+      {
+        "tick": 350,
+        "kind": "contradict",
+        "value": "giám đốc kỹ thuật",
+        "text": "Theo một nguồn khác, trần Thảo đang giữ chức giám đốc kỹ thuật."
+      },
+      {
+        "tick": 399,
+        "kind": "contradict",
+        "value": "nhân viên kinh doanh",
+        "text": "Theo một nguồn khác, trần Thảo đang giữ chức nhân viên kinh doanh."
+      },
+      {
+        "tick": 422,
+        "kind": "forget",
+        "value": null,
+        "text": "Hãy quên chức vụ của Trần Thảo."
+      }
+    ]
+  },
+  {
+    "slot": "S00/city",
+    "subject": "Nguyễn Dũng",
+    "attribute": "city",
+    "checkpoint": 750,
+    "question": "Nguyễn Dũng đang sống ở đâu?",
+    "forbidden": "Cần Thơ",
+    "leak_store": {
+      "cognitive_memories.content": 15,
+      "cognitive_events.payload_json": 16
+    },
+    "requests": [
+      "Hãy quên nơi sống của Nguyễn Dũng."
+    ],
+    "delete_reports": [
+      {
+        "status": "partial",
+        "matched_claims": 9,
+        "deleted_claims": 9,
+        "derived_invalidated": 9,
+        "checks_run": 9,
+        "verified_clean": false,
+        "succeeded": false,
+        "tick": 539
+      }
+    ],
+    "world_history": [
+      {
+        "tick": 425,
+        "kind": "assert",
+        "value": "Cần Thơ",
+        "text": "Nguyễn Dũng sống ở Cần Thơ."
+      },
+      {
+        "tick": 539,
+        "kind": "forget",
+        "value": null,
+        "text": "Hãy quên nơi sống của Nguyễn Dũng."
+      }
+    ]
+  }
+]

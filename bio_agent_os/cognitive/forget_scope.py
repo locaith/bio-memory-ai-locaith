@@ -378,6 +378,28 @@ def preview(memory_os: Any, scope: ForgetScope) -> list[Match]:
 # executing
 # --------------------------------------------------------------------------
 
+def _deletion_probes(contents: list[str]) -> list[str]:
+    """What to look for afterwards: the sentences that were removed. Nothing else.
+
+    Not `forgetting._probes`, which also emits every token of six characters or
+    more as a net for ids and amounts. On a scoped deletion that net catches the
+    subject's own name — "Nguyễn" is exactly six — and every remaining memory
+    about that person reads as leftover. Measured on frozen case 3: deleting
+    Nguyễn Dũng's city reported residue of
+
+        "Từ hôm nay, số điện thoại của Nguyễn Dũng là 0987654321."
+
+    a phone record, on a request about a city. The deletion had worked; the
+    verification cried wolf, and `succeeded` came back False on a finished job.
+    A caller acting on that retries or escalates a deletion that is already done.
+
+    The token fallback stays where it earns its keep — `forget_derived` with
+    only a memory id may have nothing else to go on. A scoped deletion always
+    holds the full text of what it removed.
+    """
+    return [text for text in (str(c or "").strip() for c in contents) if text]
+
+
 def forget_scoped(memory_os: Any, request: str, *, actor: str,
                   scope: ForgetScope | None = None) -> ForgetResult:
     """Resolve, preview, delete, purge, verify. Report all of it.
@@ -407,7 +429,7 @@ def forget_scoped(memory_os: Any, request: str, *, actor: str,
             f"là đã xoá xong — không tìm thấy gì để xoá là một kết quả khác.")
         return result
 
-    probes = [m.content for m in matched]
+    probes = _deletion_probes([m.content for m in matched])
     for match in matched:
         report = forget_derived(memory_os, memory_id=match.memory_id)
         result.deleted_claims += report.memories_deleted
