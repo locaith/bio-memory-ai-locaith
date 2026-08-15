@@ -61,6 +61,41 @@ def declined(text: str) -> bool:
     return (not low) or any(m in low for m in DECLINED)
 
 
+def matches_delete_request(text: str, requests: set[str]) -> bool:
+    """Does this memory fall under one of the deletion requests?
+
+    A deletion request names a subject, not an exact string. "[XOÁ] dữ liệu
+    khách hàng An Phát" has to take the phone number with it, so the match is on
+    the request's content words appearing in the memory — deleting only the
+    literal match is the bug these cases exist to catch.
+
+    Module level and importable, because the integrity tests check the harness
+    and a matcher hidden inside a closure cannot be checked at all.
+    """
+    low = str(text or "").lower()
+    for request in requests:
+        words = [w for w in str(request).lower().split() if len(w) > 3]
+        if words and sum(1 for w in words if w in low) / len(words) >= 0.5:
+            return True
+    return False
+
+
+def _holds(memory_os, needle: str) -> bool:
+    """Is this string actually in the store right now?
+
+    Called before a deletion so that "not found" afterwards means something.
+    Without this the harness cannot tell a successful delete from data that was
+    never ingested, and for three cases it did not.
+    """
+    if not needle:
+        return False
+    rows = memory_os.memories.conn.execute(
+        "SELECT COUNT(*) FROM cognitive_memories WHERE content LIKE ?",
+        (f"%{needle}%",),
+    ).fetchone()
+    return bool(rows and rows[0])
+
+
 def judge(case: dict, answer: str) -> tuple[bool, str]:
     """Pass only if every `must` appears and no `must_not` does.
 
@@ -98,10 +133,13 @@ def judge(case: dict, answer: str) -> tuple[bool, str]:
 
 async def run_case(system_name: str, case: dict, engine, embedder, workdir: Path) -> dict:
     from bio_agent_os.cognitive.facade import MemoryOS
+    from bio_agent_os.cognitive.forgetting import forget_derived
     from bio_agent_os.cognitive.models import AccessContext, MemoryType
     from bio_agent_os.cognitive.semantic_index import (
         backfill_embeddings, calibrate_with_probes, cosine,
     )
+
+    retrievable_before: bool | None = None
     from bio_agent_os.evals.systems import ANSWER_INSTRUCTION
 
     # Each case gets its own store. Cases contradict each other by design, so
@@ -127,22 +165,14 @@ async def run_case(system_name: str, case: dict, engine, embedder, workdir: Path
     if match:
         query_workspace, query = match.group(1), WORKSPACE_TAG.sub("", query)
 
-    def is_deleted(text: str) -> bool:
-        """A deletion request names a subject, not an exact string.
-
-        "[XOÁ] dữ liệu khách hàng An Phát" has to remove the phone number too,
-        so the match is on any content word of the request appearing in the
-        memory — deleting only the literal match is the bug these cases exist
-        to catch.
-        """
-        low = text.lower()
-        for request in deleted:
-            words = [w for w in request.split() if len(w) > 3]
-            if words and sum(1 for w in words if w in low) / len(words) >= 0.5:
-                return True
-        return False
-
-    kept = [(ws, t) for ws, t in facts if not is_deleted(t)]
+    # Everything is ingested, including what a `[XOÁ]` request will remove.
+    #
+    # The previous version filtered those out before ingesting, so the store
+    # never held the secret, the query naturally could not return it, and
+    # `forget-001/002/003` passed without `forgetting.forget()` ever being
+    # called. Three cases whose whole purpose is to prove deletion works,
+    # proving nothing — and the score was published.
+    kept = facts
 
     if system_name == "cognitive":
         os_ = MemoryOS(workdir / "m.db", embedder=embedder)
@@ -154,6 +184,23 @@ async def run_case(system_name: str, case: dict, engine, embedder, workdir: Path
         while backfill_embeddings(os_.memories.conn, embedder, limit=100):
             pass
         calibrate_with_probes(os_.memories.conn, embedder)
+
+        # Now delete, for real, and check both sides of it.
+        #
+        # `retrievable_before` is the step whose absence hid the original bug:
+        # without it, "not found" after a delete is indistinguishable from
+        # "never there". A case that cannot confirm the fact was present is
+        # reported as inconclusive rather than counted as a pass.
+        retrievable_before: bool | None = None
+        if deleted:
+            probe = str((case.get("must_not") or [""])[0])
+            retrievable_before = _holds(os_, probe) if probe else None
+            targets = [mid for mid, text in os_.memories.conn.execute(
+                "SELECT memory_id, content FROM cognitive_memories")
+                if matches_delete_request(text, deleted)]
+            for memory_id in targets:
+                forget_derived(os_, memory_id=memory_id, needle=probe or None)
+
         ctx = AccessContext(tenant_id="bench", workspace_id=query_workspace)
         found = os_.recall(query, context=ctx, limit=6)
         # The date travels with the memory. Retrieval reports it; putting it in
@@ -181,8 +228,20 @@ async def run_case(system_name: str, case: dict, engine, embedder, workdir: Path
               f"Question: {query}\n\n{ANSWER_INSTRUCTION}")
     answer = str(await engine.generate(prompt, temperature=0.0)).strip()
     passed, why = judge(case, answer)
-    return {"id": case["id"], "group": case["group"], "system": system_name,
-            "query": query, "answer": answer[:300], "passed": passed, "why": why}
+
+    row = {"id": case["id"], "group": case["group"], "system": system_name,
+           "query": query, "answer": answer[:300], "passed": passed, "why": why}
+
+    # A deletion case that could not confirm the fact was present before the
+    # delete has not tested deletion, and must not be counted as though it had.
+    if case.get("group") == "forgetting" and system_name == "cognitive":
+        row["retrievable_before"] = retrievable_before
+        if retrievable_before is False:
+            row["passed"] = False
+            row["why"] = ("KHÔNG KẾT LUẬN ĐƯỢC: dữ liệu chưa từng nạp được vào "
+                          "kho, nên 'không tìm thấy' sau khi xoá không chứng "
+                          "minh điều gì")
+    return row
 
 
 async def main() -> int:
