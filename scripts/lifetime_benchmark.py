@@ -296,6 +296,12 @@ def main() -> int:
                     help="cũng chấm câu trả lời của model (tốn tiền)")
     ap.add_argument("--embed", action="store_true", default=True)
     ap.add_argument("--out", default="benchmark_reports/lifetime_2026_08_15.json")
+    ap.add_argument("--expect-runtime", default=None, metavar="FINGERPRINT",
+                    help="từ chối chạy nếu runtime không đúng vân tay này. "
+                         "Lấy vân tay ở dòng RUNTIME của một lần chạy trước, "
+                         "hoặc ở trường runtime.fingerprint trong báo cáo.")
+    ap.add_argument("--allow-dirty", action="store_true",
+                    help="chạy dù cây làm việc còn thay đổi chưa commit")
     args = ap.parse_args()
 
     from bio_agent_os.cognitive.semantic_index import (
@@ -321,7 +327,45 @@ def main() -> int:
                                engine=engine)
     adapter.reset()
 
-    print(f"thế giới: {len(events)} sự kiện, {len(people)} chủ thể, "
+    # Said before anything is measured. A number produced by an unknown build is
+    # not evidence, it is a rumour — and the failure this guards against is a
+    # process running code that was replaced on disk days ago, which every other
+    # kind of check reads as healthy.
+    from bio_agent_os.core.provenance import RuntimeMismatch, identity, require
+
+    who = identity(db_path=workdir / "run.db", embedder=embedder)
+    adapter.memory_os.attach_runtime(embedder=embedder)
+    print("RUNTIME")
+    print(f"  vân tay   : {who.fingerprint}")
+    print(f"  git       : {who.git_sha[:12]}"
+          f"{'  ⚠ CÓ THAY ĐỔI CHƯA COMMIT' if who.git_dirty else ''}")
+    print(f"  gói       : {who.package_version} | python {who.python_version}")
+    print(f"  cấu hình  : {who.config_hash}")
+    print(f"  embedding : {who.embedding_model or 'không'} "
+          f"({who.embedding_dims} chiều)")
+    print(f"  tiến trình: pid {who.pid} trên {who.host}")
+
+    if args.expect_runtime:
+        try:
+            require(args.expect_runtime, actual=who)
+        except RuntimeMismatch as mismatch:
+            print(f"\n  DỪNG: {mismatch}")
+            print("  Hai lần chạy chỉ so được với nhau nếu thứ đang đo không "
+                  "đổi bên dưới.")
+            adapter.close()
+            return 2
+        print("  khớp vân tay kỳ vọng ✓")
+    elif who.git_dirty and not args.allow_dirty:
+        # Not fatal by default would mean never noticed. A dirty tree is the
+        # normal state while working, and also the exact state in which a
+        # recorded sha describes something other than what ran.
+        print("\n  DỪNG: cây làm việc còn thay đổi chưa commit, nên git_sha "
+              "không mô tả đúng thứ đang chạy.")
+        print("  Commit trước, hoặc chạy lại với --allow-dirty nếu đang thử.")
+        adapter.close()
+        return 2
+
+    print(f"\nthế giới: {len(events)} sự kiện, {len(people)} chủ thể, "
           f"seed={args.seed}")
     print(f"embedder: {getattr(embedder, 'backend', 'không')} | "
           f"engine: {getattr(engine, 'model_id', 'không — chỉ chấm truy xuất')}\n")
@@ -574,6 +618,9 @@ def main() -> int:
                    "seed": args.seed, "per_family": args.per_family,
                    "embedder": getattr(embedder, "backend", None),
                    "engine": getattr(engine, "model_id", None)},
+        # Stored so a later run can be told to match this one, and so a number
+        # read a year from now can still say which build produced it.
+        "runtime": who.as_dict(),
         "integrity": report, "checkpoints": rows, "failures": traces,
         "deletions": deletions,
     }, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -31,6 +31,7 @@ from .models import (
 )
 from .prospective import ProspectiveMemory
 from .reconstruction import CognitiveReconstruction, CognitiveReconstructor
+from .rejected_store import RejectedStore, Rejection
 from .retrieval import HybridRetrievalEngine, RetrievalResult
 from .projection_capability import enqueueable
 from .self_model import SelfModel
@@ -85,7 +86,16 @@ class MemoryOS:
         self.checkpoints = CheckpointManager(path)
         self.prefetcher = PredictivePrefetcher(self.retrieval)
         self.context_metrics = ContextMetrics()
+        # Kept for callers that read it, and still the in-process view. The
+        # durable copy is `rejected` — a list on an instance was how eight
+        # captures were lost with the process that refused them.
         self.quarantine: list[dict[str, Any]] = []
+        self.rejected = RejectedStore(self.memories.conn)
+        #: Set by whoever registered this process, so a refusal can name the
+        #: build that made it. None until then, and recorded as unknown rather
+        #: than blocking ingestion.
+        self.runtime: Any = None
+        self.runtime_session: str | None = None
 
         # Projection mode. Default is legacy and stays legacy unless the
         # environment says otherwise, so existing behaviour is unchanged for
@@ -94,6 +104,44 @@ class MemoryOS:
         # Shadow output lives on the memory connection but in its own table,
         # so production recall cannot reach it by construction.
         self.shadow_memories = ShadowMemoryStore(self.memories.conn)
+
+    def attach_runtime(self, *, embedder: Any = None,
+                       session_id: str | None = None) -> Any:
+        """Say who is running, into this database, and keep saying it.
+
+        Optional by design — every existing caller keeps working and records
+        `unknown` provenance. What it buys is the ability to answer, later,
+        "which build wrote this and which build refused that", which no amount
+        of reading the repository can answer about a process that is already
+        running.
+        """
+        from bio_agent_os.core.provenance import RuntimeRegistry, identity
+
+        who = identity(db_path=self.db_path,
+                       embedder=embedder if embedder is not None
+                       else self.retrieval.embedder)
+        registry = RuntimeRegistry(self.memories.conn)
+        self.runtime = who
+        self.runtime_session = registry.register(who, session_id=session_id)
+        self.runtime_registry = registry
+        return who
+
+    def _record_rejection(self, content: str, decision: Any, *,
+                          payload: dict[str, Any], **where: Any) -> None:
+        """Persist a refusal. Never raises — a failure here must not swallow
+        the input as well as the record of it."""
+        try:
+            self.rejected.record(
+                Rejection(content=content, reasons=list(decision.reasons),
+                          risk_score=decision.risk_score, payload=payload,
+                          **where),
+                runtime=self.runtime, session_id=self.runtime_session)
+        except Exception:                                # noqa: BLE001
+            # Deliberately swallowed and deliberately noted: the caller already
+            # has the decision, and the in-memory `quarantine` entry above still
+            # exists. Losing the durable copy is bad; turning it into an
+            # ingestion failure would be worse.
+            self.quarantine[-1]["durable"] = False
 
     def observe(
         self,
@@ -140,11 +188,33 @@ class MemoryOS:
             valid_from=valid_from,
             valid_to=valid_to,
             **({"observed_at": observed_at} if observed_at else {}),
-            metadata={**(metadata or {}), "immune_reasons": list(decision.reasons), "risk_score": decision.risk_score},
+            metadata={**(metadata or {}), "immune_reasons": list(decision.reasons),
+                      "risk_score": decision.risk_score,
+                      **self._provenance_stamp()},
             modality=modality,
             epistemic_status=epistemic_status,
         )
         return self.events.append(event, projection_types=self._projection_types())
+
+    def _provenance_stamp(self) -> dict[str, Any]:
+        """Which build learned this, carried on the event itself.
+
+        Empty until `attach_runtime()` is called, so nothing changes for callers
+        that do not ask — and an absent stamp reads as "unknown build", which is
+        the truth for every event written before this existed.
+
+        It goes in `metadata`, which is **not** covered by the event checksum.
+        That makes the stamp informative rather than tamper-evident: it answers
+        "which build wrote this" for an honest reader, and would not survive an
+        adversary with write access. Moving it under the checksum would
+        invalidate every event already stored, so the weaker guarantee is the
+        one on offer and is stated here rather than assumed.
+        """
+        if self.runtime is None:
+            return {}
+        return {"ingested_by_version": self.runtime.package_version,
+                "ingested_by_runtime": self.runtime.fingerprint,
+                "ingested_by_session": self.runtime_session}
 
     def _projection_types(self) -> tuple[str, ...]:
         """What this observation owes, given the mode and what can be built.
@@ -237,6 +307,15 @@ class MemoryOS:
                     "risk_score": decision.risk_score,
                 }
             )
+            self._record_rejection(
+                content, decision, event_id=event.event_id,
+                tenant_id=event.tenant_id, workspace_id=event.workspace_id,
+                source=event.source, actor=event.actor,
+                payload={"memory_type": getattr(memory_type, "value",
+                                                str(memory_type)),
+                         "confidence": confidence,
+                         "importance": importance,
+                         "structured_content": structured_content or {}})
             return decision
         memory = CognitiveMemory(
             tenant_id=event.tenant_id,
@@ -332,6 +411,11 @@ class MemoryOS:
                     "content": content, "reasons": list(decision.reasons),
                     "risk_score": decision.risk_score, "source": source,
                 })
+                self._record_rejection(
+                    content, decision, tenant_id=tenant_id,
+                    workspace_id=item.get("workspace_id", workspace_id),
+                    source=source, actor=actor,
+                    payload={k: v for k, v in item.items() if k != "content"})
                 continue
             event = EventRecord(
                 tenant_id=tenant_id, actor=actor, source=source,
