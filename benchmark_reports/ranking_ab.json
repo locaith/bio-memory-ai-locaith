@@ -1,0 +1,61 @@
+{
+  "runtime": {
+    "package_version": "0.8.2rc1",
+    "git_sha": "ab2c2a6c3a67c0f4064364d3198fca03a10c8258",
+    "git_dirty": true,
+    "config_hash": "8f999906edf8eebb1bb74cdfff7bff6e",
+    "embedding_model": "",
+    "embedding_dims": 0,
+    "db_path": "",
+    "host": "DESKTOP-M1TSM33",
+    "pid": 17232,
+    "python_version": "3.11.9",
+    "process_start_time": 1786868386.5779235,
+    "untracked_files": 2,
+    "fingerprint": "4c804f2486127594d5feb376fca91aa635ff64cad1436c3b6267cd90d932e4f3"
+  },
+  "config": {
+    "ticks": 1000,
+    "subjects": 20,
+    "seed": 20260814,
+    "per_family": 6
+  },
+  "answerable": 11,
+  "asked": 136,
+  "coverage": {
+    "A_legacy": {
+      "1": [
+        9,
+        11
+      ],
+      "3": [
+        9,
+        11
+      ],
+      "6": [
+        11,
+        11
+      ]
+    },
+    "B_relevance": {
+      "1": [
+        9,
+        11
+      ],
+      "3": [
+        9,
+        11
+      ],
+      "6": [
+        11,
+        11
+      ]
+    }
+  },
+  "evidence_lost": 0,
+  "evidence_gained": 0,
+  "sole_evidence_cases": 6,
+  "sole_evidence_displacement_rate": 0.0,
+  "rank_churn": 3,
+  "lost_questions": []
+}

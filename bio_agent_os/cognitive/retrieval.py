@@ -182,9 +182,15 @@ class HybridRetrievalEngine:
     """State-, time-, governance- and epistemics-aware retrieval."""
 
     def __init__(self, store: SQLiteMemoryStore, governance: GovernanceEngine | None = None,
-                 embedder: Any | None = None):
+                 embedder: Any | None = None, ranking: str | None = None):
         self.store = store
         self.governance = governance or GovernanceEngine()
+        #: `legacy` or `relevance_first`. Default is what shipped, and the
+        #: environment can flip it for an A/B without a code change. See
+        #: `_select` for what the second one does and the measurement that
+        #: asked for it.
+        self.ranking = (ranking
+                        or os.getenv("RETRIEVAL_RANKING", "legacy")).strip().lower()
         #: Optional, and injected rather than imported. Anything with
         #: `.embed(text) -> list[float]` will do. Absent, retrieval behaves
         #: exactly as it did before semantic scoring existed — this layer has
@@ -390,9 +396,62 @@ class HybridRetrievalEngine:
                 )
             )
         results.sort(key=lambda r: (-r.score, -int(r.memory.trust_tier), -r.memory.confidence))
-        selected = results[:limit]
+        selected = self._select(results, limit)
         self.store.mark_retrieved_many([result.memory for result in selected])
         return selected
+
+    #: Score components that describe how good a memory is, not whether it
+    #: answers *this* question. They are already excluded from the admission
+    #: gate; `relevance_first` also excludes them from deciding who makes the
+    #: window.
+    STRENGTH_PARTS: tuple[str, ...] = (
+        "confidence", "trust", "utility", "salience", "reinforcement",
+        "governance", "epistemic", "label_importance", "label_junk",
+        "contradiction_penalty",
+    )
+
+    def _select(self, results: list[RetrievalResult], limit: int) -> list[RetrievalResult]:
+        """Who gets into the window, and in what order.
+
+        `legacy` — everything ranked by total score. What shipped.
+
+        `relevance_first` — **selection** by query relevance, **ordering** by
+        total. Strength decides where a memory sits in the context; it no
+        longer decides whether the memory is in it at all.
+
+            REINFORCEMENT != RELEVANCE
+
+        Measured, which is why this exists: `reinforcement` adds up to 0.25 to
+        a score, and 232 reconfirmations in one lifetime run reshuffled the
+        top six enough that on eight of eight sampled questions the two arms
+        returned different context — including one where the *only* memory
+        that answered the question fell out of the window while a repeated,
+        unrelated one stayed. A memory mentioned two hundred times may well be
+        stronger. It has not thereby become the answer.
+
+        Deliberately not "drop reinforcement from the score". Frequency is the
+        signal for "what do I keep getting wrong" — a question this system is
+        supposed to answer — so it keeps its weight and loses only its vote on
+        admission. Ranking should follow the question's intent, and this is
+        the smallest change that stops one intent's signal from destroying
+        another's evidence.
+        """
+        if self.ranking != "relevance_first" or len(results) <= limit:
+            return results[:limit]
+
+        def relevance(result: RetrievalResult) -> float:
+            parts = result.explanation.get("score_components", {})
+            return sum(value for name, value in parts.items()
+                       if name not in self.STRENGTH_PARTS)
+
+        by_relevance = sorted(
+            results,
+            key=lambda r: (-relevance(r), -r.score, -int(r.memory.trust_tier)))
+        chosen = by_relevance[:limit]
+        keep = {id(r) for r in chosen}
+        # Back into total-score order: the window's membership changed, its
+        # internal ordering did not need to.
+        return [r for r in results if id(r) in keep]
 
     def _state_score(self, memory: CognitiveMemory, state: dict[str, Any]) -> float:
         score = 0.0
