@@ -253,28 +253,26 @@ def test_the_backfill_touches_no_embedding(os_):
 # --------------------------------------------------------------------------
 
 @pytest.mark.xfail(strict=True,
-                   reason="slot sai làm ký ức vô hình — chưa tách được 'sai' "
-                          "khỏi 'khác'")
-def test_a_wrong_slot_does_not_hide_a_memory(os_):
-    """A mis-slotted row is worse off than one with no slot at all.
+                   reason="không có embedder thì không phân biệt được trong "
+                          "tập, nên fallback từ chối cứu bừa")
+def test_a_wrong_slot_does_not_hide_a_memory_without_an_embedder(os_):
+    """The bounded fallback declines when it cannot discriminate.
 
-    No slot  -> rescued through the text path, still findable.
-    Wrong slot -> excluded by equality, with no rescue.
+    With an embedder the mis-slotted row is rescued — measured, and asserted
+    in `test_an_untrusted_mismatch_is_rescued_not_deleted`. Without one,
+    `_by_aspect` cannot separate a birthday from an employer inside one
+    person's records, and its escape hatch returns *everything*. Rescuing on
+    that basis puts a birthday into an employer history, which is how the
+    first attempt broke four tests.
 
-    So a resolver mistake does not degrade to the previous behaviour, it
-    degrades below it — and `state_at` then answers a stale value with status
-    KNOWN, which is the confident-wrong-answer failure the aspect resolver was
-    built to remove.
-
-    Rescuing rows whose slot merely *differs* was tried and is worse:
-    `_by_aspect` returns everything when no embedder is configured, so a
-    birthday landed in an employer history. Telling "wrong slot" from
-    "correctly a different slot" needs a confidence the resolver does not
-    report. Recorded here rather than argued away.
+    So the fallback demands positive evidence and this case stays open. It is
+    the honest shape of the trade: no discrimination available, no rescue —
+    rather than a rescue that is indistinguishable from no filter at all.
     """
     from bio_agent_os.cognitive.temporal_operator import claim_history
     from bio_agent_os.cognitive.models import AccessContext
 
+    assert os_.retrieval.embedder is None
     # A correctly slotted row has to exist, or the structured branch never
     # runs and the mis-slotted one is rescued by the text path — which is how
     # the first version of this test XPASSed and proved nothing.
@@ -290,6 +288,56 @@ def test_a_wrong_slot_does_not_hide_a_memory(os_):
                           context=AccessContext(tenant_id="t1",
                                                 workspace_id="w1"))
     assert any("An Phát" in s.content for s in spans)
+
+
+def test_a_trusted_mismatch_is_excluded_outright(os_):
+    """A schema outranks a guess. That is the one case where a mismatch may
+    remove a row with no second chance."""
+    from bio_agent_os.cognitive.temporal_operator import claim_history
+    from bio_agent_os.cognitive.models import AccessContext
+
+    _remember(os_, "Phạm Vy làm việc tại công ty Locaith.")
+    memory_id = _remember(os_, "Phạm Vy làm việc tại công ty An Phát.")
+    os_.memories.conn.execute(
+        "UPDATE cognitive_memories SET structured_json = ? WHERE memory_id = ?",
+        (json.dumps({"entity": "Phạm Vy", "attribute": "birthday",
+                     "predicate_epistemic_status": "trusted"}), memory_id))
+    os_.memories.conn.commit()
+
+    spans = claim_history(os_, subject="Phạm Vy", aspect="employer",
+                          predicate="employer",
+                          context=AccessContext(tenant_id="t1",
+                                                workspace_id="w1"))
+    assert not any("An Phát" in s.content for s in spans)
+
+
+def test_every_slot_written_today_is_untrusted(os_):
+    """Nothing in this system produces a TRUSTED slot, and the API is built
+    as though something does. An interface designed only against the sources
+    that happen to exist breaks on the first new one."""
+    from bio_agent_os.cognitive.slot_backfill import UNTRUSTED, status_of
+
+    memory_id = _remember(os_, "Phạm Vy làm việc tại công ty An Phát.")
+    slot = _slot(os_, memory_id)
+    assert status_of(slot) == UNTRUSTED
+    assert slot["predicate_source"] == "ingest"
+    assert slot["resolver_version"]
+    assert slot["derived_at"]
+
+
+def test_a_slot_with_no_recorded_status_reads_as_untrusted():
+    """Rows written before this field existed came from the same resolver. A
+    missing provenance must never read as a stronger claim than a present
+    one."""
+    from bio_agent_os.cognitive.slot_backfill import (
+        UNKNOWN, UNTRUSTED, status_of,
+    )
+
+    assert status_of({"attribute": "employer"}) == UNTRUSTED
+    assert status_of({"attribute": "employer",
+                      "predicate_epistemic_status": "nonsense"}) == UNTRUSTED
+    assert status_of({}) == UNKNOWN
+    assert status_of(None) == UNKNOWN
 
 
 @pytest.mark.xfail(strict=True,

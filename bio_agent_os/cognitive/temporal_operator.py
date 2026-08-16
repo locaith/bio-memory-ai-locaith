@@ -379,6 +379,48 @@ def _attribute_keys() -> frozenset[str]:
 _ATTRIBUTE_KEYS = _attribute_keys()
 
 
+_TRUSTED = "trusted"
+
+
+def _status_of_row(structured_json: Any) -> str:
+    from .slot_backfill import status_of
+
+    return status_of(_loads_slot(structured_json))
+
+
+def _positively_selected(memory_os: Any, candidates: list[tuple],
+                         probe: str) -> list[tuple]:
+    """Rows the aspect filter actively chose — never its escape hatch.
+
+    `_by_aspect` returns `or candidates` when it cannot discriminate: with no
+    embedder configured, an English needle matches no Vietnamese text, the
+    filter empties, and everything comes back. That is a reasonable default
+    for "I have nothing better", and it is exactly wrong here — a rescue path
+    that returns everything rescues a birthday into an employer history, which
+    is how the first attempt at this broke four tests.
+
+    So the rescue demands positive evidence: the filter must return a strict
+    subset, or nothing is rescued.
+    """
+    if not candidates or not probe:
+        return []
+    chosen = _by_aspect(memory_os, candidates, probe)
+    if len(chosen) >= len(candidates):
+        return []
+    return chosen
+
+
+def _loads_slot(structured_json: Any) -> dict:
+    if not structured_json:
+        return {}
+    try:
+        payload = (json.loads(structured_json)
+                   if isinstance(structured_json, str) else structured_json)
+    except (TypeError, ValueError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
 def _slot_of_row(structured_json: Any) -> str | None:
     """The attribute a row declares it belongs to, or None for a legacy row.
 
@@ -431,6 +473,7 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
     stored = {str(m): (vf, vt) for m, _, _, vf, vt, _ in rows
               if vt is not None}
     slots = {str(m): _slot_of_row(s) for m, _, _, _, _, s in rows}
+    statuses = {str(m): _status_of_row(s) for m, _, _, _, _, s in rows}
     candidates = [(m, c, o) for m, c, o, _, _, _ in rows
                   if _mentions(str(c), subject)]
 
@@ -464,25 +507,34 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
 
     structured = ([c for c in candidates if slots.get(str(c[0])) == slot_key]
                   if slot_key else [])
-    if structured:
-        # Legacy rows with no slot go through the old text path to earn their
-        # place. Dropping them would silently narrow the history on any store
-        # written before slots existed.
+    if structured and slot_key:
+        # Four cases, decided by where the slot came from rather than by how
+        # confident anything felt.
         #
-        # KNOWN LIMITATION, and it is not fixed here. A row whose slot is
-        # *wrong* is excluded with no rescue, which makes a mis-slotted memory
-        # invisible to the only query that would find it — strictly worse than
-        # having no slot at all. An independent review named this and it is
-        # real; `test_a_wrong_slot_hides_a_memory` records it as an xfail.
+        #   TRUSTED   + match     keep
+        #   TRUSTED   + mismatch  exclude. A schema said this row is about
+        #                         something else, and a schema outranks a
+        #                         guess.
+        #   UNTRUSTED + match     keep, preferred
+        #   UNTRUSTED + mismatch  **must not vanish.** A resolver guessed
+        #                         wrong and the row is still the answer.
+        #   UNKNOWN               bounded fallback, as before
         #
-        # The obvious repair — rescue rows whose slot differs — was tried and
-        # is worse: `_by_aspect` falls back to `or candidates` when no
-        # embedder is configured, so it rescued a birthday into an employer
-        # history and broke four tests. Excluding a *correctly* slotted row
-        # from another slot's query is the entire feature. Separating "wrong
-        # slot" from "different slot" needs a confidence the resolver does not
-        # currently report, so the limitation stands and is written down
-        # rather than papered over.
+        # This is F2. The previous version excluded every mismatch, so a
+        # mis-slotted row became invisible to the only query that would find
+        # it — strictly worse than having no slot at all, and the operator
+        # then answered a stale value with status KNOWN.
+        #
+        # The fallback is bounded by construction, not by a limit: `candidates`
+        # is already only memories that mention this subject, so the widest it
+        # can reach is one person's records. It never returns to the store.
+        rescuable = [c for c in candidates
+                     if id(c) not in {id(s) for s in structured}
+                     and statuses.get(str(c[0])) != _TRUSTED]
+        rescued = _positively_selected(memory_os, rescuable, probe)
+        keep = {id(c) for c in structured} | {id(c) for c in rescued}
+        candidates = [c for c in candidates if id(c) in keep]
+    elif structured:
         unslotted = [c for c in candidates if slots.get(str(c[0])) is None]
         rescued = (_by_aspect(memory_os, unslotted, probe)
                    if (unslotted and probe) else [])

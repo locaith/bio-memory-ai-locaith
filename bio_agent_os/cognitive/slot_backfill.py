@@ -86,8 +86,30 @@ def _ensure_marker_table(conn: sqlite3.Connection) -> None:
 #: row can say which version produced its slot.
 RESOLVER_VERSION = "aspect_resolver@1"
 
+#: How much a stored slot may be relied on, decided by **where it came from**
+#: and never by a score.
+#:
+#:     TRUSTED    an explicit field from a schema, or a deterministic parser
+#:                with a stated invariant. Nothing in this system produces one
+#:                yet, and the API is built as though something does — an
+#:                interface designed only against the sources that happen to
+#:                exist is an interface that breaks on the first new one.
+#:     UNTRUSTED  inferred from natural language by the resolver, or
+#:                backfilled from legacy text. **Every slot written today.**
+#:     UNKNOWN    no predicate could be established.
+#:
+#: Deliberately not `confidence > 0.8 -> TRUSTED`. A threshold there would be
+#: the same trade this project has refused four times: it converts "I inferred
+#: this" into "I observed this" on the strength of a number the resolver made
+#: up. The status is a fact about provenance, and provenance is knowable
+#: exactly.
+TRUSTED = "trusted"
+UNTRUSTED = "untrusted"
+UNKNOWN = "unknown"
 
-def slot_for(content: str, *, source: str = "backfill") -> dict[str, Any]:
+
+def slot_for(content: str, *, source: str = "backfill",
+             event_id: str | None = None) -> dict[str, Any]:
     """The slot this sentence implies, or `{}`.
 
     **The one derivation.** `facade.remember` calls this too. Two
@@ -109,10 +131,41 @@ def slot_for(content: str, *, source: str = "backfill") -> dict[str, Any]:
         return {}
     if not frame.subject or frame.predicate is Predicate.UNKNOWN:
         return {}
-    return {"entity": frame.subject,
-            "attribute": frame.predicate.attribute,
-            "resolver": RESOLVER_VERSION,
-            "source": source}
+    return {
+        "entity": frame.subject,
+        "attribute": frame.predicate.attribute,
+        # Provenance as data on the row, not as a convention in someone's
+        # head. A reader a year from now must be able to ask "how did this
+        # field come to exist" without reading the code that wrote it.
+        #
+        # Every slot this function produces is UNTRUSTED, and always will be:
+        # it read a Vietnamese sentence and guessed. Persisting a guess does
+        # not promote it. That is RULE_003 — INFERENCE != OBSERVATION —
+        # reaching down into the storage layer.
+        "predicate_epistemic_status": UNTRUSTED,
+        "predicate_source": source,
+        "resolver_version": RESOLVER_VERSION,
+        "derived_from_event_id": event_id,
+        "derived_at": time.time(),
+        # Kept under the old key too. `_slot_of_row` and the gate already read
+        # it, and renaming a field that three modules and four frozen
+        # databases depend on buys nothing here.
+        "resolver": RESOLVER_VERSION,
+        "source": source,
+    }
+
+
+def status_of(slot: dict[str, Any] | None) -> str:
+    """How far a stored slot may be relied on.
+
+    A slot with no recorded status is UNTRUSTED, never TRUSTED. Rows written
+    before this field existed were produced by the same resolver, and a
+    missing provenance must never read as a stronger claim than a present one.
+    """
+    if not slot or not slot.get("attribute"):
+        return UNKNOWN
+    recorded = slot.get("predicate_epistemic_status")
+    return recorded if recorded in (TRUSTED, UNTRUSTED) else UNTRUSTED
 
 
 def backfill(conn: sqlite3.Connection, *, dry_run: bool = False,
