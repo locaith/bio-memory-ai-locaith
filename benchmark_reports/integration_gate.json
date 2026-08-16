@@ -1,0 +1,353 @@
+{
+  "runtime": {
+    "package_version": "0.8.2rc1",
+    "git_sha": "e2457389298044d0c7048f4663a3caf59a41ac7a",
+    "git_dirty": false,
+    "config_hash": "8f999906edf8eebb1bb74cdfff7bff6e",
+    "embedding_model": "",
+    "embedding_dims": 0,
+    "db_path": "",
+    "host": "DESKTOP-M1TSM33",
+    "pid": 31080,
+    "python_version": "3.11.9",
+    "process_start_time": 1786893256.2764802,
+    "untracked_files": 2,
+    "fingerprint": "6023f4b88cc103579a678639248dae48c22d8463886e3a236057fb1c4363f1c2"
+  },
+  "baseline": "benchmark_reports/failure_matrix_slots.json",
+  "scores": {
+    "ever": {
+      "before": 40,
+      "after": 39
+    },
+    "current": {
+      "before": 36,
+      "after": 33
+    },
+    "historical": {
+      "before": 23,
+      "after": 23
+    },
+    "forgotten": {
+      "before": 13,
+      "after": 11
+    }
+  },
+  "labels": {
+    "NO_DELTA": 126,
+    "UNEXPECTED_COUPLING": 10
+  },
+  "changed": [
+    {
+      "key": "10|Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?",
+      "label": "UNEXPECTED_COUPLING",
+      "before": {
+        "family": "historical",
+        "intent": "TEMPORAL_AT",
+        "tick": 10,
+        "question": "Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?",
+        "route": "temporal_operator",
+        "operator": "TEMPORAL_AT",
+        "expect": "value",
+        "value": "Hà Nội",
+        "answer": "No information available.",
+        "correct": false,
+        "evidence_present": false,
+        "failure_class": "historical_wrong",
+        "first_wrong_stage": "temporal_operator_selection",
+        "severity": "high"
+      },
+      "after": {
+        "family": "historical",
+        "question": "Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?",
+        "subject": "Phạm Vy",
+        "predicate": "city",
+        "route": "temporal_operator",
+        "candidate_count": 1,
+        "selected": [
+          "Phạm Vy sống ở Hà Nội."
+        ],
+        "answer": "Hà Nội",
+        "correct": true
+      }
+    },
+    {
+      "key": "50|Trần Hà đã từng có chức vụ là phó giám đốc đúng không?",
+      "label": "UNEXPECTED_COUPLING",
+      "before": {
+        "family": "ever",
+        "intent": "EXISTS",
+        "tick": 50,
+        "question": "Trần Hà đã từng có chức vụ là phó giám đốc đúng không?",
+        "route": "ever_operator",
+        "operator": "EXISTS",
+        "expect": "yes",
+        "value": "phó giám đốc",
+        "answer": "Có.",
+        "correct": true,
+        "evidence_present": true
+      },
+      "after": {
+        "family": "ever",
+        "question": "Trần Hà đã từng có chức vụ là phó giám đốc đúng không?",
+        "subject": "Trần Hà",
+        "predicate": "job_title",
+        "route": "ever_operator",
+        "candidate_count": 0,
+        "selected": [],
+        "answer": "Không.",
+        "correct": false
+      }
+    },
+    {
+      "key": "100|Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+      "label": "UNEXPECTED_COUPLING",
+      "before": {
+        "family": "historical",
+        "intent": "TEMPORAL_AT",
+        "tick": 100,
+        "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+        "route": "temporal_operator",
+        "operator": "TEMPORAL_AT",
+        "expect": "value",
+        "value": "Đại Việt",
+        "answer": "No information available.",
+        "correct": false,
+        "evidence_present": false,
+        "failure_class": "historical_wrong",
+        "first_wrong_stage": "temporal_operator_selection",
+        "severity": "high"
+      },
+      "after": {
+        "family": "historical",
+        "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+        "subject": "Phạm Vy",
+        "predicate": "employer",
+        "route": "temporal_operator",
+        "candidate_count": 1,
+        "selected": [
+          "Phạm Vy làm việc tại công ty Đại Việt."
+        ],
+        "answer": "Công ty Đại Việt.",
+        "correct": true
+      }
+    },
+    {
+      "key": "250|Phạm Vy đang làm ở công ty nào?",
+      "label": "UNEXPECTED_COUPLING",
+      "before": {
+        "family": "current",
+        "intent": "CURRENT_STATE",
+        "tick": 250,
+        "question": "Phạm Vy đang làm ở công ty nào?",
+        "route": "state_at",
+        "operator": "state_at",
+        "expect": "value",
+        "value": "Đại Việt",
+        "answer": "Công ty Đại Việt.",
+        "correct": true,
+        "evidence_present": true
+      },
+      "after": {
+        "family": "current",
+        "question": "Phạm Vy đang làm ở công ty nào?",
+        "subject": "Phạm Vy",
+        "predicate": "employer",
+        "route": "state_at",
+        "candidate_count": 1,
+        "selected": [
+          "Nhắc lại, phạm Vy phụ trách dự án cổng thanh toán."
+        ],
+        "answer": "No information available.",
+        "correct": false
+      }
+    },
+    {
+      "key": "750|Trần Hà đang giữ chức vụ gì?",
+      "label": "UNEXPECTED_COUPLING",
+      "before": {
+        "family": "forgotten",
+        "intent": "CURRENT_STATE sau khi xoá",
+        "tick": 750,
+        "question": "Trần Hà đang giữ chức vụ gì?",
+        "route": "state_at",
+        "operator": "state_at",
+        "expect": "value",
+        "value": "phó giám đốc",
+        "answer": "Phó giám đốc.",
+        "correct": true,
+        "evidence_present": true
+      },
+      "after": {
+        "family": "forgotten",
+        "question": "Trần Hà đang giữ chức vụ gì?",
+        "subject": "Trần Hà",
+        "predicate": "job_title",
+        "route": "state_at",
+        "candidate_count": 1,
+        "selected": [
+          "Nhắc lại, trần Hà làm việc tại công ty Locaith."
+        ],
+        "answer": "No information available.",
+        "correct": false
+      }
+    },
+    {
+      "key": "750|Trần Thảo đang làm ở công ty nào?",
+      "label": "UNEXPECTED_COUPLING",
+      "before": {
+        "family": "forgotten",
+        "intent": "CURRENT_STATE sau khi xoá",
+        "tick": 750,
+        "question": "Trần Thảo đang làm ở công ty nào?",
+        "route": "state_at",
+        "operator": "state_at",
+        "expect": "value",
+        "value": "Bình Minh",
+        "answer": "Công ty Bình Minh.",
+        "correct": true,
+        "evidence_present": true
+      },
+      "after": {
+        "family": "forgotten",
+        "question": "Trần Thảo đang làm ở công ty nào?",
+        "subject": "Trần Thảo",
+        "predicate": "employer",
+        "route": "state_at",
+        "candidate_count": 1,
+        "selected": [
+          "Từ hôm nay, trần Thảo đang giữ chức trưởng nhóm."
+        ],
+        "answer": "No information available.",
+        "correct": false
+      }
+    },
+    {
+      "key": "750|Vào ngày 2025-07-15, Nguyễn Dũng đang giữ chức vụ gì?",
+      "label": "UNEXPECTED_COUPLING",
+      "before": {
+        "family": "historical",
+        "intent": "TEMPORAL_AT",
+        "tick": 750,
+        "question": "Vào ngày 2025-07-15, Nguyễn Dũng đang giữ chức vụ gì?",
+        "route": "temporal_operator",
+        "operator": "TEMPORAL_AT",
+        "expect": "value",
+        "value": "giám đốc kỹ thuật",
+        "answer": "Giám đốc kỹ thuật.",
+        "correct": true,
+        "evidence_present": true
+      },
+      "after": {
+        "family": "historical",
+        "question": "Vào ngày 2025-07-15, Nguyễn Dũng đang giữ chức vụ gì?",
+        "subject": "Nguyễn Dũng",
+        "predicate": "job_title",
+        "route": "temporal_operator",
+        "candidate_count": 1,
+        "selected": [
+          "Nguyễn Dũng đang giữ chức phó giám đốc."
+        ],
+        "answer": "Phó giám đốc.",
+        "correct": false
+      }
+    },
+    {
+      "key": "750|Số điện thoại của Nguyễn Quân là gì?",
+      "label": "UNEXPECTED_COUPLING",
+      "before": {
+        "family": "current",
+        "intent": "CURRENT_STATE",
+        "tick": 750,
+        "question": "Số điện thoại của Nguyễn Quân là gì?",
+        "route": "state_at",
+        "operator": "state_at",
+        "expect": "value",
+        "value": "0903111222",
+        "answer": "0903111222",
+        "correct": true,
+        "evidence_present": true
+      },
+      "after": {
+        "family": "current",
+        "question": "Số điện thoại của Nguyễn Quân là gì?",
+        "subject": "Nguyễn Quân",
+        "predicate": "phone",
+        "route": "state_at",
+        "candidate_count": 1,
+        "selected": [
+          "Nhắc lại, nguyễn Quân sống ở Cần Thơ."
+        ],
+        "answer": "No information available.",
+        "correct": false
+      }
+    },
+    {
+      "key": "750|Vào ngày 2025-06-21, Số điện thoại của Nguyễn Quân là gì?",
+      "label": "UNEXPECTED_COUPLING",
+      "before": {
+        "family": "historical",
+        "intent": "TEMPORAL_AT",
+        "tick": 750,
+        "question": "Vào ngày 2025-06-21, Số điện thoại của Nguyễn Quân là gì?",
+        "route": "temporal_operator",
+        "operator": "TEMPORAL_AT",
+        "expect": "value",
+        "value": "0903111222",
+        "answer": "0903111222",
+        "correct": true,
+        "evidence_present": true
+      },
+      "after": {
+        "family": "historical",
+        "question": "Vào ngày 2025-06-21, Số điện thoại của Nguyễn Quân là gì?",
+        "subject": "Nguyễn Quân",
+        "predicate": "phone",
+        "route": "temporal_operator",
+        "candidate_count": 1,
+        "selected": [
+          "Nhắc lại, nguyễn Quân làm việc tại công ty Locaith."
+        ],
+        "answer": "No information available.",
+        "correct": false
+      }
+    },
+    {
+      "key": "1000|Nguyễn Quân đang làm ở công ty nào?",
+      "label": "UNEXPECTED_COUPLING",
+      "before": {
+        "family": "current",
+        "intent": "CURRENT_STATE",
+        "tick": 1000,
+        "question": "Nguyễn Quân đang làm ở công ty nào?",
+        "route": "state_at",
+        "operator": "state_at",
+        "expect": "value",
+        "value": "Locaith",
+        "answer": "Công ty Locaith.",
+        "correct": true,
+        "evidence_present": true
+      },
+      "after": {
+        "family": "current",
+        "question": "Nguyễn Quân đang làm ở công ty nào?",
+        "subject": "Nguyễn Quân",
+        "predicate": "employer",
+        "route": "state_at",
+        "candidate_count": 1,
+        "selected": [
+          "Nhắc lại, nguyễn Quân đang giữ chức trưởng nhóm."
+        ],
+        "answer": "No information available.",
+        "correct": false
+      }
+    }
+  ],
+  "privacy": {
+    "undeclared": [],
+    "unscanned_content_stores": [
+      "rejected_inputs",
+      "agent_checkpoints"
+    ]
+  }
+}
