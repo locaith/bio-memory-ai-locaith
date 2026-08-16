@@ -75,13 +75,25 @@ class CheckpointManager:
 
     @staticmethod
     def _row(row: sqlite3.Row) -> AgentCheckpoint:
+        """Read one back, including one whose content was erased.
+
+        `forgetting.erase_history` rewrites `payload_json` to a tombstone
+        object, so the keys `save` wrote are not guaranteed to be there. Reading
+        with `.get` returns an empty checkpoint carrying
+        `metadata["redacted"] = True`, which a caller can see; indexing raised
+        KeyError from an ordinary read path instead, which nobody can act on.
+        """
         payload = json.loads(row["payload_json"])
         return AgentCheckpoint(
             checkpoint_id=row["checkpoint_id"], tenant_id=row["tenant_id"], agent_id=row["agent_id"],
             workspace_id=row["workspace_id"], goal=row["goal"],
-            completed_steps=tuple(payload["completed_steps"]), pending_steps=tuple(payload["pending_steps"]),
-            open_hypotheses=tuple(payload["open_hypotheses"]), uncertainties=tuple(payload["uncertainties"]),
-            tool_state=payload["tool_state"], world_state=payload["world_state"], self_state=payload["self_state"],
-            active_memory_ids=tuple(payload["active_memory_ids"]), parent_checkpoint_id=row["parent_checkpoint_id"],
+            completed_steps=tuple(payload.get("completed_steps", ())),
+            pending_steps=tuple(payload.get("pending_steps", ())),
+            open_hypotheses=tuple(payload.get("open_hypotheses", ())),
+            uncertainties=tuple(payload.get("uncertainties", ())),
+            tool_state=payload.get("tool_state", {}), world_state=payload.get("world_state", {}),
+            self_state=payload.get("self_state", {}),
+            active_memory_ids=tuple(payload.get("active_memory_ids", ())),
+            parent_checkpoint_id=row["parent_checkpoint_id"],
             created_at=row["created_at"], metadata=json.loads(row["metadata_json"]),
         )

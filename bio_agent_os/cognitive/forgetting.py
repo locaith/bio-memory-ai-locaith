@@ -63,6 +63,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -98,6 +99,34 @@ CONTENT_COLUMNS: tuple[tuple[str, str], ...] = (
     ("cognitive_memories", "structured_json"),
     ("hippocampus_labels", "topic"),
     ("shadow_memories", "content"),
+    # Added 17/08. The immune system quarantines an input *because* it matched
+    # a credential pattern — `MemorySecurityScanner.assess` sets `quarantined`
+    # only when `SECRET_PATTERNS` or `INJECTION_PATTERNS` hit a persistent
+    # write (security.py:49) — and `facade._record_rejection` writes `content`,
+    # the original, not `decision.redacted_content`. The redacted string is
+    # computed on the same line and thrown away (facade.py:421).
+    #
+    # So the one store guaranteed to hold credentials was the one store no
+    # deletion looked at. Measured on a real MemoryOS, 17/08:
+    #
+    #     forget_derived(subject=…, needle=…)  -> verified_clean = True
+    #     erase_history(needle=…, confirm=True) -> verified_clean = True,
+    #                                              2 events redacted
+    #     rejected_inputs.content               -> "… api_key: sk-live-…"
+    #
+    # `payload_json` too: it carries the caller's `structured_content`
+    # verbatim, which is the same slot `_scrub_supplied_slot` cleans on the
+    # accepted path and nothing cleans on the refused one.
+    ("rejected_inputs", "content"),
+    ("rejected_inputs", "payload_json"),
+    # Whatever a caller checkpointed, unread by anything. `goal` is free text,
+    # `payload_json` carries `tool_state`, `self_state` and a world-model
+    # snapshot, `metadata_json` is an open dict. Nothing inspects or redacts
+    # them on the way in, and the same probe found the credential in
+    # `payload_json` and the subject in `goal`.
+    ("agent_checkpoints", "goal"),
+    ("agent_checkpoints", "payload_json"),
+    ("agent_checkpoints", "metadata_json"),
 )
 
 #: The append-only log. Scanned separately because content surviving *here* is
@@ -107,6 +136,27 @@ EVENT_COLUMNS: tuple[tuple[str, str], ...] = (
     ("cognitive_events", "payload_json"),
     ("cognitive_events", "metadata_json"),
 )
+
+#: Stores `erase_history` rewrites in place: the row stays, its content does
+#: not.
+#:
+#: Deleting the row was the other option and it is the wrong one. The value of
+#: both of these tables is the *record* — which build refused what, that a
+#: checkpoint existed — and that value is orthogonal to the content. Redaction
+#: is what `cognitive_events` already gets for the identical reason, so this is
+#: the established treatment rather than a new one.
+#:
+#: `*_json` columns are rewritten to a tombstone object so a reader that
+#: `json.loads` them keeps working; everything else gets the marker.
+REDACTED_STORES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("rejected_inputs", "rejection_id", ("content", "payload_json")),
+    ("agent_checkpoints", "checkpoint_id",
+     ("goal", "payload_json", "metadata_json")),
+)
+
+#: What a redacted text column reads as. A row saying this is a row somebody
+#: erased on purpose, which is different from a row that was always empty.
+REDACTION_MARKER = "[ĐÃ XOÁ VĨNH VIỄN]"
 
 CONSOLIDATED_MARKER = "consolidated_from"
 
@@ -136,6 +186,11 @@ class ForgetReport:
     memories_deleted: int = 0
     derived: dict[str, int] = field(default_factory=dict)
     events_redacted: int = 0
+    #: Rows whose content was rewritten in place, per store. Separate from
+    #: `derived` because nothing was deleted here — the row and its attribution
+    #: survive on purpose, and a report that counted them together would not
+    #: say which.
+    stores_redacted: dict[str, int] = field(default_factory=dict)
     #: How many probes were actually searched for. Zero means the verification
     #: never ran, which is not the same as finding nothing — see `verified_clean`.
     checks_run: int = 0
@@ -173,6 +228,7 @@ class ForgetReport:
             "memories_deleted": self.memories_deleted,
             "derived": self.derived,
             "events_redacted": self.events_redacted,
+            "stores_redacted": self.stores_redacted,
             "checks_run": self.checks_run,
             "verified_clean": self.verified_clean,
             "residue": self.residue,
@@ -660,6 +716,75 @@ def _redact_payloads(conn: sqlite3.Connection, event_ids: set[str],
     return redacted
 
 
+def _stores_holding(conn: sqlite3.Connection,
+                    probes: list[str]) -> dict[str, list[str]]:
+    """Which rows of `REDACTED_STORES` still carry any of these strings.
+
+    Compared in Python through `_normalise`, the same fold `verify` uses, for
+    the reason `verify`'s docstring gives: a deleter that reaches case variants
+    the verifier cannot see is how a false all-clear gets produced.
+    """
+    needles = [n for n in (_normalise(p) for p in probes) if n]
+    found: dict[str, list[str]] = {}
+    if not needles:
+        return found
+    for table, key, columns in REDACTED_STORES:
+        picked = [str(row[0]) for row in _safe(
+            conn, f"SELECT {key}, {', '.join(columns)} FROM {table}")
+            if any(n in _normalise(v) for v in row[1:] for n in needles)]
+        if picked:
+            found[table] = picked
+    return found
+
+
+def _redact_stores(conn: sqlite3.Connection, found: dict[str, list[str]],
+                   *, reason: str, actor: str) -> dict[str, int]:
+    """Rewrite the content of rows no deletion could otherwise reach.
+
+    The row survives with everything that makes it a record — which runtime
+    refused the input, at which build, when, and why; that a checkpoint existed
+    and for which agent. Only what it quoted goes.
+
+    A redacted rejection is also closed out, because `pending()` is the replay
+    queue and a row whose content is now a tombstone can never be replayed.
+    Leaving it pending would hand the next replay a marker string to re-offer.
+    `discarded` with the erasure's actor and reason is the store's own
+    vocabulary for exactly this, and it reads correctly a year later.
+
+    Nothing here is swallowed. `_safe` is right for a *read* against a store
+    that may not exist in this database; a write that fails is a permanent
+    erasure that did not happen, and the caller has to hear about it rather
+    than read a report that counted zero. `found` only ever names tables a read
+    already succeeded against, so "no such table" cannot reach here.
+    """
+    counts: dict[str, int] = {}
+    if not found:
+        return counts
+    tomb = json.dumps({"redacted": True, "erased_at": _utc_now(),
+                       "reason": reason, "actor": actor},
+                      ensure_ascii=False, sort_keys=True)
+    for table, key, columns in REDACTED_STORES:
+        ids = found.get(table)
+        if not ids:
+            continue
+        marks = ",".join("?" * len(ids))
+        assignments = ", ".join(f"{column}=?" for column in columns)
+        values = tuple(tomb if column.endswith("_json") else REDACTION_MARKER
+                       for column in columns)
+        cursor = conn.execute(
+            f"UPDATE {table} SET {assignments} WHERE {key} IN ({marks})",
+            values + tuple(ids))
+        counts[table] = max(cursor.rowcount, 0)
+        if table == "rejected_inputs":
+            conn.execute(
+                f"UPDATE {table} SET status='discarded', resolved_at=?, "
+                f"resolved_by=?, resolution=? WHERE {key} IN ({marks})",
+                (time.time(), actor or "erase_history",
+                 f"nội dung đã bị xoá vĩnh viễn: {reason}", *ids))
+    conn.commit()
+    return counts
+
+
 def erase_history(memory_os: Any, *, memory_id: str | None = None,
                   subject: str | None = None, needle: str | None = None,
                   reason: str = "", actor: str = "",
@@ -697,6 +822,10 @@ def erase_history(memory_os: Any, *, memory_id: str | None = None,
         merged = find_consolidated_containing(conn, targets)
         event_ids = _event_ids_of(conn, targets | set(merged))
         probes = _probes(contents, needle)
+        # Taken before `forget_derived` runs, for the same reason `contents` is:
+        # afterwards the memory rows are gone and the probes are all that is
+        # left to find these rows by.
+        holding = _stores_holding(conn, probes)
         report = forget_derived(memory_os, memory_id=memory_id,
                                 subject=subject, needle=needle, actor=actor)
         report.scope = Scope.HISTORY
@@ -713,13 +842,19 @@ def erase_history(memory_os: Any, *, memory_id: str | None = None,
         # by the tombstones the first deletion left behind.
         event_ids = _events_holding(events, needle) | _tombstoned_events(
             conn, memory_id=memory_id, subject=subject)
-        if not event_ids:
-            report = ForgetReport(scope=Scope.HISTORY)
+        probes = _probes([], needle)
+        report = ForgetReport(scope=Scope.HISTORY)
+        # Resolved before the early return below, because a quarantined input
+        # never becomes a memory and never reaches the event log verbatim —
+        # `observe` stores `decision.redacted_content`. So every resolution
+        # path this function had found nothing, and the strongest deletion in
+        # the system returned "không tìm thấy" with the credential on disk.
+        # Measured 17/08: 1 row in `rejected_inputs`, 0 events, clean report.
+        holding = _stores_holding(conn, probes)
+        if not event_ids and not holding:
             report.note = ("không tìm thấy ký ức nào khớp, và cũng không có "
                            "sự kiện nào mang chuỗi này")
             return report
-        probes = _probes([], needle)
-        report = ForgetReport(scope=Scope.HISTORY)
         report.note = (f"ký ức đã bị xoá trước đó; xoá cứng {len(event_ids)} "
                        f"sự kiện tìm qua bia mộ và nội dung sự kiện")
 
@@ -737,6 +872,8 @@ def erase_history(memory_os: Any, *, memory_id: str | None = None,
 
     report.events_redacted = _redact_payloads(events, event_ids,
                                               reason=reason, actor=actor)
+    report.stores_redacted = _redact_stores(conn, holding, reason=reason,
+                                            actor=actor)
     if stamped:
         events.executemany(
             f"INSERT INTO {ERASURE_TABLE}(erasure_id, event_id, tenant_id, "
@@ -834,6 +971,8 @@ __all__ = [
     "DERIVED_TABLES",
     "ERASURE_TABLE",
     "EVENT_COLUMNS",
+    "REDACTED_STORES",
+    "REDACTION_MARKER",
     "ForgetReport",
     "IntegrityVerdict",
     "Scope",

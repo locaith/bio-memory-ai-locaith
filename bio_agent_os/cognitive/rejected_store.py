@@ -20,6 +20,21 @@ Content is stored verbatim, on purpose. Storing a redacted copy would make the
 table safe to print and useless to replay, and this is the one place where the
 input has *not* yet been accepted into memory — the point is to hold it outside
 the system until a person decides. `resolve()` is how it leaves.
+
+Verbatim is not the same as permanent, and until 17/08 this file's argument was
+being read as though it were. An input is quarantined *because* the scanner
+matched a credential, so this table is where secrets land in full — and no
+deletion at any level looked at it, or could remove anything from it. Measured
+on a real MemoryOS: `erase_history(confirm=True)` returned `verified_clean =
+True` with `api_key: sk-live-…` still in `content`.
+
+So `forgetting.CONTENT_COLUMNS` now scans this table — a deletion that leaves a
+copy here says so — and `erase_history` rewrites `content` and `payload_json`
+of the rows it matches, leaving the row, the reasons, the risk score and the
+runtime fingerprint alone. Durable and attributed survive an erasure;
+replayable does not, which is what the caller asked for by name, with a reason
+and an actor. Such a row is closed as `discarded`, because `pending()` is the
+replay queue and a tombstone must never be handed to a replay.
 """
 
 from __future__ import annotations

@@ -29,6 +29,11 @@ outside the verifier, not one:
 Each declaration answers what a deletion has to do about it, so the policy
 lives beside the fact rather than in whichever module happened to be written
 last.
+
+The last two were closed on 17/08: both are now scanned by `CONTENT_COLUMNS`
+and rewritten by `erase_history`. The list below is kept as it was found,
+because "five, and here is what happened to each" is a more useful record than
+a list edited down to whatever is still broken.
 """
 
 from __future__ import annotations
@@ -119,13 +124,30 @@ REGISTRY: dict[str, StorePolicy] = {p.store_name: p for p in (
 
     _store("rejected_inputs", raw=True, identity=True, secret=True,
            kind="history", forget=KEEP, erase=REDACT,
-           replay="never materialised",
-           verify="NOT scanned by CONTENT_COLUMNS — open finding F6",
-           note="the review's finding. Content is stored verbatim on "
-                "purpose: a rejection that cannot be replayed is a deletion "
-                "with extra steps. It is outside the verifier and that is "
-                "recorded here rather than quietly fixed, because 'kept "
-                "deliberately' and 'kept accidentally' must not look alike."),
+           replay="verbatim while pending; discarded once erased",
+           verify="CONTENT_COLUMNS: content, payload_json",
+           note="F6, closed 17/08. The store's own argument — a rejection you "
+                "cannot replay is a deletion with extra steps — survives "
+                "review and verbatim storage stays. What did not survive is "
+                "the conclusion drawn from it: verbatim and unerasable are "
+                "different properties, and `cognitive_events` is verbatim, "
+                "append-only, replay-critical AND redactable, in this same "
+                "registry. Weighing it: `quarantined` is set only when "
+                "security.py matched a credential or an injection pattern, "
+                "and facade.py:421 writes `content`, not "
+                "`decision.redacted_content` — so this is the one table "
+                "guaranteed to hold the secrets the immune system exists to "
+                "keep out, and nothing had ever deleted a row from it. "
+                "Measured 17/08 on a real MemoryOS: forget_derived and "
+                "erase_history both returned verified_clean=True with "
+                "'api_key: sk-live-…' still in `content`. Now scanned at every "
+                "level, so a deletion reports it, and rewritten by "
+                "erase_history, so a deletion can finish. The row, the reasons, "
+                "the risk score and the runtime fingerprint always survive — "
+                "'which build refused what' is the point of the table and "
+                "redaction does not touch it. An erased rejection is closed as "
+                "`discarded` because it can no longer be replayed, and "
+                "`pending()` must not offer a tombstone to the next replay."),
 
     _store("memory_tombstones", identity=False, kind="history",
            forget=KEEP, erase=KEEP, replay="consulted, never rebuilt",
@@ -185,9 +207,20 @@ REGISTRY: dict[str, StorePolicy] = {p.store_name: p for p in (
 
     _store("agent_checkpoints", raw=True, identity=True, secret=True,
            kind="operational", forget=KEEP, erase=REDACT,
-           replay="restored", verify="NOT scanned — open finding",
-           note="session state, holds whatever a caller checkpointed. Same "
-                "class as rejected_inputs and found the same way."),
+           replay="restored; a redacted one restores empty",
+           verify="CONTENT_COLUMNS: goal, payload_json, metadata_json",
+           note="session state, holds whatever a caller checkpointed and "
+                "nothing inspects it on the way in. Closed 17/08 alongside "
+                "rejected_inputs. `erase=REDACT` was declared here before any "
+                "code did it, which is worse than an undeclared store because "
+                "it reads as done — erase_history now performs it. Three "
+                "columns, not one: `goal` is caller free text and "
+                "`metadata_json` is an open dict, and the probe that found a "
+                "credential in `payload_json` found the subject in `goal`. "
+                "forget_derived leaves the rows alone because a checkpoint is "
+                "operational state its agent rewrites on the next step, and "
+                "erasing it on a reversible deletion would break a resume that "
+                "the caller did not ask to break."),
 
     _store("constitution_decisions", kind="history", forget=KEEP, erase=KEEP,
            replay="never", verify="reasons and ids, no content",
@@ -237,10 +270,14 @@ def undeclared(conn: sqlite3.Connection) -> set[str]:
 def unscanned_content_stores() -> list[StorePolicy]:
     """Declared stores that hold content no verifier reads.
 
-    Not a failure — `cognitive_events` is deliberately here — but a list that
-    must be short and must be looked at. "Kept deliberately" and "kept
-    accidentally" have to be distinguishable, and this is where that
-    distinction is written down.
+    Empty since 17/08, and it has to stay a list rather than become an
+    assertion: a store may legitimately land here again, and what matters is
+    that landing here is visible. `cognitive_events` is the shape of a
+    legitimate entry — except it is not one, because it *is* scanned, through
+    `EVENT_COLUMNS`, and reported as reversible rather than as residue.
+
+    "Kept deliberately" and "kept accidentally" have to be distinguishable, and
+    this is where that distinction is written down.
     """
     return [p for p in REGISTRY.values()
             if (p.contains_raw_payload or p.contains_derived_payload)

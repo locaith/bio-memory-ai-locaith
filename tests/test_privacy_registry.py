@@ -109,14 +109,40 @@ def test_a_store_holding_content_and_keeping_it_must_say_why():
             assert policy.note, policy.store_name
 
 
-def test_the_stores_outside_the_verifier_are_listed_and_short():
-    """Not a failure — `cognitive_events` belongs here — but the list has to
-    be looked at rather than discovered."""
+def test_no_declared_store_holds_content_outside_the_verifier():
+    """Empty since 17/08, when the last two were closed.
+
+    `rejected_inputs` and `agent_checkpoints` sat here declared and described
+    while every deletion verified itself against a list that omitted them —
+    measured on a real MemoryOS, `erase_history` returned verified_clean=True
+    with `api_key: sk-live-…` still in `rejected_inputs.content`. Both are now
+    scanned and both are rewritten by `erase_history`; see
+    `test_quarantine_erasure.py`.
+    """
     outside = registry.unscanned_content_stores()
-    names = {p.store_name for p in outside}
-    assert "rejected_inputs" in names, (
-        "F6 phải nằm trong danh sách này cho tới khi được sửa thật")
-    assert len(outside) <= 3, sorted(names)
+    assert outside == [], (
+        f"{[p.store_name for p in outside]} giữ nội dung mà không verifier nào "
+        f"đọc. Hoặc đưa vào CONTENT_COLUMNS, hoặc nói rõ vì sao giữ.")
+
+
+def test_the_unscanned_list_still_detects_one():
+    """The list being empty must mean nothing is outside, not that the check
+    stopped working. A policy that declares content and no verifier is caught.
+    """
+    mutant = registry.StorePolicy(
+        store_name="exports_v2", contains_raw_payload=True,
+        contains_derived_payload=False, contains_identity_data=True,
+        contains_secret_possible=True, serving_or_history="operational",
+        forget_derived_policy=registry.KEEP, erase_history_policy=registry.KEEP,
+        replay_policy="never", verification_strategy="NOT scanned")
+    patched = dict(registry.REGISTRY)
+    patched[mutant.store_name] = mutant
+    original, registry.REGISTRY = registry.REGISTRY, patched
+    try:
+        assert [p.store_name for p in registry.unscanned_content_stores()] == \
+            ["exports_v2"]
+    finally:
+        registry.REGISTRY = original
 
 
 def test_the_registry_matches_what_the_deletion_verifier_scans():
