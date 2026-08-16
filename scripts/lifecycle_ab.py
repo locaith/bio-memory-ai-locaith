@@ -103,6 +103,61 @@ def _relation_history(events) -> dict[tuple[str, str], list[str]]:
     return out
 
 
+def retired_values(question: Question, ledger) -> set[str]:
+    """Values that were true for this slot once and are not true now.
+
+    The vocabulary of a stale answer. A model that echoes one of these has
+    repeated something the store told it that stopped being true, which is the
+    specific harm a lifecycle is supposed to prevent.
+    """
+    if not question.subject_id or not question.attribute:
+        return set()
+    live = ledger.at(question.subject_id, question.attribute, question.tick,
+                     asked_at=question.tick)
+    live_value = _fold(live.value) if live is not None else None
+    return {_fold(c.value) for c in ledger.claims
+            if c.subject_id == question.subject_id
+            and c.attribute == question.attribute
+            and _fold(c.value) != live_value
+            and c.asserted_at <= question.tick}
+
+
+def poisoned_by_stale(question: Question, retrieved: list[str], answer: str,
+                      ledger) -> bool:
+    """Did a retired value reach the context *and* come back out in the answer?
+
+    `stale_context_poison_rate` is measured over wrong answers only, and this
+    is what makes it an attribution rather than a correlation: the value has to
+    be one the world retired, it has to be in what the store handed over, and
+    it has to appear in what the model said. All three, or it is not this.
+
+    It is still not proof of cause — a model can produce a retired value it was
+    never shown. That direction is measured too, as `stale_answer_not_in_context`,
+    so the gap between the two is visible instead of assumed away.
+    """
+    if not answer:
+        return False
+    folded_answer = _fold(answer)
+    context = _fold(" ".join(retrieved))
+    for value in retired_values(question, ledger):
+        if value and value in folded_answer and value in context:
+            return True
+    return False
+
+
+def stale_without_context(question: Question, retrieved: list[str],
+                          answer: str, ledger) -> bool:
+    """A retired value in the answer that was *not* in what was retrieved."""
+    if not answer:
+        return False
+    folded_answer = _fold(answer)
+    context = _fold(" ".join(retrieved))
+    for value in retired_values(question, ledger):
+        if value and value in folded_answer and value not in context:
+            return True
+    return False
+
+
 def contamination(question: Question, retrieved: list[str], ledger) -> tuple[int, int]:
     """(retired claims returned, claims returned) for one question.
 
@@ -142,7 +197,7 @@ def contamination(question: Question, retrieved: list[str], ledger) -> tuple[int
 
 def run_arm(name: str, *, mode: str | None, oracle: bool, events, ledger,
             people, embedder, seed: int, per_family: int,
-            workdir: Path) -> dict:
+            workdir: Path, engine=None) -> dict:
     """One arm. Same everything except `mode`."""
     from bio_agent_os.cognitive.semantic_index import (
         backfill_embeddings, calibrate_with_probes,
@@ -150,14 +205,14 @@ def run_arm(name: str, *, mode: str | None, oracle: bool, events, ledger,
     from bio_agent_os.evals.lifetime_adapter import CognitiveAdapter
 
     adapter = CognitiveAdapter(workdir / f"{name}.db", embedder=embedder,
-                               lifecycle_mode=mode)
+                               engine=engine, lifecycle_mode=mode)
     adapter.reset()
     if oracle:
         _install_oracle(adapter, events)
 
     rng = random.Random(seed)
     asked: list[Question] = []
-    results: list[tuple[Question, list[str], bool | None]] = []
+    results: list[tuple[Question, list[str], bool | None, str, float, int]] = []
     fed = 0
 
     for checkpoint in CHECKPOINTS:
@@ -179,7 +234,9 @@ def run_arm(name: str, *, mode: str | None, oracle: bool, events, ledger,
             asked.append(question)
             result = adapter.query(question.text, checkpoint)
             results.append((question, result.retrieved,
-                            retrieval_hit(question, result.retrieved)))
+                            retrieval_hit(question, result.retrieved),
+                            result.answer, result.latency_ms,
+                            getattr(result, "prompt_chars", 0)))
 
     stats = (adapter.lifecycle.stats.as_dict()
              if adapter.lifecycle is not None else {})
@@ -187,12 +244,39 @@ def run_arm(name: str, *, mode: str | None, oracle: bool, events, ledger,
 
     by_family: Counter = Counter()
     totals: Counter = Counter()
+    answer_right: Counter = Counter()
+    answer_total: Counter = Counter()
     retired_total = slot_total = 0
+    answered = poisoned = stale_no_context = declined = 0
+    prompt_chars = 0
+    latencies: list[float] = []
     failures = []
-    for question, retrieved, hit in results:
+    poison_cases = []
+
+    for question, retrieved, hit, answer, latency, chars in results:
         retired, about = contamination(question, retrieved, ledger)
         retired_total += retired
         slot_total += about
+        latencies.append(latency)
+        prompt_chars += chars
+
+        if engine is not None:
+            answered += 1 if str(answer).strip() else 0
+            said = question.grade(answer)
+            answer_total[question.family.value] += 1
+            answer_right[question.family.value] += int(said)
+            if _declined(answer):
+                declined += 1
+            if not said:
+                if poisoned_by_stale(question, retrieved, answer, ledger):
+                    poisoned += 1
+                    poison_cases.append({
+                        "question": question.text, "tick": question.tick,
+                        "expected": question.value, "answer": answer[:200],
+                        "retrieved": retrieved[:4]})
+                elif stale_without_context(question, retrieved, answer, ledger):
+                    stale_no_context += 1
+
         if hit is None:
             continue
         totals[question.family.value] += 1
@@ -207,10 +291,31 @@ def run_arm(name: str, *, mode: str | None, oracle: bool, events, ledger,
                              "value": question.value,
                              "retrieved": retrieved[:6]})
 
+    wrong = sum(answer_total.values()) - sum(answer_right.values())
     return {"arm": name, "mode": mode, "oracle": oracle,
+            "asked": len(asked),
             "by_family": {f: (by_family[f], totals[f]) for f in totals},
+            "answer_by_family": {f: (answer_right[f], answer_total[f])
+                                 for f in answer_total},
+            "answered": answered,
+            "answer_wrong": wrong,
+            "poisoned_by_stale": poisoned,
+            "stale_answer_not_in_context": stale_no_context,
+            "stale_context_poison_rate": round(poisoned / wrong, 4) if wrong else None,
+            "abstention_rate": round(declined / len(results), 4) if results else 0.0,
+            "prompt_chars": prompt_chars,
+            "latency_ms_total": round(sum(latencies), 1),
+            "latency_ms_p50": round(sorted(latencies)[len(latencies) // 2], 1)
+                              if latencies else 0.0,
+            "poison_cases": poison_cases[:10],
             "stale_context": (retired_total, slot_total),
             "failures": failures, "lifecycle": stats}
+
+
+def _declined(answer: str) -> bool:
+    from bio_agent_os.evals.lifetime_questions import _DECLINE
+
+    return bool(answer) and bool(_DECLINE.search(_fold(answer)))
 
 
 def _install_oracle(adapter, events) -> None:
@@ -294,6 +399,8 @@ def main() -> int:
     ap.add_argument("--per-family", type=int, default=6)
     ap.add_argument("--oracle", action="store_true",
                     help="cũng chạy nhánh C với nhãn quan hệ hoàn hảo")
+    ap.add_argument("--engine", action="store_true",
+                    help="chấm cả câu TRẢ LỜI, không chỉ truy xuất (tốn tiền)")
     ap.add_argument("--out", default="benchmark_reports/lifecycle_ab.json")
     args = ap.parse_args()
 
@@ -312,6 +419,20 @@ def main() -> int:
                                       subjects=args.subjects, seed=args.seed)
     relation_history = _relation_history(events)
     embedder = Embedder()
+
+    engine = None
+    if args.engine:
+        from bio_agent_os.core.llm_engine import LLMEngine
+
+        # One engine instance shared by every arm: same model, same
+        # temperature, same prompt builder. An arm that quietly got a
+        # different model would explain any result it liked.
+        engine = LLMEngine.from_env()
+        print(f"  model   : {engine.backend}/{engine.model_id} "
+              f"temp={engine.temperature}")
+        print("  Cùng một instance cho cả ba nhánh — cùng model, cùng nhiệt "
+              "độ, cùng prompt.\n")
+
     workdir = _REPO / ".staging" / "lifecycle_ab"
     workdir.mkdir(parents=True, exist_ok=True)
 
@@ -332,22 +453,44 @@ def main() -> int:
         results[name] = run_arm(name, mode=mode, oracle=oracle, events=events,
                                 ledger=ledger, people=people,
                                 embedder=embedder, seed=args.seed,
-                                per_family=args.per_family, workdir=workdir)
+                                per_family=args.per_family, workdir=workdir,
+                                engine=engine)
 
-    # Refused before any number is printed. The first run of this script
+    # ------------------------------------------------------------------
+    # NO EXECUTION != ZERO PERFORMANCE
+    #
+    # The invariant this runner earned the hard way. Three consecutive runs
     # reported a delta of exactly 0.0000 on every family while every lifecycle
-    # action was failing with "Cannot operate on a closed database" — the arm
+    # action was failing with "Cannot operate on a closed database". The arm
     # had not run, and the output was indistinguishable from a clean negative
-    # result. A comparison whose treatment silently did nothing is not a
-    # negative finding, it is a broken experiment.
-    broken = {name: r["lifecycle"]["errors"] for name, r in results.items()
-              if r["lifecycle"].get("errors")}
-    if broken:
-        print("\n  DỪNG: nhánh có lỗi khi thi hành lifecycle, nên số đo không "
-              "so sánh được.")
-        for name, errors in broken.items():
-            print(f"    {name}: {len(errors)} lỗi, ví dụ {errors[0]}")
-        print("  Một nhánh thí nghiệm không chạy được KHÔNG phải là kết quả âm.")
+    # result — the most expensive kind of wrong answer, because it looks like
+    # a finding.
+    #
+    # Two conditions, not one. Errors catch a treatment that failed; the count
+    # check catches one that never started, which leaves no error behind at
+    # all.
+    # ------------------------------------------------------------------
+    problems = []
+    expected = None
+    for name, arm in results.items():
+        errors = arm["lifecycle"].get("errors") or []
+        if errors:
+            problems.append(f"{name}: {len(errors)} lỗi thi hành lifecycle, "
+                            f"ví dụ {errors[0]}")
+        if expected is None:
+            expected = arm["asked"]
+        elif arm["asked"] != expected:
+            problems.append(f"{name}: hỏi {arm['asked']} câu, nhánh đầu hỏi "
+                            f"{expected} — hai nhánh không so được")
+        if engine is not None and arm["answered"] != arm["asked"]:
+            problems.append(f"{name}: {arm['asked']} câu hỏi nhưng chỉ "
+                            f"{arm['answered']} câu có trả lời")
+    if problems:
+        print("\n  DỪNG — KHÔNG CHẠY ĐƯỢC KHÔNG PHẢI LÀ ĐIỂM BẰNG KHÔNG")
+        for line in problems:
+            print(f"    {line}")
+        print("  Không in số đo: một nhánh thí nghiệm không thi hành được thì "
+              "con số của nó không phải kết quả âm.")
         return 2
 
     print("\n" + "=" * 70)
@@ -394,6 +537,51 @@ def main() -> int:
         print(f"  {name:<10} {retired}/{about} = {rate:.4f}")
     print("  Với n≈40, một câu đổi làm tỷ lệ nhảy 0.025. Đừng đọc chênh lệch "
           "nhỏ hơn thế thành xu hướng.")
+
+    if engine is not None:
+        print("\n" + "=" * 70)
+        print("TẦNG TRẢ LỜI — nơi ngữ cảnh lỗi thời trở thành câu trả lời sai")
+        print("=" * 70)
+        header = f"  {'nhánh':<10}" + "".join(f"{f:>13}" for f in families) \
+                 + f"{'tổng':>10}"
+        print(header)
+        print("  " + "-" * (len(header) - 2))
+        for name in results:
+            row = f"  {name:<10}"
+            right = total = 0
+            for family in families:
+                pair = results[name]["answer_by_family"].get(family)
+                if pair and pair[1]:
+                    right += pair[0]
+                    total += pair[1]
+                    row += f"{_rate(pair):>13.4f}"
+                else:
+                    row += f"{'—':>13}"
+            row += f"{(right / total if total else 0):>10.4f}"
+            print(row)
+
+        print(f"\n  {'nhánh':<10}{'sai':>6}{'ngộ độc':>10}{'tỷ lệ':>9}"
+              f"{'lỗi thời ngoài ngữ cảnh':>26}{'từ chối':>10}")
+        for name in results:
+            arm = results[name]
+            rate = arm["stale_context_poison_rate"]
+            print(f"  {name:<10}{arm['answer_wrong']:>6}"
+                  f"{arm['poisoned_by_stale']:>10}"
+                  f"{(f'{rate:.4f}' if rate is not None else '—'):>9}"
+                  f"{arm['stale_answer_not_in_context']:>26}"
+                  f"{arm['abstention_rate']:>10.4f}")
+        print("\n  ngộ độc = trả lời SAI, và giá trị sai đó là một giá trị đã")
+        print("  hết hiệu lực, vừa nằm trong ngữ cảnh vừa nằm trong câu trả")
+        print("  lời. Cột kế bên đếm chiều ngược lại — model tự nói ra một")
+        print("  giá trị lỗi thời mà kho KHÔNG hề đưa cho nó. Khoảng cách")
+        print("  giữa hai cột là thứ lifecycle không chịu trách nhiệm.")
+
+        print(f"\n  {'nhánh':<10}{'ký tự prompt':>14}{'p50 ms':>10}{'tổng ms':>12}")
+        for name in results:
+            arm = results[name]
+            print(f"  {name:<10}{arm['prompt_chars']:>14,}"
+                  f"{arm['latency_ms_p50']:>10.1f}"
+                  f"{arm['latency_ms_total']:>12,.0f}")
 
     print("\n" + "=" * 70)
     print("LIFECYCLE ĐÃ LÀM GÌ")

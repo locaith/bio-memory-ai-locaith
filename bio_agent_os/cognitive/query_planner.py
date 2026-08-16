@@ -94,6 +94,20 @@ _META = re.compile(
     re.IGNORECASE,
 )
 
+#: "Was this ever true?" — a question about the whole history, not a moment.
+#:
+#: It needs its own marker because `as_of` filtering is exactly wrong for it.
+#: A claim that was superseded is the *evidence* that something was once true,
+#: and filtering to the asking moment removes it. Measured on the answer-layer
+#: A/B of 16/08: the EVER family fell 0.4750 -> 0.4000, three questions, while
+#: current and forgotten rose — a regression caused by the filter, not by the
+#: lifecycle it was added to serve.
+_EVER = re.compile(
+    r"(từng|đã bao giờ|có bao giờ|trước giờ có"
+    r"|\bever\b|has .{0,20}\bever\b|used to)",
+    re.IGNORECASE,
+)
+
 #: Questions anchored to a past moment.
 _TEMPORAL = re.compile(
     r"(hồi (tháng|năm|đó)|trước đây|lúc trước|khi đó|trước kia"
@@ -232,8 +246,16 @@ def plan(memory_os: Any, question: str, *, context: Any,
     in the store and no answer changes. Measured: a first A/B closed 39
     windows and emptied 17, and scored identically to the arm that closed
     none, because nothing on the read path was looking.
+
+    It is dropped for "was this ever true" questions. A superseded claim is
+    precisely the evidence that something was once the case, and filtering to
+    the asking moment throws it away. Measured on the answer-layer A/B of
+    16/08: the EVER family fell three questions while current and forgotten
+    rose, so the arm's total was unchanged and the cause was invisible in it.
     """
     kind = classify(question)
+    if as_of and _EVER.search(question):
+        as_of = None
 
     # A dated question goes to the temporal operator, not to vector search.
     #

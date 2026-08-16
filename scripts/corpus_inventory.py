@@ -124,9 +124,16 @@ class Source:
     sensitivity: str = "unknown"
     provenance_quality: str = "unknown"
     notes: list = field(default_factory=list)
+    #: Every file's modification time. Kept so the split can be cut on
+    #: percentiles rather than on the two extremes — one vendored file with a
+    #: 1998 timestamp otherwise moves the boundary by eleven years. Dropped
+    #: from the manifest: it is a working array, not a finding.
+    file_days: list = field(default_factory=list, repr=False)
 
     def as_dict(self) -> dict:
-        return asdict(self)
+        payload = asdict(self)
+        payload.pop("file_days", None)
+        return payload
 
 
 def _tool_of(path: Path) -> tuple[str, str, str]:
@@ -152,14 +159,22 @@ def _partition_of(path: Path, customers: tuple[str, ...]) -> tuple[str, str]:
     A source filed under the wrong tenant is worse than one filed under none:
     UNKNOWN gets reviewed, and a confident wrong label does not.
     """
-    lowered = str(path).lower()
+    lowered = str(path).lower().replace("\\", "/")
     for customer in customers:
         if customer.lower() in lowered:
             return Partition.CUSTOMER, customer
+    # An agent's own transcripts are the operator's working record: their
+    # questions, their mistakes, their unredacted thinking. The first run filed
+    # 1420 files and 2 GB of them as UNKNOWN, which is the wrong default for
+    # the most personal source on the machine.
+    if any(marker in lowered for marker in
+           (".claude/projects", ".claude/history", ".codex", "/chats/",
+            "conversations")):
+        return Partition.PERSONAL, ""
     if "locaith" in lowered:
         return Partition.LOCAITH_INTERNAL, ""
     if any(marker in lowered for marker in
-           ("\\documents\\", "/documents/", "personal", "ca nhan", "cá nhân")):
+           ("/documents/", "personal", "ca nhan", "cá nhân")):
         return Partition.PERSONAL, ""
     return Partition.UNKNOWN, ""
 
@@ -199,6 +214,7 @@ def inspect(root: Path, *, customers: tuple[str, ...],
             source.file_count += 1
             source.bytes += stat.st_size
             when = stat.st_mtime
+            source.file_days.append(when)
             oldest = when if oldest is None else min(oldest, when)
             newest = when if newest is None else max(newest, when)
 
@@ -249,33 +265,41 @@ def split_proposal(sources: list[Source]) -> dict:
     lets a lesson learned in June be evaluated on a task from March, which
     measures memorisation and calls it learning.
 
-    The held-out third is named and then left alone. Anything that tunes
+    **Cut on percentiles of the files themselves, not on the range.** The first
+    version used the earliest and latest modification times and proposed
+    "development: 1998-03-15 → 2015-04-03" — because one vendored file carried
+    a 1998 timestamp, and 60% of a 28-year span put the boundary eleven years
+    before any of this work existed. A range is decided by its two most
+    extreme members; a percentile is decided by the bulk.
+
+    The held-out fifth is named and then left alone. Anything that tunes
     architecture or thresholds against it stops it being held out, and there is
     no way to undo that except by collecting another year.
     """
-    dated = sorted([s for s in sources if s.first_modified],
-                   key=lambda s: s.first_modified)
-    if not dated:
+    stamps = sorted(t for s in sources for t in s.file_days)
+    if not stamps:
         return {"error": "không nguồn nào có mốc thời gian"}
-    start, end = dated[0].first_modified, max(s.last_modified for s in dated)
-    days = (datetime.fromisoformat(end) - datetime.fromisoformat(start)).days
-    first_cut = (datetime.fromisoformat(start).timestamp() + days * 0.6 * 86400)
-    second_cut = (datetime.fromisoformat(start).timestamp() + days * 0.8 * 86400)
+
+    def at(fraction: float) -> str:
+        index = min(int(len(stamps) * fraction), len(stamps) - 1)
+        return datetime.fromtimestamp(stamps[index],
+                                      timezone.utc).date().isoformat()
+
+    start, first_cut, second_cut, end = at(0.0), at(0.6), at(0.8), at(1.0)
+    outliers = sum(1 for t in stamps
+                   if t < datetime.fromisoformat(at(0.02)).timestamp())
     return {
-        "basis": "theo thời gian, không ngẫu nhiên",
-        "span_days": days,
-        "development": {"from": start,
-                        "to": datetime.fromtimestamp(first_cut,
-                                                     timezone.utc).date().isoformat(),
-                        "share": 0.6},
-        "validation": {"from": datetime.fromtimestamp(first_cut,
-                                                      timezone.utc).date().isoformat(),
-                       "to": datetime.fromtimestamp(second_cut,
-                                                    timezone.utc).date().isoformat(),
-                       "share": 0.2},
-        "frozen_heldout": {"from": datetime.fromtimestamp(
-                               second_cut, timezone.utc).date().isoformat(),
-                           "to": end, "share": 0.2,
+        "basis": "phân vị theo mốc sửa của TỪNG tệp, không theo hai đầu khoảng",
+        "files_dated": len(stamps),
+        "oldest": datetime.fromtimestamp(stamps[0],
+                                         timezone.utc).date().isoformat(),
+        "newest": end,
+        "note": f"{outliers} tệp nằm dưới phân vị 2% — thường là thư viện đi "
+                f"kèm mang mốc thời gian của người khác. Chúng kéo dãn khoảng "
+                f"chứ không kéo dãn phân vị.",
+        "development": {"from": start, "to": first_cut, "share": 0.6},
+        "validation": {"from": first_cut, "to": second_cut, "share": 0.2},
+        "frozen_heldout": {"from": second_cut, "to": end, "share": 0.2,
                            "rule": "không kiến trúc, không tuning, không đọc "
                                    "cho tới khi có bài đo đã khoá"},
     }
@@ -289,6 +313,10 @@ def main() -> int:
                     help="tên khách hàng để tách phân vùng, lặp lại được")
     ap.add_argument("--max-files", type=int, default=400,
                     help="số tệp mở tối đa mỗi nguồn khi dò nhạy cảm")
+    ap.add_argument("--split-children", action="store_true",
+                    help="mô tả từng thư mục con thành một nguồn riêng. "
+                         "Một cây 46 GB gộp làm một dòng thì không xếp được "
+                         "tenant và không quyết được nạp phần nào")
     ap.add_argument("--out", default="benchmark_reports/corpus_manifest.json")
     args = ap.parse_args()
 
@@ -304,14 +332,23 @@ def main() -> int:
               "~/.claude/projects C:/locaith --customer ARCHILAB")
         return 0
 
-    sources = []
+    targets: list[Path] = []
     for raw in args.roots:
         root = Path(raw).expanduser()
         if not root.exists():
             print(f"  bỏ qua (không tồn tại): {root}")
             continue
-        print(f"  đang mô tả: {root}")
-        sources.append(inspect(root, customers=tuple(args.customer),
+        if args.split_children:
+            children = sorted(p for p in root.iterdir()
+                              if p.is_dir() and p.name not in SKIP_DIRS)
+            targets.extend(children or [root])
+        else:
+            targets.append(root)
+
+    sources = []
+    for target in targets:
+        print(f"  đang mô tả: {target}")
+        sources.append(inspect(target, customers=tuple(args.customer),
                                max_files=args.max_files))
 
     if not sources:
@@ -361,6 +398,11 @@ def main() -> int:
         if isinstance(part, dict):
             print(f"  {key:<16} {part.get('from')} → {part.get('to')}"
                   f"  ({part.get('share')})")
+    if split.get("note"):
+        print(f"  {split['note']}")
+        print(f"  Cắt theo phân vị của {split.get('files_dated', 0):,} tệp, "
+              f"không theo hai đầu khoảng — bản đầu tiên lấy min/max và đề "
+              f"xuất 'development 1998→2015'.")
     print("  Chia theo thời gian chứ không ngẫu nhiên: bài toán là hệ có khá")
     print("  lên NHỜ TRẢI NGHIỆM không, mà chia ngẫu nhiên cho phép một bài")
     print("  học tháng 6 được chấm trên việc tháng 3 — đó là đo thuộc lòng.")
