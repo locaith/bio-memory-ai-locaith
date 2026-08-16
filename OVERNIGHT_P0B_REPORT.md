@@ -344,6 +344,109 @@ Chưa push. Cây sạch ngoài chính file này.
 
 ---
 
+## 11b. BẢY TEMPORAL TRUTH DOSSIER — đã phân loại, **chưa vá**
+
+Mở được vì P0-B đã đóng. Phân loại cả bảy trước khi chạm vào bất cứ thứ gì, đúng
+thứ tự anh đặt. Repo không bị sửa một dòng nào cho phần này.
+
+**Bảy triệu chứng, hai nguyên nhân.** Cả bảy đều `system_delta` — **0
+measurement_delta**, đáp án đối chiếu thẳng `ledger.at()`. Ba câu trả lời
+"No information available" là **abstention lẽ ra phải là câu trả lời**, tức lỗi,
+không phải pass. Operator chạy đúng ở cả bảy; không câu nào rơi về `recall`.
+
+### Nhóm A — một CONTRADICT đóng khoảng của claim đúng (4 lỗi: #2 #3 #4 #6)
+
+`first_wrong_stage`: `temporal_operator.py:797-800`, vòng
+`zip(live, live[1:])` gán `earlier.valid_to = later.valid_from`.
+
+Chuỗi bằng chứng, mỗi mắt đo được:
+
+1. `lifetime_world.generate()` — CONTRADICT **cố ý không đụng ledger**: thế giới
+   không đổi, sự thật đang bị tranh chấp.
+2. `classify_relation` gọi "Theo một nguồn khác" là `CONFLICT`, lý do
+   `alternative_source`. **Classifier đúng.**
+3. `lifecycle_runtime._apply` **không có nhánh CONFLICT**, và nói rõ là cố ý:
+   không có đường nào đi từ một quan hệ chưa ngã ngũ tới một thay đổi niềm tin.
+   **Lifecycle đúng.**
+4. Database xác nhận: hai hàng mang giá trị đúng đều `valid_to = NULL`. Không có
+   cửa sổ nào được ghi.
+5. Nên vòng override `stored` `continue`, và vòng suy diễn là **kẻ duy nhất còn
+   ghi `valid_to`** — nó lấy thời điểm tin đồn tới làm biên.
+
+**Ba thành phần đồng ý rằng sự thật đang tranh chấp; thành phần thứ tư suy khoảng
+từ thứ tự đến và lặng lẽ chọn tin đồn.**
+
+Đây đúng cùng một hình dạng với root cause đêm nay, chỉ khác trục:
+**đường đọc suy lại thứ đã được quyết ở đường ghi.** `Do not re-infer at read
+time what was already resolved at ingest time.` Lần trước là chủ thể, lần này là
+khoảng thời gian.
+
+### Nhóm B — tầng sinh câu trả lời từ chối mọi câu hỏi lương (2 lỗi: #1 #5)
+
+`first_wrong_stage`: sinh câu trả lời (`lifetime_adapter._prompt` + gpt-4o-mini).
+**Mọi tầng phía trên đều đúng** — chủ thể, vị từ, `when`, tập span, chọn khoảng.
+Giá trị đúng đã nằm trong `retrieved` và đã được đưa cho model. Model từ chối.
+
+- **PROVEN** từ chối có tính tất định: 3/3 giống hệt ở temperature 0.
+- **PROVEN** đặc thù theo thuộc tính: job_title, employer, city, phone, project
+  trả lời đúng; **salary và birthday từ chối**. Bỏ ngày ra khỏi câu hỏi lương thì
+  cùng memory đó cho ra `55 triệu.` — model đọc được, nó chỉ không chịu chiếu
+  giá trị đó lên một mốc ngày.
+- **DISPROVEN** — và đây là mắt quan trọng nhất: giả thuyết "prompt thiếu cửa sổ
+  hiệu lực nên model từ chối". Đã gắn khoảng mà operator tính sẵn vào đúng
+  memory đó. Câu trả lời **không đổi**. Nghĩa là bản vá hiển nhiên nhất
+  ("đưa interval vào prompt") **không chạy**, và ta biết điều đó trước khi viết
+  nó.
+- **OPEN** — *vì sao* model từ chối riêng salary và birthday. Chưa phải root
+  cause, không được đối xử như root cause.
+
+Birthday hiện không tốn gì chỉ vì tình cờ: câu HISTORICAL cần một giá trị đã bị
+thay, mà birthday là IMMUTABLE nên không sinh ra câu nào. **Salary là toàn bộ chi
+phí nhìn thấy được, 3/7.**
+
+### #7 — ba khuyết tật chồng lên nhau, cái sớm nhất nằm ở trên
+
+`first_wrong_stage`: dựng span trong `claim_history`, hàm `_core()`.
+
+`_core()` strip marker đính chính **trước khi** khử trùng lặp, nên câu
+"Đính chính: … lương của Phạm Nam là **18 triệu**" gập thành chuỗi **giống hệt
+từng byte** câu khẳng định trước đó. Nó không bao giờ mở span mới — chỉ cộng
+`confirmations`. Mà hàng gốc đã bị lifecycle cho cửa sổ rỗng, tức bị thu hồi ở
+mọi thời điểm.
+
+Kết quả: `18 triệu` — ledger giữ là đúng từ tick 471 đến 596, phủ đúng ngày được
+hỏi — **không có span sống nào trong toàn bộ store**. Chọn khoảng không tìm thấy
+gì, rơi về `earlier[-1:]`, và đáp xuống một tin đồn CONTRADICT. Rồi Nhóm B che
+nốt cả hai.
+
+### Phát hiện phụ, chưa chịu tải
+
+`_core()` strip marker restatement và correction, **nhưng không strip marker
+supersession**. Nên một REPEAT của giá trị vừa được thay sẽ mở span mới thay vì
+xác nhận span cũ. Không đổi kết luận #4, nhưng là **khuyết tật biên khoảng thứ
+hai trong cùng một hàm** — ai đụng vào vòng đó phải biết.
+
+### Một chỗ em không đồng ý với dossier
+
+Dossier để `identity_excluded_mentioned = 3` là **OPEN, chưa giải thích**. Em đã
+giải thích và đo: cả ba là **tên tổ chức cho mượn âm tiết của tên người** (§6),
+và bản A/B hai nhánh cho thấy nhánh text **đang rò**. Dossier đúng ở chỗ nó
+**không liên quan tới bảy lỗi này** — mỗi lỗi đều có `first_wrong_stage` giải
+thích trọn vẹn câu trả lời mà không cần tới nó. Nhưng "OPEN" là thiếu bằng chứng
+của người viết, không phải thiếu bằng chứng.
+
+### Thứ tự nên làm — và lý do KHÔNG làm đêm nay
+
+1. **Nhóm A** (4/7, và cùng hình dạng kiến trúc với lỗi đêm nay). Bất biến phải
+   giữ, phát biểu như một tính chất chứ không phải bản vá: *một quan hệ chưa ngã
+   ngũ không được đóng khoảng của claim nào.* Cái này là **thay đổi ngữ nghĩa
+   temporal**, không phải sửa lỗi — nó xứng đáng một phiên riêng với đầu óc
+   tỉnh, và chữ ký của anh.
+2. **#7** — `_core()` không được gập một đính chính vào chính câu nó đính chính.
+3. **Nhóm B** — còn OPEN. Chưa biết vì sao thì chưa sửa.
+
+---
+
 ## 12. BLOCKER CÒN LẠI
 
 1. **D1** — cần luật chủ-ngữ-của-vị-từ. Dossier tiếp theo, không sửa vội.
@@ -352,4 +455,6 @@ Chưa push. Cây sạch ngoài chính file này.
    lực** với những hàng đó. `identity_stale_resolver > 0` là cách hệ thống nói ra
    điều đó. Chạy migration là một lệnh ghi vào bộ nhớ thật — **cần anh duyệt**.
 3. **8/13 ca identity không phân biệt được tính năng.** Đã ghi, chưa sửa.
-4. **7 Temporal Truth dossiers** — mở được rồi, chưa mở.
+4. **7 Temporal Truth dossiers** — đã phân loại (§11b), **chưa vá**, đúng thứ tự.
+   Bảy triệu chứng, hai nguyên nhân, 0 measurement_delta. Nhóm A là thay đổi ngữ
+   nghĩa temporal nên chờ anh; Nhóm B còn OPEN nên chưa được sửa.
