@@ -1,0 +1,524 @@
+{
+  "runtime": {
+    "package_version": "0.8.2rc1",
+    "git_sha": "c7696ffc53bdbca2d493377d9034ef58dabb3d21",
+    "git_dirty": true,
+    "config_hash": "8f999906edf8eebb1bb74cdfff7bff6e",
+    "embedding_model": "",
+    "embedding_dims": 0,
+    "db_path": "",
+    "host": "DESKTOP-M1TSM33",
+    "pid": 19088,
+    "python_version": "3.11.9",
+    "process_start_time": 1786848476.5293853,
+    "untracked_files": 8,
+    "fingerprint": "f80f1a239fa0ac6b75dd8b4efafa9d964d92064329b6114a7bacb08ce2631d32"
+  },
+  "config": {
+    "ticks": 300,
+    "subjects": 10,
+    "seed": 20260814,
+    "per_family": 6
+  },
+  "hypothesis": {
+    "historical": "tăng, ở các ca CORRECT/SUPERSEDE",
+    "current": "đứng yên trong biên độ một câu",
+    "forgotten": "đứng yên trong biên độ một câu",
+    "silent_conflict_rate": 0,
+    "forced_transition_rate": 0
+  },
+  "arms": {
+    "A_off": {
+      "arm": "A_off",
+      "mode": null,
+      "oracle": false,
+      "by_family": {
+        "current": [
+          34,
+          39
+        ],
+        "historical": [
+          29,
+          38
+        ],
+        "forgotten": [
+          22,
+          22
+        ]
+      },
+      "stale_context": [
+        178,
+        329
+      ],
+      "failures": [
+        {
+          "family": "current",
+          "tick": 50,
+          "question": "Bùi Cường sinh ngày nào?",
+          "subject_id": "S07",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "12/03/1990",
+          "retrieved": [
+            "Nhắc lại, trần Hà sinh ngày 30/01/1992."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 50,
+          "question": "Vào ngày 2024-08-15, Phạm Giang đang làm ở công ty nào?",
+          "subject_id": "S03",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Hoà Bình",
+          "retrieved": [
+            "Phạm Giang đang giữ chức trưởng nhóm."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 100,
+          "question": "Bùi Cường sinh ngày nào?",
+          "subject_id": "S07",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "12/03/1990",
+          "retrieved": [
+            "Nhắc lại, vũ An sinh ngày 05/07/1988.",
+            "Nhắc lại, trần Hà sinh ngày 30/01/1992.",
+            "Nhắc lại, trần Hà sinh ngày 30/01/1992."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 100,
+          "question": "Vào ngày 2024-09-14, Bùi Cường đang sống ở đâu?",
+          "subject_id": "S07",
+          "attribute": "city",
+          "expect": "value",
+          "value": "Huế",
+          "retrieved": [
+            "Nhắc lại, số điện thoại của Bùi Cường là 0912345678."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 100,
+          "question": "Vào ngày 2024-08-15, Phạm Giang đang làm ở công ty nào?",
+          "subject_id": "S03",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Hoà Bình",
+          "retrieved": [
+            "Phạm Giang đang giữ chức trưởng nhóm."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 250,
+          "question": "Vào ngày 2024-09-07, Nguyễn Dũng đang sống ở đâu?",
+          "subject_id": "S00",
+          "attribute": "city",
+          "expect": "value",
+          "value": "Cần Thơ",
+          "retrieved": [
+            "Theo một nguồn khác, nguyễn Dũng sống ở Hà Nội."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 250,
+          "question": "Vào ngày 2024-08-31, Vũ An đang giữ chức vụ gì?",
+          "subject_id": "S05",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "nhân viên kinh doanh",
+          "retrieved": [
+            "Từ hôm nay, vũ An đang giữ chức trưởng nhóm."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 500,
+          "question": "Trần Thảo sinh ngày nào?",
+          "subject_id": "S09",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "30/01/1992",
+          "retrieved": [
+            "Trần Thảo sinh ngày 12/03/1990.",
+            "Nhắc lại, trần Thảo sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Thảo sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Thảo sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Thảo sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Thảo sinh ngày 21/11/1995."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2024-09-14, Hoàng Yến đang phụ trách dự án nào?",
+          "subject_id": "S04",
+          "attribute": "project",
+          "expect": "value",
+          "value": "trang thương mại",
+          "retrieved": [
+            "Theo một nguồn khác, hoàng Yến phụ trách dự án cổng thanh toán."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 750,
+          "question": "Vào ngày 2024-08-31, Vũ An đang giữ chức vụ gì?",
+          "subject_id": "S05",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "nhân viên kinh doanh",
+          "retrieved": [
+            "Từ hôm nay, vũ An đang giữ chức trưởng nhóm."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 1000,
+          "question": "Vào ngày 2024-09-14, Hoàng Yến đang phụ trách dự án nào?",
+          "subject_id": "S04",
+          "attribute": "project",
+          "expect": "value",
+          "value": "trang thương mại",
+          "retrieved": [
+            "Theo một nguồn khác, hoàng Yến phụ trách dự án cổng thanh toán."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 1000,
+          "question": "Phạm Giang đang phụ trách dự án nào?",
+          "subject_id": "S03",
+          "attribute": "project",
+          "expect": "value",
+          "value": "ứng dụng bán hàng",
+          "retrieved": [
+            "Phạm Giang phụ trách dự án cổng thanh toán.",
+            "Nguyễn Quân phụ trách dự án trang thương mại.",
+            "Nhắc lại, nguyễn Quân phụ trách dự án trang thương mại.",
+            "Hoàng Yến phụ trách dự án trang thương mại.",
+            "Vũ An phụ trách dự án trang thương mại.",
+            "Nhắc lại, hoàng Yến phụ trách dự án trang thương mại."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 1000,
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Hà đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Hà đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Thảo đang giữ chức trưởng nhóm.",
+            "Trần Thảo đang giữ chức nhân viên kinh doanh.",
+            "Từ hôm nay, trần Thảo đang giữ chức trưởng nhóm."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 1000,
+          "question": "Vào ngày 2024-08-31, Vũ An đang giữ chức vụ gì?",
+          "subject_id": "S05",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "nhân viên kinh doanh",
+          "retrieved": [
+            "Từ hôm nay, vũ An đang giữ chức trưởng nhóm."
+          ]
+        }
+      ],
+      "lifecycle": {}
+    },
+    "B_safe": {
+      "arm": "B_safe",
+      "mode": "safe",
+      "oracle": false,
+      "by_family": {
+        "current": [
+          34,
+          39
+        ],
+        "historical": [
+          29,
+          38
+        ],
+        "forgotten": [
+          22,
+          22
+        ]
+      },
+      "stale_context": [
+        168,
+        329
+      ],
+      "failures": [
+        {
+          "family": "current",
+          "tick": 50,
+          "question": "Bùi Cường sinh ngày nào?",
+          "subject_id": "S07",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "12/03/1990",
+          "retrieved": [
+            "Nhắc lại, trần Hà sinh ngày 30/01/1992."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 50,
+          "question": "Vào ngày 2024-08-15, Phạm Giang đang làm ở công ty nào?",
+          "subject_id": "S03",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Hoà Bình",
+          "retrieved": [
+            "Phạm Giang đang giữ chức trưởng nhóm."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 100,
+          "question": "Bùi Cường sinh ngày nào?",
+          "subject_id": "S07",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "12/03/1990",
+          "retrieved": [
+            "Nhắc lại, trần Hà sinh ngày 30/01/1992.",
+            "Nhắc lại, vũ An sinh ngày 05/07/1988.",
+            "Nhắc lại, trần Hà sinh ngày 30/01/1992."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 100,
+          "question": "Vào ngày 2024-09-14, Bùi Cường đang sống ở đâu?",
+          "subject_id": "S07",
+          "attribute": "city",
+          "expect": "value",
+          "value": "Huế",
+          "retrieved": [
+            "Nhắc lại, số điện thoại của Bùi Cường là 0912345678."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 100,
+          "question": "Vào ngày 2024-08-15, Phạm Giang đang làm ở công ty nào?",
+          "subject_id": "S03",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Hoà Bình",
+          "retrieved": [
+            "Phạm Giang đang giữ chức trưởng nhóm."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 250,
+          "question": "Vào ngày 2024-09-07, Nguyễn Dũng đang sống ở đâu?",
+          "subject_id": "S00",
+          "attribute": "city",
+          "expect": "value",
+          "value": "Cần Thơ",
+          "retrieved": [
+            "Theo một nguồn khác, nguyễn Dũng sống ở Hà Nội."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 250,
+          "question": "Vào ngày 2024-08-31, Vũ An đang giữ chức vụ gì?",
+          "subject_id": "S05",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "nhân viên kinh doanh",
+          "retrieved": [
+            "Nhắc lại, vũ An làm việc tại công ty Locaith."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 500,
+          "question": "Trần Thảo sinh ngày nào?",
+          "subject_id": "S09",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "30/01/1992",
+          "retrieved": [
+            "Trần Thảo sinh ngày 12/03/1990.",
+            "Nhắc lại, trần Thảo sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Thảo sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Thảo sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Thảo sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Thảo sinh ngày 21/11/1995."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2024-09-14, Hoàng Yến đang phụ trách dự án nào?",
+          "subject_id": "S04",
+          "attribute": "project",
+          "expect": "value",
+          "value": "trang thương mại",
+          "retrieved": [
+            "Theo một nguồn khác, hoàng Yến phụ trách dự án cổng thanh toán."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 750,
+          "question": "Vào ngày 2024-08-31, Vũ An đang giữ chức vụ gì?",
+          "subject_id": "S05",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "nhân viên kinh doanh",
+          "retrieved": [
+            "Nhắc lại, vũ An làm việc tại công ty Locaith."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 1000,
+          "question": "Vào ngày 2024-09-14, Hoàng Yến đang phụ trách dự án nào?",
+          "subject_id": "S04",
+          "attribute": "project",
+          "expect": "value",
+          "value": "trang thương mại",
+          "retrieved": [
+            "Theo một nguồn khác, hoàng Yến phụ trách dự án cổng thanh toán."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 1000,
+          "question": "Phạm Giang đang phụ trách dự án nào?",
+          "subject_id": "S03",
+          "attribute": "project",
+          "expect": "value",
+          "value": "ứng dụng bán hàng",
+          "retrieved": [
+            "Phạm Giang phụ trách dự án cổng thanh toán.",
+            "Nguyễn Quân phụ trách dự án trang thương mại.",
+            "Nhắc lại, nguyễn Quân phụ trách dự án trang thương mại.",
+            "Hoàng Yến phụ trách dự án trang thương mại.",
+            "Vũ An phụ trách dự án trang thương mại.",
+            "Nhắc lại, hoàng Yến phụ trách dự án trang thương mại."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 1000,
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Hà đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Thảo đang giữ chức trưởng nhóm.",
+            "Trần Thảo đang giữ chức nhân viên kinh doanh.",
+            "Từ hôm nay, trần Thảo đang giữ chức trưởng nhóm.",
+            "Nhắc lại, trần Thảo đang giữ chức nhân viên kinh doanh."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 1000,
+          "question": "Vào ngày 2024-08-31, Vũ An đang giữ chức vụ gì?",
+          "subject_id": "S05",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "nhân viên kinh doanh",
+          "retrieved": [
+            "Nhắc lại, vũ An làm việc tại công ty Locaith."
+          ]
+        }
+      ],
+      "lifecycle": {
+        "relation_calls": 134,
+        "relation_decisions": 134,
+        "by_relation": {
+          "repeat": 72,
+          "conflict": 14,
+          "correct": 17,
+          "supersede": 23,
+          "unknown": 8
+        },
+        "repeat_transitions": 72,
+        "supersede_transitions": 23,
+        "correct_transitions": 17,
+        "coexist_transitions": 0,
+        "unknown_count": 8,
+        "conflict_count": 14,
+        "unknown_reasons": {
+          "unmarked_value_change": 8
+        },
+        "conflict_reasons": {
+          "alternative_source": 14
+        },
+        "unknown_still_open": 4,
+        "unknown_later_resolved": 3,
+        "actions_taken": 112,
+        "silent_conflict_rate": 0.0,
+        "forced_transition_rate": 0.0,
+        "errors": []
+      }
+    }
+  },
+  "failure_classes": {
+    "current::correct": {
+      "A": 1,
+      "B": 1,
+      "delta": 0
+    },
+    "current::correct|repeat": {
+      "A": 1,
+      "B": 1,
+      "delta": 0
+    },
+    "current::repeat": {
+      "A": 2,
+      "B": 2,
+      "delta": 0
+    },
+    "current::repeat|supersede": {
+      "A": 1,
+      "B": 1,
+      "delta": 0
+    },
+    "historical::conflict|correct|supersede": {
+      "A": 1,
+      "B": 1,
+      "delta": 0
+    },
+    "historical::conflict|repeat|supersede": {
+      "A": 2,
+      "B": 2,
+      "delta": 0
+    },
+    "historical::correct|repeat|supersede": {
+      "A": 5,
+      "B": 5,
+      "delta": 0
+    },
+    "historical::repeat|supersede": {
+      "A": 1,
+      "B": 1,
+      "delta": 0
+    }
+  }
+}

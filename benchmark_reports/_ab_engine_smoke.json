@@ -1,0 +1,154 @@
+{
+  "runtime": {
+    "package_version": "0.8.2rc1",
+    "git_sha": "9840a1cd8d0c3d575e20af147121e028d2cea8ef",
+    "git_dirty": true,
+    "config_hash": "8f999906edf8eebb1bb74cdfff7bff6e",
+    "embedding_model": "",
+    "embedding_dims": 0,
+    "db_path": "",
+    "host": "DESKTOP-M1TSM33",
+    "pid": 25764,
+    "python_version": "3.11.9",
+    "process_start_time": 1786858310.7723155,
+    "untracked_files": 6,
+    "fingerprint": "62e713522a55b8f5faea631eee37425fc1b63027c640a18711c496634814f76b"
+  },
+  "config": {
+    "ticks": 100,
+    "subjects": 6,
+    "seed": 20260814,
+    "per_family": 2
+  },
+  "hypothesis": {
+    "historical": "tăng, ở các ca CORRECT/SUPERSEDE",
+    "current": "đứng yên trong biên độ một câu",
+    "forgotten": "đứng yên trong biên độ một câu",
+    "silent_conflict_rate": 0,
+    "forced_transition_rate": 0
+  },
+  "arms": {
+    "A_off": {
+      "arm": "A_off",
+      "mode": null,
+      "oracle": false,
+      "asked": 42,
+      "by_family": {
+        "current": [
+          14,
+          14
+        ],
+        "historical": [
+          14,
+          14
+        ]
+      },
+      "answer_by_family": {
+        "current": [
+          14,
+          14
+        ],
+        "historical": [
+          8,
+          14
+        ],
+        "ever": [
+          7,
+          14
+        ]
+      },
+      "answered": 42,
+      "answer_wrong": 13,
+      "poisoned_by_stale": 0,
+      "stale_answer_not_in_context": 0,
+      "stale_context_poison_rate": 0.0,
+      "abstention_rate": 0.3095,
+      "prompt_chars": 19372,
+      "latency_ms_total": 53324.7,
+      "latency_ms_p50": 1201.7,
+      "poison_cases": [],
+      "stale_context": [
+        33,
+        85
+      ],
+      "failures": [],
+      "lifecycle": {}
+    },
+    "B_safe": {
+      "arm": "B_safe",
+      "mode": "safe",
+      "oracle": false,
+      "asked": 42,
+      "by_family": {
+        "current": [
+          14,
+          14
+        ],
+        "historical": [
+          14,
+          14
+        ]
+      },
+      "answer_by_family": {
+        "current": [
+          13,
+          14
+        ],
+        "historical": [
+          8,
+          14
+        ],
+        "ever": [
+          5,
+          14
+        ]
+      },
+      "answered": 42,
+      "answer_wrong": 16,
+      "poisoned_by_stale": 0,
+      "stale_answer_not_in_context": 0,
+      "stale_context_poison_rate": 0.0,
+      "abstention_rate": 0.3571,
+      "prompt_chars": 19070,
+      "latency_ms_total": 47922.4,
+      "latency_ms_p50": 1137.1,
+      "poison_cases": [],
+      "stale_context": [
+        25,
+        75
+      ],
+      "failures": [],
+      "lifecycle": {
+        "relation_calls": 22,
+        "relation_decisions": 22,
+        "by_relation": {
+          "repeat": 8,
+          "supersede": 7,
+          "unknown": 3,
+          "correct": 3,
+          "conflict": 1
+        },
+        "repeat_transitions": 8,
+        "supersede_transitions": 7,
+        "correct_transitions": 3,
+        "coexist_transitions": 0,
+        "unknown_count": 3,
+        "conflict_count": 1,
+        "unknown_reasons": {
+          "unmarked_value_change": 3
+        },
+        "conflict_reasons": {
+          "alternative_source": 1
+        },
+        "unknown_still_open": 2,
+        "unknown_later_resolved": 0,
+        "orphaned_actions": 0,
+        "actions_taken": 18,
+        "silent_conflict_rate": 0.0,
+        "forced_transition_rate": 0.0,
+        "errors": []
+      }
+    }
+  },
+  "failure_classes": {}
+}

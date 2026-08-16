@@ -1,0 +1,1373 @@
+{
+  "created": "2026-08-16T09:01:35",
+  "config": {
+    "ticks": 1000,
+    "subjects": 20,
+    "seed": 20260814,
+    "per_family": 6,
+    "embedder": "sentence-transformers",
+    "engine": null
+  },
+  "runtime": {
+    "package_version": "0.8.2rc1",
+    "git_sha": "68bd15aab3e963f1bc4b6b4ed13535c6466818bb",
+    "git_dirty": true,
+    "config_hash": "8f999906edf8eebb1bb74cdfff7bff6e",
+    "embedding_model": "sentence-transformers",
+    "embedding_dims": 384,
+    "db_path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifetime\\run.db",
+    "host": "DESKTOP-M1TSM33",
+    "pid": 4016,
+    "python_version": "3.11.9",
+    "process_start_time": 1786845683.743753,
+    "untracked_files": 6,
+    "fingerprint": "c2fdb4602d996ab758e9cc4c03e0e1ca4ea7e3cce17ba8e3ac6b5dacc791f798"
+  },
+  "integrity": {
+    "n": 136,
+    "by_family": {
+      "current": 40,
+      "historical": 38,
+      "ever": 40,
+      "forgotten": 18
+    },
+    "by_expect": {
+      "value": 92,
+      "yes": 20,
+      "no": 20,
+      "decline": 4
+    },
+    "deletion_questions_with_proven_value": 12,
+    "questions_after_a_real_change": 80,
+    "world_events": {
+      "assert": 154,
+      "noise": 203,
+      "repeat": 379,
+      "correct": 59,
+      "contradict": 84,
+      "supersede": 103,
+      "forget": 18
+    },
+    "reference_scores": {
+      "perfect": 1.0,
+      "first_value": 0.5,
+      "latest_mention": 0.5735294117647058,
+      "never_declines": 0.3602941176470588,
+      "always_declines": 0.029411764705882353,
+      "plausible_wrong": 0.17647058823529413
+    },
+    "warnings": []
+  },
+  "checkpoints": [
+    {
+      "checkpoint": 10,
+      "routes": {
+        "content->recall": 7,
+        "temporal->temporal_operator": 2,
+        "temporal->recall_after_temporal_failed": 1
+      },
+      "temporal_execution_accuracy": 0.6667,
+      "temporal_fell_back": 1,
+      "retrieval": {
+        "current": 1.0,
+        "historical": 0.5
+      },
+      "retrieval_n": {
+        "current": 4,
+        "historical": 2
+      },
+      "answer": {},
+      "memories": 10,
+      "bytes": 1466536,
+      "p50_ms": 12.2,
+      "wall_s": 0.1
+    },
+    {
+      "checkpoint": 50,
+      "routes": {
+        "content->recall": 11,
+        "temporal->temporal_operator": 6,
+        "temporal->recall_after_temporal_failed": 1
+      },
+      "temporal_execution_accuracy": 0.8571,
+      "temporal_fell_back": 1,
+      "retrieval": {
+        "current": 0.8333,
+        "historical": 0.6667
+      },
+      "retrieval_n": {
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 50,
+      "bytes": 4509176,
+      "p50_ms": 15.4,
+      "wall_s": 0.2
+    },
+    {
+      "checkpoint": 100,
+      "routes": {
+        "content->recall": 12,
+        "temporal->temporal_operator": 6
+      },
+      "temporal_execution_accuracy": 1.0,
+      "temporal_fell_back": 0,
+      "retrieval": {
+        "current": 1.0,
+        "historical": 0.6667
+      },
+      "retrieval_n": {
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 100,
+      "bytes": 4730456,
+      "p50_ms": 18.4,
+      "wall_s": 0.3
+    },
+    {
+      "checkpoint": 250,
+      "routes": {
+        "content->recall": 11,
+        "temporal->temporal_operator": 6,
+        "temporal->recall_after_temporal_failed": 1
+      },
+      "temporal_execution_accuracy": 0.8571,
+      "temporal_fell_back": 1,
+      "retrieval": {
+        "current": 1.0,
+        "historical": 0.8333
+      },
+      "retrieval_n": {
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 250,
+      "bytes": 5054040,
+      "p50_ms": 15.9,
+      "wall_s": 0.2
+    },
+    {
+      "checkpoint": 500,
+      "routes": {
+        "content->recall": 18,
+        "temporal->temporal_operator": 6
+      },
+      "temporal_execution_accuracy": 1.0,
+      "temporal_fell_back": 0,
+      "retrieval": {
+        "forgotten": 1.0,
+        "current": 1.0,
+        "historical": 0.3333
+      },
+      "retrieval_n": {
+        "forgotten": 6,
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 481,
+      "bytes": 5865240,
+      "p50_ms": 24.1,
+      "wall_s": 0.5
+    },
+    {
+      "checkpoint": 750,
+      "routes": {
+        "content->recall": 17,
+        "temporal->temporal_operator": 6,
+        "temporal->recall_after_temporal_failed": 1
+      },
+      "temporal_execution_accuracy": 0.8571,
+      "temporal_fell_back": 1,
+      "retrieval": {
+        "forgotten": 1.0,
+        "current": 0.6667,
+        "historical": 0.8333
+      },
+      "retrieval_n": {
+        "forgotten": 6,
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 719,
+      "bytes": 7360304,
+      "p50_ms": 25.2,
+      "wall_s": 0.5
+    },
+    {
+      "checkpoint": 1000,
+      "routes": {
+        "content->recall": 17,
+        "temporal->temporal_operator": 6,
+        "temporal->recall_after_temporal_failed": 1
+      },
+      "temporal_execution_accuracy": 0.8571,
+      "temporal_fell_back": 1,
+      "retrieval": {
+        "forgotten": 0.8333,
+        "current": 0.8333,
+        "historical": 0.6667
+      },
+      "retrieval_n": {
+        "forgotten": 6,
+        "current": 6,
+        "historical": 6
+      },
+      "answer": {},
+      "memories": 914,
+      "bytes": 8273904,
+      "p50_ms": 26.6,
+      "wall_s": 0.6
+    }
+  ],
+  "failures": [
+    {
+      "leak_store": {},
+      "checkpoint": 10,
+      "family": "historical",
+      "question": "Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?",
+      "expect": "value",
+      "value": "Hà Nội",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S11",
+      "attribute": "city",
+      "retrieved": [
+        "Phạm Vy đang giữ chức nhân viên kinh doanh."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 50,
+      "family": "current",
+      "question": "Trần Hà sinh ngày nào?",
+      "expect": "value",
+      "value": "12/03/1990",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S01",
+      "attribute": "birthday",
+      "retrieved": [
+        "Trần Hà sinh ngày 21/11/1995.",
+        "Hoàng Yến sinh ngày 17/09/1985."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 50,
+      "family": "historical",
+      "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "phó giám đốc",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S01",
+      "attribute": "job_title",
+      "retrieved": [
+        "Đính chính: thông tin trước là sai, trần Hà sinh ngày 12/03/1990."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 50,
+      "family": "historical",
+      "question": "Vào ngày 2024-10-09, Hoàng Yến đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "trưởng phòng",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S04",
+      "attribute": "job_title",
+      "retrieved": [
+        "Hoàng Yến làm việc tại công ty Hoà Bình."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 100,
+      "family": "historical",
+      "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Đại Việt",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S11",
+      "attribute": "employer",
+      "retrieved": [
+        "Phạm Vy đang giữ chức nhân viên kinh doanh."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 100,
+      "family": "historical",
+      "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "phó giám đốc",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S01",
+      "attribute": "job_title",
+      "retrieved": [
+        "Đính chính: thông tin trước là sai, trần Hà sinh ngày 12/03/1990."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 250,
+      "family": "historical",
+      "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Đại Việt",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S11",
+      "attribute": "employer",
+      "retrieved": [
+        "Nhắc lại, phạm Vy phụ trách dự án cổng thanh toán."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 500,
+      "family": "historical",
+      "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "trưởng phòng",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S06",
+      "attribute": "job_title",
+      "retrieved": [
+        "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 500,
+      "family": "historical",
+      "question": "Vào ngày 2025-09-07, Đặng Phúc đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "phó giám đốc",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S14",
+      "attribute": "job_title",
+      "retrieved": [
+        "Nhắc lại, đặng Phúc sống ở Huế."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 500,
+      "family": "historical",
+      "question": "Vào ngày 2025-03-28, Vũ Minh đang phụ trách dự án nào?",
+      "expect": "value",
+      "value": "ứng dụng bán hàng",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S13",
+      "attribute": "project",
+      "retrieved": [
+        "Theo một nguồn khác, vũ Minh phụ trách dự án hệ thống OCR."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 500,
+      "family": "historical",
+      "question": "Vào ngày 2024-12-28, Số điện thoại của Bùi Tuấn là gì?",
+      "expect": "value",
+      "value": "0903111222",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S15",
+      "attribute": "phone",
+      "retrieved": [
+        "Theo một nguồn khác, số điện thoại của Bùi Tuấn là 0977123456."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 750,
+      "family": "current",
+      "question": "Hoàng Yến sinh ngày nào?",
+      "expect": "value",
+      "value": "30/01/1992",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S04",
+      "attribute": "birthday",
+      "retrieved": [
+        "Hoàng Yến sinh ngày 17/09/1985."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 750,
+      "family": "current",
+      "question": "Nguyễn Dũng đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "giám đốc kỹ thuật",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S00",
+      "attribute": "job_title",
+      "retrieved": [
+        "Nguyễn Dũng đang giữ chức phó giám đốc.",
+        "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+        "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+        "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+        "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+        "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 750,
+      "family": "historical",
+      "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "trưởng phòng",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S06",
+      "attribute": "job_title",
+      "retrieved": [
+        "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 1000,
+      "family": "forgotten",
+      "question": "Trần Hà đang giữ chức vụ gì?",
+      "expect": "value",
+      "value": "phó giám đốc",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S01",
+      "attribute": "job_title",
+      "retrieved": [
+        "Trần Hà đang giữ chức trưởng nhóm.",
+        "Trần Bình đang giữ chức trưởng phòng.",
+        "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+        "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+        "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+        "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 1000,
+      "family": "current",
+      "question": "Vũ An đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Bình Minh",
+      "forbidden": "",
+      "route": "recall",
+      "query_kind": "content",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S05",
+      "attribute": "employer",
+      "retrieved": [
+        "Theo một nguồn khác, vũ An làm việc tại công ty An Phát.",
+        "Vũ An làm việc tại công ty Đại Việt.",
+        "Nhắc lại, phạm Giang làm việc tại công ty An Phát.",
+        "Nhắc lại, vũ An làm việc tại công ty Đại Việt.",
+        "Phạm Nam làm việc tại công ty An Phát.",
+        "Từ hôm nay, vũ An làm việc tại công ty Hoà Bình."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 1000,
+      "family": "historical",
+      "question": "Vào ngày 2026-03-02, Vũ An đang làm ở công ty nào?",
+      "expect": "value",
+      "value": "Hoà Bình",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S05",
+      "attribute": "employer",
+      "retrieved": [
+        "Đính chính: thông tin trước là sai, vũ An đang giữ chức giám đốc kỹ thuật."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    },
+    {
+      "leak_store": {},
+      "checkpoint": 1000,
+      "family": "historical",
+      "question": "Vào ngày 2025-06-13, Lương của Phạm Nam là bao nhiêu?",
+      "expect": "value",
+      "value": "18 triệu",
+      "forbidden": "",
+      "route": "temporal_operator",
+      "query_kind": "temporal",
+      "stage_failed": "",
+      "note": "",
+      "subject_id": "S19",
+      "attribute": "salary",
+      "retrieved": [
+        "Từ hôm nay, lương của Phạm Nam là 25 triệu."
+      ],
+      "answer": "",
+      "retrieval_hit": false,
+      "answer_correct": null
+    }
+  ],
+  "deletions": [
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Lê Sơn.', chủ đề 'chức vụ'",
+      "matched_claims": 3,
+      "deleted_claims": 3,
+      "derived_invalidated": 3,
+      "checks_run": 3,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 3,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 3,
+      "request": "Hãy quên chức vụ của Lê Sơn.",
+      "tick": 312,
+      "slot": "S02/job_title",
+      "asked_to_remove": [
+        "nhân viên kinh doanh"
+      ],
+      "subject_name": "Lê Sơn",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "nhân viên kinh doanh": {
+          "cognitive_events.payload_json": {
+            "this_subject": 3,
+            "any_subject": 10
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Trần Hà.', chủ đề 'chức vụ'",
+      "matched_claims": 1,
+      "deleted_claims": 1,
+      "derived_invalidated": 1,
+      "checks_run": 1,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 1,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 1,
+      "request": "Hãy quên chức vụ của Trần Hà.",
+      "tick": 313,
+      "slot": "S01/job_title",
+      "asked_to_remove": [
+        "phó giám đốc"
+      ],
+      "subject_name": "Trần Hà",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "phó giám đốc": {
+          "cognitive_events.payload_json": {
+            "this_subject": 1,
+            "any_subject": 10
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Đặng Khanh.', chủ đề 'nơi việc'",
+      "matched_claims": 2,
+      "deleted_claims": 2,
+      "derived_invalidated": 2,
+      "checks_run": 2,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 2,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 2,
+      "request": "Hãy quên nơi làm việc của Đặng Khanh.",
+      "tick": 356,
+      "slot": "S06/employer",
+      "asked_to_remove": [
+        "Đại Việt"
+      ],
+      "subject_name": "Đặng Khanh",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "Đại Việt": {
+          "cognitive_events.payload_json": {
+            "this_subject": 2,
+            "any_subject": 8
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Trần Thảo.', chủ đề 'chức vụ'",
+      "matched_claims": 3,
+      "deleted_claims": 3,
+      "derived_invalidated": 1,
+      "checks_run": 3,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 3,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 3,
+      "request": "Hãy quên chức vụ của Trần Thảo.",
+      "tick": 422,
+      "slot": "S09/job_title",
+      "asked_to_remove": [
+        "trưởng nhóm"
+      ],
+      "subject_name": "Trần Thảo",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "trưởng nhóm": {
+          "cognitive_events.payload_json": {
+            "this_subject": 1,
+            "any_subject": 11
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Trần Thảo.', chủ đề 'nơi việc'",
+      "matched_claims": 1,
+      "deleted_claims": 1,
+      "derived_invalidated": 0,
+      "checks_run": 1,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 1,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 1,
+      "request": "Hãy quên nơi làm việc của Trần Thảo.",
+      "tick": 439,
+      "slot": "S09/employer",
+      "asked_to_remove": [
+        "Hoà Bình"
+      ],
+      "subject_name": "Trần Thảo",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "Hoà Bình": {
+          "cognitive_events.payload_json": {
+            "this_subject": 1,
+            "any_subject": 16
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Hoàng Yến.', chủ đề 'số điện thoại'",
+      "matched_claims": 3,
+      "deleted_claims": 3,
+      "derived_invalidated": 1,
+      "checks_run": 3,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 3,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 3,
+      "request": "Hãy quên số điện thoại của Hoàng Yến.",
+      "tick": 440,
+      "slot": "S04/phone",
+      "asked_to_remove": [
+        "0977123456"
+      ],
+      "subject_name": "Hoàng Yến",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "0977123456": {
+          "cognitive_events.payload_json": {
+            "this_subject": 3,
+            "any_subject": 13
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Nguyễn Dũng.', chủ đề 'nơi sống'",
+      "matched_claims": 1,
+      "deleted_claims": 1,
+      "derived_invalidated": 1,
+      "checks_run": 1,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 1,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 1,
+      "request": "Hãy quên nơi sống của Nguyễn Dũng.",
+      "tick": 539,
+      "slot": "S00/city",
+      "asked_to_remove": [
+        "Cần Thơ"
+      ],
+      "subject_name": "Nguyễn Dũng",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "Cần Thơ": {
+          "cognitive_events.payload_json": {
+            "this_subject": 1,
+            "any_subject": 11
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Bùi Tuấn.', chủ đề 'số điện thoại'",
+      "matched_claims": 6,
+      "deleted_claims": 6,
+      "derived_invalidated": 4,
+      "checks_run": 6,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 6,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 6,
+      "request": "Hãy quên số điện thoại của Bùi Tuấn.",
+      "tick": 568,
+      "slot": "S15/phone",
+      "asked_to_remove": [
+        "0903111222",
+        "0912345678",
+        "0977123456"
+      ],
+      "subject_name": "Bùi Tuấn",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "0903111222": {
+          "cognitive_events.payload_json": {
+            "this_subject": 2,
+            "any_subject": 12
+          }
+        },
+        "0912345678": {
+          "cognitive_events.payload_json": {
+            "this_subject": 1,
+            "any_subject": 12
+          }
+        },
+        "0977123456": {
+          "cognitive_events.payload_json": {
+            "this_subject": 3,
+            "any_subject": 19
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Phạm Vy.', chủ đề 'lương'",
+      "matched_claims": 2,
+      "deleted_claims": 2,
+      "derived_invalidated": 2,
+      "checks_run": 2,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 2,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 2,
+      "request": "Hãy quên lương của Phạm Vy.",
+      "tick": 747,
+      "slot": "S11/salary",
+      "asked_to_remove": [
+        "40 triệu"
+      ],
+      "subject_name": "Phạm Vy",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "40 triệu": {
+          "cognitive_events.payload_json": {
+            "this_subject": 2,
+            "any_subject": 16
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Nguyễn Dũng.', chủ đề 'dự án phụ trách'",
+      "matched_claims": 3,
+      "deleted_claims": 3,
+      "derived_invalidated": 3,
+      "checks_run": 3,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 3,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 3,
+      "request": "Hãy quên dự án phụ trách của Nguyễn Dũng.",
+      "tick": 760,
+      "slot": "S00/project",
+      "asked_to_remove": [
+        "kho dữ liệu"
+      ],
+      "subject_name": "Nguyễn Dũng",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "kho dữ liệu": {
+          "cognitive_events.payload_json": {
+            "this_subject": 1,
+            "any_subject": 5
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Vũ An.', chủ đề 'lương'",
+      "matched_claims": 8,
+      "deleted_claims": 8,
+      "derived_invalidated": 7,
+      "checks_run": 8,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 8,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 8,
+      "request": "Hãy quên lương của Vũ An.",
+      "tick": 765,
+      "slot": "S05/salary",
+      "asked_to_remove": [
+        "18 triệu",
+        "40 triệu",
+        "55 triệu"
+      ],
+      "subject_name": "Vũ An",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "18 triệu": {
+          "cognitive_events.payload_json": {
+            "this_subject": 1,
+            "any_subject": 16
+          }
+        },
+        "40 triệu": {
+          "cognitive_events.payload_json": {
+            "this_subject": 2,
+            "any_subject": 17
+          }
+        },
+        "55 triệu": {
+          "cognitive_events.payload_json": {
+            "this_subject": 4,
+            "any_subject": 23
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Hoàng Hùng.', chủ đề 'số điện thoại'",
+      "matched_claims": 4,
+      "deleted_claims": 4,
+      "derived_invalidated": 3,
+      "checks_run": 4,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 4,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 4,
+      "request": "Hãy quên số điện thoại của Hoàng Hùng.",
+      "tick": 796,
+      "slot": "S12/phone",
+      "asked_to_remove": [
+        "0912345678",
+        "0987654321"
+      ],
+      "subject_name": "Hoàng Hùng",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "0912345678": {
+          "cognitive_events.payload_json": {
+            "this_subject": 1,
+            "any_subject": 16
+          }
+        },
+        "0987654321": {
+          "cognitive_events.payload_json": {
+            "this_subject": 3,
+            "any_subject": 12
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Đặng Khanh.', chủ đề 'lương'",
+      "matched_claims": 8,
+      "deleted_claims": 8,
+      "derived_invalidated": 8,
+      "checks_run": 8,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 8,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 8,
+      "request": "Hãy quên lương của Đặng Khanh.",
+      "tick": 851,
+      "slot": "S06/salary",
+      "asked_to_remove": [
+        "32 triệu",
+        "55 triệu"
+      ],
+      "subject_name": "Đặng Khanh",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "32 triệu": {
+          "cognitive_events.payload_json": {
+            "this_subject": 1,
+            "any_subject": 17
+          }
+        },
+        "55 triệu": {
+          "cognitive_events.payload_json": {
+            "this_subject": 7,
+            "any_subject": 24
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Bùi Tuấn.', chủ đề 'lương'",
+      "matched_claims": 3,
+      "deleted_claims": 3,
+      "derived_invalidated": 2,
+      "checks_run": 3,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 3,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 3,
+      "request": "Hãy quên lương của Bùi Tuấn.",
+      "tick": 856,
+      "slot": "S15/salary",
+      "asked_to_remove": [
+        "25 triệu"
+      ],
+      "subject_name": "Bùi Tuấn",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "25 triệu": {
+          "cognitive_events.payload_json": {
+            "this_subject": 2,
+            "any_subject": 20
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Nguyễn Oanh.', chủ đề 'dự án phụ trách'",
+      "matched_claims": 7,
+      "deleted_claims": 7,
+      "derived_invalidated": 6,
+      "checks_run": 7,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 7,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 7,
+      "request": "Hãy quên dự án phụ trách của Nguyễn Oanh.",
+      "tick": 871,
+      "slot": "S16/project",
+      "asked_to_remove": [
+        "hệ thống OCR",
+        "trang thương mại"
+      ],
+      "subject_name": "Nguyễn Oanh",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "hệ thống OCR": {
+          "cognitive_events.payload_json": {
+            "this_subject": 4,
+            "any_subject": 39
+          }
+        },
+        "trang thương mại": {
+          "cognitive_events.payload_json": {
+            "this_subject": 3,
+            "any_subject": 12
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Đặng Phúc.', chủ đề 'nơi việc'",
+      "matched_claims": 6,
+      "deleted_claims": 6,
+      "derived_invalidated": 4,
+      "checks_run": 6,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 6,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 6,
+      "request": "Hãy quên nơi làm việc của Đặng Phúc.",
+      "tick": 873,
+      "slot": "S14/employer",
+      "asked_to_remove": [
+        "Bình Minh",
+        "Đại Việt"
+      ],
+      "subject_name": "Đặng Phúc",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "Bình Minh": {
+          "cognitive_events.payload_json": {
+            "this_subject": 3,
+            "any_subject": 14
+          }
+        },
+        "Đại Việt": {
+          "cognitive_events.payload_json": {
+            "this_subject": 3,
+            "any_subject": 19
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Phạm Vy.', chủ đề 'dự án phụ trách'",
+      "matched_claims": 4,
+      "deleted_claims": 4,
+      "derived_invalidated": 4,
+      "checks_run": 4,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 4,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 4,
+      "request": "Hãy quên dự án phụ trách của Phạm Vy.",
+      "tick": 957,
+      "slot": "S11/project",
+      "asked_to_remove": [
+        "cổng thanh toán",
+        "trang thương mại"
+      ],
+      "subject_name": "Phạm Vy",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "cổng thanh toán": {
+          "cognitive_events.payload_json": {
+            "this_subject": 2,
+            "any_subject": 16
+          }
+        },
+        "trang thương mại": {
+          "cognitive_events.payload_json": {
+            "this_subject": 2,
+            "any_subject": 13
+          }
+        }
+      },
+      "reversible_by_replay": true
+    },
+    {
+      "status": "deleted",
+      "scope": "chủ thể 'Nguyễn Oanh.', chủ đề 'số điện thoại'",
+      "matched_claims": 3,
+      "deleted_claims": 3,
+      "derived_invalidated": 2,
+      "checks_run": 3,
+      "abstained": [],
+      "verified_clean": true,
+      "residue": [],
+      "unmatched_reason": "",
+      "succeeded": true,
+      "erasure_level": "forget_derived",
+      "tombstoned": 3,
+      "survives_rebuild": true,
+      "reversible": true,
+      "reversible_via": "event log — giải thích được lịch sử, nhưng replay không dựng lại (bia mộ chặn)",
+      "erases_event_payload": false,
+      "memories_deleted": 3,
+      "request": "Hãy quên số điện thoại của Nguyễn Oanh.",
+      "tick": 958,
+      "slot": "S16/phone",
+      "asked_to_remove": [
+        "0977123456"
+      ],
+      "subject_name": "Nguyễn Oanh",
+      "store_residue": {},
+      "primary_present_after_store": false,
+      "survives_in_event_log": {
+        "0977123456": {
+          "cognitive_events.payload_json": {
+            "this_subject": 3,
+            "any_subject": 28
+          }
+        }
+      },
+      "reversible_by_replay": true
+    }
+  ]
+}
