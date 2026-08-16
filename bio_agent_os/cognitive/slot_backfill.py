@@ -59,6 +59,14 @@ class BackfillReport:
     #: resolver changed or something else wrote here, and both are worth
     #: knowing before a second pass is trusted.
     disagreements: list = field(default_factory=list)
+    #: Rows re-derived because they were written by an older resolver version.
+    #: Distinct from `filled`: those had no slot, these had one that a newer
+    #: resolver would answer differently.
+    rederived: int = 0
+    #: Subjects that changed under re-derivation. Reported by row, because
+    #: "how many" cannot tell a repair from a fresh corruption and a person's
+    #: identity is not a number to be summarised.
+    entity_repairs: list = field(default_factory=list)
     seconds: float = 0.0
 
     @property
@@ -73,6 +81,9 @@ class BackfillReport:
                 "changed": self.changed,
                 "structured_coverage": self.coverage,
                 "disagreements": self.disagreements[:20],
+                "rederived": self.rederived,
+                "entity_repairs": self.entity_repairs[:20],
+                "entity_repair_count": len(self.entity_repairs),
                 "seconds": round(self.seconds, 3)}
 
 
@@ -84,7 +95,14 @@ def _ensure_marker_table(conn: sqlite3.Connection) -> None:
 
 #: Bumped when the resolver's answer for the same sentence could change, so a
 #: row can say which version produced its slot.
-RESOLVER_VERSION = "aspect_resolver@1"
+#:
+#: @2 — `_names` no longer runs a name across a clause boundary. Under @1 the
+#: word before a comma was absorbed into the name that followed it, so
+#: "…là sai, Bùi Cường…" was stored under the subject "sai Bùi Cường". Harmless
+#: while the subject was re-derived from the text on every read; a silent
+#: deletion once `SUBJECT_IDENTITY_READ` selects a person's history by the
+#: stored value. Rows written under @1 are re-derived by `backfill`.
+RESOLVER_VERSION = "aspect_resolver@2"
 
 #: How much a stored slot may be relied on, decided by **where it came from**
 #: and never by a score.
@@ -189,6 +207,31 @@ def backfill(conn: sqlite3.Connection, *, dry_run: bool = False,
         if existing.get("attribute"):
             report.already_had_slot += 1
             fresh = slot_for(content)
+            stale = existing.get("resolver_version") != RESOLVER_VERSION
+            if stale and fresh:
+                # A resolver version change is the one case where an existing
+                # slot is rewritten rather than merely compared.
+                #
+                # Without this the pass repaired nothing that was already
+                # written, and the `entity` axis was never even compared — only
+                # `attribute` was. So every subject corrupted by the @1 name
+                # boundary survived the fix for it, and turning
+                # `SUBJECT_IDENTITY_READ` on against an existing store would
+                # have silently dropped exactly those rows from their owner's
+                # history. Code correct on disk is not the same as data correct
+                # on disk.
+                report.rederived += 1
+                if existing.get("entity") != fresh.get("entity"):
+                    report.entity_repairs.append(
+                        {"memory_id": str(memory_id),
+                         "stored": existing.get("entity"),
+                         "resolver_now": fresh.get("entity"),
+                         "content": str(content)[:80]})
+                merged = {**existing, **fresh}
+                updates.append((json.dumps(merged, ensure_ascii=False,
+                                           sort_keys=True),
+                                str(memory_id), version))
+                continue
             if fresh.get("attribute") and \
                     fresh["attribute"] != existing["attribute"]:
                 report.disagreements.append(

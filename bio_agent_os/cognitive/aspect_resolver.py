@@ -178,6 +178,14 @@ def _fold(text: str) -> str:
     return " ".join(unicodedata.normalize("NFC", str(text or "")).split())
 
 
+#: Punctuation that ends a clause. A name does not run across one.
+#:
+#: `_names` tokenised with `[\w]+`, which throws punctuation away, so a name
+#: run could not see a comma and grew backwards through it. The word before
+#: the comma in "…thông tin trước là sai, Bùi Cường sinh năm 1991." became
+#: part of the name.
+_CLAUSE = re.compile(r"[,;:.!?()\[\]\"'“”‘’…«»\n\r]")
+
 _VOCABULARY: set[str] = set()
 
 
@@ -211,12 +219,22 @@ def _names(text: str) -> list[str]:
     counts only when something else already started the sentence.
     """
     vocabulary = _ontology_words()
-    tokens = re.findall(r"[\w]+", _fold(text), re.UNICODE)
+    folded = _fold(text)
+    matches = list(re.finditer(r"[\w]+", folded, re.UNICODE))
+    tokens = [m.group(0) for m in matches]
+    # What `re.findall` discarded: whether clause punctuation separates token
+    # `i` from token `i+1`. The last token always ends its clause.
+    boundary_after = [
+        bool(_CLAUSE.search(folded[matches[i].end():matches[i + 1].start()]))
+        for i in range(len(matches) - 1)
+    ]
+    boundary_after.append(True)
     runs: list[tuple[int, list[str]]] = []
     current: list[str] = []
     start = 0
     for index, token in enumerate(tokens):
         low = token.lower()
+        clause_start = index == 0 or boundary_after[index - 1]
         # A Vietnamese name is family name then given name, and a sentence
         # that opens mid-phrase lowercases the first of them: "Từ hôm nay,
         # phạm Vy làm việc tại …". Requiring an uppercase token to *start* a
@@ -231,6 +249,25 @@ def _names(text: str) -> list[str]:
         joins_a_name = (
             not token[:1].isupper()
             and index + 1 < len(tokens)
+            # A name is bounded by its clause. "…là sai, Bùi Cường…" is two
+            # clauses, and "sai" is the tail of the first — but the tokeniser
+            # could not see the comma, so the stored subject became "sai Bùi
+            # Cường", a person who does not exist. `_by_subject` then read the
+            # correction as somebody else's record and dropped it from the
+            # history, which is how a single missing comma became three failing
+            # temporal tests.
+            #
+            # The sentences this corrupted are not a random sample: "Đính
+            # chính," and "Nhắc lại," are exactly the frames that mark a
+            # correction and a restatement. `_core` strips those markers before
+            # comparing claims; nothing stripped them here, so the rows
+            # carrying lifecycle meaning were the rows whose identity broke.
+            and not boundary_after[index]
+            # And the rescue fires only where the lowercasing it exists for
+            # actually happens — clause-initially, "Từ hôm nay, phạm Vy …".
+            # A lowercase token mid-clause is the tail of the phrase before the
+            # name, not the head of the name.
+            and clause_start
             and tokens[index + 1][:1].isupper()
             and tokens[index + 1].lower() not in vocabulary
             and low not in vocabulary and low not in _TITLES
@@ -257,6 +294,11 @@ def _names(text: str) -> list[str]:
             current = []
             continue
         if token[:1].isupper() and low not in _TITLES and low not in _STOP:
+            # A clause boundary closes the run in progress. Without this,
+            # "Locaith, Bùi Cường…" is one name spanning the comma.
+            if current and clause_start:
+                runs.append((start, current))
+                current = []
             if not current:
                 start = index
             current.append(token)
