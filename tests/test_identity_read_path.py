@@ -15,7 +15,7 @@ text matching quietly leaks:
 and one surname that ends two established identities, where the only correct
 answer is to refuse.
 
-**How much of this file is evidence for the feature: 5 of 13.**
+**How much of this file is evidence for the feature: 7 of 15.**
 
 Measured by clamping `_SUBJECT_IDENTITY_READ` to `"off"` and re-running: 8 tests
 still pass. The six parametrized shared-surname cases are among them, because
@@ -26,7 +26,8 @@ selection.
 
 The tests that do discriminate are the ones to protect:
 `test_a_nested_name_does_not_leak` (every syllable of "Vũ An" is inside "Trần Vũ
-An", so text matching cannot separate them by construction),
+An", so text matching cannot separate them by construction), both
+`test_a_company_name_does_not_lend_its_syllables_to_a_person` cases,
 `test_the_text_mutant_leaks_and_must_fail`, `test_an_ambiguous_surface_answers_nobody`,
 `test_the_structured_identity_is_what_selects`, and
 `test_a_row_with_no_stored_identity_still_reaches_its_owner`.
@@ -197,6 +198,49 @@ def test_a_nested_name_does_not_leak(tmp_path):
         assert "trưởng nhóm" in found
         assert "giám đốc kỹ thuật" not in found, (
             "hồ sơ của Trần Vũ An lọt vào câu hỏi về Vũ An")
+    finally:
+        memory_os.close()
+
+
+@pytest.mark.parametrize("subject,mine,theirs", [
+    ("Trần Bình", "Locaith", "Hoà Bình"),
+    ("Vũ Minh", "Alpha", "Bình Minh"),
+])
+def test_a_company_name_does_not_lend_its_syllables_to_a_person(
+        tmp_path, subject, mine, theirs):
+    """A leak class nobody designed for, found by the exclusion counter.
+
+    `identity_excluded_mentioned` came back non-zero on the integration gate —
+    the sentence names the subject, the stored identity says otherwise — and
+    every one of them was this: an *organisation* whose name supplies the
+    missing syllable of a *person's*.
+
+    "Trần Thảo làm việc tại công ty Hoà Bình." contains "Trần" and "Bình" as
+    separate words, so `_mentions` answers a question about Trần Bình with
+    Trần Thảo's employment record. Measured on both arms, not argued:
+    text matching returns 2 rows and one is somebody else's; identity returns 1.
+
+    `_mentions` was written to require every syllable *as its own word* because
+    substring matching let "An" match "đang". That was the right fix for the
+    wrong half of the problem: a syllable can be its own word and still belong
+    to a company.
+    """
+    memory_os = MemoryOS(tmp_path / "collide.db")
+    try:
+        for text in (f"Trần Bình làm việc tại công ty Locaith.",
+                     "Trần Thảo làm việc tại công ty Hoà Bình.",
+                     "Vũ Minh làm việc tại công ty Alpha.",
+                     "Từ hôm nay, vũ An làm việc tại công ty Bình Minh."):
+            event = memory_os.observe(tenant_id="t1", actor="a", source="u",
+                                      content=text, workspace_id="w1")
+            memory_os.remember(event=event, memory_type=MemoryType.SEMANTIC,
+                               content=text, confidence=0.9)
+
+        found = " ".join(_contents(memory_os, subject, "employer"))
+        assert mine in found, f"{subject} không thấy hồ sơ của chính mình"
+        assert theirs not in found, (
+            f"tên công ty cho mượn âm tiết — hồ sơ người khác lọt vào câu hỏi "
+            f"về {subject}")
     finally:
         memory_os.close()
 
