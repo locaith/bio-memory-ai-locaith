@@ -455,7 +455,8 @@ def _mentions(content: str, subject: str) -> bool:
 
 def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
                   context: Any, hint: str | None = None,
-                  predicate: str | None = None) -> list[ClaimSpan]:
+                  predicate: str | None = None,
+                  rescue: bool = False) -> list[ClaimSpan]:
     """Every claim about one (subject, aspect), in order, with intervals.
 
     Intervals come from observation order: each claim holds until the next one
@@ -508,31 +509,31 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
     structured = ([c for c in candidates if slots.get(str(c[0])) == slot_key]
                   if slot_key else [])
     if structured and slot_key:
-        # Four cases, decided by where the slot came from rather than by how
-        # confident anything felt.
+        # Structured exact match, and **no rescue by default**.
         #
-        #   TRUSTED   + match     keep
-        #   TRUSTED   + mismatch  exclude. A schema said this row is about
-        #                         something else, and a schema outranks a
-        #                         guess.
-        #   UNTRUSTED + match     keep, preferred
-        #   UNTRUSTED + mismatch  **must not vanish.** A resolver guessed
-        #                         wrong and the row is still the answer.
-        #   UNKNOWN               bounded fallback, as before
+        # The previous version rescued every UNTRUSTED row whose slot merely
+        # differed. That reads as safety and is the opposite: asking about
+        # somebody's employer, their phone, birthday, salary and project rows
+        # all "mismatch", so the rescue fired on nearly every query and
+        # `_by_aspect` ran again — cosine back in exactly the place structured
+        # execution had just removed it. Measured on the frozen 38: the
+        # structured arm collapsed onto the legacy arm, 31/38 down to 25/38,
+        # with 37 of 38 queries calling the aspect filter.
         #
-        # This is F2. The previous version excluded every mismatch, so a
-        # mis-slotted row became invisible to the only query that would find
-        # it — strictly worse than having no slot at all, and the operator
-        # then answered a stale value with status KNOWN.
+        # A mismatched row is the ordinary state of a person's record. Its
+        # existence is not evidence that its slot is wrong.
         #
-        # The fallback is bounded by construction, not by a limit: `candidates`
-        # is already only memories that mention this subject, so the widest it
-        # can reach is one person's records. It never returns to the store.
-        rescuable = [c for c in candidates
-                     if id(c) not in {id(s) for s in structured}
-                     and statuses.get(str(c[0])) != _TRUSTED]
-        rescued = _positively_selected(memory_os, rescuable, probe)
-        keep = {id(c) for c in structured} | {id(c) for c in rescued}
+        # The trigger for rescue is a *gap the operator cannot answer from*,
+        # not a row that disagrees — see `rescue=True` below, which the
+        # caller sets after trying the structured history and finding it
+        # insufficient.
+        keep = {id(s) for s in structured}
+        if rescue:
+            rescuable = [c for c in candidates
+                         if id(c) not in keep
+                         and statuses.get(str(c[0])) != _TRUSTED]
+            keep |= {id(c) for c in _positively_selected(
+                memory_os, rescuable, probe)}
         candidates = [c for c in candidates if id(c) in keep]
     elif structured:
         unslotted = [c for c in candidates if slots.get(str(c[0])) is None]
@@ -665,6 +666,17 @@ def answer_temporal(memory_os: Any, question: str, *, context: Any,
         predicate=_key_for(intent.predicate),
         hint=intent.anchor if intent.kind in (TemporalKind.BEFORE,
                                               TemporalKind.AFTER) else None)
+    if not spans and _key_for(intent.predicate):
+        # STRUCTURED_GAP, same rule as `state_at`: the slot is empty for this
+        # person, so a row mis-slotted elsewhere is worth looking for. A
+        # history that exists needs no rescue, and rescuing it anyway is what
+        # put cosine back on 37 of 38 queries.
+        spans = claim_history(
+            memory_os, subject=intent.subject, aspect=intent.aspect,
+            context=context, predicate=_key_for(intent.predicate),
+            hint=intent.anchor if intent.kind in (TemporalKind.BEFORE,
+                                                  TemporalKind.AFTER) else None,
+            rescue=True)
     if not spans:
         result.stage_failed = "claim_history"
         result.note = (f"không có ký ức nào về '{intent.subject}'"

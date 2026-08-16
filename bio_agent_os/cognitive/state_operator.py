@@ -131,7 +131,21 @@ def state_at(memory_os: Any, *, subject: str, predicate: Predicate,
         return answer
 
     spans = claim_history(memory_os, subject=subject,
-                          aspect=predicate.attribute, context=context)
+                          aspect=predicate.attribute,
+                          predicate=predicate.attribute, context=context)
+    if not spans:
+        # STRUCTURED_GAP: this person has memories, but none in this slot.
+        # That is the one condition under which a mis-slotted row is worth
+        # hunting for — and it is a condition about the *answer*, not about
+        # the existence of rows that disagree.
+        #
+        # `NO_SUBJECT_HISTORY` is a different state and must not trigger a
+        # rescue: nothing is known about this person, so there is nothing for
+        # a bounded search to be bounded by.
+        spans = claim_history(memory_os, subject=subject,
+                              aspect=predicate.attribute,
+                              predicate=predicate.attribute, context=context,
+                              rescue=True)
     if not spans:
         # No record at all, which is different from a record that says
         # nothing holds. A deletion leaves this state too — the row is gone
