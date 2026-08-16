@@ -55,6 +55,54 @@ EXPECTED = {"ever": (40, 40), "current": (34, 40),
             "historical": (23, 38), "forgotten": (15, 18)}
 
 
+#: The verified baselines, and where each was measured. A gate that compares
+#: against a number nobody can point at is a gate that will one day compare
+#: against a dead branch — which is what happened: `failure_matrix_slots.json`
+#: records historical 23/38, measured before `answer_temporal` passed a
+#: predicate to `claim_history`. The structured branch could not fire, and a
+#: dead path scored beautifully stable.
+VERIFIED_BASELINE = {
+    "ever": (40, 40, "failure_matrix_slots.json"),
+    "current": (49, 58, "failure_matrix_slots.json"),
+    "historical": (31, 38, "temporal_rebaseline.json B_structured"),
+    "forgotten": (15, 18, "failure_matrix_slots.json"),
+}
+
+
+def _instrument():
+    """Count which path `claim_history` actually took.
+
+    Wrapped rather than edited: a gate must not be able to change what it
+    measures. This is the same counter `temporal_rebaseline` uses, and it is
+    what turns "historical did not move" into either "nothing changed" or
+    "the structured branch never ran".
+    """
+    from bio_agent_os.cognitive import temporal_operator as module
+
+    stats = Counter()
+    original_by_aspect = module._by_aspect
+    original_history = module.claim_history
+
+    def counted_by_aspect(memory_os, candidates, aspect):
+        stats["by_aspect_calls"] += 1
+        return original_by_aspect(memory_os, candidates, aspect)
+
+    def counted_history(memory_os, **kwargs):
+        stats["history_calls"] += 1
+        if kwargs.get("predicate"):
+            stats["predicate_supplied"] += 1
+        before = stats["by_aspect_calls"]
+        spans = original_history(memory_os, **kwargs)
+        if stats["by_aspect_calls"] == before and kwargs.get("predicate"):
+            stats["structured_only"] += 1
+        return spans
+
+    module._by_aspect = counted_by_aspect
+    module.claim_history = counted_history
+    return stats, lambda: (setattr(module, "_by_aspect", original_by_aspect),
+                           setattr(module, "claim_history", original_history))
+
+
 def run_now(events, ledger, people, embedder, engine, seed, per_family,
             workdir: Path) -> dict:
     from bio_agent_os.cognitive.semantic_index import (
@@ -69,6 +117,7 @@ def run_now(events, ledger, people, embedder, engine, seed, per_family,
     rng = random.Random(seed)
     rows = {}
     fed = 0
+    stats, restore = _instrument()
     for checkpoint in CHECKPOINTS:
         while fed < len(events) and events[fed].tick <= checkpoint:
             event = events[fed]
@@ -98,8 +147,9 @@ def run_now(events, ledger, people, embedder, engine, seed, per_family,
                 "answer": (result.answer or "")[:120],
                 "correct": bool(question.grade(result.answer)),
             }
+    restore()
     adapter.close()
-    return rows
+    return rows, dict(stats)
 
 
 def classify(before: dict, after: dict) -> str:
@@ -160,14 +210,65 @@ def main() -> int:
     events, ledger, people = generate(ticks=1000, subjects=20, seed=args.seed)
     workdir = _REPO / ".staging" / "integration_gate"
     workdir.mkdir(parents=True, exist_ok=True)
-    after = run_now(events, ledger, people, Embedder(), LLMEngine.from_env(),
-                    args.seed, args.per_family, workdir)
+    after, paths = run_now(events, ledger, people, Embedder(),
+                           LLMEngine.from_env(), args.seed, args.per_family,
+                           workdir)
+
+    # ------------------------------------------------------------------
+    # WRONG BASELINE != PRODUCT REGRESSION
+    #
+    # The gate validates its own footing before printing a comparison. The
+    # first run compared historical against 23/38 — a number measured before
+    # `answer_temporal` passed a predicate, when the structured branch could
+    # not fire at all. A dead path is beautifully stable, and "+0, no
+    # coupling" was the conclusion it invited.
+    # ------------------------------------------------------------------
+    families = ("ever", "current", "historical", "forgotten")
+    invalid = []
+    for family in families:
+        recorded = sum(1 for r in before.values()
+                       if r["family"] == family and r["correct"])
+        verified, total, source = VERIFIED_BASELINE[family]
+        if recorded != verified:
+            invalid.append(
+                f"{family}: baseline trong {args.baseline} là {recorded}/{total}, "
+                f"nhưng số đã xác minh là {verified}/{total} ({source})")
+
+    historical_n = sum(1 for r in after.values()
+                       if r["family"] == "historical")
+    if paths.get("structured_only", 0) < historical_n:
+        invalid.append(
+            f"đường structured chỉ chạy {paths.get('structured_only', 0)}/"
+            f"{historical_n} câu historical — nhánh chưa thực sự thi hành")
+    if paths.get("by_aspect_calls", 0) > 0:
+        invalid.append(
+            f"_by_aspect được gọi {paths['by_aspect_calls']} lần — vẫn còn "
+            f"so khớp bằng cosine trên đường lẽ ra đã structured")
+
+    if invalid:
+        print("=" * 74)
+        print("GATE INVALID — KHÔNG IN BẢNG HỒI QUY")
+        print("=" * 74)
+        for line in invalid:
+            print(f"  ⚠ {line}")
+        print(f"\n  đường đã đi: {paths}")
+        print("\n  WRONG BASELINE != PRODUCT REGRESSION.")
+        print("  Một chân của phép so sánh đứng trên artifact cũ hoặc trên "
+              "một nhánh chưa chạy. So sánh với nó không nói được gì về sản "
+              "phẩm.")
+        out = _REPO / args.out
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps({
+            "gate_valid": False, "reasons": invalid, "paths": paths,
+            "runtime": who.as_dict(),
+        }, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"\n  -> {out}")
+        return 2
 
     print("=" * 74)
     print("ĐIỂM THEO NHÓM — trước / sau")
     print("=" * 74)
     print(f"  {'nhóm':<14}{'trước':>12}{'sau':>12}{'Δ':>6}")
-    families = ("ever", "current", "historical", "forgotten")
     deltas = {}
     for family in families:
         was = sum(1 for r in before.values()
