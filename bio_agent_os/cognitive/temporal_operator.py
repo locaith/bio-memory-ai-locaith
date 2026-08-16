@@ -50,6 +50,7 @@ from __future__ import annotations
 import json
 import re
 import unicodedata
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -381,6 +382,45 @@ _ATTRIBUTE_KEYS = _attribute_keys()
 
 _TRUSTED = "trusted"
 
+#: What actually executed, counted where the decision is made.
+#:
+#: A suite of 1055 tests stayed green while `376c4ce` put cosine back on 37 of
+#: 38 queries, because every test asked what the system *answered* and none
+#: asked what it *did*. These five counters are the missing question.
+#:
+#:     structured_branch_taken  the structured predicate selection ran
+#:     fallback_attempted       a STRUCTURED_GAP opened the rescue lane
+#:     fallback_contributed     the rescue added at least one candidate
+#:     unnecessary_fallback     the lane opened while structured evidence was
+#:                              already sufficient — the bug, as a number
+#:     structured_queries       denominator, printed alongside every rate
+#:
+#: `unnecessary_fallback` is the one that matters. A rescue is an exception
+#: path justified by missing decision-relevant evidence, not a second
+#: retrieval strategy running in parallel: **fallback requires a reason.**
+EXECUTION: Counter = Counter()
+
+
+def reset_execution() -> None:
+    EXECUTION.clear()
+
+
+def execution_report() -> dict[str, Any]:
+    total = EXECUTION.get("structured_queries", 0)
+    return {
+        "structured_queries": total,
+        "structured_branch_taken": EXECUTION.get("structured_branch_taken", 0),
+        "fallback_attempted": EXECUTION.get("fallback_attempted", 0),
+        "fallback_contributed": EXECUTION.get("fallback_contributed", 0),
+        "unnecessary_fallback": EXECUTION.get("unnecessary_fallback", 0),
+        "by_aspect_calls": EXECUTION.get("by_aspect_calls", 0),
+        # Rates carry their denominator. A rate without one is a number
+        # somebody will quote in isolation.
+        "unnecessary_fallback_rate":
+            round(EXECUTION.get("unnecessary_fallback", 0) / total, 4)
+            if total else 0.0,
+    }
+
 
 def _status_of_row(structured_json: Any) -> str:
     from .slot_backfill import status_of
@@ -404,6 +444,7 @@ def _positively_selected(memory_os: Any, candidates: list[tuple],
     """
     if not candidates or not probe:
         return []
+    EXECUTION["by_aspect_calls"] += 1
     chosen = _by_aspect(memory_os, candidates, probe)
     if len(chosen) >= len(candidates):
         return []
@@ -527,13 +568,24 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
         # not a row that disagrees — see `rescue=True` below, which the
         # caller sets after trying the structured history and finding it
         # insufficient.
+        EXECUTION["structured_queries"] += 1
+        EXECUTION["structured_branch_taken"] += 1
         keep = {id(s) for s in structured}
         if rescue:
+            EXECUTION["fallback_attempted"] += 1
+            # Structured evidence exists and the lane opened anyway. By
+            # construction the callers only set `rescue=True` after a first
+            # pass returned nothing, so reaching here means somebody bypassed
+            # the gap check — which is precisely what `376c4ce` did, and what
+            # the EAGER_RESCUE mutant does on purpose.
+            EXECUTION["unnecessary_fallback"] += 1
             rescuable = [c for c in candidates
                          if id(c) not in keep
                          and statuses.get(str(c[0])) != _TRUSTED]
-            keep |= {id(c) for c in _positively_selected(
-                memory_os, rescuable, probe)}
+            rescued = _positively_selected(memory_os, rescuable, probe)
+            if rescued:
+                EXECUTION["fallback_contributed"] += 1
+            keep |= {id(c) for c in rescued}
         candidates = [c for c in candidates if id(c) in keep]
     elif structured:
         unslotted = [c for c in candidates if slots.get(str(c[0])) is None]
