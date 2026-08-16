@@ -380,6 +380,11 @@ def _attribute_keys() -> frozenset[str]:
 _ATTRIBUTE_KEYS = _attribute_keys()
 
 
+import os as _os
+
+#: See `claim_history`. Off until the three temporal failures are explained.
+_SUBJECT_IDENTITY_READ = _os.getenv("SUBJECT_IDENTITY_READ", "off").strip().lower()
+
 _TRUSTED = "trusted"
 
 #: What actually executed, counted where the decision is made.
@@ -480,6 +485,79 @@ def _slot_of_row(structured_json: Any) -> str | None:
     return str(attribute) if attribute else None
 
 
+def _by_subject(rows: list, subject: str) -> list[tuple]:
+    """Whose records these are, by identity where one is stored.
+
+    The asymmetry this closes: a predicate was resolved once at ingest,
+    persisted, and read back by equality — while the subject was resolved
+    once, persisted, and then re-derived from the text on every read by
+    `_mentions`. Understand, discard, guess again: the same shape as the
+    predicate defect, on the other axis.
+
+    Four cases, and the third is the one that costs the most:
+
+        stored identity == query identity   keep
+        stored identity != query identity   **hard separation.** Nguyễn Quân
+                                            and Nguyễn Dũng share a family
+                                            name; text matching that lets one
+                                            see the other's phone number is a
+                                            cross-person leak, not a ranking
+                                            imperfection.
+        no stored identity                  bounded textual fallback, as
+                                            before — legacy rows must not go
+                                            missing
+        ambiguous query surface             unresolved. "An" ends both "Vũ An"
+                                            and "Trần An", and nothing ranks
+                                            people.
+
+    The stored identity is itself UNTRUSTED — it was inferred at ingest — so
+    this is preference and separation, never a claim of certainty.
+    """
+    from .subject_identity import UNKNOWN, identify
+
+    known = {e for e in (_entity_of_row(s) for *_, s in rows) if e}
+    wanted = identify(subject, known=known)
+    if wanted.status == UNKNOWN:
+        # More than one established person ends in this surface. Answering
+        # from either would be choosing a human being by similarity.
+        EXECUTION["ambiguous_identity_abstain"] += 1
+        return []
+
+    # **Row order is preserved.** `rows` arrives `ORDER BY observed_at, rowid`
+    # and everything downstream depends on it: a correction is recognised by
+    # sitting immediately after the claim it retracts, and intervals close
+    # against the next claim in sequence. The first version returned
+    # `structured + legacy`, which interleaves a chronology by whether a row
+    # happened to carry an identity — three temporal tests died, and they were
+    # right to.
+    kept, structured_seen, legacy_seen = [], False, False
+    for memory_id, content, observed_at, _, _, structured_json in rows:
+        entity = _entity_of_row(structured_json)
+        if entity:
+            if identify(entity, known=known).subject_id == wanted.subject_id:
+                kept.append((memory_id, content, observed_at))
+                structured_seen = True
+            # A definite mismatch is dropped here and never rescued by text.
+            # Cross-person contamination is the one failure with no benign
+            # reading.
+        elif _mentions(str(content), subject):
+            kept.append((memory_id, content, observed_at))
+            legacy_seen = True
+
+    if structured_seen:
+        EXECUTION["structured_identity_hit"] += 1
+    if legacy_seen:
+        EXECUTION["identity_fallback_attempted"] += 1
+        if not structured_seen:
+            EXECUTION["identity_fallback_contributed"] += 1
+    return kept
+
+
+def _entity_of_row(structured_json: Any) -> str | None:
+    entity = _loads_slot(structured_json).get("entity")
+    return str(entity) if entity else None
+
+
 def _mentions(content: str, subject: str) -> bool:
     """Does this memory talk about that person?
 
@@ -516,8 +594,22 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
               if vt is not None}
     slots = {str(m): _slot_of_row(s) for m, _, _, _, _, s in rows}
     statuses = {str(m): _status_of_row(s) for m, _, _, _, _, s in rows}
-    candidates = [(m, c, o) for m, c, o, _, _, _ in rows
-                  if _mentions(str(c), subject)]
+    # P0-B, INCOMPLETE, default OFF. `SUBJECT_IDENTITY_READ=on` enables it.
+    #
+    # Identity selection is correct on its own suite — cross-person leakage is
+    # zero on three shared-surname pairs and the text mutant dies — but three
+    # temporal tests fail with it on, and two hypotheses for why were wrong:
+    # it is not the entity extraction (all forms resolve to one id, verified)
+    # and it is not row ordering (preserved, still red).
+    #
+    # Shipping it on would trade a proven present failure for an unproven
+    # future safety, so it ships off and the investigation is written down
+    # rather than left in a red tree.
+    if _SUBJECT_IDENTITY_READ == "on":
+        candidates = _by_subject(rows, subject)
+    else:
+        candidates = [(m, c, o) for m, c, o, _, _, _ in rows
+                      if _mentions(str(c), subject)]
 
     # `hint` is the anchor of a before/after question, and it identifies the
     # slot when the aspect alone cannot. "Trước khi sang Bình Minh thì Bùi
