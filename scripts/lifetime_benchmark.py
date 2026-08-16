@@ -185,11 +185,13 @@ def _read_back(adapter, ledger, people, event) -> dict[str, Any]:
         scoped = {layer: counts for layer, counts in where.items()
                   if counts["this_subject"]}
         # Content surviving in the append-only log is the design, not a defect:
-        # `forget_scoped` runs at derived level and says so. It does mean a
-        # replay puts the value back, which is worth a number of its own —
-        # counting it as residue would report eighteen privacy failures where
-        # there are none, and counting it nowhere would hide that every one of
-        # these deletions is undoable.
+        # `forget_scoped` runs at derived level and says so. Since 16/08 it no
+        # longer means a replay puts the value back — a tombstone is written
+        # beside the event and the rebuild reads both — so this counts what is
+        # still *explainable from history*, not what is recoverable into the
+        # serving layer. The number that says a deletion held is
+        # `store_residue`, checked after a rebuild by
+        # `tests/test_replay_resurrection.py`.
         in_log = {k: v for k, v in scoped.items() if k in log_layers}
         in_store = {k: v for k, v in scoped.items() if k not in log_layers}
         if in_store:
@@ -524,8 +526,13 @@ def main() -> int:
                               for layer, c in layers.items())
             print(f"    ⚠ t={d['tick']:<5} {d['subject_name']:<12} "
                   f"{value!r} còn ở {where}")
-    print(f"  còn trong nhật ký sự kiện (thiết kế, nhưng replay là quay lại): "
+    buried = sum(d.get("tombstoned", 0) for d in deletions)
+    print(f"  còn trong nhật ký sự kiện (thiết kế — lịch sử giải thích được): "
           f"{len(undoable)}/{len(deletions)}")
+    print(f"  bia mộ đã đặt (thứ chặn replay dựng lại): {buried}")
+    if undoable and not buried:
+        print("    ⚠ có nội dung trong log mà không có bia mộ nào — một lần "
+              "rebuild sẽ dựng lại")
     print("\n  các hệ tham chiếu:")
     for name, value in report["reference_scores"].items():
         print(f"    {name:<18} {value:.3f}")

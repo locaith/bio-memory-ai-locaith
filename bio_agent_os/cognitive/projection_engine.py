@@ -25,6 +25,7 @@ from enum import Enum
 from typing import Any, Callable
 
 from .outbox import JobStatus, ProjectionJob, ProjectionOutbox, projection_key
+from .tombstones import buried_among
 from .projection_registry import (
     DependencyState,
     ProjectionType,
@@ -73,6 +74,11 @@ class ReplayReport:
     reset: int = 0
     skipped_unreplayable: int = 0
     skipped_dependency: int = 0
+    #: Events a deletion said must never be materialised again. Counted and
+    #: printed rather than silently dropped — a recovery that quietly declines
+    #: to restore something is indistinguishable from one that failed, and the
+    #: operator running it needs to know which.
+    skipped_tombstoned: int = 0
     errors: list[str] = field(default_factory=list)
 
     def by_reason(self) -> dict[str, int]:
@@ -93,6 +99,7 @@ class ReplayReport:
             f"  reset for retry       : {self.reset:>8,}",
             f"  held: dependency      : {self.skipped_dependency:>8,}",
             f"  held: not replayable  : {self.skipped_unreplayable:>8,}",
+            f"  held: tombstoned      : {self.skipped_tombstoned:>8,}",
         ]
         if self.candidates:
             lines.append("")
@@ -278,9 +285,21 @@ class ProjectionReplayEngine:
         )
         report.dry_run = dry_run
 
+        # One query for the whole scan rather than one per candidate: this runs
+        # on every replay of every event, and a check that costs more than the
+        # work it guards is a check somebody eventually turns off.
+        tombstoned = buried_among(
+            self.conn, {c.event_id for c in report.candidates})
+
         for candidate in report.candidates:
             if not candidate.replayable:
                 report.skipped_unreplayable += 1
+                continue
+            # Checked before dependencies and before `dry_run`, so a dry run
+            # reports the same decision the real one would make. A preview that
+            # disagrees with the act is worse than no preview.
+            if candidate.event_id in tombstoned:
+                report.skipped_tombstoned += 1
                 continue
             if candidate.dependency_state != DependencyState.READY.value:
                 report.skipped_dependency += 1
@@ -339,8 +358,15 @@ class ProjectionReplayEngine:
         rows = self._events(tenant_id=tenant_id)
         report.scanned_events = len(rows)
         replayable = spec(projection_type).replayable
+        # A rebuild is the operation that resurrected every deleted memory in
+        # the 15/08 reproduction: it walks the whole log by design, so it walks
+        # straight over the deletions too unless it is told not to.
+        tombstoned = buried_among(self.conn, {r["event_id"] for r in rows})
 
         for row in rows:
+            if row["event_id"] in tombstoned:
+                report.skipped_tombstoned += 1
+                continue
             existing = self.conn.execute(
                 "SELECT 1 FROM projection_outbox WHERE event_id=? AND projection_type=? "
                 "AND projection_version=? AND status IN (?,?)",

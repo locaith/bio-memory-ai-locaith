@@ -37,6 +37,7 @@ from typing import Any, Protocol
 from . import fault_points as _fault
 from .models import BeliefState, CognitiveMemory, EventRecord, MemoryType
 from .outbox import JobStatus, ProjectionJob, ProjectionOutbox
+from .tombstones import buried
 from .projection_registry import (
     DependencyState,
     ProjectionType,
@@ -148,6 +149,10 @@ class WorkerMetrics:
     dead_lettered: int = 0
     dependency_held: int = 0
     blocked: int = 0
+    #: Jobs dropped because a deletion landed after they were queued. Counted
+    #: separately from `skipped`: this one is a deletion working, and a number
+    #: that rises without a deletion having happened is a bug worth seeing.
+    tombstoned: int = 0
     build_seconds: float = 0.0
     cycles: int = 0
     paused_cycles: int = 0
@@ -162,6 +167,7 @@ class WorkerMetrics:
             "dead_lettered": self.dead_lettered,
             "dependency_held": self.dependency_held,
             "blocked": self.blocked,
+            "tombstoned": self.tombstoned,
             "cycles": self.cycles,
             "paused_cycles": self.paused_cycles,
             "build_seconds": round(self.build_seconds, 4),
@@ -314,7 +320,26 @@ class ReconciliationWorker:
             )
             return JobStatus.COMPLETED.value
 
-        # 2. Dependencies.
+        # 2. Tombstoned? A deletion may have landed after this job was queued.
+        #
+        #    The replay engine already declines to enqueue these, and this is
+        #    the second of two checks on purpose: a queue outlives the decision
+        #    that filled it, so a forget() between the enqueue and the drain
+        #    would otherwise be undone by work that was already in flight. The
+        #    window is small and it is exactly the window a deletion runs in.
+        #
+        #    Skipped rather than failed. Nothing went wrong; the work is no
+        #    longer wanted, and dead-lettering it would put a permanent error
+        #    in the queue for every deletion.
+        if buried(self.conn, job.event_id):
+            self.outbox.skip(job.job_id, "sự kiện đã bị đặt bia mộ")
+            self.metrics.tombstoned += 1
+            logger.info(
+                "skipping tombstoned event",
+                extra={"job_id": job.job_id, "event_id": job.event_id})
+            return JobStatus.SKIPPED.value
+
+        # 3. Dependencies.
         state = self.dependency_state(job)
         if state == DependencyState.BLOCKED.value:
             self.outbox.fail(job.job_id, "parent projection is dead-lettered",

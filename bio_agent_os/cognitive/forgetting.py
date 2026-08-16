@@ -131,6 +131,13 @@ class ForgetReport:
     #: never ran, which is not the same as finding nothing — see `verified_clean`.
     checks_run: int = 0
     residue: list[dict[str, str]] = field(default_factory=list)
+    #: How many events were marked never-to-be-materialised-again.
+    #:
+    #: Distinct from `memories_deleted`: that one says the serving layer is
+    #: clean now, this one says it stays clean through a rebuild. Before
+    #: tombstones existed the first was true and the second was not, and the
+    #: report only carried the first.
+    tombstoned: int = 0
     #: True when the content can be rebuilt from something this scope did not
     #: touch — almost always the event log.
     reversible: bool = False
@@ -160,6 +167,8 @@ class ForgetReport:
             "checks_run": self.checks_run,
             "verified_clean": self.verified_clean,
             "residue": self.residue,
+            "tombstoned": self.tombstoned,
+            "survives_rebuild": self.tombstoned > 0 or self.memories_deleted == 0,
             "reversible": self.reversible,
             "reversible_via": self.reversible_via,
             "note": self.note,
@@ -353,6 +362,79 @@ def _delete_memories(conn: sqlite3.Connection, targets: set[str]) -> int:
     return cursor.rowcount
 
 
+def _events_holding(conn: sqlite3.Connection, needle: str | None) -> set[str]:
+    """Events whose payload contains this string.
+
+    Only reached when the memory rows are already gone. Compared in Python
+    with the same fold used everywhere else — an earlier version of the
+    verifier compared with SQL LIKE while the deleter used Python `.lower()`,
+    so the deleter reached case variants the verifier could not see.
+    """
+    if not needle or not str(needle).strip():
+        return set()
+    wanted = _normalise(str(needle))
+    out = set()
+    for event_id, payload in _safe(
+            conn, "SELECT event_id, payload_json FROM cognitive_events"):
+        if wanted in _normalise(str(payload or "")):
+            out.add(str(event_id))
+    return out
+
+
+def _tombstoned_events(conn: sqlite3.Connection, *, memory_id: str | None,
+                       subject: str | None) -> set[str]:
+    """Events a previous deletion buried, so a later hard erase can find them.
+
+    The tombstone is the only surviving link from a deleted memory back to its
+    events. Without it, "forget it" followed by "now erase it properly" cannot
+    resolve anything at all.
+    """
+    from .tombstones import TABLE as TOMBSTONE_TABLE
+
+    clauses, params = ["lifted=0"], []
+    if memory_id:
+        clauses.append("memory_id=?")
+        params.append(str(memory_id))
+    rows = _safe(conn, f"SELECT event_id FROM {TOMBSTONE_TABLE} "
+                       f"WHERE {' AND '.join(clauses)}", tuple(params))
+    # `subject` cannot be resolved here: the rows it named are gone, which is
+    # why this path exists. A subject-scoped hard erase after a deletion needs
+    # the needle, and says so rather than quietly erasing everything buried.
+    if subject and not memory_id:
+        return set()
+    return {str(event_id) for (event_id,) in rows}
+
+
+def _bury(conn: sqlite3.Connection, event_ids: set[str], *, scope: str,
+          actor: str, targets: set[str], report: ForgetReport) -> None:
+    """Record that these events must not be materialised again.
+
+    Written by both levels that remove a memory from the serving layer, and by
+    neither that does not. Deleting the row is what stops the system using a
+    memory *now*; the tombstone is what stops a rebuild putting it back — and
+    before this existed, a rebuild did, verbatim, on every one of the eighteen
+    deletions in the lifetime run.
+
+    Failure here is reported, never swallowed. A deletion whose tombstone did
+    not land is a deletion that will be undone by the next recovery, and the
+    caller must be told rather than left with a clean-looking report.
+    """
+    if not event_ids:
+        return
+    from .tombstones import place
+
+    try:
+        placed = place(conn, event_ids=event_ids, scope=scope,
+                       actor=actor or "forget",
+                       reason=f"{scope}: {len(targets)} ký ức bị xoá",
+                       memory_id=next(iter(targets), None))
+        report.tombstoned = len(placed)
+    except sqlite3.Error as exc:
+        report.residue.append({
+            "where": "memory_tombstones",
+            "excerpt": f"KHÔNG đặt được bia mộ ({exc}) — replay sẽ dựng lại"})
+
+
 def _note_reversibility(conn: sqlite3.Connection, report: ForgetReport,
                         probes: list[str]) -> None:
     """Say where the content survives outside this scope.
@@ -376,7 +458,8 @@ def _note_reversibility(conn: sqlite3.Connection, report: ForgetReport,
 
 def forget_projection(memory_os: Any, *, memory_id: str | None = None,
                       subject: str | None = None,
-                      needle: str | None = None) -> ForgetReport:
+                      needle: str | None = None,
+                      actor: str = "forget") -> ForgetReport:
     """Delete the memory row and nothing else.
 
     For a memory that is *wrong* rather than unwanted: the system stops using
@@ -393,7 +476,10 @@ def forget_projection(memory_os: Any, *, memory_id: str | None = None,
         return report
 
     contents = _contents_of(conn, targets)
+    event_ids = _event_ids_of(conn, targets)
     report.memories_deleted = _delete_memories(conn, targets)
+    _bury(conn, event_ids, scope=Scope.PROJECTION, actor=actor,
+          targets=targets, report=report)
     conn.commit()
 
     probes = _probes(contents, needle)
@@ -423,7 +509,8 @@ def forget_projection(memory_os: Any, *, memory_id: str | None = None,
 
 def forget_derived(memory_os: Any, *, memory_id: str | None = None,
                    subject: str | None = None,
-                   needle: str | None = None) -> ForgetReport:
+                   needle: str | None = None,
+                   actor: str = "forget") -> ForgetReport:
     """Remove a memory and everything derived from it, then check.
 
     `needle` is the string to prove absent afterwards. Defaults to the most
@@ -467,6 +554,8 @@ def forget_derived(memory_os: Any, *, memory_id: str | None = None,
             continue
 
     report.memories_deleted = _delete_memories(conn, targets)
+    _bury(conn, event_ids, scope=Scope.DERIVED, actor=actor, targets=targets,
+          report=report)
     conn.commit()
 
     probes = _probes(contents, needle)
@@ -591,21 +680,39 @@ def erase_history(memory_os: Any, *, memory_id: str | None = None,
     events = _events_conn(memory_os)
 
     targets = _resolve(conn, memory_id, subject)
-    if not targets:
+
+    if targets:
+        # Resolved before anything is deleted: once the memory rows go, the
+        # link from memory to event is gone with them.
+        contents = _contents_of(conn, targets)
+        merged = find_consolidated_containing(conn, targets)
+        event_ids = _event_ids_of(conn, targets | set(merged))
+        probes = _probes(contents, needle)
+        report = forget_derived(memory_os, memory_id=memory_id,
+                                subject=subject, needle=needle, actor=actor)
+        report.scope = Scope.HISTORY
+    else:
+        # "Forget it" and later "actually, erase it properly" is an ordinary
+        # sequence, and until 16/08 the second call did nothing at all: it
+        # resolved through the memory rows the first call had removed, found
+        # no targets, and returned a clean-looking report having redacted
+        # nothing. The user's second, stronger request was the one that
+        # silently failed.
+        #
+        # The events are still findable — by the needle the caller supplied,
+        # which is exactly what "erase this from history" names — and now also
+        # by the tombstones the first deletion left behind.
+        event_ids = _events_holding(events, needle) | _tombstoned_events(
+            conn, memory_id=memory_id, subject=subject)
+        if not event_ids:
+            report = ForgetReport(scope=Scope.HISTORY)
+            report.note = ("không tìm thấy ký ức nào khớp, và cũng không có "
+                           "sự kiện nào mang chuỗi này")
+            return report
+        probes = _probes([], needle)
         report = ForgetReport(scope=Scope.HISTORY)
-        report.note = "không tìm thấy ký ức nào khớp"
-        return report
-
-    # Resolved before anything is deleted: once the memory rows go, the link
-    # from memory to event is gone with them.
-    contents = _contents_of(conn, targets)
-    merged = find_consolidated_containing(conn, targets)
-    event_ids = _event_ids_of(conn, targets | set(merged))
-    probes = _probes(contents, needle)
-
-    report = forget_derived(memory_os, memory_id=memory_id, subject=subject,
-                            needle=needle)
-    report.scope = Scope.HISTORY
+        report.note = (f"ký ức đã bị xoá trước đó; xoá cứng {len(event_ids)} "
+                       f"sự kiện tìm qua bia mộ và nội dung sự kiện")
 
     _ensure_erasure_table(events)
     stamped: list[tuple] = []

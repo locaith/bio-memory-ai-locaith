@@ -125,22 +125,50 @@ def test_forget_derived_admits_the_content_survives_in_the_event_log(os_):
     assert any("cognitive_events" in str(v) for v in report.reversible_via)
 
 
-def test_a_routine_rebuild_resurrects_after_forget_derived(os_):
-    """Documents the real behaviour rather than wishing it away.
+def test_a_routine_rebuild_no_longer_resurrects_after_forget_derived(os_):
+    """CORRECTION, 16/08/2026. This test used to assert the opposite.
 
-    This is not a defect to fix at this level -- an append-only event log is the
-    whole basis of replay. It is the reason `reversible` exists and the reason
-    `erase_history` has to.
+    It read:
+
+        _rebuild_everything(os_)
+        assert _hits(...) == 1, "if this stops resurrecting, replay itself
+                                 has broken"
+
+    and it was right about the code and wrong about the design. An append-only
+    event log is the basis of replay, but it stopped being the *only* input to
+    one: a deletion now writes a tombstone, and a rebuild reads both. The
+    payload still sits in `cognitive_events`, still explains what the system
+    once believed, and no longer comes back to the serving layer.
+
+    The old assertion's worry is answered by the control below rather than
+    dropped — if a rebuild had simply stopped working, lifting the tombstone
+    would not bring the memory back either.
     """
     from bio_agent_os.cognitive.forgetting import forget_derived
+    from bio_agent_os.cognitive.tombstones import lift
 
     memory_id = _remember(os_, SENSITIVE)
     forget_derived(os_, memory_id=memory_id, needle=SECRET)
     assert _hits(os_, "cognitive_memories", "content", SECRET) == 0
 
     _rebuild_everything(os_)
+    assert _hits(os_, "cognitive_memories", "content", SECRET) == 0, (
+        "ký ức đã xoá quay lại sau một lần dựng lại thường lệ"
+    )
+    assert _hits(os_, "cognitive_events", "payload_json", SECRET) == 1, (
+        "nhật ký sự kiện phải còn — đó là thứ giải thích hệ từng tin gì"
+    )
+
+    # The control: replay is still capable of rebuilding this memory.
+    event_id = os_.memories.conn.execute(
+        "SELECT event_id FROM cognitive_events WHERE payload_json LIKE ?",
+        (f"%{SECRET}%",)).fetchone()[0]
+    lift(os_.memories.conn, event_id, actor="test",
+         reason="chứng minh replay vẫn dựng lại được")
+    _rebuild_everything(os_)
     assert _hits(os_, "cognitive_memories", "content", SECRET) == 1, (
-        "if this stops resurrecting, replay itself has broken"
+        "gỡ bia mộ mà không dựng lại được — replay đã hỏng thật, và test ở "
+        "trên đang xanh vì lý do sai"
     )
 
 

@@ -126,6 +126,10 @@ class ForgetResult:
     matched_claims: int = 0
     deleted_claims: int = 0
     derived_invalidated: int = 0
+    #: Events marked never-to-be-materialised-again, so the deletion survives a
+    #: rebuild. Accumulated from the per-memory reports rather than counted
+    #: here: the number that matters is how many actually landed.
+    tombstoned: int = 0
     #: How many probes were actually searched for afterwards.
     #:
     #: Carried over from `ForgetReport` deliberately. Zero checks must never
@@ -175,8 +179,17 @@ class ForgetResult:
             # the event log; this one reaches embeddings, labels and
             # consolidated copies and stops there.
             "erasure_level": ERASURE_LEVEL,
+            # How many events were marked never-to-be-materialised-again.
+            # `deleted_claims` says the serving layer is clean now; this says
+            # it stays clean through a rebuild. Until 16/08 only the first was
+            # true, and only the first was reported.
+            "tombstoned": self.tombstoned,
+            "survives_rebuild": self.tombstoned >= self.deleted_claims,
+            # The history remains and can still explain what was believed.
+            # It is no longer a route back into the serving layer.
             "reversible": True,
-            "reversible_via": "replay/rebuild của event log",
+            "reversible_via": "event log — giải thích được lịch sử, nhưng "
+                              "replay không dựng lại (bia mộ chặn)",
             # Stated on the same line as the success, because they are the same
             # fact seen from two sides: the value is out of the serving path and
             # still on disk. Reproduced in tests/test_replay_resurrection.py —
@@ -537,9 +550,14 @@ def forget_scoped(memory_os: Any, request: str, *, actor: str,
 
     probes = _deletion_probes([m.content for m in matched])
     for match in matched:
-        report = forget_derived(memory_os, memory_id=match.memory_id)
+        # `actor` travels down. Without it every tombstone in the lifetime run
+        # was signed "forget" — a table that records who deleted something and
+        # always records the same word answers nothing.
+        report = forget_derived(memory_os, memory_id=match.memory_id,
+                                actor=actor)
         result.deleted_claims += report.memories_deleted
         result.derived_invalidated += sum(report.derived.values())
+        result.tombstoned += report.tombstoned
 
     # Verified against the content that was matched, not against the request —
     # the request's words never appear in a memory, so verifying on them would
