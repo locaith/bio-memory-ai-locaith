@@ -1,0 +1,72 @@
+{
+  ".staging\\lifetime\\run.db": {
+    "path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifetime\\run.db",
+    "sha256": "23bdb2da22974a606f560568a7c89134352ede7396a79f7fe3bfefd37d9c1270",
+    "bytes": 4087808,
+    "rows": 914,
+    "frozen_at": 1786880696.9357529
+  },
+  ".staging\\failure_matrix\\run.db": {
+    "path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\failure_matrix\\run.db",
+    "sha256": "dd65ad015f6e9dde39ff34337687b866f67a975f33be9d4f31583df58212d46d",
+    "bytes": 4476928,
+    "rows": 914,
+    "frozen_at": 1786880696.939878
+  },
+  ".staging\\lifecycle_ab\\A_off.db": {
+    "path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifecycle_ab\\A_off.db",
+    "sha256": "9ee940535196f017b8947fe3fd1d100ca5ea1fcdb06d3b03021b6f4eb047f3ed",
+    "bytes": 3883008,
+    "rows": 914,
+    "frozen_at": 1786880696.9466534
+  },
+  ".staging\\lifecycle_ab\\B_safe.db": {
+    "path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifecycle_ab\\B_safe.db",
+    "sha256": "e9197ecd7d88d38ada815878593c518d19a62ab703ca095a972d3f1e3d97bd20",
+    "bytes": 4497408,
+    "rows": 914,
+    "frozen_at": 1786880696.954203
+  },
+  ".staging\\lifecycle_ab\\C_oracle.db": {
+    "path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifecycle_ab\\C_oracle.db",
+    "sha256": "f188d5882dba1d10b6ecfe93f561fc89672a64478f9d593c23cd75a183dbce17",
+    "bytes": 4304896,
+    "rows": 914,
+    "frozen_at": 1786880696.959486
+  },
+  ".staging\\temporal_rebaseline\\A_legacy.db": {
+    "path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\temporal_rebaseline\\A_legacy.db",
+    "sha256": "1dd579dd29176fb5df9059e2487941c754d93b70110d6881870799a250b7c248",
+    "bytes": 3866624,
+    "rows": 914,
+    "frozen_at": 1786880696.9657671
+  },
+  ".staging\\temporal_rebaseline\\B_structured.db": {
+    "path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\temporal_rebaseline\\B_structured.db",
+    "sha256": "1335bc485279a1010e7387cd6b8cd249b1743464ad1b01b1b92a8a8cae6d4c4b",
+    "bytes": 3870720,
+    "rows": 914,
+    "frozen_at": 1786880696.970945
+  },
+  ".staging\\temporal_rebaseline\\C_oracle.db": {
+    "path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\temporal_rebaseline\\C_oracle.db",
+    "sha256": "f3e6fda33edd6a6f55e5623b23925837c5856dc287d69feb1c5ebd17d4bfbd7a",
+    "bytes": 3874816,
+    "rows": 914,
+    "frozen_at": 1786880696.9757032
+  },
+  ".staging\\ranking_ab\\A_legacy.db": {
+    "path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\ranking_ab\\A_legacy.db",
+    "sha256": "e4748ee63db2189ade66c07cfedb493dafaa174cd68547999f31cc2b8af5aabc",
+    "bytes": 4452352,
+    "rows": 914,
+    "frozen_at": 1786880696.9815674
+  },
+  ".staging\\ranking_ab\\B_relevance.db": {
+    "path": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\ranking_ab\\B_relevance.db",
+    "sha256": "5ec3e4c3fdd46906d57717550b0670537ace9d99de31198a484d7c4a8c200712",
+    "bytes": 4448256,
+    "rows": 914,
+    "frozen_at": 1786880696.9874632
+  }
+}

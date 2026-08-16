@@ -77,7 +77,28 @@ def _slot(blob) -> str | None:
 
 
 def gate(path: Path, *, apply: bool) -> dict:
-    conn = sqlite3.connect(path)
+    """Measure one database. **Never the frozen one.**
+
+    `--apply` on this script wrote to four finished run databases on 17/08.
+    The migration was right; the damage was that `.staging/lifetime/run.db`
+    had produced the `before` arm of three published comparisons and could no
+    longer reproduce its own numbers. The evidence for a claim was edited by
+    the work that claim was measuring, and nothing caught it.
+
+    Now a write always lands on a clone, and both hashes travel with the
+    result so a number in a report can be traced back to the exact file.
+    """
+    from bio_agent_os.evals import frozen
+
+    source_hash = frozen.digest(path)
+    frozen.verify(_REPO, path)
+
+    working = path
+    if apply:
+        working = frozen.clone(
+            path, _REPO / ".staging" / "slot_gate_derived" / path.name)
+
+    conn = sqlite3.connect(working)
     before = _rows(conn)
     total = len(before)
 
@@ -122,6 +143,13 @@ def gate(path: Path, *, apply: bool) -> dict:
     conn.close()
     return {
         "db": str(path),
+        # Both, because they answer different questions: the first is whether
+        # the "before" is still the "before", the second is which exact
+        # artefact produced these numbers.
+        "source_snapshot_hash": source_hash,
+        "derived_db_hash": frozen.digest(working),
+        "derived_db": str(working),
+        "source_untouched": frozen.digest(path) == source_hash,
         "rows": total,
         "benchmark_template_coverage": round(with_slot / total, 4) if total else 0.0,
         "with_slot": with_slot,
@@ -147,7 +175,8 @@ def main() -> int:
 
     print("CỔNG STRUCTURED SLOT")
     print("=" * 70)
-    print(f"  chế độ: {'GHI THẬT' if args.apply else 'chỉ đo, không sửa'}\n")
+    print(f"  chế độ: {'GHI VÀO BẢN CLONE' if args.apply else 'chỉ đo'}")
+    print("  Nguồn benchmark là CHỈ ĐỌC. Mọi biến đổi chạy trên bản sao.\n")
 
     results = []
     for raw in args.dbs:
@@ -155,9 +184,20 @@ def main() -> int:
         if not path.exists():
             print(f"  bỏ qua (không có): {raw}")
             continue
-        result = gate(path, apply=args.apply)
+        try:
+            result = gate(path, apply=args.apply)
+        except Exception as exc:                         # noqa: BLE001
+            from bio_agent_os.evals.frozen import FrozenSourceChanged
+
+            if not isinstance(exc, FrozenSourceChanged):
+                raise
+            print(f"\n  DỪNG: {exc}")
+            return 2
         results.append(result)
         print(f"  {raw}")
+        print(f"    nguồn {result['source_snapshot_hash'][:12]} "
+              f"{'giữ nguyên ✓' if result['source_untouched'] else 'ĐÃ BỊ SỬA ⚠'}"
+              f" | dẫn xuất {result['derived_db_hash'][:12]}")
         print(f"    {result['rows']} hàng | có slot {result['with_slot']} "
               f"| chưa đọc được {result['unresolved']}")
         print(f"    benchmark_template_coverage    "

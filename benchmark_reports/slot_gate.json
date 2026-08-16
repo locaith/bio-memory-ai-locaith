@@ -4,22 +4,26 @@
   "databases": [
     {
       "db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifetime\\run.db",
+      "source_snapshot_hash": "23bdb2da22974a606f560568a7c89134352ede7396a79f7fe3bfefd37d9c1270",
+      "derived_db_hash": "23bdb2da22974a606f560568a7c89134352ede7396a79f7fe3bfefd37d9c1270",
+      "derived_db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\slot_gate_derived\\run.db",
+      "source_untouched": true,
       "rows": 914,
-      "structured_coverage": 0.7779,
+      "benchmark_template_coverage": 0.7779,
       "with_slot": 711,
       "unresolved": 203,
-      "structured_wrong_slot_rate": 0.0,
+      "slot_tamper_or_drift_rate": 0.0,
       "wrong_slots": [],
       "backfill_changed_on_second_run": 0,
       "first_pass": {
         "scanned": 914,
-        "filled": 711,
+        "filled": 0,
         "unresolved": 203,
-        "already_had_slot": 0,
-        "changed": 711,
+        "already_had_slot": 711,
+        "changed": 0,
         "structured_coverage": 0.7779,
         "disagreements": [],
-        "seconds": 0.051
+        "seconds": 0.048
       },
       "second_pass": {
         "scanned": 914,
@@ -29,16 +33,20 @@
         "changed": 0,
         "structured_coverage": 0.7779,
         "disagreements": [],
-        "seconds": 0.04
+        "seconds": 0.042
       }
     },
     {
       "db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\failure_matrix\\run.db",
+      "source_snapshot_hash": "dd65ad015f6e9dde39ff34337687b866f67a975f33be9d4f31583df58212d46d",
+      "derived_db_hash": "dd65ad015f6e9dde39ff34337687b866f67a975f33be9d4f31583df58212d46d",
+      "derived_db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\slot_gate_derived\\run.db",
+      "source_untouched": true,
       "rows": 914,
-      "structured_coverage": 0.7779,
+      "benchmark_template_coverage": 0.7779,
       "with_slot": 711,
       "unresolved": 203,
-      "structured_wrong_slot_rate": 0.0,
+      "slot_tamper_or_drift_rate": 0.0,
       "wrong_slots": [],
       "backfill_changed_on_second_run": 0,
       "first_pass": {
@@ -49,7 +57,7 @@
         "changed": 0,
         "structured_coverage": 0.7779,
         "disagreements": [],
-        "seconds": 0.041
+        "seconds": 0.045
       },
       "second_pass": {
         "scanned": 914,
@@ -64,22 +72,26 @@
     },
     {
       "db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifecycle_ab\\A_off.db",
+      "source_snapshot_hash": "9ee940535196f017b8947fe3fd1d100ca5ea1fcdb06d3b03021b6f4eb047f3ed",
+      "derived_db_hash": "9ee940535196f017b8947fe3fd1d100ca5ea1fcdb06d3b03021b6f4eb047f3ed",
+      "derived_db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\slot_gate_derived\\A_off.db",
+      "source_untouched": true,
       "rows": 914,
-      "structured_coverage": 0.7779,
+      "benchmark_template_coverage": 0.7779,
       "with_slot": 711,
       "unresolved": 203,
-      "structured_wrong_slot_rate": 0.0,
+      "slot_tamper_or_drift_rate": 0.0,
       "wrong_slots": [],
       "backfill_changed_on_second_run": 0,
       "first_pass": {
         "scanned": 914,
-        "filled": 711,
+        "filled": 0,
         "unresolved": 203,
-        "already_had_slot": 0,
-        "changed": 711,
+        "already_had_slot": 711,
+        "changed": 0,
         "structured_coverage": 0.7779,
         "disagreements": [],
-        "seconds": 0.047
+        "seconds": 0.042
       },
       "second_pass": {
         "scanned": 914,
@@ -89,27 +101,31 @@
         "changed": 0,
         "structured_coverage": 0.7779,
         "disagreements": [],
-        "seconds": 0.04
+        "seconds": 0.042
       }
     },
     {
       "db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifecycle_ab\\B_safe.db",
+      "source_snapshot_hash": "e9197ecd7d88d38ada815878593c518d19a62ab703ca095a972d3f1e3d97bd20",
+      "derived_db_hash": "e9197ecd7d88d38ada815878593c518d19a62ab703ca095a972d3f1e3d97bd20",
+      "derived_db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\slot_gate_derived\\B_safe.db",
+      "source_untouched": true,
       "rows": 914,
-      "structured_coverage": 0.7779,
+      "benchmark_template_coverage": 0.7779,
       "with_slot": 711,
       "unresolved": 203,
-      "structured_wrong_slot_rate": 0.0,
+      "slot_tamper_or_drift_rate": 0.0,
       "wrong_slots": [],
       "backfill_changed_on_second_run": 0,
       "first_pass": {
         "scanned": 914,
-        "filled": 711,
+        "filled": 0,
         "unresolved": 203,
-        "already_had_slot": 0,
-        "changed": 711,
+        "already_had_slot": 711,
+        "changed": 0,
         "structured_coverage": 0.7779,
         "disagreements": [],
-        "seconds": 0.048
+        "seconds": 0.044
       },
       "second_pass": {
         "scanned": 914,
@@ -119,7 +135,7 @@
         "changed": 0,
         "structured_coverage": 0.7779,
         "disagreements": [],
-        "seconds": 0.041
+        "seconds": 0.045
       }
     }
   ]
