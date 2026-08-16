@@ -87,6 +87,15 @@ DERIVED_TABLES: tuple[tuple[str, str], ...] = (
 CONTENT_COLUMNS: tuple[tuple[str, str], ...] = (
     ("cognitive_memories", "content"),
     ("cognitive_memories", "metadata_json"),
+    # Added 17/08, *before* anything started writing here. A structured slot
+    # holds the value verbatim — `{"entity": ..., "attribute": "phone",
+    # "value": "0977123456"}` — so a verifier that scans `content` and not
+    # this one would report a clean deletion with the number still on disk.
+    #
+    # The audit that found it looked at what a planned change would break
+    # rather than at what was already broken, which is the only way this
+    # particular hole gets closed before it exists.
+    ("cognitive_memories", "structured_json"),
     ("hippocampus_labels", "topic"),
     ("shadow_memories", "content"),
 )

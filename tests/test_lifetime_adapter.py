@@ -152,7 +152,13 @@ def test_the_result_says_which_route_the_planner_took(adapter):
                               subject_id="S00", attribute="city",
                               value="Hà Nội"))
     result = adapter.query("Trần An đang sống ở đâu?", tick=10)
-    assert result.route in {"recall", "select_by_class"}
+    # The set grows as operators are added; what this guards is that a route
+    # is *named*, so failure attribution can say the planner sent a question
+    # down the wrong path before anything downstream is blamed. Present-tense
+    # questions moved from `recall` to `state_at` on 17/08 — measured, 45/58
+    # to 49/58, with EXISTS and TEMPORAL_AT unmoved.
+    assert result.route in {"recall", "select_by_class", "state_at",
+                            "recall_after_state_failed"}
     assert result.query_kind
 
 

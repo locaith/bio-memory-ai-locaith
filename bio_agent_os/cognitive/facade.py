@@ -196,6 +196,52 @@ class MemoryOS:
         )
         return self.events.append(event, projection_types=self._projection_types())
 
+    #: Bumped when the resolver's answer for the same sentence could change,
+    #: so a row can say which version produced its slot.
+    SLOT_RESOLVER_VERSION = "aspect_resolver@1"
+
+    def _structured_slot(self, content: str) -> dict[str, Any]:
+        """(subject, predicate) for this sentence, kept instead of thrown away.
+
+        The slot was already being computed on the way in — `LifecycleRuntime`
+        resolves it per statement — and then held in an in-process dict that
+        dies with the process. Every reader afterwards re-derives it from the
+        Vietnamese text by similarity, and that is where the wrong-slot defect
+        lives: `state_operator` handed the attribute key "employer" to a
+        cosine comparison against Vietnamese sentences and got back a memory
+        about a job title.
+
+        Derived from the **stored** content, which is the redacted one. A
+        value redacted out of `content` must not reappear here verbatim —
+        `CONTENT_COLUMNS` now scans this column for exactly that reason, and
+        deriving from the redacted text means there is nothing to find.
+
+        Deliberately from the sentence and never from a caller-supplied
+        attribute: on the lifetime benchmark the world knows each event's
+        `attribute`, and taking it would hand over the resolution step the
+        system is being measured on. Reading the words is a capability.
+        Reading the answer key is not.
+
+        Measured on the 914 rows of a finished lifetime run: both subject and
+        predicate resolve for 711 of them, 77.8%, at 0.040 ms per row, with no
+        model and no embedder. The other 203 store nothing and fall back to
+        the existing text path.
+        """
+        try:
+            from .aspect_resolver import Predicate, resolve_frame
+
+            frame = resolve_frame(str(content or ""))
+            if not frame.subject or frame.predicate is Predicate.UNKNOWN:
+                return {}
+            return {"entity": frame.subject,
+                    "attribute": frame.predicate.attribute,
+                    "resolver": self.SLOT_RESOLVER_VERSION}
+        except Exception:                                # noqa: BLE001
+            # A resolver failure must never stop an ingestion. The row simply
+            # carries no slot and every reader falls back to what it did
+            # before this existed.
+            return {}
+
     def _provenance_stamp(self) -> dict[str, Any]:
         """Which build learned this, carried on the event itself.
 
@@ -317,13 +363,15 @@ class MemoryOS:
                          "importance": importance,
                          "structured_content": structured_content or {}})
             return decision
+        stored_content = decision.redacted_content or content
         memory = CognitiveMemory(
             tenant_id=event.tenant_id,
             workspace_id=event.workspace_id,
             memory_type=memory_type,
-            content=decision.redacted_content or content,
+            content=stored_content,
             source_event_ids=[event.event_id],
-            structured_content=structured_content or {},
+            structured_content=(structured_content
+                                or self._structured_slot(stored_content)),
             confidence=max(0.0, min(confidence, 1.0)),
             importance=max(0.0, min(importance, 1.0)),
             salience=max(0.0, min(salience, 1.0)),

@@ -47,6 +47,7 @@ exactly like working temporal reasoning.
 
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -354,6 +355,24 @@ def _core(content: str) -> str:
     return text.lower().rstrip(" .!?")
 
 
+def _slot_of_row(structured_json: Any) -> str | None:
+    """The attribute a row declares it belongs to, or None for a legacy row.
+
+    None and "" are kept apart on purpose: a row that stored no slot must fall
+    back to the text path, while a row that stored one is answered by equality
+    and never by similarity.
+    """
+    if not structured_json:
+        return None
+    try:
+        payload = (json.loads(structured_json)
+                   if isinstance(structured_json, str) else structured_json)
+    except (TypeError, ValueError):
+        return None
+    attribute = (payload or {}).get("attribute")
+    return str(attribute) if attribute else None
+
+
 def _mentions(content: str, subject: str) -> bool:
     """Does this memory talk about that person?
 
@@ -379,14 +398,15 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
     """
     conn = memory_os.memories.conn
     rows = conn.execute(
-        "SELECT memory_id, content, observed_at, valid_from, valid_to "
-        "FROM cognitive_memories "
+        "SELECT memory_id, content, observed_at, valid_from, valid_to, "
+        "structured_json FROM cognitive_memories "
         "WHERE superseded_at IS NULL ORDER BY observed_at, rowid"
     ).fetchall()
 
-    stored = {str(m): (vf, vt) for m, _, _, vf, vt in rows
+    stored = {str(m): (vf, vt) for m, _, _, vf, vt, _ in rows
               if vt is not None}
-    candidates = [(m, c, o) for m, c, o, _, _ in rows
+    slots = {str(m): _slot_of_row(s) for m, _, _, _, _, s in rows}
+    candidates = [(m, c, o) for m, c, o, _, _, _ in rows
                   if _mentions(str(c), subject)]
 
     # `hint` is the anchor of a before/after question, and it identifies the
@@ -396,9 +416,28 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
     # memory about the person and the walk stepped from an employment claim
     # onto a birthday. "Bình Minh" names the slot precisely, because the
     # question already told us which claim it is standing next to.
-    probe = " ".join(p for p in (aspect, hint) if p)
-    if probe:
-        candidates = _by_aspect(memory_os, candidates, probe)
+    # Structured first. A row that already says which slot it belongs to is
+    # not a similarity problem, and treating it as one is the wrong-slot
+    # defect: `state_operator` passed the attribute key "employer" into a
+    # cosine comparison against Vietnamese sentences and got back a memory
+    # about a job title — right subject, wrong slot, answered confidently.
+    #
+    # `aspect` here is the attribute key, which is exactly what must never
+    # reach a text comparison. Against a stored slot it is an equality test.
+    structured = [c for c in candidates if slots.get(str(c[0])) == aspect]
+    unslotted = [c for c in candidates if slots.get(str(c[0])) is None]
+    if structured:
+        # Legacy rows with no slot still have to be considered — dropping them
+        # would silently narrow the history on any store written before this
+        # existed — but they go through the old text path to earn their place.
+        probe = " ".join(p for p in (aspect, hint) if p)
+        rescued = _by_aspect(memory_os, unslotted, probe) if (unslotted and probe) else []
+        keep = {id(c) for c in structured} | {id(c) for c in rescued}
+        candidates = [c for c in candidates if id(c) in keep]
+    else:
+        probe = " ".join(p for p in (aspect, hint) if p)
+        if probe:
+            candidates = _by_aspect(memory_os, candidates, probe)
 
     spans: list[ClaimSpan] = []
     by_core: dict[str, ClaimSpan] = {}

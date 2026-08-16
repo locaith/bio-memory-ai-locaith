@@ -334,14 +334,27 @@ def test_the_planner_actually_executes_the_temporal_operator(os_, career):
                for m in result.memories)
 
 
-def test_a_content_question_is_untouched(os_, career):
-    """The retrieval path nine canary runs hardened must not be replaced by a
-    newer one that happens to be more interesting."""
+def test_a_content_question_does_not_go_to_the_temporal_operator(os_, career):
+    """CORRECTION, 17/08. This asserted `used == "recall"`.
+
+    It was written to stop the temporal operator swallowing present-tense
+    questions — "the retrieval path nine canary runs hardened must not be
+    replaced by a newer one that happens to be more interesting". That worry
+    is still right and still tested: the assertion below is that TEMPORAL_AT
+    does not claim this question.
+
+    What changed is the alternative. A present-tense question now runs
+    STATE_AT, and it earned that by measurement rather than by being newer —
+    on the same 58 questions, 45 correct under generic recall against 49 under
+    the operator, with EXISTS and TEMPORAL_AT both unmoved. Pinning `recall`
+    here would now be pinning the weaker path.
+    """
     from bio_agent_os.cognitive.query_planner import QueryKind, plan
 
     result = plan(os_, "Bùi Cường làm ở công ty nào?", context=CTX)
     assert result.kind is QueryKind.CONTENT
-    assert result.used == "recall"
+    assert result.used != "temporal_operator"
+    assert result.used in {"state_at", "recall", "recall_after_state_failed"}
 
 
 def test_the_operator_reports_which_stage_gave_up(os_):

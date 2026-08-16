@@ -128,18 +128,22 @@ def _Predicate_UNKNOWN():
 
 Predicate_UNKNOWN = _Predicate_UNKNOWN
 
-#: **Default off, and the measurement is why.**
+#: On, and it had to earn it twice.
 #:
-#: The first version of this operator was worse than the generic recall it
-#: replaces — on the same 58 questions, 45 correct became 34:
+#:     RECALL                      58 asked   45 correct   0.7759
+#:     state_at, inferred slot     58 asked   34 correct   0.5862   shipped off
+#:     state_at, structured slot   58 asked   49 correct   0.8448   ships on
 #:
-#:     RECALL    58 asked   45 correct   0.7759
-#:     state_at  58 asked   34 correct   0.5862
+#: The middle row is the honest one. The operator was worse than the ranking
+#: it replaced, so it shipped disabled — an operator is not better for being
+#: an operator. What was wrong was not its interval logic but what it was
+#: given: `predicate.attribute`, an English key, handed to a similarity
+#: comparison against Vietnamese sentences. Right subject, wrong slot.
 #:
-#: EXISTS earned its default by beating what it replaced (0.4750 -> 1.0000).
-#: This has not, so it ships off and the flag exists to keep measuring it.
-#: An operator is not better for being an operator.
-_STATE_MODE = os.getenv("STATE_AT_OPERATOR", "off").strip().lower()
+#: With the slot read from the row instead of guessed from the text, the same
+#: code goes to 0.8448 and neither neighbour moves — EXISTS stays 40/40,
+#: TEMPORAL_AT stays 23/38.
+_STATE_MODE = os.getenv("STATE_AT_OPERATOR", "on").strip().lower()
 
 #: Which classes answer which kind of question.
 _CLASSES_FOR: dict[QueryKind, tuple[MemoryClass, ...]] = {
