@@ -24,10 +24,17 @@ against. The ontology was built from the same seven templates this world
 emits, so both numbers here are properties of that fit and neither transfers
 off it.
 
-`structured_coverage` deliberately has no target. A row the resolver cannot
-place stores nothing, and filling the column to raise this number would turn
-"I could not tell" into "I decided" — the trade the relation classifier
-already refuses to make.
+`benchmark_template_coverage` is named for what it is, not for what it would
+be nice to have measured. The resolver's ontology was written against the
+seven sentence templates this world emits, so 0.7779 is how well it fits those
+templates — not `predicate_resolution_coverage`, which would be a claim about
+Vietnamese. Claiming the second needs a paraphrase or adversarial set built
+outside the generator, and there isn't one yet.
+
+It deliberately has no target either. A row the resolver cannot place stores
+nothing, and filling the column to raise this number would turn "I could not
+tell" into "I decided" — the trade the relation classifier already refuses to
+make.
 """
 
 from __future__ import annotations
@@ -116,7 +123,7 @@ def gate(path: Path, *, apply: bool) -> dict:
     return {
         "db": str(path),
         "rows": total,
-        "structured_coverage": round(with_slot / total, 4) if total else 0.0,
+        "benchmark_template_coverage": round(with_slot / total, 4) if total else 0.0,
         "with_slot": with_slot,
         "unresolved": total - with_slot,
         # Named for what it is. `slot_for` wrote these slots, so this compares
@@ -153,7 +160,8 @@ def main() -> int:
         print(f"  {raw}")
         print(f"    {result['rows']} hàng | có slot {result['with_slot']} "
               f"| chưa đọc được {result['unresolved']}")
-        print(f"    structured_coverage            {result['structured_coverage']:.4f}"
+        print(f"    benchmark_template_coverage    "
+              f"{result['benchmark_template_coverage']:.4f}"
               f"   (không có mục tiêu — UNKNOWN là hợp lệ)")
         rate = result["slot_tamper_or_drift_rate"]
         print(f"    slot_tamper_or_drift_rate     {rate:.4f}"
