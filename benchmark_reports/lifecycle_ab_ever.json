@@ -1,0 +1,1307 @@
+{
+  "runtime": {
+    "package_version": "0.8.2rc1",
+    "git_sha": "85048f24a6deac7926d63ec43641563e4ce75063",
+    "git_dirty": true,
+    "config_hash": "8f999906edf8eebb1bb74cdfff7bff6e",
+    "embedding_model": "",
+    "embedding_dims": 0,
+    "db_path": "",
+    "host": "DESKTOP-M1TSM33",
+    "pid": 26240,
+    "python_version": "3.11.9",
+    "process_start_time": 1786865853.3621497,
+    "untracked_files": 7,
+    "fingerprint": "ac168e7c1515077fe6bd7beb47434cff2938719fe497607fb3f8472aa482e96b"
+  },
+  "config": {
+    "ticks": 1000,
+    "subjects": 20,
+    "seed": 20260814,
+    "per_family": 6
+  },
+  "hypothesis": {
+    "historical": "tăng, ở các ca CORRECT/SUPERSEDE",
+    "current": "đứng yên trong biên độ một câu",
+    "forgotten": "đứng yên trong biên độ một câu",
+    "silent_conflict_rate": 0,
+    "forced_transition_rate": 0
+  },
+  "arms": {
+    "A_off": {
+      "arm": "A_off",
+      "mode": null,
+      "oracle": false,
+      "asked": 136,
+      "by_family": {
+        "current": [
+          36,
+          40
+        ],
+        "historical": [
+          25,
+          38
+        ],
+        "forgotten": [
+          17,
+          18
+        ]
+      },
+      "answer_by_family": {
+        "current": [
+          32,
+          40
+        ],
+        "historical": [
+          23,
+          38
+        ],
+        "ever": [
+          39,
+          40
+        ],
+        "forgotten": [
+          10,
+          18
+        ]
+      },
+      "answered": 136,
+      "answer_wrong": 32,
+      "poisoned_by_stale": 13,
+      "stale_answer_not_in_context": 0,
+      "stale_context_poison_rate": 0.4062,
+      "abstention_rate": 0.1103,
+      "prompt_chars": 43460,
+      "latency_ms_total": 114571.9,
+      "latency_ms_p50": 1116.0,
+      "poison_cases": [
+        {
+          "question": "Trần Hà sinh ngày nào?",
+          "tick": 50,
+          "expected": "12/03/1990",
+          "answer": "21/11/1995",
+          "retrieved": [
+            "Trần Hà sinh ngày 21/11/1995.",
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "question": "Trần Hà sinh ngày nào?",
+          "tick": 250,
+          "expected": "12/03/1990",
+          "answer": "Trần Hà sinh ngày 21/11/1995.",
+          "retrieved": [
+            "Trần Hà sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Hà sinh ngày 12/03/1990.",
+            "Đặng Phúc sinh ngày 17/09/1985.",
+            "Nhắc lại, phạm Nam sinh ngày 30/01/1992."
+          ]
+        },
+        {
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "tick": 500,
+          "expected": "phó giám đốc",
+          "answer": "Trưởng nhóm.",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Hà đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "question": "Lê Sơn đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "nhân viên kinh doanh",
+          "answer": "Trưởng phòng.",
+          "retrieved": [
+            "Lê Sơn đang giữ chức trưởng nhóm.",
+            "Nhắc lại, lê Sơn đang giữ chức trưởng nhóm.",
+            "Lê Lan đang giữ chức trưởng phòng.",
+            "Từ hôm nay, lê Sơn đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "question": "Trần Thảo đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "trưởng nhóm",
+          "answer": "Phó giám đốc.",
+          "retrieved": [
+            "Trần Thảo đang giữ chức phó giám đốc.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "phó giám đốc",
+          "answer": "Trưởng nhóm.",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "question": "Hoàng Yến sinh ngày nào?",
+          "tick": 750,
+          "expected": "30/01/1992",
+          "answer": "17/09/1985",
+          "retrieved": [
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "question": "Nguyễn Dũng đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "giám đốc kỹ thuật",
+          "answer": "Phó giám đốc.",
+          "retrieved": [
+            "Nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "tick": 1000,
+          "expected": "phó giám đốc",
+          "answer": "Trưởng nhóm.",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "question": "Lê Sơn đang giữ chức vụ gì?",
+          "tick": 1000,
+          "expected": "trưởng nhóm",
+          "answer": "Trưởng phòng.",
+          "retrieved": [
+            "Lê Sơn đang giữ chức trưởng nhóm.",
+            "Nhắc lại, lê Sơn đang giữ chức trưởng nhóm.",
+            "Nhắc lại, lê Sơn đang giữ chức trưởng nhóm.",
+            "Lê Lan đang giữ chức trưởng phòng."
+          ]
+        }
+      ],
+      "stale_context": [
+        89,
+        221
+      ],
+      "failures": [
+        {
+          "family": "historical",
+          "tick": 10,
+          "question": "Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?",
+          "subject_id": "S11",
+          "attribute": "city",
+          "expect": "value",
+          "value": "Hà Nội",
+          "retrieved": [
+            "Phạm Vy đang giữ chức nhân viên kinh doanh."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 50,
+          "question": "Trần Hà sinh ngày nào?",
+          "subject_id": "S01",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "12/03/1990",
+          "retrieved": [
+            "Trần Hà sinh ngày 21/11/1995.",
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 50,
+          "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Đính chính: thông tin trước là sai, trần Hà sinh ngày 12/03/1990."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 50,
+          "question": "Vào ngày 2024-10-09, Hoàng Yến đang giữ chức vụ gì?",
+          "subject_id": "S04",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "trưởng phòng",
+          "retrieved": [
+            "Hoàng Yến làm việc tại công ty Hoà Bình."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 100,
+          "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+          "subject_id": "S11",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Đại Việt",
+          "retrieved": [
+            "Phạm Vy đang giữ chức nhân viên kinh doanh."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 100,
+          "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Đính chính: thông tin trước là sai, trần Hà sinh ngày 12/03/1990."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 250,
+          "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+          "subject_id": "S11",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Đại Việt",
+          "retrieved": [
+            "Nhắc lại, phạm Vy phụ trách dự án cổng thanh toán."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+          "subject_id": "S06",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "trưởng phòng",
+          "retrieved": [
+            "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2025-09-07, Đặng Phúc đang giữ chức vụ gì?",
+          "subject_id": "S14",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Nhắc lại, đặng Phúc sống ở Huế."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2025-03-28, Vũ Minh đang phụ trách dự án nào?",
+          "subject_id": "S13",
+          "attribute": "project",
+          "expect": "value",
+          "value": "ứng dụng bán hàng",
+          "retrieved": [
+            "Theo một nguồn khác, vũ Minh phụ trách dự án hệ thống OCR."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2024-12-28, Số điện thoại của Bùi Tuấn là gì?",
+          "subject_id": "S15",
+          "attribute": "phone",
+          "expect": "value",
+          "value": "0903111222",
+          "retrieved": [
+            "Theo một nguồn khác, số điện thoại của Bùi Tuấn là 0977123456."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 750,
+          "question": "Hoàng Yến sinh ngày nào?",
+          "subject_id": "S04",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "30/01/1992",
+          "retrieved": [
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 750,
+          "question": "Nguyễn Dũng đang giữ chức vụ gì?",
+          "subject_id": "S00",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "giám đốc kỹ thuật",
+          "retrieved": [
+            "Nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 750,
+          "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+          "subject_id": "S06",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "trưởng phòng",
+          "retrieved": [
+            "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "family": "forgotten",
+          "tick": 1000,
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 1000,
+          "question": "Vũ An đang làm ở công ty nào?",
+          "subject_id": "S05",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Bình Minh",
+          "retrieved": [
+            "Theo một nguồn khác, vũ An làm việc tại công ty An Phát.",
+            "Vũ An làm việc tại công ty Đại Việt.",
+            "Nhắc lại, phạm Giang làm việc tại công ty An Phát.",
+            "Nhắc lại, vũ An làm việc tại công ty Đại Việt.",
+            "Phạm Nam làm việc tại công ty An Phát.",
+            "Từ hôm nay, vũ An làm việc tại công ty Hoà Bình."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 1000,
+          "question": "Vào ngày 2026-03-02, Vũ An đang làm ở công ty nào?",
+          "subject_id": "S05",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Hoà Bình",
+          "retrieved": [
+            "Đính chính: thông tin trước là sai, vũ An đang giữ chức giám đốc kỹ thuật."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 1000,
+          "question": "Vào ngày 2025-06-13, Lương của Phạm Nam là bao nhiêu?",
+          "subject_id": "S19",
+          "attribute": "salary",
+          "expect": "value",
+          "value": "18 triệu",
+          "retrieved": [
+            "Từ hôm nay, lương của Phạm Nam là 25 triệu."
+          ]
+        }
+      ],
+      "lifecycle": {}
+    },
+    "B_safe": {
+      "arm": "B_safe",
+      "mode": "safe",
+      "oracle": false,
+      "asked": 136,
+      "by_family": {
+        "current": [
+          37,
+          40
+        ],
+        "historical": [
+          25,
+          38
+        ],
+        "forgotten": [
+          17,
+          18
+        ]
+      },
+      "answer_by_family": {
+        "current": [
+          34,
+          40
+        ],
+        "historical": [
+          23,
+          38
+        ],
+        "ever": [
+          40,
+          40
+        ],
+        "forgotten": [
+          11,
+          18
+        ]
+      },
+      "answered": 136,
+      "answer_wrong": 28,
+      "poisoned_by_stale": 11,
+      "stale_answer_not_in_context": 0,
+      "stale_context_poison_rate": 0.3929,
+      "abstention_rate": 0.1029,
+      "prompt_chars": 43551,
+      "latency_ms_total": 110351.0,
+      "latency_ms_p50": 1112.6,
+      "poison_cases": [
+        {
+          "question": "Trần Hà sinh ngày nào?",
+          "tick": 50,
+          "expected": "12/03/1990",
+          "answer": "21/11/1995",
+          "retrieved": [
+            "Trần Hà sinh ngày 21/11/1995.",
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "question": "Trần Hà sinh ngày nào?",
+          "tick": 250,
+          "expected": "12/03/1990",
+          "answer": "Trần Hà sinh ngày 21/11/1995.",
+          "retrieved": [
+            "Trần Hà sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Hà sinh ngày 12/03/1990.",
+            "Đặng Phúc sinh ngày 17/09/1985.",
+            "Nhắc lại, phạm Nam sinh ngày 30/01/1992."
+          ]
+        },
+        {
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "tick": 500,
+          "expected": "phó giám đốc",
+          "answer": "Trưởng nhóm.",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Hà đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "question": "Lê Sơn đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "nhân viên kinh doanh",
+          "answer": "Trưởng phòng.",
+          "retrieved": [
+            "Lê Sơn đang giữ chức trưởng nhóm.",
+            "Nhắc lại, lê Sơn đang giữ chức trưởng nhóm.",
+            "Lê Lan đang giữ chức trưởng phòng.",
+            "Từ hôm nay, lê Sơn đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "question": "Trần Thảo đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "trưởng nhóm",
+          "answer": "Phó giám đốc.",
+          "retrieved": [
+            "Trần Thảo đang giữ chức phó giám đốc.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Trần Hà đang giữ chức trưởng nhóm."
+          ]
+        },
+        {
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "phó giám đốc",
+          "answer": "Trưởng nhóm.",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "question": "Hoàng Yến sinh ngày nào?",
+          "tick": 750,
+          "expected": "30/01/1992",
+          "answer": "17/09/1985",
+          "retrieved": [
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "question": "Nguyễn Dũng đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "giám đốc kỹ thuật",
+          "answer": "Nguyễn Dũng đang giữ chức phó giám đốc.",
+          "retrieved": [
+            "Nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "tick": 1000,
+          "expected": "phó giám đốc",
+          "answer": "Trưởng nhóm.",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "question": "Trần Thảo đang giữ chức vụ gì?",
+          "tick": 1000,
+          "expected": "trưởng nhóm",
+          "answer": "Phó giám đốc.",
+          "retrieved": [
+            "Trần Thảo đang giữ chức phó giám đốc.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        }
+      ],
+      "stale_context": [
+        82,
+        218
+      ],
+      "failures": [
+        {
+          "family": "historical",
+          "tick": 10,
+          "question": "Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?",
+          "subject_id": "S11",
+          "attribute": "city",
+          "expect": "value",
+          "value": "Hà Nội",
+          "retrieved": [
+            "Phạm Vy đang giữ chức nhân viên kinh doanh."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 50,
+          "question": "Trần Hà sinh ngày nào?",
+          "subject_id": "S01",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "12/03/1990",
+          "retrieved": [
+            "Trần Hà sinh ngày 21/11/1995.",
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 50,
+          "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Đính chính: thông tin trước là sai, trần Hà sinh ngày 12/03/1990."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 50,
+          "question": "Vào ngày 2024-10-09, Hoàng Yến đang giữ chức vụ gì?",
+          "subject_id": "S04",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "trưởng phòng",
+          "retrieved": [
+            "Hoàng Yến làm việc tại công ty Hoà Bình."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 100,
+          "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+          "subject_id": "S11",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Đại Việt",
+          "retrieved": [
+            "Phạm Vy đang giữ chức nhân viên kinh doanh."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 100,
+          "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Đính chính: thông tin trước là sai, trần Hà sinh ngày 12/03/1990."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 250,
+          "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+          "subject_id": "S11",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Đại Việt",
+          "retrieved": [
+            "Nhắc lại, phạm Vy phụ trách dự án cổng thanh toán."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+          "subject_id": "S06",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "trưởng phòng",
+          "retrieved": [
+            "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2025-09-07, Đặng Phúc đang giữ chức vụ gì?",
+          "subject_id": "S14",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Nhắc lại, đặng Phúc sống ở Huế."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2025-03-28, Vũ Minh đang phụ trách dự án nào?",
+          "subject_id": "S13",
+          "attribute": "project",
+          "expect": "value",
+          "value": "ứng dụng bán hàng",
+          "retrieved": [
+            "Theo một nguồn khác, vũ Minh phụ trách dự án hệ thống OCR."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2024-12-28, Số điện thoại của Bùi Tuấn là gì?",
+          "subject_id": "S15",
+          "attribute": "phone",
+          "expect": "value",
+          "value": "0903111222",
+          "retrieved": [
+            "Theo một nguồn khác, số điện thoại của Bùi Tuấn là 0977123456."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 750,
+          "question": "Hoàng Yến sinh ngày nào?",
+          "subject_id": "S04",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "30/01/1992",
+          "retrieved": [
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 750,
+          "question": "Nguyễn Dũng đang giữ chức vụ gì?",
+          "subject_id": "S00",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "giám đốc kỹ thuật",
+          "retrieved": [
+            "Nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nguyễn Quân đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 750,
+          "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+          "subject_id": "S06",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "trưởng phòng",
+          "retrieved": [
+            "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "family": "forgotten",
+          "tick": 1000,
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 1000,
+          "question": "Vào ngày 2026-03-02, Vũ An đang làm ở công ty nào?",
+          "subject_id": "S05",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Hoà Bình",
+          "retrieved": [
+            "Đính chính: thông tin trước là sai, vũ An đang giữ chức giám đốc kỹ thuật."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 1000,
+          "question": "Vào ngày 2025-06-13, Lương của Phạm Nam là bao nhiêu?",
+          "subject_id": "S19",
+          "attribute": "salary",
+          "expect": "value",
+          "value": "18 triệu",
+          "retrieved": [
+            "Theo một nguồn khác, lương của Phạm Nam là 55 triệu."
+          ]
+        }
+      ],
+      "lifecycle": {
+        "relation_calls": 543,
+        "relation_decisions": 543,
+        "by_relation": {
+          "repeat": 232,
+          "correct": 45,
+          "conflict": 73,
+          "supersede": 94,
+          "unknown": 99
+        },
+        "repeat_transitions": 232,
+        "supersede_transitions": 94,
+        "correct_transitions": 45,
+        "coexist_transitions": 0,
+        "unknown_count": 99,
+        "conflict_count": 73,
+        "unknown_reasons": {
+          "unmarked_value_change": 99
+        },
+        "conflict_reasons": {
+          "alternative_source": 73
+        },
+        "unknown_still_open": 41,
+        "unknown_later_resolved": 15,
+        "orphaned_actions": 1,
+        "actions_taken": 371,
+        "silent_conflict_rate": 0.0,
+        "forced_transition_rate": 0.0,
+        "errors": []
+      }
+    },
+    "C_oracle": {
+      "arm": "C_oracle",
+      "mode": "safe",
+      "oracle": true,
+      "asked": 136,
+      "by_family": {
+        "current": [
+          37,
+          40
+        ],
+        "historical": [
+          25,
+          38
+        ],
+        "forgotten": [
+          17,
+          18
+        ]
+      },
+      "answer_by_family": {
+        "current": [
+          34,
+          40
+        ],
+        "historical": [
+          23,
+          38
+        ],
+        "ever": [
+          40,
+          40
+        ],
+        "forgotten": [
+          11,
+          18
+        ]
+      },
+      "answered": 136,
+      "answer_wrong": 28,
+      "poisoned_by_stale": 11,
+      "stale_answer_not_in_context": 0,
+      "stale_context_poison_rate": 0.3929,
+      "abstention_rate": 0.1029,
+      "prompt_chars": 43551,
+      "latency_ms_total": 109997.5,
+      "latency_ms_p50": 1091.1,
+      "poison_cases": [
+        {
+          "question": "Trần Hà sinh ngày nào?",
+          "tick": 50,
+          "expected": "12/03/1990",
+          "answer": "21/11/1995",
+          "retrieved": [
+            "Trần Hà sinh ngày 21/11/1995.",
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "question": "Trần Hà sinh ngày nào?",
+          "tick": 250,
+          "expected": "12/03/1990",
+          "answer": "Trần Hà sinh ngày 21/11/1995.",
+          "retrieved": [
+            "Trần Hà sinh ngày 21/11/1995.",
+            "Nhắc lại, trần Hà sinh ngày 12/03/1990.",
+            "Đặng Phúc sinh ngày 17/09/1985.",
+            "Nhắc lại, phạm Nam sinh ngày 30/01/1992."
+          ]
+        },
+        {
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "tick": 500,
+          "expected": "phó giám đốc",
+          "answer": "Trưởng nhóm.",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Hà đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "question": "Lê Sơn đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "nhân viên kinh doanh",
+          "answer": "Trưởng phòng.",
+          "retrieved": [
+            "Lê Sơn đang giữ chức trưởng nhóm.",
+            "Nhắc lại, lê Sơn đang giữ chức trưởng nhóm.",
+            "Lê Lan đang giữ chức trưởng phòng.",
+            "Từ hôm nay, lê Sơn đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "question": "Trần Thảo đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "trưởng nhóm",
+          "answer": "Phó giám đốc.",
+          "retrieved": [
+            "Trần Thảo đang giữ chức phó giám đốc.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Trần Hà đang giữ chức trưởng nhóm."
+          ]
+        },
+        {
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "phó giám đốc",
+          "answer": "Trưởng nhóm.",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "question": "Hoàng Yến sinh ngày nào?",
+          "tick": 750,
+          "expected": "30/01/1992",
+          "answer": "17/09/1985",
+          "retrieved": [
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "question": "Nguyễn Dũng đang giữ chức vụ gì?",
+          "tick": 750,
+          "expected": "giám đốc kỹ thuật",
+          "answer": "Phó giám đốc.",
+          "retrieved": [
+            "Nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "tick": 1000,
+          "expected": "phó giám đốc",
+          "answer": "Trưởng nhóm.",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "question": "Trần Thảo đang giữ chức vụ gì?",
+          "tick": 1000,
+          "expected": "trưởng nhóm",
+          "answer": "Phó giám đốc.",
+          "retrieved": [
+            "Trần Thảo đang giữ chức phó giám đốc.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        }
+      ],
+      "stale_context": [
+        82,
+        218
+      ],
+      "failures": [
+        {
+          "family": "historical",
+          "tick": 10,
+          "question": "Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?",
+          "subject_id": "S11",
+          "attribute": "city",
+          "expect": "value",
+          "value": "Hà Nội",
+          "retrieved": [
+            "Phạm Vy đang giữ chức nhân viên kinh doanh."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 50,
+          "question": "Trần Hà sinh ngày nào?",
+          "subject_id": "S01",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "12/03/1990",
+          "retrieved": [
+            "Trần Hà sinh ngày 21/11/1995.",
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 50,
+          "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Đính chính: thông tin trước là sai, trần Hà sinh ngày 12/03/1990."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 50,
+          "question": "Vào ngày 2024-10-09, Hoàng Yến đang giữ chức vụ gì?",
+          "subject_id": "S04",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "trưởng phòng",
+          "retrieved": [
+            "Hoàng Yến làm việc tại công ty Hoà Bình."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 100,
+          "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+          "subject_id": "S11",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Đại Việt",
+          "retrieved": [
+            "Phạm Vy đang giữ chức nhân viên kinh doanh."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 100,
+          "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Đính chính: thông tin trước là sai, trần Hà sinh ngày 12/03/1990."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 250,
+          "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+          "subject_id": "S11",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Đại Việt",
+          "retrieved": [
+            "Nhắc lại, phạm Vy phụ trách dự án cổng thanh toán."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+          "subject_id": "S06",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "trưởng phòng",
+          "retrieved": [
+            "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2025-09-07, Đặng Phúc đang giữ chức vụ gì?",
+          "subject_id": "S14",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Nhắc lại, đặng Phúc sống ở Huế."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2025-03-28, Vũ Minh đang phụ trách dự án nào?",
+          "subject_id": "S13",
+          "attribute": "project",
+          "expect": "value",
+          "value": "ứng dụng bán hàng",
+          "retrieved": [
+            "Theo một nguồn khác, vũ Minh phụ trách dự án hệ thống OCR."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 500,
+          "question": "Vào ngày 2024-12-28, Số điện thoại của Bùi Tuấn là gì?",
+          "subject_id": "S15",
+          "attribute": "phone",
+          "expect": "value",
+          "value": "0903111222",
+          "retrieved": [
+            "Theo một nguồn khác, số điện thoại của Bùi Tuấn là 0977123456."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 750,
+          "question": "Hoàng Yến sinh ngày nào?",
+          "subject_id": "S04",
+          "attribute": "birthday",
+          "expect": "value",
+          "value": "30/01/1992",
+          "retrieved": [
+            "Hoàng Yến sinh ngày 17/09/1985."
+          ]
+        },
+        {
+          "family": "current",
+          "tick": 750,
+          "question": "Nguyễn Dũng đang giữ chức vụ gì?",
+          "subject_id": "S00",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "giám đốc kỹ thuật",
+          "retrieved": [
+            "Nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nhắc lại, nguyễn Dũng đang giữ chức phó giám đốc.",
+            "Nguyễn Quân đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 750,
+          "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+          "subject_id": "S06",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "trưởng phòng",
+          "retrieved": [
+            "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+          ]
+        },
+        {
+          "family": "forgotten",
+          "tick": 1000,
+          "question": "Trần Hà đang giữ chức vụ gì?",
+          "subject_id": "S01",
+          "attribute": "job_title",
+          "expect": "value",
+          "value": "phó giám đốc",
+          "retrieved": [
+            "Trần Hà đang giữ chức trưởng nhóm.",
+            "Trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng.",
+            "Nhắc lại, trần Bình đang giữ chức trưởng phòng."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 1000,
+          "question": "Vào ngày 2026-03-02, Vũ An đang làm ở công ty nào?",
+          "subject_id": "S05",
+          "attribute": "employer",
+          "expect": "value",
+          "value": "Hoà Bình",
+          "retrieved": [
+            "Đính chính: thông tin trước là sai, vũ An đang giữ chức giám đốc kỹ thuật."
+          ]
+        },
+        {
+          "family": "historical",
+          "tick": 1000,
+          "question": "Vào ngày 2025-06-13, Lương của Phạm Nam là bao nhiêu?",
+          "subject_id": "S19",
+          "attribute": "salary",
+          "expect": "value",
+          "value": "18 triệu",
+          "retrieved": [
+            "Theo một nguồn khác, lương của Phạm Nam là 55 triệu."
+          ]
+        }
+      ],
+      "lifecycle": {
+        "relation_calls": 543,
+        "relation_decisions": 543,
+        "by_relation": {
+          "repeat": 318,
+          "correct": 45,
+          "conflict": 74,
+          "supersede": 94,
+          "unknown": 12
+        },
+        "repeat_transitions": 318,
+        "supersede_transitions": 94,
+        "correct_transitions": 45,
+        "coexist_transitions": 0,
+        "unknown_count": 12,
+        "conflict_count": 74,
+        "unknown_reasons": {
+          "unmarked_value_change": 12
+        },
+        "conflict_reasons": {
+          "oracle": 74
+        },
+        "unknown_still_open": 9,
+        "unknown_later_resolved": 3,
+        "orphaned_actions": 1,
+        "actions_taken": 457,
+        "silent_conflict_rate": 0.0,
+        "forced_transition_rate": 0.0,
+        "errors": []
+      }
+    }
+  },
+  "failure_classes": {
+    "current::conflict|repeat|supersede": {
+      "A": 1,
+      "B": 0,
+      "delta": -1
+    },
+    "current::correct": {
+      "A": 1,
+      "B": 1,
+      "delta": 0
+    },
+    "current::correct|repeat": {
+      "A": 1,
+      "B": 1,
+      "delta": 0
+    },
+    "current::correct|repeat|supersede": {
+      "A": 1,
+      "B": 1,
+      "delta": 0
+    },
+    "forgotten::conflict|correct|repeat|supersede": {
+      "A": 1,
+      "B": 1,
+      "delta": 0
+    },
+    "historical::conflict|correct|repeat|supersede": {
+      "A": 4,
+      "B": 4,
+      "delta": 0
+    },
+    "historical::conflict|repeat|supersede": {
+      "A": 7,
+      "B": 7,
+      "delta": 0
+    },
+    "historical::repeat|supersede": {
+      "A": 2,
+      "B": 2,
+      "delta": 0
+    }
+  }
+}

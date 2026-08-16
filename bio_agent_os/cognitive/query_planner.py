@@ -218,6 +218,15 @@ def _as_memory(memory_os: Any, span: Any) -> Any:
     return memory_os.memories._row(row) if row is not None else span
 
 
+def _as_memory_by_id(memory_os: Any, memory_id: str) -> Any:
+    conn = memory_os.memories.conn
+    conn.row_factory = sqlite3.Row
+    row = conn.execute(
+        "SELECT * FROM cognitive_memories WHERE memory_id=? "
+        "ORDER BY version DESC LIMIT 1", (memory_id,)).fetchone()
+    return memory_os.memories._row(row) if row is not None else None
+
+
 @dataclass
 class Plan:
     kind: QueryKind
@@ -225,11 +234,16 @@ class Plan:
     memories: list[Any] = field(default_factory=list)
     classes: list[MemoryClass] = field(default_factory=list)
     unanswerable_reason: str = ""
+    #: An operator that answers rather than retrieves puts its answer here.
+    #: "yes" / "no" / "" — empty when the route only returned memories.
+    verdict: str = ""
+    evidence: dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         return {"kind": self.kind.value, "used": self.used,
                 "n": len(self.memories),
                 "classes": [c.value for c in self.classes],
+                "verdict": self.verdict,
                 "unanswerable_reason": self.unanswerable_reason}
 
 
@@ -254,8 +268,54 @@ def plan(memory_os: Any, question: str, *, context: Any,
     rose, so the arm's total was unchanged and the cause was invisible in it.
     """
     kind = classify(question)
-    if as_of and _EVER.search(question):
+
+    # "Was this ever true" gets an operator, not a ranking.
+    #
+    # `_EVER` was added as a planner label first and 408 model calls later the
+    # numbers had not moved by a character — recognising the intent and then
+    # falling back to generic top-k is still generic top-k. The same lesson
+    # the temporal branch above taught in August, learned again on a different
+    # question shape.
+    #
+    # `as_of` is dropped for these regardless of which way they resolve: a
+    # superseded claim is the *evidence* that something was once true, and
+    # filtering to the asking moment throws it away.
+    if _EVER.search(question):
         as_of = None
+        from .aspect_resolver import Predicate
+        from .ever_operator import answer_ever, parse_ever
+
+        # The marker alone is not enough to claim the question, and a test
+        # caught this within the hour: "tôi từng làm sai câu nào" holds "từng"
+        # and is a question about the asker's own record, not an existence
+        # test over one slot. Taking it here routed it past `select_by_class`
+        # and answered it from generic recall.
+        #
+        # A complete (subject, predicate, value) triple is the real test.
+        # Anything short of one falls through to the routing below untouched —
+        # this branch adds a route, it does not take questions away from the
+        # ones already there.
+        subject, predicate, value = parse_ever(question)
+        if subject and predicate is not Predicate.UNKNOWN and value:
+            existence = answer_ever(memory_os, question, context=context)
+            if existence.executed:
+                memory = (_as_memory_by_id(memory_os,
+                                           existence.evidence_memory_id)
+                          if existence.evidence_memory_id else None)
+                result = Plan(kind=kind, used="ever_operator",
+                              memories=[memory] if memory is not None else [])
+                result.verdict = existence.verdict
+                result.evidence = existence.as_dict()
+                return result
+            # Reported, never silent: the run has to be able to count how
+            # often the operator declined, or its coverage is a guess.
+            found = memory_os.recall(query=question, context=context,
+                                     limit=limit)
+            result = Plan(kind=kind, used="recall_after_ever_failed",
+                          memories=[r.memory for r in (found or [])])
+            result.unanswerable_reason = \
+                f"{existence.stage_failed}: {existence.note}"
+            return result
 
     # A dated question goes to the temporal operator, not to vector search.
     #

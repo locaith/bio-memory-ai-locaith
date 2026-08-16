@@ -185,6 +185,18 @@ class CognitiveAdapter:
             stage_failed=stage if note else "",
             note=note or reason,
         )
+        # An operator that answered does not need a model to answer again.
+        #
+        # This is the difference between a route and a label: the temporal and
+        # existence operators return a verdict, and handing that verdict to a
+        # model to paraphrase adds a chance to disagree with it and nothing
+        # else. The model is for questions the store could not settle itself.
+        verdict = getattr(planned, "verdict", "")
+        if verdict in ("yes", "no"):
+            result.answer = "Có." if verdict == "yes" else "Không."
+            result.route = planned.used
+            return result
+
         if self.engine is None:
             return result
 
