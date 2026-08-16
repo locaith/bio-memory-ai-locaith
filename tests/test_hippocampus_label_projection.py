@@ -254,11 +254,27 @@ def test_labels_influence_ranking_only_behind_a_switch():
                "diagnostics.py", "projection_capability.py",
                "projection_registry.py",
                "retrieval.py",      # Phase 3, behind USE_HIPPOCAMPUS_LABELS
-               "forgetting.py"}     # must delete labels along with the memory
+               "forgetting.py",     # must delete labels along with the memory
+               # Names every persistent store, by design. A closed-world
+               # privacy model that skipped a table to keep this guard quiet
+               # would be the exact hole it exists to close — and naming a
+               # table in a declaration is not reading it.
+               "privacy_registry.py"}
     readers = [p.name for p in root.glob("*.py")
                if p.name not in allowed
                and "hippocampus_labels" in p.read_text(encoding="utf-8")]
     assert readers == [], f"unexpected readers of the label table: {readers}"
+
+    # The exemption above is for a declaration, so check it stays one: a
+    # module allowed to *name* the table must not start querying it.
+    from pathlib import Path as _Path
+
+    declaration = (root / "privacy_registry.py").read_text(encoding="utf-8")
+    for querying in ("SELECT", "select(", "execute("):
+        assert querying not in declaration or "hippocampus_labels" not in \
+            declaration.split(querying, 1)[1][:200], (
+                "privacy_registry.py bắt đầu truy vấn bảng label — nó chỉ "
+                "được phép khai báo")
 
 
 def test_writing_a_memory_still_works_with_the_new_type_registered(db: Path):
