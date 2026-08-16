@@ -1,0 +1,126 @@
+{
+  "applied": true,
+  "passed": true,
+  "databases": [
+    {
+      "db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifetime\\run.db",
+      "rows": 914,
+      "structured_coverage": 0.7779,
+      "with_slot": 711,
+      "unresolved": 203,
+      "structured_wrong_slot_rate": 0.0,
+      "wrong_slots": [],
+      "backfill_changed_on_second_run": 0,
+      "first_pass": {
+        "scanned": 914,
+        "filled": 711,
+        "unresolved": 203,
+        "already_had_slot": 0,
+        "changed": 711,
+        "structured_coverage": 0.7779,
+        "disagreements": [],
+        "seconds": 0.051
+      },
+      "second_pass": {
+        "scanned": 914,
+        "filled": 0,
+        "unresolved": 203,
+        "already_had_slot": 711,
+        "changed": 0,
+        "structured_coverage": 0.7779,
+        "disagreements": [],
+        "seconds": 0.04
+      }
+    },
+    {
+      "db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\failure_matrix\\run.db",
+      "rows": 914,
+      "structured_coverage": 0.7779,
+      "with_slot": 711,
+      "unresolved": 203,
+      "structured_wrong_slot_rate": 0.0,
+      "wrong_slots": [],
+      "backfill_changed_on_second_run": 0,
+      "first_pass": {
+        "scanned": 914,
+        "filled": 0,
+        "unresolved": 203,
+        "already_had_slot": 711,
+        "changed": 0,
+        "structured_coverage": 0.7779,
+        "disagreements": [],
+        "seconds": 0.041
+      },
+      "second_pass": {
+        "scanned": 914,
+        "filled": 0,
+        "unresolved": 203,
+        "already_had_slot": 711,
+        "changed": 0,
+        "structured_coverage": 0.7779,
+        "disagreements": [],
+        "seconds": 0.04
+      }
+    },
+    {
+      "db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifecycle_ab\\A_off.db",
+      "rows": 914,
+      "structured_coverage": 0.7779,
+      "with_slot": 711,
+      "unresolved": 203,
+      "structured_wrong_slot_rate": 0.0,
+      "wrong_slots": [],
+      "backfill_changed_on_second_run": 0,
+      "first_pass": {
+        "scanned": 914,
+        "filled": 711,
+        "unresolved": 203,
+        "already_had_slot": 0,
+        "changed": 711,
+        "structured_coverage": 0.7779,
+        "disagreements": [],
+        "seconds": 0.047
+      },
+      "second_pass": {
+        "scanned": 914,
+        "filled": 0,
+        "unresolved": 203,
+        "already_had_slot": 711,
+        "changed": 0,
+        "structured_coverage": 0.7779,
+        "disagreements": [],
+        "seconds": 0.04
+      }
+    },
+    {
+      "db": "C:\\locaith\\bio-memory-ai-locaith\\.staging\\lifecycle_ab\\B_safe.db",
+      "rows": 914,
+      "structured_coverage": 0.7779,
+      "with_slot": 711,
+      "unresolved": 203,
+      "structured_wrong_slot_rate": 0.0,
+      "wrong_slots": [],
+      "backfill_changed_on_second_run": 0,
+      "first_pass": {
+        "scanned": 914,
+        "filled": 711,
+        "unresolved": 203,
+        "already_had_slot": 0,
+        "changed": 711,
+        "structured_coverage": 0.7779,
+        "disagreements": [],
+        "seconds": 0.048
+      },
+      "second_pass": {
+        "scanned": 914,
+        "filled": 0,
+        "unresolved": 203,
+        "already_had_slot": 711,
+        "changed": 0,
+        "structured_coverage": 0.7779,
+        "disagreements": [],
+        "seconds": 0.041
+      }
+    }
+  ]
+}

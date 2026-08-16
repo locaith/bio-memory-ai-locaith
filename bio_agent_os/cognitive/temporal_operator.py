@@ -355,6 +355,30 @@ def _core(content: str) -> str:
     return text.lower().rstrip(" .!?")
 
 
+def _key_for(predicate_name: str | None) -> str | None:
+    """`"EMPLOYER"` -> `"employer"`, or None for UNKNOWN and anything unknown."""
+    if not predicate_name:
+        return None
+    from .aspect_resolver import Predicate
+
+    member = getattr(Predicate, str(predicate_name), None)
+    return member.attribute if member and member.attribute else None
+
+
+def _attribute_keys() -> frozenset[str]:
+    """Every attribute key the resolver can produce. Computed, not listed.
+
+    Lets `claim_history` tell "a caller passed the key" from "a caller passed
+    a probe sentence" without demanding every call site be updated at once.
+    """
+    from .aspect_resolver import Predicate
+
+    return frozenset(p.attribute for p in Predicate if p.attribute)
+
+
+_ATTRIBUTE_KEYS = _attribute_keys()
+
+
 def _slot_of_row(structured_json: Any) -> str | None:
     """The attribute a row declares it belongs to, or None for a legacy row.
 
@@ -388,7 +412,8 @@ def _mentions(content: str, subject: str) -> bool:
 
 
 def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
-                  context: Any, hint: str | None = None) -> list[ClaimSpan]:
+                  context: Any, hint: str | None = None,
+                  predicate: str | None = None) -> list[ClaimSpan]:
     """Every claim about one (subject, aspect), in order, with intervals.
 
     Intervals come from observation order: each claim holds until the next one
@@ -424,20 +449,47 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
     #
     # `aspect` here is the attribute key, which is exactly what must never
     # reach a text comparison. Against a stored slot it is an equality test.
-    structured = [c for c in candidates if slots.get(str(c[0])) == aspect]
-    unslotted = [c for c in candidates if slots.get(str(c[0])) is None]
+    # `predicate` is the attribute key and `aspect` is a probe *string*, and
+    # they are not interchangeable. The first version compared the stored slot
+    # against `aspect`, which works for `state_operator` and `ever_operator`
+    # (they pass the key) and never fires for `answer_temporal`, which passes
+    # `intent.aspect` — a join of Vietnamese probe phrases. So the branch was
+    # dead on the one caller with the most failures, and TEMPORAL_AT scoring
+    # unchanged was read as "no coupling" when it meant "not reached".
+    #
+    # Two separate parameters now, and a caller that supplies neither gets the
+    # old behaviour exactly.
+    slot_key = predicate or (aspect if aspect in _ATTRIBUTE_KEYS else None)
+    probe = " ".join(p for p in (aspect, hint) if p)
+
+    structured = ([c for c in candidates if slots.get(str(c[0])) == slot_key]
+                  if slot_key else [])
     if structured:
-        # Legacy rows with no slot still have to be considered — dropping them
-        # would silently narrow the history on any store written before this
-        # existed — but they go through the old text path to earn their place.
-        probe = " ".join(p for p in (aspect, hint) if p)
-        rescued = _by_aspect(memory_os, unslotted, probe) if (unslotted and probe) else []
+        # Legacy rows with no slot go through the old text path to earn their
+        # place. Dropping them would silently narrow the history on any store
+        # written before slots existed.
+        #
+        # KNOWN LIMITATION, and it is not fixed here. A row whose slot is
+        # *wrong* is excluded with no rescue, which makes a mis-slotted memory
+        # invisible to the only query that would find it — strictly worse than
+        # having no slot at all. An independent review named this and it is
+        # real; `test_a_wrong_slot_hides_a_memory` records it as an xfail.
+        #
+        # The obvious repair — rescue rows whose slot differs — was tried and
+        # is worse: `_by_aspect` falls back to `or candidates` when no
+        # embedder is configured, so it rescued a birthday into an employer
+        # history and broke four tests. Excluding a *correctly* slotted row
+        # from another slot's query is the entire feature. Separating "wrong
+        # slot" from "different slot" needs a confidence the resolver does not
+        # currently report, so the limitation stands and is written down
+        # rather than papered over.
+        unslotted = [c for c in candidates if slots.get(str(c[0])) is None]
+        rescued = (_by_aspect(memory_os, unslotted, probe)
+                   if (unslotted and probe) else [])
         keep = {id(c) for c in structured} | {id(c) for c in rescued}
         candidates = [c for c in candidates if id(c) in keep]
-    else:
-        probe = " ".join(p for p in (aspect, hint) if p)
-        if probe:
-            candidates = _by_aspect(memory_os, candidates, probe)
+    elif probe:
+        candidates = _by_aspect(memory_os, candidates, probe)
 
     spans: list[ClaimSpan] = []
     by_core: dict[str, ClaimSpan] = {}
@@ -554,6 +606,11 @@ def answer_temporal(memory_os: Any, question: str, *, context: Any,
     spans = claim_history(
         memory_os, subject=intent.subject, aspect=intent.aspect,
         context=context,
+        # The predicate the parser already resolved, passed rather than
+        # discarded. `intent.predicate` holds the enum *name* ("EMPLOYER");
+        # the slot stores the attribute key ("employer"), so it is translated
+        # here rather than storing two spellings.
+        predicate=_key_for(intent.predicate),
         hint=intent.anchor if intent.kind in (TemporalKind.BEFORE,
                                               TemporalKind.AFTER) else None)
     if not spans:

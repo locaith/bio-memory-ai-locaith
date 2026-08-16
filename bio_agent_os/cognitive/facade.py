@@ -200,6 +200,63 @@ class MemoryOS:
     #: so a row can say which version produced its slot.
     SLOT_RESOLVER_VERSION = "aspect_resolver@1"
 
+    def _scrub_supplied_slot(self, supplied: dict[str, Any] | None, *,
+                             decision: Any, original: str) -> dict[str, Any] | None:
+        """Redact a caller-supplied slot the same way `content` was redacted.
+
+        `immune.inspect` is handed the content string and nothing else, so a
+        structured slot travelling beside it has never been looked at. An
+        independent review reproduced the consequence: a secret redacted out
+        of `content` survived verbatim inside a caller's
+        `structured_content["value"]`, in a column the deletion verifier does
+        scan — so a `forget` would find it, but only after it had been stored,
+        exported or read.
+
+        The rule here is narrow on purpose. It does not re-run the immune
+        system over arbitrary structure; it removes from the slot exactly what
+        the immune system removed from the text. Anything the redactor did not
+        object to passes through untouched.
+        """
+        if not supplied or not getattr(decision, "redacted_content", None):
+            return supplied
+        removed = self._redacted_fragments(original,
+                                           decision.redacted_content)
+        if not removed:
+            return supplied
+
+        def clean(value: Any) -> Any:
+            if isinstance(value, str):
+                out = value
+                for fragment in removed:
+                    out = out.replace(fragment, "[REDACTED]")
+                return out
+            if isinstance(value, dict):
+                return {k: clean(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [clean(v) for v in value]
+            return value
+
+        return clean(supplied)
+
+    @staticmethod
+    def _redacted_fragments(original: str, redacted: str) -> list[str]:
+        """The substrings the redactor took out.
+
+        Recovered by difference rather than by re-deriving the patterns: the
+        immune system owns what counts as a secret, and a second copy of that
+        judgement here would drift from it.
+        """
+        import difflib
+
+        removed = []
+        matcher = difflib.SequenceMatcher(None, str(original), str(redacted))
+        for tag, i1, i2, _, _ in matcher.get_opcodes():
+            if tag in ("delete", "replace"):
+                fragment = str(original)[i1:i2].strip()
+                if len(fragment) >= 6:
+                    removed.append(fragment)
+        return removed
+
     def _structured_slot(self, content: str) -> dict[str, Any]:
         """(subject, predicate) for this sentence, kept instead of thrown away.
 
@@ -216,6 +273,15 @@ class MemoryOS:
         `CONTENT_COLUMNS` now scans this column for exactly that reason, and
         deriving from the redacted text means there is nothing to find.
 
+        That covers what this function returns. It does **not** cover a
+        `structured_content` supplied by the caller, which reaches the row
+        without passing the immune system at all — `immune.inspect` is given
+        `content` and nothing else. An independent review demonstrated it:
+        a secret redacted out of `content` survived verbatim in a
+        caller-supplied slot. `_scrub_supplied_slot` below is the answer, and
+        this note stays so the invariant is not claimed more broadly than it
+        holds.
+
         Deliberately from the sentence and never from a caller-supplied
         attribute: on the lifetime benchmark the world knows each event's
         `attribute`, and taking it would hand over the resolution step the
@@ -228,14 +294,13 @@ class MemoryOS:
         the existing text path.
         """
         try:
-            from .aspect_resolver import Predicate, resolve_frame
+            from .slot_backfill import slot_for
 
-            frame = resolve_frame(str(content or ""))
-            if not frame.subject or frame.predicate is Predicate.UNKNOWN:
-                return {}
-            return {"entity": frame.subject,
-                    "attribute": frame.predicate.attribute,
-                    "resolver": self.SLOT_RESOLVER_VERSION}
+            # The same function the backfill uses. Two copies of "which slot
+            # is this sentence about" would drift, and the drift would show as
+            # a backfilled row disagreeing with a freshly written one for the
+            # same text.
+            return slot_for(content, source="ingest")
         except Exception:                                # noqa: BLE001
             # A resolver failure must never stop an ingestion. The row simply
             # carries no slot and every reader falls back to what it did
@@ -364,6 +429,8 @@ class MemoryOS:
                          "structured_content": structured_content or {}})
             return decision
         stored_content = decision.redacted_content or content
+        structured_content = self._scrub_supplied_slot(
+            structured_content, decision=decision, original=content)
         memory = CognitiveMemory(
             tenant_id=event.tenant_id,
             workspace_id=event.workspace_id,
