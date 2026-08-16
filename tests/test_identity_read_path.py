@@ -14,6 +14,26 @@ text matching quietly leaks:
 
 and one surname that ends two established identities, where the only correct
 answer is to refuse.
+
+**How much of this file is evidence for the feature: 5 of 13.**
+
+Measured by clamping `_SUBJECT_IDENTITY_READ` to `"off"` and re-running: 8 tests
+still pass. The six parametrized shared-surname cases are among them, because
+`_mentions` already requires *every* syllable and "Nguyễn Quân" and "Nguyễn
+Dũng" differ in one. So `cross_identity_candidate_rate = 0` on that world says
+text matching is not completely broken; it says nothing about identity
+selection.
+
+The tests that do discriminate are the ones to protect:
+`test_a_nested_name_does_not_leak` (every syllable of "Vũ An" is inside "Trần Vũ
+An", so text matching cannot separate them by construction),
+`test_the_text_mutant_leaks_and_must_fail`, `test_an_ambiguous_surface_answers_nobody`,
+`test_the_structured_identity_is_what_selects`, and
+`test_a_row_with_no_stored_identity_still_reaches_its_owner`.
+
+Recorded here because a suite that looks stronger than it is caused a real
+error: `cross_identity_candidate_rate = 0` was quoted as evidence for new code
+that six of these tests never exercised.
 """
 
 from __future__ import annotations
@@ -140,6 +160,75 @@ def test_the_text_mutant_leaks_and_must_fail(world, monkeypatch):
     assert "0911111111" not in clean and "0922222222" not in clean, (
         "false_merge_read_rate > 0 — họ chung vẫn gộp hai người"
     )
+
+
+def test_a_nested_name_does_not_leak(tmp_path):
+    """The case that actually discriminates this feature.
+
+    Seven of the tests in this file pass identically with the flag off, because
+    `_mentions` already requires every syllable and "Nguyễn Quân" shares none of
+    "Nguyễn Dũng" beyond the family name. So `cross_identity_candidate_rate = 0`
+    on that world is not evidence for identity selection — it is evidence that
+    text matching is not completely broken.
+
+    A *nested* name is different. Every syllable of "Vũ An" appears in "Trần Vũ
+    An", so `_mentions` cannot separate them by construction, and this is the
+    shape a read-side "the stored id ends with the wanted id, so it must be the
+    same person noisily extracted" rescue would reintroduce. That rescue passes
+    the entire suite and returns Trần Vũ An's job title to a question about Vũ
+    An; it was measured, and rejected, and this test is what makes the rejection
+    stick.
+    """
+    memory_os = MemoryOS(tmp_path / "nested.db")
+    try:
+        for text in ("Vũ An đang giữ chức trưởng nhóm.",
+                     "Trần Vũ An đang giữ chức giám đốc kỹ thuật."):
+            event = memory_os.observe(tenant_id="t1", actor="a", source="u",
+                                      content=text, workspace_id="w1")
+            memory_os.remember(event=event, memory_type=MemoryType.SEMANTIC,
+                               content=text, confidence=0.9)
+
+        assert T._mentions("Trần Vũ An đang giữ chức giám đốc kỹ thuật.",
+                           "Vũ An"), (
+            "tiền đề hỏng: nếu text matching đã tách được hai tên này thì test "
+            "không chứng minh gì về identity")
+
+        found = " ".join(_contents(memory_os, "Vũ An", "job_title"))
+        assert "trưởng nhóm" in found
+        assert "giám đốc kỹ thuật" not in found, (
+            "hồ sơ của Trần Vũ An lọt vào câu hỏi về Vũ An")
+    finally:
+        memory_os.close()
+
+
+def test_a_clause_boundary_does_not_change_who_a_claim_is_about(tmp_path):
+    """A correction is still that person's record.
+
+    This world is the one the original identity fixtures could not build: no
+    fixture here put a name next to a clause boundary, which is why the suite
+    could not see that "Đính chính: … là sai, Nguyễn Quân …" was stored under
+    the subject "sai Nguyễn Quân" and dropped from his own history.
+    """
+    memory_os = MemoryOS(tmp_path / "clause.db")
+    try:
+        for text in ("Số điện thoại của Nguyễn Quân là 0911111111.",
+                     "Đính chính: thông tin trước là sai, số điện thoại của "
+                     "Nguyễn Quân là 0933333333."):
+            event = memory_os.observe(tenant_id="t1", actor="a", source="u",
+                                      content=text, workspace_id="w1")
+            memory_os.remember(event=event, memory_type=MemoryType.SEMANTIC,
+                               content=text, confidence=0.9)
+
+        # `EXECUTION` is module-global and this test does not use the `world`
+        # fixture that clears it. Reading it without a reset measures every
+        # test that ran before this one in the same module.
+        T.reset_execution()
+        found = " ".join(_contents(memory_os, "Nguyễn Quân", "phone"))
+        assert "0933333333" in found, (
+            "câu đính chính bị loại khỏi lịch sử của chính chủ")
+        assert T.EXECUTION["identity_excluded_mentioned"] == 0
+    finally:
+        memory_os.close()
 
 
 def test_a_definite_mismatch_is_never_rescued_by_text(world):

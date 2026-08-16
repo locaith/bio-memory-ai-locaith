@@ -382,8 +382,12 @@ _ATTRIBUTE_KEYS = _attribute_keys()
 
 import os as _os
 
-#: See `claim_history`. Off until the three temporal failures are explained.
-_SUBJECT_IDENTITY_READ = _os.getenv("SUBJECT_IDENTITY_READ", "off").strip().lower()
+#: See `claim_history`. **On.** The three temporal failures that held it back
+#: were one cause — `aspect_resolver@1` ran a name across a clause boundary and
+#: stored "sai Bùi Cường" — fixed at the producer, and rows written by that
+#: resolver are now read the old way rather than judged as a different person.
+#: `SUBJECT_IDENTITY_READ=off` restores text matching.
+_SUBJECT_IDENTITY_READ = _os.getenv("SUBJECT_IDENTITY_READ", "on").strip().lower()
 
 _TRUSTED = "trusted"
 
@@ -419,6 +423,27 @@ def execution_report() -> dict[str, Any]:
         "fallback_contributed": EXECUTION.get("fallback_contributed", 0),
         "unnecessary_fallback": EXECUTION.get("unnecessary_fallback", 0),
         "by_aspect_calls": EXECUTION.get("by_aspect_calls", 0),
+        # The identity lane. `structured_identity_hit` alone reads as health
+        # whatever happened to the rows that did not survive selection, so the
+        # exclusions are reported beside it or the report is not a report.
+        "structured_identity_hit":
+            EXECUTION.get("structured_identity_hit", 0),
+        "ambiguous_identity_abstain":
+            EXECUTION.get("ambiguous_identity_abstain", 0),
+        "identity_fallback_attempted":
+            EXECUTION.get("identity_fallback_attempted", 0),
+        "identity_excluded": EXECUTION.get("identity_excluded", 0),
+        # Rows whose subject came from a superseded resolver and were therefore
+        # read the old way. Non-zero means the store has not been migrated, so
+        # identity separation is not yet in force for those rows — a fact the
+        # operator must be able to state rather than imply.
+        "identity_stale_resolver":
+            EXECUTION.get("identity_stale_resolver", 0),
+        # Rows the text says belong to this person and the stored identity
+        # says do not. Non-zero means a chronology was cut on evidence that
+        # contradicts the sentence itself — never normal, always worth a look.
+        "identity_excluded_mentioned":
+            EXECUTION.get("identity_excluded_mentioned", 0),
         # Rates carry their denominator. A rate without one is a number
         # somebody will quote in isolation.
         "unnecessary_fallback_rate":
@@ -533,13 +558,54 @@ def _by_subject(rows: list, subject: str) -> list[tuple]:
     kept, structured_seen, legacy_seen = [], False, False
     for memory_id, content, observed_at, _, _, structured_json in rows:
         entity = _entity_of_row(structured_json)
+        if entity and not _current_resolver(structured_json):
+            # Written by an older resolver, so the stored subject is not
+            # evidence about *this* person — it is evidence about what a
+            # superseded parser thought.
+            #
+            # `aspect_resolver@1` let a name run across a clause boundary and
+            # stored "sai Bùi Cường" for a sentence about Bùi Cường. Judged as
+            # an identity, that is a definite mismatch and the row leaves the
+            # chronology; judged as provenance, it is simply not an answer yet.
+            # `UNKNOWN > false identity merge` cuts both ways — the missing
+            # half was that a surface which resolves to nobody real is UNKNOWN,
+            # not somebody else, and `STRUCTURED_GAP` and `MISMATCH` are two
+            # states this branch had merged into one.
+            #
+            # So a stale row falls to the same bounded textual path as a row
+            # with no identity at all: no worse than the behaviour that ships
+            # today, and no silent deletion from a store nobody has migrated.
+            # `slot_backfill.backfill()` promotes these rows; until it is run,
+            # they are read the old way and counted.
+            EXECUTION["identity_stale_resolver"] += 1
+            entity = None
         if entity:
             if identify(entity, known=known).subject_id == wanted.subject_id:
                 kept.append((memory_id, content, observed_at))
                 structured_seen = True
-            # A definite mismatch is dropped here and never rescued by text.
-            # Cross-person contamination is the one failure with no benign
-            # reading.
+            else:
+                # A definite mismatch is dropped here and never rescued by
+                # text. Cross-person contamination is the one failure with no
+                # benign reading.
+                #
+                # But a drop must leave a witness. This branch once discarded
+                # half a slot's history — every correction and every
+                # restatement, because the ingest resolver glued "Đính chính,"
+                # and "Nhắc lại," onto the name — while `execution_report()`
+                # returned counters byte-identical to a healthy structured
+                # query. Three temporal tests failed three stages downstream
+                # and two rounds of hypotheses went looking at row ordering,
+                # because nothing here said a row had left the chronology.
+                EXECUTION["identity_excluded"] += 1
+                if _mentions(str(content), subject):
+                    # The expensive one. The sentence names this person and the
+                    # stored identity says otherwise, so exactly one of the two
+                    # is wrong and the row is gone either way. Whether that is
+                    # a corrupted subject span or a genuinely different person
+                    # is not decidable here — which is the point: it is the
+                    # signal that something upstream needs looking at, not a
+                    # licence to rescue the row.
+                    EXECUTION["identity_excluded_mentioned"] += 1
         elif _mentions(str(content), subject):
             kept.append((memory_id, content, observed_at))
             legacy_seen = True
@@ -556,6 +622,20 @@ def _by_subject(rows: list, subject: str) -> list[tuple]:
 def _entity_of_row(structured_json: Any) -> str | None:
     entity = _loads_slot(structured_json).get("entity")
     return str(entity) if entity else None
+
+
+def _current_resolver(structured_json: Any) -> bool:
+    """Was this row's subject produced by the resolver running now?
+
+    Read from the row rather than assumed, because the answer decides whether
+    the stored subject is evidence or archaeology. A row with no recorded
+    version is old by definition — the field was written from the first slot
+    onward, so its absence dates the row rather than excusing it.
+    """
+    from .slot_backfill import RESOLVER_VERSION
+
+    slot = _loads_slot(structured_json)
+    return slot.get("resolver_version") == RESOLVER_VERSION
 
 
 def _mentions(content: str, subject: str) -> bool:
@@ -594,17 +674,22 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
               if vt is not None}
     slots = {str(m): _slot_of_row(s) for m, _, _, _, _, s in rows}
     statuses = {str(m): _status_of_row(s) for m, _, _, _, _, s in rows}
-    # P0-B, INCOMPLETE, default OFF. `SUBJECT_IDENTITY_READ=on` enables it.
+    # P0-B, on by default. `SUBJECT_IDENTITY_READ=off` restores text matching.
     #
-    # Identity selection is correct on its own suite — cross-person leakage is
-    # zero on three shared-surname pairs and the text mutant dies — but three
-    # temporal tests fail with it on, and two hypotheses for why were wrong:
-    # it is not the entity extraction (all forms resolve to one id, verified)
-    # and it is not row ordering (preserved, still red).
+    # The three temporal tests that held this back turned out to be one cause,
+    # and it was not in this function. `_names` tokenised without punctuation,
+    # so a name ran backwards across a comma and "…là sai, Bùi Cường…" was
+    # stored under the subject "sai Bùi Cường". Identity selection then did
+    # exactly what it was told — a definite mismatch, dropped — and the rows it
+    # dropped were the corrections and the restatements, because those are the
+    # sentences with a clause before the name.
     #
-    # Shipping it on would trade a proven present failure for an unproven
-    # future safety, so it ships off and the investigation is written down
-    # rather than left in a red tree.
+    # Two hypotheses were wrong on the way here and both were wrong in the same
+    # direction: they assumed this function chose badly. It did not. It was
+    # given a corrupted fact and had no way to tell. The third, that a row
+    # written by a superseded resolver is *unknown* rather than *somebody
+    # else*, is what makes the flag safe to leave on against a store nobody has
+    # migrated — see `_current_resolver`.
     if _SUBJECT_IDENTITY_READ == "on":
         candidates = _by_subject(rows, subject)
     else:
