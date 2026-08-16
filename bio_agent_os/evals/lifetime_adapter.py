@@ -95,8 +95,12 @@ class CognitiveAdapter:
 
     def __init__(self, db_path: Path | str, *, embedder: Any = None,
                  engine: Any = None, tenant: str = "bench",
-                 workspace: str = "life") -> None:
+                 workspace: str = "life",
+                 lifecycle_mode: str | None = None) -> None:
         from bio_agent_os.cognitive.facade import MemoryOS
+        from bio_agent_os.cognitive.lifecycle_runtime import (
+            LifecycleRuntime, OFF,
+        )
 
         self.db_path = Path(db_path)
         self.tenant = tenant
@@ -104,6 +108,12 @@ class CognitiveAdapter:
         self.embedder = embedder
         self.engine = engine
         self.memory_os = MemoryOS(self.db_path, embedder=embedder)
+
+        # `off` unless asked. The A/B passes the mode explicitly rather than
+        # relying on the environment, so the two arms cannot end up reading
+        # the same value from a variable set once outside the process.
+        runtime = LifecycleRuntime(self.memory_os, mode=lifecycle_mode or OFF)
+        self.lifecycle = runtime if runtime.enabled else None
 
     # -- the five ----------------------------------------------------------
 
@@ -129,10 +139,19 @@ class CognitiveAdapter:
             tenant_id=self.tenant, actor="world", source="lifetime",
             content=text, workspace_id=self.workspace, observed_at=stamp,
         )
-        self.memory_os.remember(
+        memory = self.memory_os.remember(
             event=record, memory_type=MemoryType.EPISODIC, content=text,
             confidence=0.8,
         )
+
+        # The lifecycle sees the sentence and the time it arrived — the same
+        # two things the store just received. Not `event.kind`: that is the
+        # ledger saying which events replace and which retract, and it is the
+        # distinction being measured.
+        if self.lifecycle is not None and memory is not None:
+            self.lifecycle.observe(
+                content=text, memory_id=memory.memory_id, observed_at=stamp,
+                tenant_id=self.tenant)
 
     def query(self, question: str, tick: int) -> QueryResult:
         """Ask, and report both what was retrieved and what was said.
@@ -148,7 +167,13 @@ class CognitiveAdapter:
         context = AccessContext(tenant_id=self.tenant,
                                 workspace_id=self.workspace)
         started = time.perf_counter()
-        planned = plan(self.memory_os, question, context=context, limit=6)
+        # The second half of the wire, and only when the flag is on. Writing
+        # validity windows changes nothing a reader can see unless a reader
+        # asks for a moment; with the flag off nothing asks, and arm A returns
+        # exactly what it returned before this existed.
+        as_of = tick_to_iso(tick) if self.lifecycle is not None else None
+        planned = plan(self.memory_os, question, context=context, limit=6,
+                       as_of=as_of)
         contents = [str(getattr(m, "content", "")) for m in planned.memories]
         reason = str(getattr(planned, "unanswerable_reason", "") or "")
         stage, _, note = reason.partition(": ")
@@ -219,6 +244,13 @@ class CognitiveAdapter:
         from bio_agent_os.cognitive.facade import MemoryOS
 
         self.memory_os = MemoryOS(self.db_path, embedder=self.embedder)
+        # The lifecycle held a reference to the store this just replaced.
+        # Without this every action it took failed with "Cannot operate on a
+        # closed database" — and the A/B reported a delta of exactly 0.0000
+        # across every family, which reads like a clean negative result rather
+        # than an arm that never ran.
+        if self.lifecycle is not None:
+            self.lifecycle.rebind(self.memory_os)
 
     # -- internals ---------------------------------------------------------
 

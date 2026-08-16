@@ -379,11 +379,15 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
     """
     conn = memory_os.memories.conn
     rows = conn.execute(
-        "SELECT memory_id, content, observed_at FROM cognitive_memories "
+        "SELECT memory_id, content, observed_at, valid_from, valid_to "
+        "FROM cognitive_memories "
         "WHERE superseded_at IS NULL ORDER BY observed_at, rowid"
     ).fetchall()
 
-    candidates = [(m, c, o) for m, c, o in rows if _mentions(str(c), subject)]
+    stored = {str(m): (vf, vt) for m, _, _, vf, vt in rows
+              if vt is not None}
+    candidates = [(m, c, o) for m, c, o, _, _ in rows
+                  if _mentions(str(c), subject)]
 
     # `hint` is the anchor of a before/after question, and it identifies the
     # slot when the aspect alone cannot. "Trước khi sang Bình Minh thì Bùi
@@ -421,6 +425,37 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
     for earlier, later in zip(live, live[1:]):
         earlier.valid_to = later.valid_from
         earlier.kind = "superseded" if earlier.kind == "asserted" else earlier.kind
+
+    # A window written by the lifecycle wins over the one derived here.
+    #
+    # Both are implementations of the same semantics, and this function was the
+    # only one the benchmark measured — which is why an A/B that closed 39
+    # windows and emptied 17 scored identically to the arm that closed none.
+    # The two do not always agree, and where they disagree the stored one is
+    # the better answer: it came from `classify_relation`, which reads the
+    # predicate's declared shape and abstains where the evidence does not
+    # reach a verdict. The rule here derives supersession from arrival order
+    # alone and correction from a single regex.
+    #
+    # Nothing is written by that path unless the lifecycle flag is on, so a
+    # store that never ran it has an empty `stored` and this loop does nothing.
+    for span in spans:
+        window = stored.get(str(span.memory_id))
+        if window is None:
+            continue
+        valid_from, valid_to = window
+        if valid_from is not None:
+            span.valid_from = str(valid_from)
+        span.valid_to = str(valid_to)
+        if str(valid_to) == str(span.valid_from):
+            # An empty window is how a correction is recorded: no instant
+            # satisfies `valid_from <= as_of < valid_to`. Marked here too so
+            # `holds_at` refuses it for the same reason it refuses the ones
+            # this function retracted itself.
+            span.kind = "corrected"
+            span.retracted_by = span.retracted_by or "lifecycle"
+        elif span.kind == "asserted":
+            span.kind = "superseded"
     return spans
 
 

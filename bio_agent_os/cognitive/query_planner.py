@@ -220,11 +220,18 @@ class Plan:
 
 
 def plan(memory_os: Any, question: str, *, context: Any,
-         limit: int = 10) -> Plan:
+         limit: int = 10, as_of: str | None = None) -> Plan:
     """Route the question, and say which route was taken.
 
     A router nobody can inspect is a router nobody can debug, so the choice is
     part of the result rather than a side effect.
+
+    `as_of` filters retrieval to claims valid at that instant. Default None
+    keeps every existing caller returning exactly what it returned before —
+    and until something passes it, a lifecycle can close every validity window
+    in the store and no answer changes. Measured: a first A/B closed 39
+    windows and emptied 17, and scored identically to the arm that closed
+    none, because nothing on the read path was looking.
     """
     kind = classify(question)
 
@@ -248,7 +255,8 @@ def plan(memory_os: Any, question: str, *, context: Any,
         # operator could not resolve is still better served by retrieval than
         # by nothing, but the run has to be able to count how often that
         # happened or `temporal_execution_accuracy` measures nothing.
-        found = memory_os.recall(query=question, context=context, limit=limit)
+        found = memory_os.recall(query=question, context=context, limit=limit,
+                                 as_of=as_of)
         result = Plan(kind=kind, used="recall_after_temporal_failed",
                       memories=[r.memory for r in (found or [])])
         result.unanswerable_reason = f"{answer.stage_failed}: {answer.note}"
@@ -257,7 +265,8 @@ def plan(memory_os: Any, question: str, *, context: Any,
     classes = list(_CLASSES_FOR.get(kind, ()))
 
     if not classes:
-        found = memory_os.recall(query=question, context=context, limit=limit)
+        found = memory_os.recall(query=question, context=context, limit=limit,
+                                 as_of=as_of)
         return Plan(kind=kind, used="recall",
                     memories=[r.memory for r in (found or [])])
 
