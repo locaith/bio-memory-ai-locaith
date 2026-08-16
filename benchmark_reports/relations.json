@@ -1,0 +1,1484 @@
+{
+  "runtime": {
+    "package_version": "0.8.2rc1",
+    "git_sha": "2c5c996c5dfe4c39487564196f8270f91be1cbcc",
+    "git_dirty": true,
+    "config_hash": "8f999906edf8eebb1bb74cdfff7bff6e",
+    "embedding_model": "",
+    "embedding_dims": 0,
+    "db_path": "",
+    "host": "DESKTOP-M1TSM33",
+    "pid": 22224,
+    "python_version": "3.11.9",
+    "process_start_time": 1786842433.106151,
+    "untracked_files": 7,
+    "fingerprint": "18b727ab66a1dfdbdf99abafe5aaa00397e9071f6dae54e20b1faab12e0699de"
+  },
+  "config": {
+    "ticks": 1000,
+    "subjects": 20,
+    "seed": 20260814
+  },
+  "cases": {
+    "total": 645,
+    "by_source": {
+      "curated": 20,
+      "world": 313,
+      "world_heldout": 312
+    },
+    "by_label": {
+      "repeat": 382,
+      "correct": 62,
+      "supersede": 105,
+      "unknown": 5,
+      "coexist": 2,
+      "conflict": 89
+    }
+  },
+  "result": {
+    "n": 645,
+    "lifecycle_relation_accuracy": 0.8202,
+    "unsafe_failures": 0,
+    "unsafe_failure_rate": 0.0,
+    "silent_conflict_rate": 0.0,
+    "forced_transition_rate": 0.0,
+    "silent_conflicts": 0,
+    "conflict_cases": 89,
+    "forced_transitions": 0,
+    "undecidable_cases": 94,
+    "matrix": {
+      "coexist->coexist": 2,
+      "conflict->conflict": 45,
+      "conflict->unknown": 44,
+      "correct->conflict": 6,
+      "correct->correct": 34,
+      "correct->unknown": 22,
+      "repeat->repeat": 382,
+      "supersede->supersede": 61,
+      "supersede->unknown": 44,
+      "unknown->unknown": 5
+    },
+    "wrong": [
+      {
+        "name": "world_correct_S16_city_76_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Đà Nẵng",
+        "new": "Huế",
+        "text": "Cái vừa rồi không đúng: nguyễn Oanh sống ở Huế."
+      },
+      {
+        "name": "world_correct_S10_job_title_108_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "trưởng phòng",
+        "new": "nhân viên kinh doanh",
+        "text": "Cái vừa rồi không đúng: lê Lan đang giữ chức nhân viên kinh doanh."
+      },
+      {
+        "name": "world_correct_S19_birthday_126_heldout",
+        "expected": "correct",
+        "got": "conflict",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "12/03/1990",
+        "new": "30/01/1992",
+        "text": "Cái vừa rồi không đúng: phạm Nam sinh ngày 30/01/1992."
+      },
+      {
+        "name": "world_correct_S08_phone_132_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0938777666",
+        "new": "0903111222",
+        "text": "Bỏ cái trước đi nhé — số điện thoại của Nguyễn Quân là 0903111222."
+      },
+      {
+        "name": "world_contradict_S15_phone_161_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0903111222",
+        "new": "0977123456",
+        "text": "Hình như số điện thoại của Bùi Tuấn là 0977123456."
+      },
+      {
+        "name": "world_correct_S04_salary_168_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "25 triệu",
+        "new": "40 triệu",
+        "text": "Bỏ cái trước đi nhé — lương của Hoàng Yến là 40 triệu."
+      },
+      {
+        "name": "world_correct_S04_birthday_176_heldout",
+        "expected": "correct",
+        "got": "conflict",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "17/09/1985",
+        "new": "05/07/1988",
+        "text": "Bỏ cái trước đi nhé — hoàng Yến sinh ngày 05/07/1988."
+      },
+      {
+        "name": "world_contradict_S19_employer_178_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "An Phát",
+        "new": "Hoà Bình",
+        "text": "Hình như phạm Nam làm việc tại công ty Hoà Bình."
+      },
+      {
+        "name": "world_contradict_S06_job_title_209_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "trưởng phòng",
+        "new": "phó giám đốc",
+        "text": "Hình như đặng Khanh đang giữ chức phó giám đốc."
+      },
+      {
+        "name": "world_contradict_S08_project_228_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "hệ thống OCR",
+        "new": "kho dữ liệu",
+        "text": "Chưa kiểm chứng: nguyễn Quân phụ trách dự án kho dữ liệu."
+      },
+      {
+        "name": "world_correct_S01_city_232_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Hà Nội",
+        "new": "Đà Nẵng",
+        "text": "Bỏ cái trước đi nhé — trần Hà sống ở Đà Nẵng."
+      },
+      {
+        "name": "world_supersede_S08_project_246_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "hệ thống OCR",
+        "new": "cổng thanh toán",
+        "text": "Cập nhật tình hình: nguyễn Quân phụ trách dự án cổng thanh toán."
+      },
+      {
+        "name": "world_contradict_S11_city_251_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Hà Nội",
+        "new": "Huế",
+        "text": "Chưa kiểm chứng: phạm Vy sống ở Huế."
+      },
+      {
+        "name": "world_correct_S17_salary_263_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "18 triệu",
+        "new": "25 triệu",
+        "text": "Cái vừa rồi không đúng: lương của Trần Bình là 25 triệu."
+      },
+      {
+        "name": "world_correct_S07_employer_275_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Hoà Bình",
+        "new": "Locaith",
+        "text": "Cái vừa rồi không đúng: bùi Cường làm việc tại công ty Locaith."
+      },
+      {
+        "name": "world_contradict_S13_project_278_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "ứng dụng bán hàng",
+        "new": "hệ thống OCR",
+        "text": "Chưa kiểm chứng: vũ Minh phụ trách dự án hệ thống OCR."
+      },
+      {
+        "name": "world_contradict_S19_salary_294_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "18 triệu",
+        "new": "32 triệu",
+        "text": "Chưa kiểm chứng: lương của Phạm Nam là 32 triệu."
+      },
+      {
+        "name": "world_contradict_S09_phone_335_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0938777666",
+        "new": "0977123456",
+        "text": "Hình như số điện thoại của Trần Thảo là 0977123456."
+      },
+      {
+        "name": "world_contradict_S10_city_339_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Hà Nội",
+        "new": "Đà Nẵng",
+        "text": "Chưa kiểm chứng: lê Lan sống ở Đà Nẵng."
+      },
+      {
+        "name": "world_contradict_S05_employer_344_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Đại Việt",
+        "new": "An Phát",
+        "text": "Chưa kiểm chứng: vũ An làm việc tại công ty An Phát."
+      },
+      {
+        "name": "world_contradict_S08_salary_360_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "25 triệu",
+        "new": "18 triệu",
+        "text": "Chưa kiểm chứng: lương của Nguyễn Quân là 18 triệu."
+      },
+      {
+        "name": "world_contradict_S15_project_368_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "hệ thống OCR",
+        "new": "kho dữ liệu",
+        "text": "Hình như bùi Tuấn phụ trách dự án kho dữ liệu."
+      },
+      {
+        "name": "world_correct_S10_employer_371_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "An Phát",
+        "new": "Hoà Bình",
+        "text": "Bỏ cái trước đi nhé — lê Lan làm việc tại công ty Hoà Bình."
+      },
+      {
+        "name": "world_supersede_S18_phone_373_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0912345678",
+        "new": "0903111222",
+        "text": "Cập nhật tình hình: số điện thoại của Lê Trang là 0903111222."
+      },
+      {
+        "name": "world_contradict_S05_salary_387_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "40 triệu",
+        "new": "25 triệu",
+        "text": "Chưa kiểm chứng: lương của Vũ An là 25 triệu."
+      },
+      {
+        "name": "world_supersede_S09_salary_391_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "40 triệu",
+        "new": "32 triệu",
+        "text": "Cập nhật tình hình: lương của Trần Thảo là 32 triệu."
+      },
+      {
+        "name": "world_contradict_S09_job_title_399_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "trưởng nhóm",
+        "new": "nhân viên kinh doanh",
+        "text": "Hình như trần Thảo đang giữ chức nhân viên kinh doanh."
+      },
+      {
+        "name": "world_correct_S09_phone_403_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0938777666",
+        "new": "0903111222",
+        "text": "Bỏ cái trước đi nhé — số điện thoại của Trần Thảo là 0903111222."
+      },
+      {
+        "name": "world_supersede_S13_salary_406_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "55 triệu",
+        "new": "40 triệu",
+        "text": "Cập nhật tình hình: lương của Vũ Minh là 40 triệu."
+      },
+      {
+        "name": "world_contradict_S11_employer_413_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Đại Việt",
+        "new": "An Phát",
+        "text": "Chưa kiểm chứng: phạm Vy làm việc tại công ty An Phát."
+      },
+      {
+        "name": "world_contradict_S02_city_417_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Đà Nẵng",
+        "new": "Cần Thơ",
+        "text": "Chưa kiểm chứng: lê Sơn sống ở Cần Thơ."
+      },
+      {
+        "name": "world_supersede_S08_job_title_420_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "phó giám đốc",
+        "new": "trưởng nhóm",
+        "text": "Cập nhật tình hình: nguyễn Quân đang giữ chức trưởng nhóm."
+      },
+      {
+        "name": "world_contradict_S06_job_title_450_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "trưởng phòng",
+        "new": "phó giám đốc",
+        "text": "Chưa kiểm chứng: đặng Khanh đang giữ chức phó giám đốc."
+      },
+      {
+        "name": "world_correct_S13_birthday_452_heldout",
+        "expected": "correct",
+        "got": "conflict",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "30/01/1992",
+        "new": "21/11/1995",
+        "text": "Cái vừa rồi không đúng: vũ Minh sinh ngày 21/11/1995."
+      },
+      {
+        "name": "world_correct_S05_phone_454_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0987654321",
+        "new": "0903111222",
+        "text": "Bỏ cái trước đi nhé — số điện thoại của Vũ An là 0903111222."
+      },
+      {
+        "name": "world_supersede_S16_city_459_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Huế",
+        "new": "Cần Thơ",
+        "text": "Vừa có quyết định mới: nguyễn Oanh sống ở Cần Thơ."
+      },
+      {
+        "name": "world_correct_S17_city_462_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Đà Nẵng",
+        "new": "Hải Phòng",
+        "text": "Cái vừa rồi không đúng: trần Bình sống ở Hải Phòng."
+      },
+      {
+        "name": "world_contradict_S10_job_title_467_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "giám đốc kỹ thuật",
+        "new": "phó giám đốc",
+        "text": "Hình như lê Lan đang giữ chức phó giám đốc."
+      },
+      {
+        "name": "world_supersede_S19_salary_471_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "32 triệu",
+        "new": "25 triệu",
+        "text": "Cập nhật tình hình: lương của Phạm Nam là 25 triệu."
+      },
+      {
+        "name": "world_supersede_S05_salary_473_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "40 triệu",
+        "new": "55 triệu",
+        "text": "Vừa có quyết định mới: lương của Vũ An là 55 triệu."
+      },
+      {
+        "name": "world_supersede_S13_employer_481_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Locaith",
+        "new": "Đại Việt",
+        "text": "Cập nhật tình hình: vũ Minh làm việc tại công ty Đại Việt."
+      },
+      {
+        "name": "world_correct_S07_salary_488_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "18 triệu",
+        "new": "40 triệu",
+        "text": "Bỏ cái trước đi nhé — lương của Bùi Cường là 40 triệu."
+      },
+      {
+        "name": "world_supersede_S15_phone_501_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0903111222",
+        "new": "0977123456",
+        "text": "Vừa có quyết định mới: số điện thoại của Bùi Tuấn là 0977123456."
+      },
+      {
+        "name": "world_supersede_S14_city_523_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Huế",
+        "new": "Hà Nội",
+        "text": "Vừa có quyết định mới: đặng Phúc sống ở Hà Nội."
+      },
+      {
+        "name": "world_correct_S03_salary_525_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "18 triệu",
+        "new": "55 triệu",
+        "text": "Cái vừa rồi không đúng: lương của Phạm Giang là 55 triệu."
+      },
+      {
+        "name": "world_contradict_S10_salary_528_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "55 triệu",
+        "new": "32 triệu",
+        "text": "Chưa kiểm chứng: lương của Lê Lan là 32 triệu."
+      },
+      {
+        "name": "world_contradict_S08_salary_530_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "25 triệu",
+        "new": "40 triệu",
+        "text": "Hình như lương của Nguyễn Quân là 40 triệu."
+      },
+      {
+        "name": "world_supersede_S03_employer_542_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Locaith",
+        "new": "An Phát",
+        "text": "Vừa có quyết định mới: phạm Giang làm việc tại công ty An Phát."
+      },
+      {
+        "name": "world_contradict_S13_phone_548_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0912345678",
+        "new": "0903111222",
+        "text": "Hình như số điện thoại của Vũ Minh là 0903111222."
+      },
+      {
+        "name": "world_correct_S05_birthday_551_heldout",
+        "expected": "correct",
+        "got": "conflict",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "21/11/1995",
+        "new": "05/07/1988",
+        "text": "Bỏ cái trước đi nhé — vũ An sinh ngày 05/07/1988."
+      },
+      {
+        "name": "world_contradict_S03_job_title_554_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "nhân viên kinh doanh",
+        "new": "trưởng nhóm",
+        "text": "Hình như phạm Giang đang giữ chức trưởng nhóm."
+      },
+      {
+        "name": "world_supersede_S00_phone_558_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0987654321",
+        "new": "0912345678",
+        "text": "Cập nhật tình hình: số điện thoại của Nguyễn Dũng là 0912345678."
+      },
+      {
+        "name": "world_correct_S10_salary_573_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "55 triệu",
+        "new": "32 triệu",
+        "text": "Bỏ cái trước đi nhé — lương của Lê Lan là 32 triệu."
+      },
+      {
+        "name": "world_supersede_S12_project_580_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "hệ thống OCR",
+        "new": "cổng thanh toán",
+        "text": "Cập nhật tình hình: hoàng Hùng phụ trách dự án cổng thanh toán."
+      },
+      {
+        "name": "world_contradict_S08_city_585_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Cần Thơ",
+        "new": "Hải Phòng",
+        "text": "Hình như nguyễn Quân sống ở Hải Phòng."
+      },
+      {
+        "name": "world_contradict_S00_project_587_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "kho dữ liệu",
+        "new": "hệ thống OCR",
+        "text": "Chưa kiểm chứng: nguyễn Dũng phụ trách dự án hệ thống OCR."
+      },
+      {
+        "name": "world_supersede_S18_salary_594_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "25 triệu",
+        "new": "32 triệu",
+        "text": "Cập nhật tình hình: lương của Lê Trang là 32 triệu."
+      },
+      {
+        "name": "world_contradict_S07_job_title_611_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "trưởng nhóm",
+        "new": "nhân viên kinh doanh",
+        "text": "Chưa kiểm chứng: bùi Cường đang giữ chức nhân viên kinh doanh."
+      },
+      {
+        "name": "world_contradict_S08_job_title_619_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "trưởng nhóm",
+        "new": "giám đốc kỹ thuật",
+        "text": "Chưa kiểm chứng: nguyễn Quân đang giữ chức giám đốc kỹ thuật."
+      },
+      {
+        "name": "world_correct_S10_city_632_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Hà Nội",
+        "new": "Hải Phòng",
+        "text": "Bỏ cái trước đi nhé — lê Lan sống ở Hải Phòng."
+      },
+      {
+        "name": "world_contradict_S09_phone_646_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0987654321",
+        "new": "0938777666",
+        "text": "Chưa kiểm chứng: số điện thoại của Trần Thảo là 0938777666."
+      },
+      {
+        "name": "world_correct_S02_phone_648_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0987654321",
+        "new": "0977123456",
+        "text": "Cái vừa rồi không đúng: số điện thoại của Lê Sơn là 0977123456."
+      },
+      {
+        "name": "world_supersede_S05_project_653_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "ứng dụng bán hàng",
+        "new": "hệ thống OCR",
+        "text": "Vừa có quyết định mới: vũ An phụ trách dự án hệ thống OCR."
+      },
+      {
+        "name": "world_supersede_S04_city_661_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Đà Nẵng",
+        "new": "Cần Thơ",
+        "text": "Cập nhật tình hình: hoàng Yến sống ở Cần Thơ."
+      },
+      {
+        "name": "world_supersede_S15_employer_665_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Bình Minh",
+        "new": "Đại Việt",
+        "text": "Vừa có quyết định mới: bùi Tuấn làm việc tại công ty Đại Việt."
+      },
+      {
+        "name": "world_contradict_S05_city_669_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Đà Nẵng",
+        "new": "Cần Thơ",
+        "text": "Chưa kiểm chứng: vũ An sống ở Cần Thơ."
+      },
+      {
+        "name": "world_correct_S00_job_title_677_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "phó giám đốc",
+        "new": "giám đốc kỹ thuật",
+        "text": "Cái vừa rồi không đúng: nguyễn Dũng đang giữ chức giám đốc kỹ thuật."
+      },
+      {
+        "name": "world_supersede_S02_job_title_684_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "trưởng nhóm",
+        "new": "trưởng phòng",
+        "text": "Cập nhật tình hình: lê Sơn đang giữ chức trưởng phòng."
+      },
+      {
+        "name": "world_correct_S16_birthday_697_heldout",
+        "expected": "correct",
+        "got": "conflict",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "21/11/1995",
+        "new": "30/01/1992",
+        "text": "Bỏ cái trước đi nhé — nguyễn Oanh sinh ngày 30/01/1992."
+      },
+      {
+        "name": "world_supersede_S12_phone_700_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0912345678",
+        "new": "0987654321",
+        "text": "Cập nhật tình hình: số điện thoại của Hoàng Hùng là 0987654321."
+      },
+      {
+        "name": "world_supersede_S14_employer_704_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Bình Minh",
+        "new": "Đại Việt",
+        "text": "Cập nhật tình hình: đặng Phúc làm việc tại công ty Đại Việt."
+      },
+      {
+        "name": "world_contradict_S06_phone_706_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0903111222",
+        "new": "0938777666",
+        "text": "Chưa kiểm chứng: số điện thoại của Đặng Khanh là 0938777666."
+      },
+      {
+        "name": "world_contradict_S03_phone_713_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0977123456",
+        "new": "0903111222",
+        "text": "Hình như số điện thoại của Phạm Giang là 0903111222."
+      },
+      {
+        "name": "world_supersede_S10_job_title_717_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "giám đốc kỹ thuật",
+        "new": "trưởng phòng",
+        "text": "Cập nhật tình hình: lê Lan đang giữ chức trưởng phòng."
+      },
+      {
+        "name": "world_supersede_S15_city_721_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Hải Phòng",
+        "new": "Huế",
+        "text": "Vừa có quyết định mới: bùi Tuấn sống ở Huế."
+      },
+      {
+        "name": "world_supersede_S05_phone_723_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0912345678",
+        "new": "0977123456",
+        "text": "Cập nhật tình hình: số điện thoại của Vũ An là 0977123456."
+      },
+      {
+        "name": "world_correct_S02_salary_730_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "32 triệu",
+        "new": "25 triệu",
+        "text": "Cái vừa rồi không đúng: lương của Lê Sơn là 25 triệu."
+      },
+      {
+        "name": "world_supersede_S18_job_title_739_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "trưởng nhóm",
+        "new": "nhân viên kinh doanh",
+        "text": "Cập nhật tình hình: lê Trang đang giữ chức nhân viên kinh doanh."
+      },
+      {
+        "name": "world_contradict_S00_project_749_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "kho dữ liệu",
+        "new": "trang thương mại",
+        "text": "Hình như nguyễn Dũng phụ trách dự án trang thương mại."
+      },
+      {
+        "name": "world_supersede_S05_salary_751_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "55 triệu",
+        "new": "18 triệu",
+        "text": "Vừa có quyết định mới: lương của Vũ An là 18 triệu."
+      },
+      {
+        "name": "world_contradict_S06_employer_764_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Hoà Bình",
+        "new": "An Phát",
+        "text": "Hình như đặng Khanh làm việc tại công ty An Phát."
+      },
+      {
+        "name": "world_contradict_S18_salary_770_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "32 triệu",
+        "new": "18 triệu",
+        "text": "Hình như lương của Lê Trang là 18 triệu."
+      },
+      {
+        "name": "world_contradict_S03_phone_798_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0977123456",
+        "new": "0938777666",
+        "text": "Hình như số điện thoại của Phạm Giang là 0938777666."
+      },
+      {
+        "name": "world_contradict_S01_job_title_800_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "phó giám đốc",
+        "new": "nhân viên kinh doanh",
+        "text": "Chưa kiểm chứng: trần Hà đang giữ chức nhân viên kinh doanh."
+      },
+      {
+        "name": "world_correct_S11_city_806_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Cần Thơ",
+        "new": "Huế",
+        "text": "Bỏ cái trước đi nhé — phạm Vy sống ở Huế."
+      },
+      {
+        "name": "world_supersede_S04_employer_829_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Hoà Bình",
+        "new": "Bình Minh",
+        "text": "Vừa có quyết định mới: hoàng Yến làm việc tại công ty Bình Minh."
+      },
+      {
+        "name": "world_supersede_S13_job_title_831_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "trưởng phòng",
+        "new": "giám đốc kỹ thuật",
+        "text": "Cập nhật tình hình: vũ Minh đang giữ chức giám đốc kỹ thuật."
+      },
+      {
+        "name": "world_supersede_S00_salary_834_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "25 triệu",
+        "new": "32 triệu",
+        "text": "Vừa có quyết định mới: lương của Nguyễn Dũng là 32 triệu."
+      },
+      {
+        "name": "world_supersede_S09_project_838_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "hệ thống OCR",
+        "new": "cổng thanh toán",
+        "text": "Vừa có quyết định mới: trần Thảo phụ trách dự án cổng thanh toán."
+      },
+      {
+        "name": "world_supersede_S18_job_title_841_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "nhân viên kinh doanh",
+        "new": "trưởng phòng",
+        "text": "Cập nhật tình hình: lê Trang đang giữ chức trưởng phòng."
+      },
+      {
+        "name": "world_supersede_S03_project_844_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "hệ thống OCR",
+        "new": "trang thương mại",
+        "text": "Vừa có quyết định mới: phạm Giang phụ trách dự án trang thương mại."
+      },
+      {
+        "name": "world_supersede_S17_job_title_848_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "trưởng phòng",
+        "new": "giám đốc kỹ thuật",
+        "text": "Cập nhật tình hình: trần Bình đang giữ chức giám đốc kỹ thuật."
+      },
+      {
+        "name": "world_correct_S12_birthday_860_heldout",
+        "expected": "correct",
+        "got": "conflict",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "17/09/1985",
+        "new": "12/03/1990",
+        "text": "Bỏ cái trước đi nhé — hoàng Hùng sinh ngày 12/03/1990."
+      },
+      {
+        "name": "world_supersede_S02_employer_866_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Locaith",
+        "new": "An Phát",
+        "text": "Cập nhật tình hình: lê Sơn làm việc tại công ty An Phát."
+      },
+      {
+        "name": "world_contradict_S13_employer_868_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Đại Việt",
+        "new": "Locaith",
+        "text": "Chưa kiểm chứng: vũ Minh làm việc tại công ty Locaith."
+      },
+      {
+        "name": "world_contradict_S19_salary_870_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "55 triệu",
+        "new": "25 triệu",
+        "text": "Hình như lương của Phạm Nam là 25 triệu."
+      },
+      {
+        "name": "world_supersede_S15_employer_877_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Đại Việt",
+        "new": "Bình Minh",
+        "text": "Cập nhật tình hình: bùi Tuấn làm việc tại công ty Bình Minh."
+      },
+      {
+        "name": "world_correct_S07_project_881_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "ứng dụng bán hàng",
+        "new": "trang thương mại",
+        "text": "Cái vừa rồi không đúng: bùi Cường phụ trách dự án trang thương mại."
+      },
+      {
+        "name": "world_supersede_S03_employer_883_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "An Phát",
+        "new": "Bình Minh",
+        "text": "Vừa có quyết định mới: phạm Giang làm việc tại công ty Bình Minh."
+      },
+      {
+        "name": "world_correct_S02_phone_885_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0977123456",
+        "new": "0938777666",
+        "text": "Cái vừa rồi không đúng: số điện thoại của Lê Sơn là 0938777666."
+      },
+      {
+        "name": "world_contradict_S01_project_912_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "hệ thống OCR",
+        "new": "kho dữ liệu",
+        "text": "Hình như trần Hà phụ trách dự án kho dữ liệu."
+      },
+      {
+        "name": "world_contradict_S10_salary_918_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "32 triệu",
+        "new": "18 triệu",
+        "text": "Hình như lương của Lê Lan là 18 triệu."
+      },
+      {
+        "name": "world_contradict_S11_job_title_926_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "phó giám đốc",
+        "new": "trưởng nhóm",
+        "text": "Hình như phạm Vy đang giữ chức trưởng nhóm."
+      },
+      {
+        "name": "world_contradict_S19_project_929_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "hệ thống OCR",
+        "new": "cổng thanh toán",
+        "text": "Chưa kiểm chứng: phạm Nam phụ trách dự án cổng thanh toán."
+      },
+      {
+        "name": "world_supersede_S06_phone_938_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0903111222",
+        "new": "0987654321",
+        "text": "Vừa có quyết định mới: số điện thoại của Đặng Khanh là 0987654321."
+      },
+      {
+        "name": "world_correct_S17_employer_959_heldout",
+        "expected": "correct",
+        "got": "unknown",
+        "why": "thế giới ghi kind=correct (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Đại Việt",
+        "new": "Hoà Bình",
+        "text": "Bỏ cái trước đi nhé — trần Bình làm việc tại công ty Hoà Bình."
+      },
+      {
+        "name": "world_supersede_S00_job_title_966_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "giám đốc kỹ thuật",
+        "new": "trưởng nhóm",
+        "text": "Vừa có quyết định mới: nguyễn Dũng đang giữ chức trưởng nhóm."
+      },
+      {
+        "name": "world_contradict_S11_salary_968_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "40 triệu",
+        "new": "55 triệu",
+        "text": "Hình như lương của Phạm Vy là 55 triệu."
+      },
+      {
+        "name": "world_supersede_S10_phone_976_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0912345678",
+        "new": "0987654321",
+        "text": "Vừa có quyết định mới: số điện thoại của Lê Lan là 0987654321."
+      },
+      {
+        "name": "world_supersede_S12_project_979_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "cổng thanh toán",
+        "new": "ứng dụng bán hàng",
+        "text": "Cập nhật tình hình: hoàng Hùng phụ trách dự án ứng dụng bán hàng."
+      },
+      {
+        "name": "world_contradict_S01_job_title_981_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "phó giám đốc",
+        "new": "giám đốc kỹ thuật",
+        "text": "Chưa kiểm chứng: trần Hà đang giữ chức giám đốc kỹ thuật."
+      },
+      {
+        "name": "world_supersede_S05_employer_983_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "Hoà Bình",
+        "new": "Bình Minh",
+        "text": "Cập nhật tình hình: vũ An làm việc tại công ty Bình Minh."
+      },
+      {
+        "name": "world_supersede_S10_phone_987_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "0987654321",
+        "new": "0912345678",
+        "text": "Cập nhật tình hình: số điện thoại của Lê Lan là 0912345678."
+      },
+      {
+        "name": "world_contradict_S03_job_title_991_heldout",
+        "expected": "conflict",
+        "got": "unknown",
+        "why": "thế giới ghi kind=contradict (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "nhân viên kinh doanh",
+        "new": "giám đốc kỹ thuật",
+        "text": "Hình như phạm Giang đang giữ chức giám đốc kỹ thuật."
+      },
+      {
+        "name": "world_supersede_S12_salary_993_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "25 triệu",
+        "new": "18 triệu",
+        "text": "Vừa có quyết định mới: lương của Hoàng Hùng là 18 triệu."
+      },
+      {
+        "name": "world_supersede_S14_project_995_heldout",
+        "expected": "supersede",
+        "got": "unknown",
+        "why": "thế giới ghi kind=supersede (cách nói bị giữ lại khỏi classifier)",
+        "source": "world_heldout",
+        "old": "hệ thống OCR",
+        "new": "kho dữ liệu",
+        "text": "Cập nhật tình hình: đặng Phúc phụ trách dự án kho dữ liệu."
+      }
+    ]
+  },
+  "mutants": {
+    "everything_newer_supersedes": {
+      "lifecycle_relation_accuracy": 0.1643,
+      "silent_conflict_rate": 0.9775,
+      "forced_transition_rate": 0.9681,
+      "recall_gaps": [
+        {
+          "relation": "repeat",
+          "mutant": 0,
+          "ours": 382,
+          "n": 382
+        },
+        {
+          "relation": "conflict",
+          "mutant": 0,
+          "ours": 45,
+          "n": 89
+        },
+        {
+          "relation": "correct",
+          "mutant": 0,
+          "ours": 34,
+          "n": 62
+        },
+        {
+          "relation": "unknown",
+          "mutant": 1,
+          "ours": 5,
+          "n": 5
+        }
+      ],
+      "caught_by": [
+        "accuracy +0.656",
+        "silent 0.9775",
+        "forced 0.9681",
+        "repeat 0/382 so với 382/382",
+        "conflict 0/89 so với 45/89"
+      ]
+    },
+    "everything_different_conflicts": {
+      "lifecycle_relation_accuracy": 0.7302,
+      "silent_conflict_rate": 0.0,
+      "forced_transition_rate": 0.0,
+      "recall_gaps": [
+        {
+          "relation": "supersede",
+          "mutant": 0,
+          "ours": 61,
+          "n": 105
+        },
+        {
+          "relation": "correct",
+          "mutant": 0,
+          "ours": 34,
+          "n": 62
+        },
+        {
+          "relation": "unknown",
+          "mutant": 0,
+          "ours": 5,
+          "n": 5
+        }
+      ],
+      "caught_by": [
+        "supersede 0/105 so với 61/105",
+        "correct 0/62 so với 34/62"
+      ]
+    },
+    "everything_coexists": {
+      "lifecycle_relation_accuracy": 0.5953,
+      "silent_conflict_rate": 1.0,
+      "forced_transition_rate": 0.0,
+      "recall_gaps": [
+        {
+          "relation": "supersede",
+          "mutant": 0,
+          "ours": 61,
+          "n": 105
+        },
+        {
+          "relation": "conflict",
+          "mutant": 0,
+          "ours": 45,
+          "n": 89
+        },
+        {
+          "relation": "correct",
+          "mutant": 0,
+          "ours": 34,
+          "n": 62
+        },
+        {
+          "relation": "unknown",
+          "mutant": 0,
+          "ours": 5,
+          "n": 5
+        }
+      ],
+      "caught_by": [
+        "accuracy +0.225",
+        "silent 1.0",
+        "supersede 0/105 so với 61/105",
+        "conflict 0/89 so với 45/89"
+      ]
+    },
+    "latest_mention_wins": {
+      "lifecycle_relation_accuracy": 0.1628,
+      "silent_conflict_rate": 1.0,
+      "forced_transition_rate": 1.0,
+      "recall_gaps": [
+        {
+          "relation": "repeat",
+          "mutant": 0,
+          "ours": 382,
+          "n": 382
+        },
+        {
+          "relation": "conflict",
+          "mutant": 0,
+          "ours": 45,
+          "n": 89
+        },
+        {
+          "relation": "correct",
+          "mutant": 0,
+          "ours": 34,
+          "n": 62
+        },
+        {
+          "relation": "unknown",
+          "mutant": 0,
+          "ours": 5,
+          "n": 5
+        }
+      ],
+      "caught_by": [
+        "accuracy +0.657",
+        "silent 1.0",
+        "forced 1.0",
+        "repeat 0/382 so với 382/382",
+        "conflict 0/89 so với 45/89"
+      ]
+    },
+    "correction_as_supersession": {
+      "lifecycle_relation_accuracy": 0.7674,
+      "silent_conflict_rate": 0.0,
+      "forced_transition_rate": 0.0,
+      "recall_gaps": [
+        {
+          "relation": "correct",
+          "mutant": 0,
+          "ours": 34,
+          "n": 62
+        }
+      ],
+      "caught_by": [
+        "correct 0/62 so với 34/62"
+      ]
+    },
+    "repeat_extends_validity": {
+      "lifecycle_relation_accuracy": 0.2279,
+      "silent_conflict_rate": 0.0,
+      "forced_transition_rate": 0.0,
+      "recall_gaps": [
+        {
+          "relation": "repeat",
+          "mutant": 0,
+          "ours": 382,
+          "n": 382
+        }
+      ],
+      "caught_by": [
+        "accuracy +0.592",
+        "repeat 0/382 so với 382/382"
+      ]
+    },
+    "unknown_forced_to_supersede": {
+      "lifecycle_relation_accuracy": 0.8109,
+      "silent_conflict_rate": 1.0,
+      "forced_transition_rate": 1.0,
+      "recall_gaps": [
+        {
+          "relation": "conflict",
+          "mutant": 0,
+          "ours": 45,
+          "n": 89
+        },
+        {
+          "relation": "unknown",
+          "mutant": 0,
+          "ours": 5,
+          "n": 5
+        }
+      ],
+      "caught_by": [
+        "silent 1.0",
+        "forced 1.0",
+        "conflict 0/89 so với 45/89",
+        "unknown 0/5 so với 5/5"
+      ]
+    }
+  },
+  "semantics": {
+    "EMPLOYER": {
+      "cardinality": "one",
+      "temporal_behavior": "revisable",
+      "coexistence_policy": "deny",
+      "correction_policy": "marked_only",
+      "volatility": "medium"
+    },
+    "ROLE": {
+      "cardinality": "one",
+      "temporal_behavior": "revisable",
+      "coexistence_policy": "deny",
+      "correction_policy": "marked_only",
+      "volatility": "fast"
+    },
+    "LOCATION": {
+      "cardinality": "one",
+      "temporal_behavior": "revisable",
+      "coexistence_policy": "deny",
+      "correction_policy": "marked_only",
+      "volatility": "slow"
+    },
+    "PHONE": {
+      "cardinality": "one",
+      "temporal_behavior": "revisable",
+      "coexistence_policy": "deny",
+      "correction_policy": "marked_only",
+      "volatility": "slow"
+    },
+    "BIRTHDAY": {
+      "cardinality": "one",
+      "temporal_behavior": "immutable",
+      "coexistence_policy": "deny",
+      "correction_policy": "marked_only",
+      "volatility": "immutable"
+    },
+    "PROJECT": {
+      "cardinality": "one",
+      "temporal_behavior": "revisable",
+      "coexistence_policy": "deny",
+      "correction_policy": "marked_only",
+      "volatility": "fast"
+    },
+    "SALARY": {
+      "cardinality": "one",
+      "temporal_behavior": "revisable",
+      "coexistence_policy": "deny",
+      "correction_policy": "marked_only",
+      "volatility": "volatile"
+    },
+    "PREFERENCE": {
+      "cardinality": "many",
+      "temporal_behavior": "revisable",
+      "coexistence_policy": "allow",
+      "correction_policy": "marked_only",
+      "volatility": "slow"
+    }
+  }
+}

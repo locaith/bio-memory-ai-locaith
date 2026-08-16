@@ -61,6 +61,14 @@ class Predicate(Enum):
     BIRTHDAY = "birthday"
     PROJECT = "project"
     SALARY = "salary"
+    #: The one predicate here that holds several values at once. It has no
+    #: ontology entry below and so is never *resolved* from a question — it is
+    #: named directly by a caller that already knows the slot. It exists
+    #: because a relation classifier that has only ever met single-valued
+    #: predicates deletes one of "thích Python" and "thích Rust", and a
+    #: multi-valued case that lives only in a test is a case the production
+    #: table has never been asked to describe. See `relations.SEMANTICS`.
+    PREFERENCE = "preference"
     UNKNOWN = ""
 
     @property
