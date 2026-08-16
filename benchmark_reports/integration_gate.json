@@ -1,31 +1,87 @@
 {
-  "gate_valid": false,
-  "reasons": [
-    "current: baseline trong benchmark_reports/failure_matrix_slots.json là 36/58, nhưng số đã xác minh là 49/58 (failure_matrix_slots.json)",
-    "historical: baseline trong benchmark_reports/failure_matrix_slots.json là 23/38, nhưng số đã xác minh là 31/38 (temporal_rebaseline.json B_structured)",
-    "forgotten: baseline trong benchmark_reports/failure_matrix_slots.json là 13/18, nhưng số đã xác minh là 15/18 (failure_matrix_slots.json)",
-    "đường structured chỉ chạy 1/38 câu historical — nhánh chưa thực sự thi hành",
-    "_by_aspect được gọi 131 lần — vẫn còn so khớp bằng cosine trên đường lẽ ra đã structured"
-  ],
-  "paths": {
-    "history_calls": 136,
-    "by_aspect_calls": 131,
-    "predicate_supplied": 38,
-    "structured_only": 1
-  },
   "runtime": {
     "package_version": "0.8.2rc1",
-    "git_sha": "ce6d334a6850cac49558064de8e8b5971fd9c71d",
+    "git_sha": "b15e3b5ca303d9e42bec52381f08fca10d3624bc",
     "git_dirty": true,
     "config_hash": "8f999906edf8eebb1bb74cdfff7bff6e",
     "embedding_model": "",
     "embedding_dims": 0,
     "db_path": "",
     "host": "DESKTOP-M1TSM33",
-    "pid": 12884,
+    "pid": 20312,
     "python_version": "3.11.9",
-    "process_start_time": 1786893582.3431675,
+    "process_start_time": 1786896548.1920624,
     "untracked_files": 0,
-    "fingerprint": "17093bf46f9d81e3e75411c9c05e51abc19236c896ced4d48138c77c5250fd74"
+    "fingerprint": "33dd060de6ac269b5436378910ecca3ef8b92a36851aacbf6c8a09d4a89f9bf9"
+  },
+  "baseline": "benchmark_reports/failure_matrix_slots.json",
+  "scores": {
+    "ever": {
+      "before": 40,
+      "after": 40
+    },
+    "current": {
+      "before": 36,
+      "after": 36
+    },
+    "historical": {
+      "before": 31,
+      "after": 31
+    },
+    "forgotten": {
+      "before": 13,
+      "after": 13
+    }
+  },
+  "labels": {
+    "NO_DELTA": 136
+  },
+  "changed": [],
+  "execution": {
+    "structured_queries": 133,
+    "structured_branch_taken": 133,
+    "fallback_attempted": 0,
+    "fallback_contributed": 0,
+    "unnecessary_fallback": 0,
+    "by_aspect_calls": 0,
+    "unnecessary_fallback_rate": 0.0,
+    "historical_queries": 38,
+    "fallback_changed_answer": "N/A — không có bằng chứng nào được cứu"
+  },
+  "verified_baseline": {
+    "ever": {
+      "score": 40,
+      "of": 40,
+      "source": "failure_matrix_slots.json — EXISTS operator"
+    },
+    "current": {
+      "score": 36,
+      "of": 40,
+      "source": "failure_matrix_slots.json — CURRENT family"
+    },
+    "historical": {
+      "score": 31,
+      "of": 38,
+      "source": "temporal_rebaseline.json B_structured"
+    },
+    "forgotten": {
+      "score": 13,
+      "of": 18,
+      "source": "failure_matrix_slots.json — FORGOTTEN family"
+    }
+  },
+  "candidate_not_promoted": {
+    "historical": {
+      "score": 33,
+      "of": 38,
+      "source": "conditional rescue, e9ab0f4"
+    }
+  },
+  "privacy": {
+    "undeclared": [],
+    "unscanned_content_stores": [
+      "rejected_inputs",
+      "agent_checkpoints"
+    ]
   }
 }

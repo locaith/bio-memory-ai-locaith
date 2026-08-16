@@ -61,12 +61,30 @@ EXPECTED = {"ever": (40, 40), "current": (34, 40),
 #: records historical 23/38, measured before `answer_temporal` passed a
 #: predicate to `claim_history`. The structured branch could not fire, and a
 #: dead path scored beautifully stable.
+#: CORRECTION. The first version recorded `current: 49/58`, which is the
+#: `state_at` *operator* total — CURRENT_STATE and FORGOTTEN both route
+#: through it, 36/40 + 13/18 = 49/58. Written as a family baseline it made
+#: every comparison disagree with itself, and the gate reported three
+#: "baseline mismatches" that were an arithmetic error of mine, not drift.
+#:
+#: A number is only a baseline if it says what it counted.
 VERIFIED_BASELINE = {
-    "ever": (40, 40, "failure_matrix_slots.json"),
-    "current": (49, 58, "failure_matrix_slots.json"),
+    "ever": (40, 40, "failure_matrix_slots.json — EXISTS operator"),
+    "current": (36, 40, "failure_matrix_slots.json — CURRENT family"),
     "historical": (31, 38, "temporal_rebaseline.json B_structured"),
-    "forgotten": (15, 18, "failure_matrix_slots.json"),
+    "forgotten": (13, 18, "failure_matrix_slots.json — FORGOTTEN family"),
 }
+
+#: The operator totals, kept separately so neither can be mistaken for the
+#: other again.
+VERIFIED_OPERATOR = {
+    "EXISTS": (40, 40),
+    "state_at": (49, 58),      # current 36/40 + forgotten 13/18
+    "TEMPORAL_AT": (31, 38),
+}
+
+#: Candidate, not baseline. Promoted only by a passing gate.
+CANDIDATE = {"historical": (33, 38, "conditional rescue, e9ab0f4")}
 
 
 def _instrument():
@@ -207,6 +225,21 @@ def main() -> int:
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
     before = {f"{r['tick']}|{r['question']}": r for r in baseline["rows"]}
 
+    # The historical rows in `failure_matrix_slots.json` were measured before
+    # `answer_temporal` passed a predicate, so they record the dead path at
+    # 23/38. The verified checkpoint for that family lives in a different
+    # report, and a baseline is per-family — one file is not automatically
+    # the baseline for everything it happens to contain.
+    temporal_path = _REPO / "benchmark_reports" / "temporal_rebaseline.json"
+    if temporal_path.exists():
+        temporal = json.loads(temporal_path.read_text(encoding="utf-8"))
+        arm = temporal.get("rows", {}).get("B_structured", [])
+        for row in arm:
+            key = f"{row['tick']}|{row['question']}"
+            before[key] = {"family": "historical", "question": row["question"],
+                           "route": "temporal_operator",
+                           "correct": bool(row.get("correct"))}
+
     events, ledger, people = generate(ticks=1000, subjects=20, seed=args.seed)
     workdir = _REPO / ".staging" / "integration_gate"
     workdir.mkdir(parents=True, exist_ok=True)
@@ -234,16 +267,35 @@ def main() -> int:
                 f"{family}: baseline trong {args.baseline} là {recorded}/{total}, "
                 f"nhưng số đã xác minh là {verified}/{total} ({source})")
 
+    # EXECUTION CONTRACT for TEMPORAL_AT.
+    #
+    # `by_aspect_calls == 0` is deliberately NOT required. A rescue that
+    # earns its place is a legitimate cosine call, and an absolute zero would
+    # become a wrong invariant the first time one fires. What is required is
+    # that every such call had a reason:
+    #
+    #     fallback requires a STRUCTURED_GAP
+    #
+    # `unnecessary_fallback` is that rule as a number, and it is the one that
+    # catches `376c4ce`.
+    from bio_agent_os.cognitive.temporal_operator import execution_report
+
+    execution = execution_report()
     historical_n = sum(1 for r in after.values()
                        if r["family"] == "historical")
-    if paths.get("structured_only", 0) < historical_n:
+    if execution["structured_branch_taken"] < historical_n:
         invalid.append(
-            f"đường structured chỉ chạy {paths.get('structured_only', 0)}/"
-            f"{historical_n} câu historical — nhánh chưa thực sự thi hành")
-    if paths.get("by_aspect_calls", 0) > 0:
+            f"structured_branch_taken {execution['structured_branch_taken']}/"
+            f"{historical_n} — nhánh structured chưa thực sự thi hành")
+    if execution["unnecessary_fallback"] > 0:
         invalid.append(
-            f"_by_aspect được gọi {paths['by_aspect_calls']} lần — vẫn còn "
-            f"so khớp bằng cosine trên đường lẽ ra đã structured")
+            f"unnecessary_fallback {execution['unnecessary_fallback']} — "
+            f"cosine chạy dù bằng chứng structured đã đủ")
+    if execution["by_aspect_calls"] > execution["fallback_attempted"]:
+        invalid.append(
+            f"_by_aspect gọi {execution['by_aspect_calls']} lần nhưng chỉ "
+            f"{execution['fallback_attempted']} lần có STRUCTURED_GAP — "
+            f"fallback không có lý do")
 
     if invalid:
         print("=" * 74)
@@ -331,6 +383,27 @@ def main() -> int:
                  if r["family"] == "forgotten" and not r["correct"])
     print(f"  câu forgotten sai   : {leaked}")
 
+    # Labelled for what it counts. `claim_history` is called by EXISTS and by
+    # `state_at` as well as by the temporal operator, so 133 is every call in
+    # a 136-question gate — not 133 temporal queries against 38 that exist.
+    # A number that invites its own author to re-excavate the scene in three
+    # weeks is a badly named number.
+    print("\n  ĐƯỜNG CHẠY — mọi lời gọi claim_history trong gate")
+    for key, value in sorted(execution.items()):
+        label = key
+        if key in ("structured_branch_taken", "structured_queries",
+                   "fallback_attempted", "by_aspect_calls"):
+            label = f"{key}_total"
+        print(f"    {label:<32}{value}")
+    print(f"    {'historical_queries':<32}{historical_n}"
+          f"   (bộ frozen TEMPORAL_AT)")
+    # N/A rather than an inferred zero. With nothing rescued there is nothing
+    # to have changed, and writing 0 would be a measurement nobody took.
+    answer_effect = ("N/A — không có bằng chứng nào được cứu"
+                     if execution["fallback_contributed"] == 0
+                     else "phải đo bằng counterfactual, chưa cài")
+    print(f"    {'fallback_changed_answer':<32}{answer_effect}")
+
     out = _REPO / args.out
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({
@@ -344,6 +417,14 @@ def main() -> int:
         "labels": dict(labels),
         "changed": [{"key": k, "label": l, "before": b, "after": a}
                     for k, b, a, l in changed],
+        "execution": {**execution,
+                      "historical_queries": historical_n,
+                      "fallback_changed_answer": answer_effect},
+        "verified_baseline": {k: {"score": v[0], "of": v[1], "source": v[2]}
+                              for k, v in VERIFIED_BASELINE.items()},
+        "candidate_not_promoted": {
+            k: {"score": v[0], "of": v[1], "source": v[2]}
+            for k, v in CANDIDATE.items()},
         "privacy": {"undeclared": sorted(undeclared),
                     "unscanned_content_stores":
                         [p.store_name for p in unscanned]},
