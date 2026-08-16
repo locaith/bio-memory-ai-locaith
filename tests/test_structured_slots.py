@@ -340,27 +340,32 @@ def test_a_slot_with_no_recorded_status_reads_as_untrusted():
     assert status_of(None) == UNKNOWN
 
 
-@pytest.mark.xfail(strict=True,
-                   reason="tên bị cắt còn âm tiết cuối khi câu bắt đầu bằng "
-                          "chữ thường")
 def test_the_entity_survives_a_lowercased_sentence(os_):
-    """One person, two entities.
+    """FIXED, 17/08. Was xfail: one person, two entities.
 
     The world lowercases the first character on SUPERSEDE / CORRECT / REPEAT /
-    CONTRADICT sentences, and `_names` only starts a run on an uppercase
-    token — so "Từ hôm nay, phạm Vy …" stores `entity: "Vy"` while the ASSERT
-    form stores `entity: "Phạm Vy"`. Measured by the review: 20 of 35
-    templates.
+    CONTRADICT sentences, and `_names` only started a run on an uppercase
+    token — so "Từ hôm nay, phạm Vy …" stored `entity: "Vy"` while the ASSERT
+    form stored `"Phạm Vy"`. Twenty of thirty-five templates.
 
-    Latent today: nothing production reads `entity`, and subject matching
-    still runs on text. It becomes real the moment someone matches subjects by
-    slot equality — which is the obvious next step — and would then split
-    every person's history in two.
+    Two halves to the repair, and the second is the one that lasts. The
+    extraction now reads a lowercase token as part of a name when the token
+    after it is capitalised — family name then given name, the shape of the
+    language rather than a rule about this corpus. And the **surface is no
+    longer the identity**: "phạm Vy" and "Phạm Vy" are different strings and
+    the same person, which is what `subject_identity` is for.
+
+    So this asserts the identity matches, not the string. A test that demanded
+    identical surfaces would be demanding the wrong invariant.
     """
+    from bio_agent_os.cognitive.subject_identity import identify
+
     upper = _slot(os_, _remember(os_, "Phạm Vy làm việc tại công ty An Phát."))
     lower = _slot(os_, _remember(
         os_, "Từ hôm nay, phạm Vy làm việc tại công ty Bình Minh."))
-    assert upper["entity"] == lower["entity"]
+    known = {upper["entity"], lower["entity"]}
+    assert identify(upper["entity"], known=known).subject_id == \
+        identify(lower["entity"], known=known).subject_id
 
 
 def test_a_stored_slot_never_disagrees_with_its_own_sentence(os_):

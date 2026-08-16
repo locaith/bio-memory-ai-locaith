@@ -211,11 +211,41 @@ def _names(text: str) -> list[str]:
     counts only when something else already started the sentence.
     """
     vocabulary = _ontology_words()
+    tokens = re.findall(r"[\w]+", _fold(text), re.UNICODE)
     runs: list[tuple[int, list[str]]] = []
     current: list[str] = []
     start = 0
-    for index, token in enumerate(re.findall(r"[\w]+", _fold(text), re.UNICODE)):
+    for index, token in enumerate(tokens):
         low = token.lower()
+        # A Vietnamese name is family name then given name, and a sentence
+        # that opens mid-phrase lowercases the first of them: "Từ hôm nay,
+        # phạm Vy làm việc tại …". Requiring an uppercase token to *start* a
+        # run cut that name to "Vy" — one person stored under two identities,
+        # on 20 of the world's 35 sentence templates.
+        #
+        # A lowercase token joins a name when the token after it is
+        # capitalised and it is not a stopword, a title or ontology
+        # vocabulary. That is the family-name-then-given-name shape itself,
+        # not a rule about this corpus: "phạm Vy" reads as a name because
+        # "Vy" is capitalised and "phạm" is nothing else.
+        joins_a_name = (
+            not token[:1].isupper()
+            and index + 1 < len(tokens)
+            and tokens[index + 1][:1].isupper()
+            and tokens[index + 1].lower() not in vocabulary
+            and low not in vocabulary and low not in _TITLES
+            and low not in _STOP and len(token) > 1
+            # A digit is never a name syllable. Without this, "ngày 21 Phạm
+            # Vy…" read "21" as a family name and the subject became
+            # "21 Phạm Vy" — a new identity per date, which is the split this
+            # module exists to close, arriving through the fix for it.
+            and not any(ch.isdigit() for ch in token)
+        )
+        if joins_a_name:
+            if not current:
+                start = index
+            current.append(token)
+            continue
         # A word this resolver already knows is never a name. "Lương của Đặng
         # Phúc là bao nhiêu?" capitalises "Lương" because it opens the
         # template, and prefixing a date pushed it mid-sentence where the
