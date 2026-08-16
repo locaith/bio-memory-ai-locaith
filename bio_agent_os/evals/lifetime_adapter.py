@@ -196,6 +196,21 @@ class CognitiveAdapter:
             result.answer = "Có." if verdict == "yes" else "Không."
             result.route = planned.used
             return result
+        if verdict == "unknown":
+            # The store looked and found nothing holding. Handing the question
+            # to a model now would replace a true "I have no record" with
+            # whatever the corpus happens to rank highest.
+            result.answer = "Tôi không có ghi nhận nào về việc này."
+            result.route = planned.used
+            return result
+        if verdict == "conflict":
+            # Two claims compete and nothing settles them. Saying so is the
+            # answer; choosing one silently is the failure.
+            competing = (planned.evidence or {}).get("competing", [])
+            result.answer = ("Tôi có hai ghi nhận mâu thuẫn chưa được xác "
+                             "minh: " + " | ".join(str(c) for c in competing[:2]))
+            result.route = planned.used
+            return result
 
         if self.engine is None:
             return result

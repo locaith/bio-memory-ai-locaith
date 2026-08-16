@@ -44,6 +44,7 @@ nobody was told why it was empty.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 from dataclasses import dataclass, field
@@ -118,6 +119,27 @@ _TEMPORAL = re.compile(
     r"|\d{1,2}/\d{1,2}/\d{4})",
     re.IGNORECASE,
 )
+
+def _Predicate_UNKNOWN():
+    from .aspect_resolver import Predicate
+
+    return Predicate.UNKNOWN
+
+
+Predicate_UNKNOWN = _Predicate_UNKNOWN
+
+#: **Default off, and the measurement is why.**
+#:
+#: The first version of this operator was worse than the generic recall it
+#: replaces — on the same 58 questions, 45 correct became 34:
+#:
+#:     RECALL    58 asked   45 correct   0.7759
+#:     state_at  58 asked   34 correct   0.5862
+#:
+#: EXISTS earned its default by beating what it replaced (0.4750 -> 1.0000).
+#: This has not, so it ships off and the flag exists to keep measuring it.
+#: An operator is not better for being an operator.
+_STATE_MODE = os.getenv("STATE_AT_OPERATOR", "off").strip().lower()
 
 #: Which classes answer which kind of question.
 _CLASSES_FOR: dict[QueryKind, tuple[MemoryClass, ...]] = {
@@ -347,6 +369,52 @@ def plan(memory_os: Any, question: str, *, context: Any,
     classes = list(_CLASSES_FOR.get(kind, ()))
 
     if not classes:
+        # STATE_AT before generic recall.
+        #
+        # The failure matrix of 16/08: 58 of 136 questions — 43% of the
+        # traffic — asked "what holds now" and were answered by ranking the
+        # whole store. That is where EVER sat the day before an operator took
+        # it from 0.4750 to 1.0000.
+        #
+        # Same guard as the EVER branch: the operator only claims a question
+        # it can actually place in a slot. Everything else falls through to
+        # recall untouched, so this adds a route rather than taking questions
+        # away from the one already there.
+        if _STATE_MODE != "off":
+            from .aspect_resolver import resolve_frame
+            from .state_operator import CONFLICT, KNOWN, answer_current
+
+            frame = resolve_frame(question)
+            if frame.subject and frame.predicate is not Predicate_UNKNOWN():
+                state = answer_current(memory_os, question, context=context,
+                                       at=as_of)
+                if state.executed and state.status in (KNOWN, CONFLICT):
+                    memories = [_as_memory_by_id(memory_os, memory_id)
+                                for memory_id in state.memory_ids]
+                    result = Plan(kind=kind, used="state_at",
+                                  memories=[m for m in memories if m])
+                    result.verdict = state.status
+                    result.evidence = state.as_dict()
+                    return result
+                if state.executed:
+                    # UNKNOWN is an answer. "No claim holds now" is what the
+                    # store actually knows, and going on to rank the whole
+                    # corpus would replace it with something that merely looks
+                    # like an answer.
+                    result = Plan(kind=kind, used="state_at",
+                                  memories=[])
+                    result.verdict = state.status
+                    result.evidence = state.as_dict()
+                    result.unanswerable_reason = f"state_at: {state.note}"
+                    return result
+                found = memory_os.recall(query=question, context=context,
+                                         limit=limit, as_of=as_of)
+                result = Plan(kind=kind, used="recall_after_state_failed",
+                              memories=[r.memory for r in (found or [])])
+                result.unanswerable_reason = \
+                    f"{state.stage_failed}: {state.note}"
+                return result
+
         found = memory_os.recall(query=question, context=context, limit=limit,
                                  as_of=as_of)
         return Plan(kind=kind, used="recall",
