@@ -1,13 +1,60 @@
-# PROJECTION SAFETY GATE v1
+# PROJECTION SAFETY GATE v1 → v1.1
 
 ```
-PASS      9/11
-INVALID   2/11
-FAIL      0/11
+v1     PASS 9/11   INVALID 2/11   FAIL 0/11
+v1.1   PASS 11/11  INVALID 0/11   FAIL 0/11
 
 false_success_report_rate            0
 false-success mutant bị bắt          VERIFIED
 ```
+
+**v1 giữ nguyên trong tài liệu này, không sửa ngược.** 9/11 là một checkpoint
+khoa học có giá trị riêng: nó ghi lại rằng cổng đã từ chối cấp PASS cho chính
+người viết ra nó, và lý do từ chối là đúng.
+
+## v1.1 — hai ca INVALID trở thành PASS, và vì sao
+
+Điều tra lifecycle của job đã claim (`claimed-job-lifecycle`, 6 agent) chứng
+minh **kết cục A**: reclaim luôn tồn tại và luôn hoạt động. **Không có bug sản
+phẩm.** Thứ hỏng là phép đo.
+
+```sql
+-- outbox.py:209-223, và guard lặp lại trong UPDATE ở :226-237
+stale_before = now - lease_seconds
+WHERE available_at <= now
+  AND (status='pending'
+       OR (status='in_progress' AND (locked_at IS NULL OR locked_at <= stale_before)))
+```
+
+**Không có cột hạn lease.** `locked_at` lưu thời điểm *bắt đầu*; hạn không bao
+giờ được ghi xuống. `claim()` tính lại `stale_before` mỗi lần gọi.
+
+> **`lease_seconds` là thuộc tính của NGƯỜI ĐỌC, không phải của job.**
+
+Fixture v1 truyền `lease_seconds=0` vào lệnh **lấy** lease — nơi nó không có tác
+dụng gì lên hàng, readback giống hệt từng byte — rồi drain bằng worker mặc định
+300 giây. `locked_at <= now-300` sai, hàng vô hình.
+
+```
+fixture v1     drain lease 300  →  claimed=0 completed=0 ×5, hàng đóng băng
+fixture v1.1   drain lease 0    →  claimed=1 completed=1, hàng completed
+```
+
+Và câu comment trong fixture v1 — *"lease hết hạn ngay nên vòng sau claim lại
+được"* — chính là niềm tin đã làm phép đo mù hai lần liên tiếp.
+
+**Lease không tự hết hạn.** Không có gì chạy vào lúc hết hạn; hàng không đổi.
+Hết hạn chỉ tồn tại trong mắt người claim tiếp theo.
+
+Sửa fixture **không phải làm yếu cổng**: nó làm đường nguy hiểm **chạm tới
+được**, đúng thứ cổng đòi hỏi. Bằng chứng: `state == PASS` đòi
+`MUTANT_TRIGGERED_PROHIBITED_STATE`, và mutant giờ thực sự hồi sinh nội dung ở
+cả hai ca.
+
+Bốn kết cục còn lại đều bị bác bằng đo đạc: **B** không có thao tác production
+thứ hai; **C** job đã claim rõ ràng reclaim được; **D** restart recovery hoàn
+chỉnh — `ProjectionOutbox` mới trên connection mới thu hồi được hàng của
+`dead-worker`; **E** `stale()` chỉ đọc, không đổi gì.
 
 **Không có điểm tổng.** Cổng này báo từng năng lực, và ba trong bốn nhãn không
 phải "hỏng".
@@ -20,13 +67,13 @@ phải "hỏng".
 |---|---|---|
 | 01 | forget trước khi enqueue | **PASS** |
 | 02 | enqueue rồi mới forget | **PASS** |
-| 03 | worker đang giữ lease thì forget | **INVALID** |
+| 03 | worker đang giữ lease thì forget | v1 **INVALID** → v1.1 **PASS** |
 | 04 | materialize rồi mới forget | **PASS** |
 | 05 | forget rồi replay | **PASS** |
 | 06 | forget rồi dựng lại nhiều vòng | **PASS** |
 | 07 | hai job trùng cho cùng một sự kiện | **PASS** |
 | 08 | worker thử lại nhiều vòng | **PASS** |
-| 09 | worker chết khi giữ lease rồi khởi động lại | **INVALID** |
+| 09 | worker chết khi giữ lease rồi khởi động lại | v1 **INVALID** → v1.1 **PASS** |
 | 10 | job bị bia mộ → trạng thái kết thúc | **PASS** |
 | 11 | rollback drain-to-zero | **PASS** |
 
@@ -48,11 +95,13 @@ biên bản.
 
 ---
 
-## 2. HAI CA INVALID — đọc chính xác
+## 2. HAI CA TỪNG INVALID — hồ sơ, giữ nguyên
 
-**03 và 09 INVALID vì mutant không chạm tới được trạng thái bị cấm.**
+Ghi lại vì đây là lần cổng từ chối cấp PASS cho chính người viết ra nó, và lý do
+từ chối đã đúng.
 
-Bằng chứng đo được, năm lần worker chạy, kể cả với `lease_seconds=0`:
+**v1: 03 và 09 INVALID vì mutant không chạm tới được trạng thái bị cấm.** Đo
+được, năm lần worker chạy:
 
 ```
 claim -> 1 job
@@ -60,28 +109,15 @@ vòng 1..5:  tombstoned=0   completed=0   holding=0
 ```
 
 Worker **không xử lý job đã bị claim lần nào**. Nó không từ chối job — nó không
-bao giờ nhận job đó.
+bao giờ nhận job đó. **Không được viết "worker safely refuses".**
 
-**Không được viết "worker safely refuses".** Nó không refuse. Nó không chạy.
+Lúc đó cả hai được đọc là: *hành vi an toàn có bằng chứng ở P0-A, nhưng cổng
+chưa có mutation witness cho chính execution shape đó.* Không phải bug sản phẩm,
+không phải PASS, không phải FAIL.
 
-Đọc đúng hai ca này:
-
-> Hành vi an toàn **có bằng chứng** ở P0-A
-> (`test_c_forget_while_worker_holds_the_lease`), nhưng Projection Safety Gate
-> **chưa có mutation witness** cho chính execution shape đó.
-
-Không phải bug sản phẩm. Không phải PASS. Không phải FAIL.
-
-### Tripwire
-
-Cả hai ca **assert rằng chúng vẫn INVALID**. Ngày nào một refactor làm job
-re-claimable, assertion đỏ lên và bắt cập nhật thành PASS — vì execution
-contract đã đổi.
-
-Cùng kiểu chuông mà audit đã đặt cho `:335`, và nó vừa reo đúng lúc bản vá đáp
-xuống. **Một ca INVALID không có ngày hết hạn sẽ ở lại mãi.**
-
----
+**v1.1: đúng như thế thật** — không phải bug sản phẩm, mà là phép đo hỏng. Xem
+phần đầu tài liệu này. Tripwire cũ (assert INVALID) đã hoàn thành việc của nó và
+được thay bằng assert PASS.
 
 ## 3. BẤT BIẾN CẤP CỔNG — `false_success_report_rate`
 
@@ -139,6 +175,31 @@ có đổi byte không"; câu cần trả lời là "worker đã từng chạy �
 
 ---
 
+## 5b. HAI HIỂM HOẠ NGOÀI 11 CA — chưa sửa
+
+Điều tra lifecycle moi ra hai thứ mà **mười một ca không phủ**, vì chúng thuộc
+trục khác. Cả hai đo được, chưa đụng.
+
+**H1 — `claim()` tăng `attempts` nhưng không bao giờ đọc `max_attempts`.**
+Tám lần thu hồi liên tiếp đẩy `attempts` lên 8 với `DEFAULT_MAX_ATTEMPTS = 5`,
+hàng vẫn `in_progress`. Chỉ `fail()` mới đưa job vào dead-letter. Một worker
+chết **im lặng** mỗi lần — không bao giờ tới `fail()` — sẽ được thu hồi vĩnh
+viễn và không bao giờ dừng. Đây là **liveness**, không phải resurrection.
+
+**H2 — `run_once` lọc tenant SAU khi claim** (`reconciliation_worker.py:502-508`).
+`claim()` sửa hàng, rồi `jobs = [j for j in jobs if j.tenant_id == …]` vứt nó
+đi, và `metrics.claimed` đếm danh sách **sau** khi lọc. Đo được: worker giới hạn
+tenant báo `claimed=0 completed=0` mỗi vòng trong khi readback cho thấy
+`locked_by` bị chiếm và `attempts` leo 2→3→4.
+
+H2 là `REPORTED SUCCESS != CONFIRMED TRANSITION` **lần thứ hai trong cùng một
+file**, và lần này kèm **chiếm khoá xuyên tenant** — mà cô lập tenant là một cam
+kết nền. Đây là **isolation**, không phải resurrection.
+
+Ngoài ra: `stale()` (outbox.py:341) dùng `locked_at <= ?` trần, nên hàng
+`in_progress` có `locked_at IS NULL` **vô hình với `stale()` nhưng `claim()` vẫn
+lấy**. Hai hàm bất đồng về định nghĩa "bỏ rơi".
+
 ## 6. TRẠNG THÁI GLOBAL — chưa đổi
 
 ```
@@ -147,13 +208,28 @@ Buried worker enforcement             VERIFIED + mutation-sensitive
 Buried terminal transition / drain    VERIFIED
 Rollback drain-to-zero                VERIFIED
 #7 Door 5                             PASS (non-regression)
-Global replay-safe forgetting         PARTIALLY VERIFIED      <- 9/11, 2 INVALID
+Global replay-safe forgetting         xem ba dòng bên dưới
 Projection worker on real store       NOT ACTIVATED
 Real-store containment                VERIFIED by subsystem invariants
 ```
 
-**Chưa được ghi chữ VERIFIED cho global replay-safe forgetting.** Hai ca chưa có
-nhân chứng thì chưa cho phép.
+**Vẫn chưa ghi chữ VERIFIED**, dù cổng đã 11/11.
+
+Mười một ca đo **resurrection**: một ký ức đã quên có quay lại không. Chúng giờ
+đều có nhân chứng thật. Nhưng H1 là **liveness** và H2 là **isolation** — ba
+trục khác nhau, và gộp chúng lại để lấy một chữ VERIFIED là đúng kiểu sai mà
+cổng này được dựng lên để chặn.
+
+Phát biểu chính xác:
+
+```
+replay-safe forgetting (resurrection)   VERIFIED   11/11 có mutation witness
+projection queue liveness               OPEN       H1
+projection tenant isolation             OPEN       H2
+```
+
+Ba dòng đó cộng lại **không** thành "replay safe ✓". Chúng thành "chưa ai chứng
+minh được một ký ức đã quên quay lại, và còn hai câu hỏi khác chưa trả lời".
 
 ---
 

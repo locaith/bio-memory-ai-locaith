@@ -66,8 +66,23 @@ def _statuses(memory_os) -> dict[str, int]:
         return {}
 
 
-def _drain(memory_os, cycles: int = 4):
-    worker = worker_for(memory_os)
+def _drain(memory_os, cycles: int = 4, *, lease_seconds: float | None = None):
+    """`lease_seconds` thuộc về NGƯỜI ĐỌC, không thuộc về job.
+
+    Không có cột hạn lease nào trong `projection_outbox`. `locked_at` lưu thời
+    điểm *bắt đầu*, và `claim` tính lại `stale_before = now - lease_seconds`
+    mỗi lần, rồi so `locked_at <= stale_before`.
+
+    Nên **lease không tự hết hạn**: không có gì chạy vào lúc hết hạn và hàng
+    không đổi. Hết hạn chỉ tồn tại trong mắt người claim tiếp theo.
+
+    Đây là chỗ ca 03 và 09 từng INVALID: fixture truyền `lease_seconds=0` vào
+    lệnh **lấy** lease — không tác dụng gì lên hàng — rồi drain bằng worker mặc
+    định 300 giây, nên `locked_at <= now-300` sai và hàng vô hình. Worker không
+    từ chối job; nó không bao giờ thấy job.
+    """
+    kwargs = {} if lease_seconds is None else {"lease_seconds": lease_seconds}
+    worker = worker_for(memory_os, **kwargs)
     return [worker.run_once() for _ in range(cycles)]
 
 
@@ -161,15 +176,15 @@ def test_case_02_enqueue_then_forget(tmp_path, monkeypatch):
 
 def test_case_03_forget_while_worker_holds_the_lease(tmp_path, monkeypatch):
     def scenario(memory_os, event):
-        # `lease_seconds=0`: job được claim rồi lease hết hạn ngay, nên vòng
-        # sau claim lại được. Không có nó, job nằm khoá trong cửa sổ lease và
-        # đường nguy hiểm chạm không tới — ca này trả về INVALID chứ không
-        # phải PASS, và INVALID là câu trả lời đúng cho một phép đo chưa chạy.
+        # Worker thứ nhất giữ job. Lease của NÓ không quan trọng — hàng chỉ ghi
+        # `locked_at`, không ghi hạn.
         worker = worker_for(memory_os)
-        assert worker.outbox.claim(worker_id="gate-lease", lease_seconds=0), (
+        assert worker.outbox.claim(worker_id="gate-lease"), (
             "không claim được job — ca này chưa đo được gì")
         forgetting.forget_derived(memory_os, subject=SUBJECT, needle=NEEDLE)
-        _drain(memory_os, cycles=5)
+        # Worker tiếp theo coi job đó là bỏ rơi. `lease_seconds=0` đặt ở ĐÂY,
+        # nơi staleness thực sự được quyết định.
+        _drain(memory_os, cycles=5, lease_seconds=0)
 
     result = _run_case(
         tmp_path, "03", "worker đang giữ lease thì forget",
@@ -177,18 +192,13 @@ def test_case_03_forget_while_worker_holds_the_lease(tmp_path, monkeypatch):
         "tiếp job nó đã claim trước lệnh quên",
         scenario=scenario, mutant=_blind_burial, monkeypatch=monkeypatch,
         mutant_name="IGNORE_RECONCILIATION_WORKER_BURIED_CHECK")
-    # **INVALID, và đó là câu trả lời đúng.** Đo được: worker không xử lý job
-    # đã bị claim lần nào (`tombstoned=0, completed=0` qua năm vòng), kể cả với
-    # `lease_seconds=0`. Mutant chạm không tới trạng thái bị cấm, nên "bản sạch
-    # chặn được" chưa chứng minh gì cho ca này.
-    #
-    # `P0-A test_c_forget_while_worker_holds_the_lease` vẫn phủ hành vi an toàn
-    # ở đây; thứ chưa có là **nhân chứng** rằng nó có tải.
-    #
-    # Đây là một cái chuông: ngày ai đó làm job re-claimable trong ca này, nó
-    # thành PASS và assertion dưới đây đỏ lên. Lúc đó đổi thành PASS.
-    assert result.state == "INVALID", (
-        f"ca 03 đã đo được — cập nhật assertion thành PASS: {result.as_dict()}")
+    # INVALID -> PASS, 17/08. Ca này từng INVALID vì fixture truyền
+    # `lease_seconds=0` vào lệnh LẤY lease — không tác dụng gì lên hàng — rồi
+    # drain bằng worker mặc định 300 giây. `lease_seconds` thuộc về người đọc,
+    # không thuộc về job, nên staleness phải đặt ở phía drain. Sửa fixture
+    # không làm yếu cổng: nó làm đường nguy hiểm CHẠM TỚI ĐƯỢC, đúng thứ cổng
+    # đòi hỏi.
+    assert result.state == "PASS", result.as_dict()
 
 
 def test_case_04_forget_after_materialisation(tmp_path, monkeypatch):
@@ -275,26 +285,25 @@ def test_case_08_worker_retry(tmp_path, monkeypatch):
 
 def test_case_09_worker_restart(tmp_path, monkeypatch):
     def scenario(memory_os, event):
-        # Một worker chết khi đang giữ job. Lease hết hạn là cách hệ thống
-        # nhận ra điều đó — `claim()` thu hồi lease quá hạn ngay trong nó, chứ
-        # không cần một sweeper riêng. Nên `lease_seconds=0` mô phỏng đúng cái
-        # chết đó, và là thứ làm cho worker mới nhận lại được job.
+        # Một worker chết khi đang giữ job — nó không bao giờ gọi complete()
+        # hay fail(), nên hàng nằm lại `in_progress` với `locked_by` của nó.
         worker = worker_for(memory_os)
-        worker.outbox.claim(worker_id="gate-crash", lease_seconds=0)
+        worker.outbox.claim(worker_id="gate-crash")
         forgetting.forget_derived(memory_os, subject=SUBJECT, needle=NEEDLE)
         del worker
-        _drain(memory_os, cycles=6)                    # tiến trình mới
+        # Tiến trình mới. Nó là bên quyết định lease cũ đã quá hạn hay chưa —
+        # `claim()` thu hồi ngay trong nó, không cần sweeper riêng.
+        _drain(memory_os, cycles=6, lease_seconds=0)
 
     result = _run_case(
         tmp_path, "09", "worker chết khi đang giữ lease rồi khởi động lại",
         "worker mới nhận lại job của worker đã chết và materialize hàng đã quên",
         scenario=scenario, mutant=_blind_burial, monkeypatch=monkeypatch,
         mutant_name="IGNORE_RECONCILIATION_WORKER_BURIED_CHECK")
-    # INVALID cùng lý do với ca 03: một job đã bị claim không được worker mới
-    # nhận lại trong kịch bản này, nên đường nguy hiểm chạm không tới. Chuông
-    # giống hệt — ngày nó thành PASS, assertion này đỏ.
-    assert result.state == "INVALID", (
-        f"ca 09 đã đo được — cập nhật assertion thành PASS: {result.as_dict()}")
+    # INVALID -> PASS cùng lý do với ca 03. Restart recovery vốn HOÀN CHỈNH:
+    # một ProjectionOutbox mới trên connection mới thu hồi được hàng của worker
+    # đã chết. Thứ hỏng là phép đo, không phải cơ chế.
+    assert result.state == "PASS", result.as_dict()
 
 
 # ---------------------------------------------------------------------------
