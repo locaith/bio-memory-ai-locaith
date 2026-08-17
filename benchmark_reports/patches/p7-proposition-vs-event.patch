@@ -1,0 +1,335 @@
+﻿diff --git a/bio_agent_os/cognitive/temporal_operator.py b/bio_agent_os/cognitive/temporal_operator.py
+index 59abb47..9d86367 100644
+--- a/bio_agent_os/cognitive/temporal_operator.py
++++ b/bio_agent_os/cognitive/temporal_operator.py
+@@ -167,6 +167,11 @@ class ClaimSpan:
+     confirmations: int = 0
+     #: Set when a later claim retracted this one rather than replacing it.
+     retracted_by: str | None = None
++    #: Which lifecycle event this sentence was: assert, repeat, correct,
++    #: supersede or conflict. **Separate from the proposition it carries** —
++    #: five sentences can claim the same thing and be five different events,
++    #: and a data model that keys only on the text cannot tell them apart.
++    event_kind: str = "assert"
+     #: This claim arrived as somebody else's competing account — "theo một
+     #: nguồn khác" — so it disputes rather than resolves.
+     #:
+@@ -408,16 +413,87 @@ def _anchor_after(text: str, marker: re.Pattern) -> str | None:
+ # stage 2 — the claim history for one slot
+ # --------------------------------------------------------------------------
+ 
+-def _core(content: str) -> str:
+-    """The sentence with restatement and correction markers stripped.
++#: The five things a sentence can be doing to a claim. Kept apart from *what*
++#: it claims, which is the whole of `#7`.
++ASSERT, REPEAT, CORRECT, SUPERSEDE, CONFLICT = (
++    "assert", "repeat", "correct", "supersede", "conflict")
+ 
+-    Two memories saying the same thing must compare equal, or a restatement
+-    becomes a new claim and invents an interval boundary.
++
++def _event_kind(content: str) -> str:
++    """Which lifecycle event this sentence is.
++
++    Read in the order a reader would: a retraction that also carries a date is
++    still a retraction, because it says the earlier value was never true and
++    that outranks saying when the new one starts.
++    """
++    from .relations import (ALTERNATIVE_SOURCE_MARKERS, CHANGE_MARKERS)
++
++    lowered = _fold(content).lower()
++    if _CORRECTION.search(lowered):
++        return CORRECT
++    if any(m in lowered for m in ALTERNATIVE_SOURCE_MARKERS):
++        return CONFLICT
++    if any(lowered.startswith(m) for m in CHANGE_MARKERS):
++        return SUPERSEDE
++    if _RESTATEMENT.search(lowered):
++        return REPEAT
++    return ASSERT
++
++
++def _proposition_key(content: str) -> str:
++    """*What* is being claimed, with every lifecycle frame removed.
++
++    **Proposition identity is not event identity.** These five carry the same
++    proposition and are five different events:
++
++        Lương của Phạm Nam là 18 triệu.                         ASSERT
++        Nhắc lại, lương của Phạm Nam là 18 triệu.               REPEAT
++        Đính chính: … sai, lương của Phạm Nam là 18 triệu.      CORRECT
++        Từ hôm nay, lương của Phạm Nam là 18 triệu.             SUPERSEDE
++        Theo một nguồn khác, lương của Phạm Nam là 18 triệu.    CONFLICT
++
++    The old `_core` stripped restatement and correction — and only those — then
++    used the result as the dedup key, so a correction whose value happened to
++    match an earlier assertion folded into it and never opened a span. The true
++    value then had no live span anywhere in the store, interval selection found
++    nothing holding, and the answer fell through to a rumour. One collapse,
++    three failures deep.
++
++    Two asymmetries were behind it and both are closed here: supersession and
++    alternative-source markers were never stripped at all, so the *same*
++    proposition normalised differently depending on which frame it arrived in.
++    Marker lists come from `relations`, so there is one idea of what a marker
++    is rather than two that drift.
+     """
++    from .relations import (ALTERNATIVE_SOURCE_MARKERS, CHANGE_MARKERS)
++
+     text = _RESTATEMENT.sub("", _fold(content))
+     text = _CORRECTION.sub("", text)
+-    text = re.sub(r"^[\s,;:]+", "", text)
+-    return text.lower().rstrip(" .!?")
++    lowered = text.lower()
++    for marker in sorted(tuple(CHANGE_MARKERS)
++                         + tuple(ALTERNATIVE_SOURCE_MARKERS), key=len,
++                         reverse=True):
++        index = lowered.find(marker)
++        if index != -1:
++            text = text[:index] + text[index + len(marker):]
++            lowered = text.lower()
++    text = re.sub(r"^[\s,;:.]+", "", text)
++    text = re.sub(r"\s{2,}", " ", text)
++    return text.lower().strip().rstrip(" .!?")
++
++
++#: Kept: `_core` is the old name and other modules read it.
++_core = _proposition_key
++
++
++def _folds_into(kind: str) -> bool:
++    """May a sentence of this kind disappear into an identical earlier one?
++
++    Only the two that assert nothing new. Saying the same thing twice is
++    freshness; saying it with a lifecycle marker is an event, and an event that
++    folds into the claim it acts on cannot then act on it.
++    """
++    return kind in (ASSERT, REPEAT)
+ 
+ 
+ def _key_for(predicate_name: str | None) -> str | None:
+@@ -880,16 +956,24 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
+     spans: list[ClaimSpan] = []
+     by_core: dict[str, ClaimSpan] = {}
+     for memory_id, content, observed_at in candidates:
+-        core = _core(str(content))
++        core = _proposition_key(str(content))
++        kind = _event_kind(str(content))
+         existing = by_core.get(core)
+-        if existing is not None:
++        if existing is not None and _folds_into(kind):
+             # Same thing said again. Freshness, not a change.
+             existing.confirmations += 1
+             continue
++        # A correction, a supersession or a competing account carrying the
++        # *same* proposition is still its own event. Folding it into the claim
++        # it acts on leaves it unable to act: the correction that restored
++        # "18 triệu" matched the assertion of "18 triệu" byte for byte after
++        # normalisation, bumped a counter, and opened no span — so the value
++        # the ledger held true for 125 ticks existed nowhere in the history.
+         span = ClaimSpan(memory_id=memory_id, content=str(content),
+                          valid_from=str(observed_at),
+                          observed_at=str(observed_at),
+-                         disputed=_is_disputed(str(content)))
++                         event_kind=kind,
++                         disputed=kind == CONFLICT)
+         if _CORRECTION.search(str(content)) and spans:
+             # A retraction: the previous claim was never true, so it is marked
+             # rather than closed. `holds_at` refuses it at every instant.
+diff --git a/tests/test_proposition_vs_event.py b/tests/test_proposition_vs_event.py
+new file mode 100644
+index 0000000..2477c2a
+--- /dev/null
++++ b/tests/test_proposition_vs_event.py
+@@ -0,0 +1,191 @@
++"""Danh tính mệnh đề ≠ danh tính sự kiện vòng đời.
++
++Năm câu dưới đây mang **cùng một mệnh đề** và là **năm sự kiện khác nhau**:
++
++    Lương của Phạm Nam là 18 triệu.                        ASSERT
++    Nhắc lại, lương của Phạm Nam là 18 triệu.              REPEAT
++    Đính chính: … sai, lương của Phạm Nam là 18 triệu.     CORRECT
++    Từ hôm nay, lương của Phạm Nam là 18 triệu.            SUPERSEDE
++    Theo một nguồn khác, lương của Phạm Nam là 18 triệu.   CONFLICT
++
++`_core` cũ strip marker đính chính và nhắc lại — và chỉ hai cái đó — rồi dùng
++kết quả làm khoá khử trùng lặp. Nên một câu đính chính có giá trị trùng với một
++câu khẳng định trước đó sẽ gập vào chính nó, chỉ cộng `confirmations`, và không
++bao giờ mở span. Giá trị đúng khi ấy **không có span sống nào trong toàn store**;
++chọn khoảng không tìm thấy gì và câu trả lời rơi xuống một tin đồn. Một cú gập,
++ba tầng lỗi.
++
++Hai bất đối xứng đứng sau nó, và cả hai được đóng cùng lúc: marker supersession
++và marker "nguồn khác" **chưa từng được strip**, nên cùng một mệnh đề chuẩn hoá
++ra hai kết quả khác nhau tuỳ khung câu nó đến.
++
++Bốn mutant, mỗi cái chết bằng một tính chất — không cái nào bằng so chuỗi.
++"""
++
++from __future__ import annotations
++
++from pathlib import Path
++
++import pytest
++
++from bio_agent_os.cognitive import temporal_operator as T
++from bio_agent_os.cognitive.facade import MemoryOS
++from bio_agent_os.cognitive.models import AccessContext, MemoryType
++
++CTX = AccessContext(tenant_id="t1", workspace_id="w1")
++VALUE = "Lương của Phạm Nam là 18 triệu."
++FRAMES = {
++    T.ASSERT: VALUE,
++    T.REPEAT: "Nhắc lại, lương của Phạm Nam là 18 triệu.",
++    T.CORRECT: ("Đính chính: thông tin trước là sai, lương của Phạm Nam là "
++                "18 triệu."),
++    T.SUPERSEDE: "Từ hôm nay, lương của Phạm Nam là 18 triệu.",
++    T.CONFLICT: "Theo một nguồn khác, lương của Phạm Nam là 18 triệu.",
++}
++T1, T2 = "2026-01-10T00:00:00+00:00", "2026-03-10T00:00:00+00:00"
++
++
++def _store(tmp_path: Path, name: str, texts):
++    memory_os = MemoryOS(tmp_path / f"{name}.db")
++    for text, at in texts:
++        event = memory_os.observe(tenant_id="t1", actor="a", source="u",
++                                  content=text, workspace_id="w1",
++                                  observed_at=at)
++        memory_os.remember(event=event, memory_type=MemoryType.SEMANTIC,
++                           content=text, confidence=0.9)
++    return memory_os
++
++
++def _history(memory_os):
++    return T.claim_history(memory_os, subject="Phạm Nam", aspect="salary",
++                           predicate="salary", context=CTX)
++
++
++# ---------------------------------------------------------------------------
++# the two layers
++# ---------------------------------------------------------------------------
++
++def test_one_proposition_five_events():
++    """Trục mệnh đề: tất cả bằng nhau. Trục sự kiện: tất cả khác nhau."""
++    keys = {kind: T._proposition_key(text) for kind, text in FRAMES.items()}
++    assert len(set(keys.values())) == 1, (
++        f"cùng một mệnh đề mà chuẩn hoá ra {len(set(keys.values()))} khoá: "
++        f"{keys}")
++
++    kinds = {kind: T._event_kind(text) for kind, text in FRAMES.items()}
++    assert kinds == {k: k for k in FRAMES}, kinds
++
++
++def test_the_asymmetry_is_closed():
++    """Defect phụ: `_core` strip correction/restatement mà không strip
++    supersession. Sửa riêng correction sẽ để nguyên bất đối xứng."""
++    assert (T._proposition_key(FRAMES[T.SUPERSEDE])
++            == T._proposition_key(FRAMES[T.REPEAT])
++            == T._proposition_key(FRAMES[T.CONFLICT]))
++
++
++# ---------------------------------------------------------------------------
++# the four mutants
++# ---------------------------------------------------------------------------
++
++def test_correction_does_not_collapse_into_the_claim_it_corrects(tmp_path):
++    """CORRECTION_COLLAPSES_INTO_ASSERT.
++
++    Tính chất: sau một đính chính, giá trị được đính chính phải **tồn tại như
++    một span sống**. Không assert chuỗi — assert rằng lịch sử có chỗ cho nó."""
++    memory_os = _store(tmp_path, "correct", [
++        ("Lương của Phạm Nam là 55 triệu.", T1),
++        (FRAMES[T.CORRECT], T2)])
++    try:
++        spans = _history(memory_os)
++        live = [s for s in spans if not s.retracted_by]
++        assert any(s.event_kind == T.CORRECT for s in spans), (
++            "câu đính chính không mở span nào — nó đã gập vào chính claim nó sửa")
++        assert live, "đính chính xong không còn gì sống"
++        assert any("18 triệu" in s.content for s in live)
++    finally:
++        memory_os.close()
++
++
++def test_a_correction_matching_an_earlier_value_still_opens_a_span(tmp_path):
++    """Ca gây ra #7: giá trị của đính chính TRÙNG với một khẳng định trước đó.
++
++    Đây là chỗ khoá-theo-văn-bản không thể phân biệt, và là lý do phải có hai
++    lớp chứ không phải một regex khéo hơn."""
++    memory_os = _store(tmp_path, "same_value", [
++        (VALUE, T1),
++        ("Lương của Phạm Nam là 55 triệu.", T2),
++        (FRAMES[T.CORRECT], "2026-05-10T00:00:00+00:00")])
++    try:
++        spans = _history(memory_os)
++        corrections = [s for s in spans if s.event_kind == T.CORRECT]
++        assert corrections, (
++            "đính chính mang cùng mệnh đề với câu đầu nên bị gập — đúng lỗi #7")
++        assert any(s.holds_at("2026-06-01T00:00:00+00:00")
++                   and "18 triệu" in s.content for s in spans), (
++            "giá trị được khôi phục không có span sống nào phủ thời điểm sau đó")
++    finally:
++        memory_os.close()
++
++
++def test_repeat_does_not_open_a_new_span(tmp_path):
++    """REPEAT_OPENS_NEW_SPAN.
++
++    Nửa còn lại. Nếu bản vá làm mọi thứ mở span thì nó không tách hai lớp, nó
++    chỉ tắt việc khử trùng lặp — và mỗi lần nhắc lại sẽ phát minh một biên
++    khoảng."""
++    memory_os = _store(tmp_path, "repeat", [(VALUE, T1),
++                                            (FRAMES[T.REPEAT], T2)])
++    try:
++        spans = _history(memory_os)
++        assert len(spans) == 1, (
++            f"nhắc lại mở thêm span: {[s.content for s in spans]}")
++        assert spans[0].confirmations == 1
++        assert spans[0].valid_to is None, (
++            "một lần nhắc lại đã đóng khoảng của chính claim nó nhắc lại")
++    finally:
++        memory_os.close()
++
++
++def test_supersede_does_not_collapse_into_assert(tmp_path):
++    """SUPERSEDE_COLLAPSES_INTO_ASSERT."""
++    memory_os = _store(tmp_path, "supersede", [(VALUE, T1),
++                                               (FRAMES[T.SUPERSEDE], T2)])
++    try:
++        spans = _history(memory_os)
++        assert any(s.event_kind == T.SUPERSEDE for s in spans), (
++            "một tuyên bố có mốc thời gian bị gập thành một lần nhắc lại")
++        assert len(spans) == 2
++    finally:
++        memory_os.close()
++
++
++def test_conflict_does_not_collapse_into_assert(tmp_path):
++    """CONFLICT_COLLAPSES_INTO_ASSERT.
++
++    Nếu một nguồn cạnh tranh gập vào claim nó tranh chấp thì sự bất đồng biến
++    mất khỏi lịch sử — và biến mất một cách im lặng, đúng thứ bất biến khoảng
++    tồn tại để chặn."""
++    memory_os = _store(tmp_path, "conflict", [(VALUE, T1),
++                                              (FRAMES[T.CONFLICT], T2)])
++    try:
++        spans = _history(memory_os)
++        disputed = [s for s in spans if s.event_kind == T.CONFLICT]
++        assert disputed, "tranh chấp bị gập vào claim nó tranh chấp"
++        assert disputed[0].disputed is True
++    finally:
++        memory_os.close()
++
++
++# ---------------------------------------------------------------------------
++# and the guard against fixing this by turning dedup off
++# ---------------------------------------------------------------------------
++
++@pytest.mark.parametrize("kind", [T.CORRECT, T.SUPERSEDE, T.CONFLICT])
++def test_only_the_two_that_assert_nothing_new_may_fold(kind):
++    assert not T._folds_into(kind)
++
++
++@pytest.mark.parametrize("kind", [T.ASSERT, T.REPEAT])
++def test_a_bare_reassertion_is_still_agreement(kind):
++    assert T._folds_into(kind)
