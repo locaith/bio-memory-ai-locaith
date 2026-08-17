@@ -167,6 +167,14 @@ class ClaimSpan:
     confirmations: int = 0
     #: Set when a later claim retracted this one rather than replacing it.
     retracted_by: str | None = None
+    #: This claim arrived as somebody else's competing account — "theo một
+    #: nguồn khác" — so it disputes rather than resolves.
+    #:
+    #: It is still a claim and still has a span: hiding it would pick the other
+    #: side just as silently as closing the earlier claim against it did. What
+    #: it may not do is act as an interval boundary, because nothing about a
+    #: disagreement establishes that the earlier claim stopped holding.
+    disputed: bool = False
 
     def holds_at(self, when: str) -> bool:
         if self.retracted_by:
@@ -619,6 +627,22 @@ def _by_subject(rows: list, subject: str) -> list[tuple]:
     return kept
 
 
+def _is_disputed(content: str) -> bool:
+    """Did this claim arrive as a competing account rather than a change?
+
+    The markers come from `relations.ALTERNATIVE_SOURCE_MARKERS`, which is the
+    same list `classify_relation` reads to return CONFLICT. Deliberately
+    imported rather than restated: two copies of "what counts as a disputed
+    claim" would drift, and the drift would show up as the read path and the
+    write path disagreeing about whether a truth is settled — which is the
+    exact class of defect this invariant exists to close.
+    """
+    from .relations import ALTERNATIVE_SOURCE_MARKERS
+
+    lowered = _fold(content).lower()
+    return any(marker in lowered for marker in ALTERNATIVE_SOURCE_MARKERS)
+
+
 def _entity_of_row(structured_json: Any) -> str | None:
     entity = _loads_slot(structured_json).get("entity")
     return str(entity) if entity else None
@@ -784,7 +808,8 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
             continue
         span = ClaimSpan(memory_id=memory_id, content=str(content),
                          valid_from=str(observed_at),
-                         observed_at=str(observed_at))
+                         observed_at=str(observed_at),
+                         disputed=_is_disputed(str(content)))
         if _CORRECTION.search(str(content)) and spans:
             # A retraction: the previous claim was never true, so it is marked
             # rather than closed. `holds_at` refuses it at every instant.
@@ -795,7 +820,29 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
         by_core[core] = span
 
     live = [s for s in spans if not s.retracted_by]
-    for earlier, later in zip(live, live[1:]):
+    # **An unresolved relation may not close the interval of any claim.**
+    #
+    # Four of the seven remaining `historical` failures were one shape, and in
+    # every one of them three components already agreed that the truth was in
+    # dispute: `classify_relation` returns CONFLICT for "theo một nguồn khác",
+    # `lifecycle_runtime` has no CONFLICT branch and says so deliberately, and
+    # the database holds `valid_to = NULL` because nothing wrote a window.
+    #
+    # This loop was the fourth component. Deriving intervals from arrival order
+    # alone, it took the moment the rumour arrived as the boundary — and so
+    # quietly picked the rumour's side, which is precisely the decision the
+    # other three declined to make.
+    #
+    # Ownership, stated once: the write and lifecycle layers **own** validity
+    # transitions; this layer **consumes** them; it must never **invent** a
+    # closure. `Relation.resolves` is the predicate for it and has existed all
+    # along — nothing here had ever asked.
+    #
+    # This says nothing about who wins. The disputed claim keeps its span, the
+    # dispute keeps its own, and how a query is answered inside a contested
+    # region is a separate decision that is deliberately not taken here.
+    closers = [s for s in live if not s.disputed]
+    for earlier, later in zip(closers, closers[1:]):
         earlier.valid_to = later.valid_from
         earlier.kind = "superseded" if earlier.kind == "asserted" else earlier.kind
 
