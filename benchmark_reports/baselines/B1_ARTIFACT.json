@@ -1,0 +1,124 @@
+{
+  "baseline_id": "B1",
+  "contract_version": "baseline-contract@2",
+  "taken_at": "2026-08-17T16:47:45",
+  "revision": {
+    "git_sha": "36694d12a55b0eba8e8f3f26243c499bc86b79a9",
+    "git_short": "36694d1",
+    "git_tree_hash": "a492f5c8993e7fcc27ab371114afa0fabebb8cb6",
+    "git_dirty": false,
+    "git_dirty_files": [],
+    "git_branch": "fix/v082-doctor-bounded-snapshots"
+  },
+  "source_snapshot_hashes": {},
+  "derived_db_hashes": {},
+  "dataset_hash": "b20122e902d8dc6dc96d42fc014b544b370b6d5c6598c80d69a442ac432b7ed6",
+  "question_hash": "1aeeb410a4cae040c2b1f3f787c39656c23a8effad23c265be8a1c07ac8e43db",
+  "runtime_fingerprint": "9a5195423b4b6d6c4ce4277efb0e043c4304601556bfe31ba9486d8e17ac2ba8",
+  "config_hash": "b20c6844bbc24eb9695e7c3be82b4369e06bf46f6ba1a2d877f0aa81c12494de",
+  "lifecycle_mode": "safe",
+  "feature_flags": {
+    "SUBJECT_IDENTITY_READ": "on"
+  },
+  "model": "",
+  "temperature": 0.0,
+  "eval_harness_version": "e1f39a1e47c4ded91da6f48f450beeecb955d2261bafdca72af42b13452c1c32",
+  "families": {
+    "current": {
+      "asked": 40,
+      "correct": 40
+    },
+    "historical": {
+      "asked": 38,
+      "correct": 31
+    },
+    "ever": {
+      "asked": 40,
+      "correct": 40
+    },
+    "forgotten": {
+      "asked": 18,
+      "correct": 16
+    }
+  },
+  "execution_contract": {
+    "history_calls": 136,
+    "predicate_supplied": 96,
+    "structured_only": 93,
+    "by_aspect_calls": 0,
+    "structured_queries": 133,
+    "structured_branch_taken": 133,
+    "fallback_attempted": 0,
+    "fallback_contributed": 0,
+    "unnecessary_fallback": 0,
+    "structured_identity_hit": 136,
+    "ambiguous_identity_abstain": 0,
+    "identity_fallback_attempted": 0,
+    "identity_excluded": 42125,
+    "identity_stale_resolver": 0,
+    "identity_excluded_mentioned": 3,
+    "conflict_detected": 5,
+    "silent_conflict_resolution": 0,
+    "unnecessary_fallback_rate": 0.0
+  },
+  "conflict_case_ids": [
+    "3efd36535884bbf7",
+    "42de9d0f670aa3ca",
+    "43b70524c3024393",
+    "9ccea7e1ea90e79a"
+  ],
+  "conflict_claim_sets": {
+    "9ccea7e1ea90e79a": {
+      "subject": "Đặng Khanh",
+      "predicate": "job_title",
+      "when": "2025-03-15T00:00:00+00:00",
+      "claim_ids": [
+        "10422782-f013-49b8-adaf-91803d13baf1",
+        "7ebab823-7536-4940-b27d-07b0cd7bd78c"
+      ],
+      "claims": [
+        "Đặng Khanh đang giữ chức trưởng phòng.",
+        "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+      ]
+    },
+    "3efd36535884bbf7": {
+      "subject": "Vũ Minh",
+      "predicate": "project",
+      "when": "2025-03-28T00:00:00+00:00",
+      "claim_ids": [
+        "1ab1cc57-6c78-4187-9d5e-f04f89be22e7",
+        "ec558332-6bfd-4b4e-a7c5-09afb99640b7"
+      ],
+      "claims": [
+        "Vũ Minh phụ trách dự án ứng dụng bán hàng.",
+        "Theo một nguồn khác, vũ Minh phụ trách dự án hệ thống OCR."
+      ]
+    },
+    "43b70524c3024393": {
+      "subject": "Bùi Tuấn",
+      "predicate": "phone",
+      "when": "2024-12-28T00:00:00+00:00",
+      "claim_ids": [
+        "8213b75f-ad28-4234-b026-6ff955a03429",
+        "b86facd4-2dbd-4d45-9dc7-06b9d56a4689"
+      ],
+      "claims": [
+        "Từ hôm nay, số điện thoại của Bùi Tuấn là 0903111222.",
+        "Theo một nguồn khác, số điện thoại của Bùi Tuấn là 0977123456."
+      ]
+    },
+    "42de9d0f670aa3ca": {
+      "subject": "Phạm Giang",
+      "predicate": "employer",
+      "when": "2025-10-18T00:00:00+00:00",
+      "claim_ids": [
+        "54ecb56c-c208-4f78-b6d5-fc8e18ea3eeb",
+        "a9f23028-e2bc-435f-bbfb-cd3c0f6ac258"
+      ],
+      "claims": [
+        "Từ hôm nay, phạm Giang làm việc tại công ty An Phát.",
+        "Nhắc lại, phạm Giang làm việc tại công ty An Phát."
+      ]
+    }
+  }
+}

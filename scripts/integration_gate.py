@@ -36,6 +36,7 @@ import argparse
 import json
 import random
 import sys
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -47,7 +48,9 @@ from bio_agent_os.evals.lifetime_questions import questions_at  # noqa: E402
 from bio_agent_os.evals.lifetime_world import EventKind, generate  # noqa: E402
 
 CHECKPOINTS = (10, 50, 100, 250, 500, 750, 1000)
-BASELINE = "benchmark_reports/failure_matrix_slots.json"
+#: The current baseline artifact. Immutable and versioned — a new
+#: measurement takes the next id; it never overwrites this one.
+BASELINE = "benchmark_reports/baselines/B1_ARTIFACT.json"
 
 #: What the frozen run recorded, by family. Stated here so a drift in the
 #: report file itself is visible rather than silently adopted.
@@ -218,34 +221,48 @@ def main() -> int:
     print(f"  git     : {who.git_sha[:12]}"
           f"{'  ⚠ CHƯA COMMIT' if who.git_dirty else ''}\n")
 
+    # THE ONLY WAY A DELTA IS PRODUCED.
+    #
+    # This function used to load two report files, stitch a `before` out of
+    # them and subtract. Those files recorded `git_sha 04911707` and `502492c`
+    # while HEAD had moved 23 commits — 12 of them in the operator, the state
+    # machine, the lifecycle, the relations and the resolver. Every table
+    # printed here attributed 23 commits of change to whatever had been edited
+    # that hour, and three reports were written on those numbers.
+    #
+    # The old path is gone rather than deprecated. A code path that still
+    # computes a delta from an unchecked baseline is one somebody calls again
+    # in six months, and it will be just as convincing then.
+    from bio_agent_os.cognitive import temporal_operator as T
+    from bio_agent_os.evals.baseline_contract import (
+        Baseline, compare, revision)
+
     baseline_path = _REPO / args.baseline
     if not baseline_path.exists():
         print(f"  DỪNG: không có baseline {args.baseline}")
+        print("  Sinh một cái bằng: python scripts/take_baseline.py --id B2")
         return 2
-    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
-    before = {f"{r['tick']}|{r['question']}": r for r in baseline["rows"]}
-
-    # The historical rows in `failure_matrix_slots.json` were measured before
-    # `answer_temporal` passed a predicate, so they record the dead path at
-    # 23/38. The verified checkpoint for that family lives in a different
-    # report, and a baseline is per-family — one file is not automatically
-    # the baseline for everything it happens to contain.
-    temporal_path = _REPO / "benchmark_reports" / "temporal_rebaseline.json"
-    if temporal_path.exists():
-        temporal = json.loads(temporal_path.read_text(encoding="utf-8"))
-        arm = temporal.get("rows", {}).get("B_structured", [])
-        for row in arm:
-            key = f"{row['tick']}|{row['question']}"
-            before[key] = {"family": "historical", "question": row["question"],
-                           "route": "temporal_operator",
-                           "correct": bool(row.get("correct"))}
+    baseline = Baseline.read(baseline_path)
+    rows_path = baseline_path.with_name(
+        baseline_path.name.replace("_ARTIFACT", "_ROWS"))
+    if not rows_path.exists():
+        print(f"  DỪNG: {baseline_path.name} không có {rows_path.name} đi kèm. "
+              f"Không có hàng thì không phân loại được từng câu, và một bảng "
+              f"tổng không nói được câu nào đã đổi.")
+        return 2
+    before = json.loads(rows_path.read_text(encoding="utf-8"))
+    print(f"BASELINE {baseline.baseline_id}  "
+          f"git {str(baseline.revision.get('git_short') or '')}  "
+          f"lấy lúc {baseline.taken_at}  ({len(before)} hàng)")
 
     events, ledger, people = generate(ticks=1000, subjects=20, seed=args.seed)
     workdir = _REPO / ".staging" / "integration_gate"
     workdir.mkdir(parents=True, exist_ok=True)
+    # Bound rather than constructed inline: the candidate artifact has to
+    # record which model answered, and an engine with no name cannot be asked.
+    engine = LLMEngine.from_env()
     after, paths = run_now(events, ledger, people, Embedder(),
-                           LLMEngine.from_env(), args.seed, args.per_family,
-                           workdir)
+                           engine, args.seed, args.per_family, workdir)
 
     # ------------------------------------------------------------------
     # WRONG BASELINE != PRODUCT REGRESSION
@@ -258,14 +275,47 @@ def main() -> int:
     # ------------------------------------------------------------------
     families = ("ever", "current", "historical", "forgotten")
     invalid = []
-    for family in families:
-        recorded = sum(1 for r in before.values()
-                       if r["family"] == family and r["correct"])
-        verified, total, source = VERIFIED_BASELINE[family]
-        if recorded != verified:
-            invalid.append(
-                f"{family}: baseline trong {args.baseline} là {recorded}/{total}, "
-                f"nhưng số đã xác minh là {verified}/{total} ({source})")
+
+    # The candidate, described the same way the baseline was. Comparing two
+    # runs means comparing two artifacts, not a run against a memory of one.
+    from scripts.take_baseline import _blob_hash, _digest
+
+    counts: dict[str, dict[str, int]] = {}
+    for row in after.values():
+        bucket = counts.setdefault(row["family"], {"asked": 0, "correct": 0})
+        bucket["asked"] += 1
+        bucket["correct"] += 1 if row["correct"] else 0
+
+    candidate = Baseline(
+        baseline_id="candidate",
+        taken_at=time.strftime("%Y-%m-%dT%H:%M:%S"),
+        revision=revision(_REPO),
+        dataset_hash=_digest({"ticks": 1000, "subjects": 20,
+                              "seed": args.seed, "events": len(events)}),
+        question_hash=_digest(sorted(after)),
+        config_hash=_digest({"per_family": args.per_family,
+                             "seed": args.seed, "lifecycle_mode": "safe"}),
+        runtime_fingerprint=who.fingerprint,
+        lifecycle_mode="safe",
+        feature_flags={"SUBJECT_IDENTITY_READ": T._SUBJECT_IDENTITY_READ},
+        model=getattr(engine, "model", "") or "",
+        temperature=float(getattr(engine, "temperature", 0.0) or 0.0),
+        eval_harness_version=_blob_hash(
+            _REPO / "scripts" / "integration_gate.py",
+            _REPO / "bio_agent_os" / "evals" / "lifetime_world.py",
+            _REPO / "bio_agent_os" / "evals" / "lifetime_questions.py",
+            _REPO / "bio_agent_os" / "evals" / "lifetime_adapter.py"),
+        families=counts,
+        conflict_case_ids=sorted(T.CONFLICT_CASES),
+        conflict_claim_sets=dict(T.CONFLICT_CASES),
+    )
+
+    # `git_sha` and `git_tree_hash` are the fields an A/B *intends* to vary.
+    # Everything else must match, and `compare` decides — this function does
+    # not get a second opinion.
+    comparison = compare(baseline, candidate,
+                         allow=("git_sha", "git_tree_hash"))
+    invalid.extend(comparison.reasons)
 
     # EXECUTION CONTRACT for TEMPORAL_AT.
     #
@@ -320,18 +370,18 @@ def main() -> int:
     print("=" * 74)
     print("ĐIỂM THEO NHÓM — trước / sau")
     print("=" * 74)
+    # From `compare`, not recomputed here. Two implementations of "what the
+    # delta is" drift, and the one that drifts is the one that gets read.
     print(f"  {'nhóm':<14}{'trước':>12}{'sau':>12}{'Δ':>6}")
     deltas = {}
     for family in families:
-        was = sum(1 for r in before.values()
-                  if r["family"] == family and r["correct"])
-        now = sum(1 for r in after.values()
-                  if r["family"] == family and r["correct"])
-        total = sum(1 for r in after.values() if r["family"] == family)
-        deltas[family] = now - was
-        flag = "" if now == was else ("  ⚠" if family == "ever" else "")
-        print(f"  {family:<14}{was:>8}/{EXPECTED[family][1]:<3}"
-              f"{now:>8}/{total:<3}{now - was:>+6}{flag}")
+        row = comparison.families.get(family)
+        if row is None:
+            continue
+        deltas[family] = row["delta"]
+        flag = "  ⚠" if (row["delta"] and family == "ever") else ""
+        print(f"  {family:<14}{row['before']:>8}/{row['asked']:<3}"
+              f"{row['after']:>8}/{row['asked']:<3}{row['delta']:>+6}{flag}")
 
     print("\n" + "=" * 74)
     print("PHÂN LOẠI TỪNG THAY ĐỔI — không có ô nào không nhãn")
@@ -420,8 +470,9 @@ def main() -> int:
         "execution": {**execution,
                       "historical_queries": historical_n,
                       "fallback_changed_answer": answer_effect},
-        "verified_baseline": {k: {"score": v[0], "of": v[1], "source": v[2]}
-                              for k, v in VERIFIED_BASELINE.items()},
+        "baseline_id": baseline.baseline_id,
+        "baseline_revision": baseline.revision,
+        "candidate_revision": candidate.revision,
         "candidate_not_promoted": {
             k: {"score": v[0], "of": v[1], "source": v[2]}
             for k, v in CANDIDATE.items()},
