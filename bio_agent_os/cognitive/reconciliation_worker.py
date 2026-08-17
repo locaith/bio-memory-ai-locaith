@@ -332,7 +332,30 @@ class ReconciliationWorker:
         #    longer wanted, and dead-lettering it would put a permanent error
         #    in the queue for every deletion.
         if buried(self.conn, job.event_id):
-            self.outbox.skip(job.job_id, "sự kiện đã bị đặt bia mộ")
+            # `skip(event_id, projection_type, *, reason)`. This call used to
+            # pass `job.job_id` positionally into `event_id` and the Vietnamese
+            # reason into `projection_type`, so the WHERE clause matched zero
+            # rows — and the return value was discarded, while
+            # `metrics.tombstoned` incremented anyway. The job reported skipped
+            # and stayed `in_progress` for ever: re-leased on every expiry,
+            # `attempts` growing without bound, never dead-lettered because
+            # `fail()` is not on this path.
+            #
+            # `drain()` therefore could never reach zero on any store that had
+            # ever deleted anything — it burned its full timeout and returned
+            # `timed_out`. `ROLLBACK_RUNBOOK.md` uses drain-to-zero as its
+            # completion gate, so the rollback procedure could not close.
+            #
+            # The correct call is the one three branches down at the builder's
+            # own skip. Two call sites, one contract, and only one of them was
+            # right — which is why the return value is checked here rather than
+            # thrown away a second time.
+            if not self.outbox.skip(job.event_id, job.projection_type,
+                                    reason="sự kiện đã bị đặt bia mộ"):
+                logger.warning(
+                    "tombstoned job did not reach a terminal state",
+                    extra={"job_id": job.job_id, "event_id": job.event_id,
+                           "projection_type": job.projection_type})
             self.metrics.tombstoned += 1
             logger.info(
                 "skipping tombstoned event",

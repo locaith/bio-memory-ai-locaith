@@ -123,11 +123,11 @@ def test_blinding_only_the_at_apply_check_resurrects_it(queued, monkeypatch):
     assert _controls_alive(queued) >= 1, "control chết: phép đo không còn nghĩa"
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "reconciliation_worker.py:335 gọi outbox.skip(job_id, <lý do>) trong khi "
-    "chữ ký là skip(event_id, projection_type, *, reason). UPDATE khớp 0 dòng, "
-    "job nằm lại in_progress vĩnh viễn và drain không bao giờ về 0. Sửa dòng "
-    "335 thì test này XPASS và strict=True sẽ báo đỏ — lúc đó xoá marker."))
+#: Marker gỡ ngày 17/08 khi `:335` được sửa. Nó là một cái chuông: audit để lại
+#: `xfail(strict=True)` kèm chỉ dẫn "sửa xong thì test này XPASS và strict sẽ
+#: báo đỏ — lúc đó xoá marker", và nó reo đúng lúc bản vá đáp xuống. Một khuyết
+#: tật đã biết mà không có ngày hết hạn thì sẽ ở lại cho tới khi có người tình
+#: cờ đọc lại nó.
 def test_a_tombstoned_job_is_retired_and_the_queue_can_drain(queued):
     """Safety held; hygiene did not. This asserts the hygiene.
 
