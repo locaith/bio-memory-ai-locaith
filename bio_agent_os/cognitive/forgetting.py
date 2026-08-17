@@ -427,6 +427,75 @@ def _delete_memories(conn: sqlite3.Connection, targets: set[str]) -> int:
     return cursor.rowcount
 
 
+#: Job states in which a projection has not yet been written, so a forget must
+#: still reach it. `completed` is excluded on purpose: that job produced a
+#: memory row, and the memory-resolution path above already owns it.
+_UNAPPLIED = ("pending", "in_progress", "failed", "dead_letter")
+
+
+def _events_awaiting_projection(conn: sqlite3.Connection,
+                                events: sqlite3.Connection,
+                                needle: str | None,
+                                contents: list[str] | None = None,
+                                *, subject: str | None = None,
+                                memory_id: str | None = None) -> set[str]:
+    """Events whose projection is still queued, and which this forget covers.
+
+    The window this closes is the one between an event being enqueued and the
+    worker applying it. During it the logical memory is real — a worker will
+    materialise it — but it has no row in `cognitive_memories`, so every
+    resolution keyed on the serving layer sees nothing to forget.
+
+    `in_progress` is included, and that matters: a worker may already hold the
+    lease when the forget lands. The tombstone still lands first as a durable
+    fact, and the worker's own check immediately before the write is what stops
+    that job — see `reconciliation_worker` around the buried gate. Belt and
+    brace, because a queue outlives the decision that filled it.
+    """
+    # All three ways a caller names what to forget, because an in-flight memory
+    # can only be recognised by what the *event* says. `subject` is included:
+    # "forget everything about An Phát" must reach a sentence about them that
+    # has not been projected yet, and matching only on `needle` would let the
+    # commonest form of the request miss it entirely.
+    matches = {str(value).strip()
+               for value in (needle, subject, *(contents or []))
+               if str(value or "").strip()}
+    if not matches:
+        return set()
+    marks = ",".join("?" * len(_UNAPPLIED))
+    try:
+        rows = conn.execute(
+            f"SELECT DISTINCT event_id FROM projection_outbox "
+            f"WHERE status IN ({marks})", _UNAPPLIED).fetchall()
+    except sqlite3.OperationalError:
+        return set()                       # no outbox: nothing is in flight
+    queued = {str(row[0]) for row in rows if row and row[0]}
+    if not queued:
+        return set()
+
+    # Match on the event payload rather than on anything derived, because
+    # nothing has been derived yet. Compared in Python for the same reason
+    # `_events_holding` does: LIKE against a JSON blob answers a different
+    # question than "does this text appear in what was said".
+    out: set[str] = set()
+    marks = ",".join("?" * len(queued))
+    try:
+        # The event log lives on its own connection — `_events_conn`. Reading it
+        # through the memories connection returns nothing and looks exactly like
+        # "no event matched", which is how the first version of this fix stayed
+        # red while appearing to run.
+        payloads = events.execute(
+            f"SELECT event_id, payload_json FROM cognitive_events "
+            f"WHERE event_id IN ({marks})", tuple(queued)).fetchall()
+    except sqlite3.OperationalError:
+        return set()
+    for event_id, blob in payloads:
+        text = str(blob or "")
+        if any(needle_text in text for needle_text in matches):
+            out.add(str(event_id))
+    return out
+
+
 def _events_holding(conn: sqlite3.Connection, needle: str | None) -> set[str]:
     """Events whose payload contains this string.
 
@@ -589,13 +658,34 @@ def forget_derived(memory_os: Any, *, memory_id: str | None = None,
     report = ForgetReport(scope=Scope.DERIVED)
 
     targets = _resolve(conn, memory_id, subject)
-    if not targets:
-        report.note = "không tìm thấy ký ức nào khớp"
-        return report
 
     # Captured before the rows go, so the check afterwards has something to
     # look for.
     contents = _contents_of(conn, targets)
+
+    # **A DELETE OF CURRENT STATE IS NOT A REVOCATION OF FUTURE STATE.**
+    #
+    # `_resolve` reads the serving layer. A logical memory that exists only as
+    # queued projection work has no row there, so `targets` came back empty and
+    # this function returned "không tìm thấy ký ức nào khớp" — no memory found —
+    # about a memory a worker was about to write. Reproduced deterministically:
+    #
+    #     observe()          outbox pending, memories 0, tombstones 0
+    #     forget_derived()   verified_clean=False, tombstones 0, note="not found"
+    #     worker.run_once()  completed=1, memories 1        <- back, verbatim
+    #
+    # The verifier was honest the whole time: it reported `verified_clean=False`
+    # because the content was still findable. What was missing was not the
+    # knowledge — it was the reach.
+    in_flight = _events_awaiting_projection(
+        conn, _events_conn(memory_os), needle, contents,
+        subject=subject, memory_id=memory_id)
+    if not targets and not in_flight:
+        report.note = "không tìm thấy ký ức nào khớp"
+        return report
+    if in_flight and not targets:
+        report.note = (f"chưa materialize — đặt bia mộ cho {len(in_flight)} "
+                       f"sự kiện đang chờ chiếu")
 
     # Merged memories quote their sources, so they go with them. Taken while
     # the link still exists.
@@ -604,7 +694,17 @@ def forget_derived(memory_os: Any, *, memory_id: str | None = None,
     if merged:
         report.note = f"xoá kèm {len(merged)} ký ức hợp nhất có trích nội dung này"
 
-    event_ids = _event_ids_of(conn, targets)
+    # The identity that spans every representation is the **event**: the outbox
+    # job is keyed by `event_id`, the memory records it in `source_event_ids`,
+    # and the tombstone table keys on it with a nullable `memory_id` — so a
+    # tombstone on an event with no memory yet is a shape the schema already
+    # supported. Nothing here needed inventing.
+    #
+    # Deliberately NOT deleting the queue row: a job removed from the outbox is
+    # a decision no audit can see, and a re-enqueue from any producer would
+    # bring the content straight back. The tombstone is the durable fact, and
+    # both existing checks — at enqueue and at apply — already read it.
+    event_ids = _event_ids_of(conn, targets) | in_flight
 
     for table, key in DERIVED_TABLES:
         keys = event_ids if key == "event_id" else targets
