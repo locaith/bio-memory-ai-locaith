@@ -185,11 +185,67 @@ class ClaimSpan:
 
 
 @dataclass
+class ConflictState:
+    """Two accounts of a one-at-a-time fact, and nothing that decides between.
+
+    This is a **result**, not a failure, and it is deliberately not a value.
+    The invariant in `claim_history` established that an unresolved relation
+    may not close an interval; the consequence is that both claims stay live,
+    and something has to say what that means. Leaving it implicit produced an
+    answer that read as a single value with a second sentence attached — right
+    instinct, no contract, and nothing a caller could branch on.
+
+    What it is not:
+
+        not the older claim      choosing it is the same silent decision,
+                                 pointed the other way
+        not the newer claim      arrival order is not evidence
+        not a refusal            "I don't know" throws away two facts the
+                                 system does hold, and a refusal cannot be
+                                 distinguished from having no memory at all
+
+    `world_truth_known` is false by construction: the ledger may well hold a
+    value, and the system cannot see which. That is the whole distinction —
+    a system can be **oracle-world wrong and epistemically correct**, and the
+    two must be scored separately or the second will be optimised away.
+    """
+    predicate: str = ""
+    when: str = ""
+    claims: list[ClaimSpan] = field(default_factory=list)
+    provenance: list[dict[str, Any]] = field(default_factory=list)
+    #: Why these cannot both be true: the predicate holds one value at a time.
+    reason: str = "single_valued_predicate_with_competing_claims"
+    #: What would settle it. Recorded so the state is actionable rather than
+    #: merely honest.
+    resolvable_by: str = "a relation that resolves — SUPERSEDE or CORRECT"
+    world_truth_known: bool = False
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "state": "CONFLICT",
+            "predicate": self.predicate,
+            "when": self.when,
+            "reason": self.reason,
+            "resolvable_by": self.resolvable_by,
+            "world_truth_known": self.world_truth_known,
+            "claims": [{"memory_id": str(c.memory_id), "content": c.content,
+                        "observed_at": c.observed_at,
+                        "valid_from": c.valid_from, "valid_to": c.valid_to,
+                        "disputed": c.disputed} for c in self.claims],
+            "provenance": self.provenance,
+        }
+
+
+@dataclass
 class TemporalAnswer:
     executed: bool = False
     answer_text: str = ""
     spans: list[ClaimSpan] = field(default_factory=list)
     provenance: list[dict[str, Any]] = field(default_factory=list)
+    #: Set when the operator reached CONFLICT instead of a value. `answer_text`
+    #: is then rendered from this deterministically — no model involved, since
+    #: the operator already knows exactly what it does and does not know.
+    conflict: ConflictState | None = None
     intent: TemporalIntent = field(default_factory=TemporalIntent)
     mode: str = "world"
     stage_failed: str = ""
@@ -452,6 +508,19 @@ def execution_report() -> dict[str, Any]:
         # contradicts the sentence itself — never normal, always worth a look.
         "identity_excluded_mentioned":
             EXECUTION.get("identity_excluded_mentioned", 0),
+        # Epistemic state, reported beside world-truth score and never mixed
+        # into it. A system can be oracle-world wrong and epistemically
+        # correct; scoring only the first optimises the second away.
+        #
+        # `conflict_detection_accuracy` and `false_conflict_rate` need an
+        # oracle and so belong to the eval harness, not here. These two are
+        # what the runtime can honestly know about itself.
+        "conflict_detected": EXECUTION.get("conflict_detected", 0),
+        # **Target: zero.** A single value returned for a contested slot,
+        # decided by nothing. This is the failure the interval invariant
+        # closed, and the only counter that can show it reopening.
+        "silent_conflict_resolution":
+            EXECUTION.get("silent_conflict_resolution", 0),
         # Rates carry their denominator. A rate without one is a number
         # somebody will quote in isolation.
         "unnecessary_fallback_rate":
@@ -994,9 +1063,78 @@ def answer_temporal(memory_os: Any, question: str, *, context: Any,
         return result
 
     result.executed = True
+    conflict = _conflict_state(
+        chosen, predicate=_key_for(intent.predicate),
+        when=intent.when or "hiện tại", mode=intent.mode)
+    if conflict is not None:
+        EXECUTION["conflict_detected"] += 1
+        result.conflict = conflict
+        result.answer_text = _render_conflict(conflict)
+        result.provenance = conflict.provenance
+        return result
     result.answer_text = " ".join(s.content for s in chosen)
     result.provenance = _provenance(chosen)
     return result
+
+
+def _single_valued(predicate: str | None) -> bool:
+    from .relations import Cardinality, semantics_for
+
+    if not predicate:
+        return False
+    return semantics_for(predicate).cardinality is Cardinality.ONE
+
+
+def _conflict_state(chosen: list[ClaimSpan], *, predicate: str | None,
+                    when: str, mode: str) -> ConflictState | None:
+    """Did the operator reach a disagreement rather than a value?
+
+    Three conditions, and each rules out a case that merely looks like one:
+
+        the predicate holds one value at a time   `city` can be disputed;
+                                                  `project` legitimately has
+                                                  several at once, and calling
+                                                  that a conflict is a false
+                                                  positive
+        two or more claims survive selection      one claim is never disputed
+        their propositions differ                 a restatement is agreement,
+                                                  which `_core` already knows
+
+    Belief questions are exempt: "what did you think in February" asks what the
+    system held, and it held one thing at a time by construction.
+    """
+    if mode == "belief" or len(chosen) < 2 or not _single_valued(predicate):
+        if (mode != "belief" and len(chosen) == 1 and _single_valued(predicate)
+                and any(s.disputed for s in chosen)):
+            # One claim survived selection and it is the *disputed* one. That
+            # is a conflict decided in favour of the rumour, arrived at
+            # silently — the exact failure the interval invariant closed, and
+            # the counter that proves it stayed closed. Target: zero.
+            EXECUTION["silent_conflict_resolution"] += 1
+        return None
+    if len({_core(s.content) for s in chosen}) < 2:
+        return None                      # same claim, said twice
+    return ConflictState(predicate=str(predicate), when=str(when),
+                         claims=list(chosen), provenance=_provenance(chosen))
+
+
+def _render_conflict(conflict: ConflictState) -> str:
+    """Deterministic. The operator already knows exactly what it knows.
+
+    Handing this to a model to phrase would put a synthesis step between a
+    known epistemic state and the sentence describing it, and every failure
+    that step could introduce would be a failure invented after the answer was
+    already correct.
+    """
+    lines = [f"Có {len(conflict.claims)} nguồn mâu thuẫn về "
+             f"'{conflict.predicate}' tại {conflict.when}, "
+             f"chưa đủ căn cứ kết luận một giá trị duy nhất:"]
+    for claim in conflict.claims:
+        mark = " (nguồn khác)" if claim.disputed else ""
+        lines.append(f"— {claim.content}{mark}")
+    lines.append("Cần một bằng chứng giải quyết được mâu thuẫn "
+                 "(đính chính hoặc thay đổi có mốc thời gian) mới kết luận.")
+    return "\n".join(lines)
 
 
 def _around_anchor(spans: list[ClaimSpan], intent: TemporalIntent) -> list[ClaimSpan]:

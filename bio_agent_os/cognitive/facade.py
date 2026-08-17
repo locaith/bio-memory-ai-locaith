@@ -257,7 +257,8 @@ class MemoryOS:
                     removed.append(fragment)
         return removed
 
-    def _structured_slot(self, content: str) -> dict[str, Any]:
+    def _structured_slot(self, content: str,
+                         event_source: str | None = None) -> dict[str, Any]:
         """(subject, predicate) for this sentence, kept instead of thrown away.
 
         The slot was already being computed on the way in — `LifecycleRuntime`
@@ -300,7 +301,8 @@ class MemoryOS:
             # is this sentence about" would drift, and the drift would show as
             # a backfilled row disagreeing with a freshly written one for the
             # same text.
-            return slot_for(content, source="ingest")
+            return slot_for(content, source="ingest",
+                            event_source=event_source)
         except Exception:                                # noqa: BLE001
             # A resolver failure must never stop an ingestion. The row simply
             # carries no slot and every reader falls back to what it did
@@ -438,7 +440,8 @@ class MemoryOS:
             content=stored_content,
             source_event_ids=[event.event_id],
             structured_content=(structured_content
-                                or self._structured_slot(stored_content)),
+                                or self._structured_slot(stored_content,
+                                                         event.source)),
             confidence=max(0.0, min(confidence, 1.0)),
             importance=max(0.0, min(importance, 1.0)),
             salience=max(0.0, min(salience, 1.0)),

@@ -67,6 +67,12 @@ class BackfillReport:
     #: "how many" cannot tell a repair from a fresh corruption and a person's
     #: identity is not a number to be summarised.
     entity_repairs: list = field(default_factory=list)
+    #: Rows whose observation came from a runtime hook. Never given a slot.
+    operational_skipped: int = 0
+    #: Rows that already carried a slot they were never eligible for, and had
+    #: it removed. Listed by row: this is the one thing in this pass that takes
+    #: something away, so it is reported by name and not as a count.
+    operational_demoted: list = field(default_factory=list)
     seconds: float = 0.0
 
     @property
@@ -84,6 +90,9 @@ class BackfillReport:
                 "rederived": self.rederived,
                 "entity_repairs": self.entity_repairs[:20],
                 "entity_repair_count": len(self.entity_repairs),
+                "operational_skipped": self.operational_skipped,
+                "operational_demoted": self.operational_demoted[:20],
+                "operational_demoted_count": len(self.operational_demoted),
                 "seconds": round(self.seconds, 3)}
 
 
@@ -126,8 +135,50 @@ UNTRUSTED = "untrusted"
 UNKNOWN = "unknown"
 
 
+#: Hooks whose events are the runtime describing itself. Declared, never
+#: inferred from the text: a rule that reads the words is a rule that fires on
+#: a person quoting a log line, and misses a hook that changes its wording.
+#:
+#: The boundary this draws:
+#:
+#:     EVENT OBSERVED
+#:         ├─ a claim about the world   -> memory semantics
+#:         ├─ telemetry                 -> observability, kept, not semanticized
+#:         ├─ system event              -> provenance / audit
+#:         └─ unknown                   -> no semantic promotion
+#:
+#: Measured on the owner's real store, 17/08/2026: 183 rows, 156 of them hook
+#: telemetry, and **all 20** rows that carried a structured slot had an entity
+#: beginning `hook` or `UserPromptSubmit`. The system held a stored belief
+#: about the *employer* of a thing called "hook UserPromptSubmit prompt …",
+#: nine times over. Without this boundary a memory meant to last years fills up
+#: with heartbeats, retries and counters, held as facts about a life.
+#:
+#: Raw events are **not** affected. Telemetry stays exactly where it is — it is
+#: provenance, and it may well be what a later reflection pass learns from. It
+#: is only barred from becoming a subject/predicate/value claim on its own.
+OPERATIONAL_HOOKS: frozenset[str] = frozenset({
+    "UserPromptSubmit", "SessionStart", "SessionEnd", "PreCompact",
+    "PostCompact", "PreToolUse", "PostToolUse", "PostToolUseFailure",
+    "Notification", "Stop", "PermissionRequest",
+})
+
+
+def is_operational_source(source: str | None) -> bool:
+    """Did a runtime hook emit this, rather than somebody saying something?
+
+    The shape is `<agent>:<HookName>` — `claude-code:UserPromptSubmit`. The
+    agent half is deliberately not matched: which agent is running is not what
+    makes an event operational.
+    """
+    if not source or ":" not in str(source):
+        return False
+    return str(source).rsplit(":", 1)[-1].strip() in OPERATIONAL_HOOKS
+
+
 def slot_for(content: str, *, source: str = "backfill",
-             event_id: str | None = None) -> dict[str, Any]:
+             event_id: str | None = None,
+             event_source: str | None = None) -> dict[str, Any]:
     """The slot this sentence implies, or `{}`.
 
     **The one derivation.** `facade.remember` calls this too. Two
@@ -137,11 +188,23 @@ def slot_for(content: str, *, source: str = "backfill",
     `disagreements` in the report is there to catch, and it must only ever
     catch a resolver *version* change, never two copies of the same idea.
 
-    `source` records which path wrote it. It is not part of the slot's
-    meaning and nothing reads it to decide anything; it exists so that a
-    disagreement can be traced to a pass rather than guessed at.
+    `source` records which *derivation path* wrote it — "ingest" or
+    "backfill". It is not part of the slot's meaning and nothing reads it to
+    decide anything; it exists so that a disagreement can be traced to a pass
+    rather than guessed at.
+
+    `event_source` is a different thing and does decide: it is the provenance
+    of the observation itself. An event a runtime hook emitted is the system
+    describing its own operation, and no amount of well-formed Vietnamese in a
+    log line makes it a claim about the world. Eligibility is checked **here**,
+    in the one derivation, so ingest and backfill cannot disagree about what
+    deserves to become a claim — a boundary enforced in only one of the two is
+    a boundary the other quietly reopens.
     """
     from .aspect_resolver import Predicate, resolve_frame
+
+    if is_operational_source(event_source):
+        return {}
 
     try:
         frame = resolve_frame(str(content or ""))
@@ -195,14 +258,44 @@ def backfill(conn: sqlite3.Connection, *, dry_run: bool = False,
 
     try:
         rows = conn.execute(
-            "SELECT memory_id, version, content, structured_json "
+            "SELECT memory_id, version, content, structured_json, "
+            "source_event_ids_json "
             "FROM cognitive_memories ORDER BY rowid").fetchall()
     except sqlite3.OperationalError:                     # fresh database
         return report
 
+    # Which observation each memory came from, so eligibility is decided from
+    # the same fact ingest decides it from. Resolving it here rather than
+    # per-row keeps the pass to two queries on a store of any size.
+    event_source: dict[str, str] = {}
+    try:
+        event_source = {str(eid): str(src) for eid, src in conn.execute(
+            "SELECT event_id, source FROM cognitive_events")}
+    except sqlite3.OperationalError:
+        pass                          # no event log; nothing is operational
+
     updates: list[tuple] = []
-    for memory_id, version, content, structured in rows:
+    for memory_id, version, content, structured, event_ids in rows:
         report.scanned += 1
+        origin = _first_event_source(event_ids, event_source)
+        if is_operational_source(origin):
+            # The runtime describing itself. Kept exactly where it is — this
+            # pass has never deleted anything and does not start here — but it
+            # does not become a subject/predicate/value claim, and a row that
+            # already did is repaired by having that claim removed.
+            report.operational_skipped += 1
+            if existing_slot := _loads(structured):
+                if existing_slot.get("attribute"):
+                    report.operational_demoted.append(
+                        {"memory_id": str(memory_id), "source": origin,
+                         "was_entity": existing_slot.get("entity"),
+                         "was_attribute": existing_slot.get("attribute")})
+                    kept = {k: v for k, v in existing_slot.items()
+                            if k not in _SLOT_KEYS}
+                    updates.append((json.dumps(kept, ensure_ascii=False,
+                                               sort_keys=True),
+                                    str(memory_id), version))
+            continue
         existing = _loads(structured)
         if existing.get("attribute"):
             report.already_had_slot += 1
@@ -270,6 +363,28 @@ def backfill(conn: sqlite3.Connection, *, dry_run: bool = False,
 
     report.seconds = time.perf_counter() - started
     return report
+
+
+#: The keys `slot_for` owns. Removing a slot removes exactly these and leaves
+#: whatever else shares the blob — the procedural compiler writes goal/steps
+#: here, and a demotion that evicted them would be a deletion wearing the word
+#: "boundary".
+_SLOT_KEYS = frozenset({
+    "entity", "attribute", "predicate_epistemic_status", "predicate_source",
+    "resolver_version", "resolver", "derived_from_event_id", "derived_at",
+    "source",
+})
+
+
+def _first_event_source(event_ids: Any, index: dict[str, str]) -> str | None:
+    """Where the observation behind this memory came from."""
+    try:
+        ids = json.loads(event_ids) if isinstance(event_ids, str) else event_ids
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(ids, list) or not ids:
+        return None
+    return index.get(str(ids[0]))
 
 
 def _loads(blob: Any) -> dict[str, Any]:
