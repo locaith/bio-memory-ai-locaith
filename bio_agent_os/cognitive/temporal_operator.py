@@ -167,6 +167,11 @@ class ClaimSpan:
     confirmations: int = 0
     #: Set when a later claim retracted this one rather than replacing it.
     retracted_by: str | None = None
+    #: Which lifecycle event this sentence was: assert, repeat, correct,
+    #: supersede or conflict. **Separate from the proposition it carries** —
+    #: five sentences can claim the same thing and be five different events,
+    #: and a data model that keys only on the text cannot tell them apart.
+    event_kind: str = "assert"
     #: This claim arrived as somebody else's competing account — "theo một
     #: nguồn khác" — so it disputes rather than resolves.
     #:
@@ -408,16 +413,87 @@ def _anchor_after(text: str, marker: re.Pattern) -> str | None:
 # stage 2 — the claim history for one slot
 # --------------------------------------------------------------------------
 
-def _core(content: str) -> str:
-    """The sentence with restatement and correction markers stripped.
+#: The five things a sentence can be doing to a claim. Kept apart from *what*
+#: it claims, which is the whole of `#7`.
+ASSERT, REPEAT, CORRECT, SUPERSEDE, CONFLICT = (
+    "assert", "repeat", "correct", "supersede", "conflict")
 
-    Two memories saying the same thing must compare equal, or a restatement
-    becomes a new claim and invents an interval boundary.
+
+def _event_kind(content: str) -> str:
+    """Which lifecycle event this sentence is.
+
+    Read in the order a reader would: a retraction that also carries a date is
+    still a retraction, because it says the earlier value was never true and
+    that outranks saying when the new one starts.
     """
+    from .relations import (ALTERNATIVE_SOURCE_MARKERS, CHANGE_MARKERS)
+
+    lowered = _fold(content).lower()
+    if _CORRECTION.search(lowered):
+        return CORRECT
+    if any(m in lowered for m in ALTERNATIVE_SOURCE_MARKERS):
+        return CONFLICT
+    if any(lowered.startswith(m) for m in CHANGE_MARKERS):
+        return SUPERSEDE
+    if _RESTATEMENT.search(lowered):
+        return REPEAT
+    return ASSERT
+
+
+def _proposition_key(content: str) -> str:
+    """*What* is being claimed, with every lifecycle frame removed.
+
+    **Proposition identity is not event identity.** These five carry the same
+    proposition and are five different events:
+
+        Lương của Phạm Nam là 18 triệu.                         ASSERT
+        Nhắc lại, lương của Phạm Nam là 18 triệu.               REPEAT
+        Đính chính: … sai, lương của Phạm Nam là 18 triệu.      CORRECT
+        Từ hôm nay, lương của Phạm Nam là 18 triệu.             SUPERSEDE
+        Theo một nguồn khác, lương của Phạm Nam là 18 triệu.    CONFLICT
+
+    The old `_core` stripped restatement and correction — and only those — then
+    used the result as the dedup key, so a correction whose value happened to
+    match an earlier assertion folded into it and never opened a span. The true
+    value then had no live span anywhere in the store, interval selection found
+    nothing holding, and the answer fell through to a rumour. One collapse,
+    three failures deep.
+
+    Two asymmetries were behind it and both are closed here: supersession and
+    alternative-source markers were never stripped at all, so the *same*
+    proposition normalised differently depending on which frame it arrived in.
+    Marker lists come from `relations`, so there is one idea of what a marker
+    is rather than two that drift.
+    """
+    from .relations import (ALTERNATIVE_SOURCE_MARKERS, CHANGE_MARKERS)
+
     text = _RESTATEMENT.sub("", _fold(content))
     text = _CORRECTION.sub("", text)
-    text = re.sub(r"^[\s,;:]+", "", text)
-    return text.lower().rstrip(" .!?")
+    lowered = text.lower()
+    for marker in sorted(tuple(CHANGE_MARKERS)
+                         + tuple(ALTERNATIVE_SOURCE_MARKERS), key=len,
+                         reverse=True):
+        index = lowered.find(marker)
+        if index != -1:
+            text = text[:index] + text[index + len(marker):]
+            lowered = text.lower()
+    text = re.sub(r"^[\s,;:.]+", "", text)
+    text = re.sub(r"\s{2,}", " ", text)
+    return text.lower().strip().rstrip(" .!?")
+
+
+#: Kept: `_core` is the old name and other modules read it.
+_core = _proposition_key
+
+
+def _folds_into(kind: str) -> bool:
+    """May a sentence of this kind disappear into an identical earlier one?
+
+    Only the two that assert nothing new. Saying the same thing twice is
+    freshness; saying it with a lifecycle marker is an event, and an event that
+    folds into the claim it acts on cannot then act on it.
+    """
+    return kind in (ASSERT, REPEAT)
 
 
 def _key_for(predicate_name: str | None) -> str | None:
@@ -900,16 +976,24 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
     spans: list[ClaimSpan] = []
     by_core: dict[str, ClaimSpan] = {}
     for memory_id, content, observed_at in candidates:
-        core = _core(str(content))
+        core = _proposition_key(str(content))
+        kind = _event_kind(str(content))
         existing = by_core.get(core)
-        if existing is not None:
+        if existing is not None and _folds_into(kind):
             # Same thing said again. Freshness, not a change.
             existing.confirmations += 1
             continue
+        # A correction, a supersession or a competing account carrying the
+        # *same* proposition is still its own event. Folding it into the claim
+        # it acts on leaves it unable to act: the correction that restored
+        # "18 triệu" matched the assertion of "18 triệu" byte for byte after
+        # normalisation, bumped a counter, and opened no span — so the value
+        # the ledger held true for 125 ticks existed nowhere in the history.
         span = ClaimSpan(memory_id=memory_id, content=str(content),
                          valid_from=str(observed_at),
                          observed_at=str(observed_at),
-                         disputed=_is_disputed(str(content)))
+                         event_kind=kind,
+                         disputed=kind == CONFLICT)
         if _CORRECTION.search(str(content)) and spans:
             # A retraction: the previous claim was never true, so it is marked
             # rather than closed. `holds_at` refuses it at every instant.
