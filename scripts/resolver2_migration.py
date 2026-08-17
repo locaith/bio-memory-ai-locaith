@@ -202,6 +202,12 @@ def main() -> int:
                     help="where snapshots live (default: <db dir>/snapshots)")
     ap.add_argument("--apply", action="store_true",
                     help="after a clean clone, migrate the real store")
+    ap.add_argument("--demote-only", action="store_true", dest="demote_only",
+                    help=("remove structured slots from rows that were never "
+                          "eligible, and do nothing else. No fills, no "
+                          "re-derivation. A clean-up authorised on a real "
+                          "store must not become an enrichment migration on "
+                          "the way."))
     args = ap.parse_args()
 
     db = Path(args.db).resolve()
@@ -253,7 +259,7 @@ def main() -> int:
     ident_before = identities(work)
     conn = sqlite3.connect(str(work))
     try:
-        first = backfill(conn)
+        first = backfill(conn, demote_only=args.demote_only)
     finally:
         conn.close()
     print(f"[D] backfill lan 1: rederived={first.rederived} "
@@ -263,7 +269,7 @@ def main() -> int:
     # ---- E. idempotence --------------------------------------------------
     conn = sqlite3.connect(str(work))
     try:
-        second = backfill(conn)
+        second = backfill(conn, demote_only=args.demote_only)
     finally:
         conn.close()
     idempotent = (second.rederived == 0 and second.changed == 0
@@ -295,6 +301,27 @@ def main() -> int:
         "clone_sha256": digest(work),
     })
 
+    if args.demote_only:
+        # The authorisation is narrow and the script enforces it rather than
+        # reporting it: telemetry-derived slots removed, zero person slots
+        # added, zero unrelated rows touched. A condition a human checks by
+        # eye is a condition that holds until the day somebody is tired.
+        person_slots_added = (after["rows_with_slot"] - before["rows_with_slot"]
+                              + len(first.operational_demoted))
+        unrelated_changed = first.changed - len(first.operational_demoted)
+        print("\n[G] DEMOTE-ONLY — hợp đồng hẹp, script tự chặn")
+        print(f"    telemetry slots removed   {len(first.operational_demoted)}")
+        print(f"    person slots ADDED        {person_slots_added}   (phải = 0)")
+        print(f"    unrelated rows changed    {unrelated_changed}   (phải = 0)")
+        print(f"    rows re-derived           {first.rederived}   (phải = 0)")
+        print(f"    rows filled               {first.filled}   (phải = 0)")
+        narrow = (person_slots_added == 0 and unrelated_changed == 0
+                  and first.rederived == 0 and first.filled == 0)
+        if not narrow:
+            print("    ✗ pass lam nhieu hon uy quyen — DUNG LAI")
+        manifest["demote_only_contract_held"] = bool(narrow)
+        manifest["telemetry_slots_removed"] = len(first.operational_demoted)
+
     print("\n[G] MIGRATION PLAN")
     print(f"    total rows            {before['memory_rows']}")
     print(f"    rows eligible         {before['rows_stale_resolver']}")
@@ -311,7 +338,10 @@ def main() -> int:
              and not checks.get("claim_history_errors")
              and not checks.get("undeclared_stores")
              and not movement["merges"]
-             and after["rows_stale_resolver"] == 0
+             and (manifest.get("demote_only_contract_held", True))
+             # A demote-only pass leaves stale rows stale on purpose: they are
+             # eligible rows whose re-derivation is a separate authorisation.
+             and (args.demote_only or after["rows_stale_resolver"] == 0)
              # A migration must not invent identities for rows that had none.
              and after["rows_entity_unknown"] >= before["rows_entity_unknown"]
              * 0)
@@ -342,7 +372,7 @@ def main() -> int:
         return 3
     conn = sqlite3.connect(str(db))
     try:
-        applied = backfill(conn)
+        applied = backfill(conn, demote_only=args.demote_only)
     finally:
         conn.close()
     print(f"\n[H] store that: rederived={applied.rederived} "

@@ -250,8 +250,22 @@ def status_of(slot: dict[str, Any] | None) -> str:
 
 
 def backfill(conn: sqlite3.Connection, *, dry_run: bool = False,
-             batch: int = 500) -> BackfillReport:
-    """One pass over rows with no slot. Safe to call any number of times."""
+             batch: int = 500, demote_only: bool = False) -> BackfillReport:
+    """One pass over rows with no slot. Safe to call any number of times.
+
+    `demote_only` narrows the pass to a single action: remove structured slots
+    from rows that were never eligible for one. Nothing is filled, nothing is
+    re-derived, and a row that is merely *stale* is left exactly as it is.
+
+    The reason it is a parameter and not a habit: a clean-up authorised on a
+    real store had, in the same pass, been about to write eleven brand-new
+    claims into rows that had none. Both actions are defensible; they are not
+    the same decision, and one arriving inside the other is how an approval
+    for the first silently becomes an approval for the second.
+
+        A migration approved to clean up may not become an enrichment
+        migration on the way.
+    """
     started = time.perf_counter()
     report = BackfillReport()
     _ensure_marker_table(conn)
@@ -295,6 +309,11 @@ def backfill(conn: sqlite3.Connection, *, dry_run: bool = False,
                     updates.append((json.dumps(kept, ensure_ascii=False,
                                                sort_keys=True),
                                     str(memory_id), version))
+            continue
+        if demote_only:
+            # Past this point every branch either fills or re-derives. Neither
+            # is authorised here, so the pass stops rather than relying on the
+            # conditions below happening not to fire.
             continue
         existing = _loads(structured)
         if existing.get("attribute"):
