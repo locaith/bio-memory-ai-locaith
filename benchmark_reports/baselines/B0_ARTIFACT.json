@@ -1,0 +1,52 @@
+{
+  "baseline_id": "B0",
+  "contract_version": "baseline-contract@2",
+  "taken_at": "2026-08-17T16:43:04",
+  "revision": {
+    "git_sha": "2b2bad325590d88082dd78c3ff223aaaf34c6645",
+    "git_short": "2b2bad3",
+    "git_tree_hash": "e5265cd4fc67e918ddd9b2b886a682240bed5322",
+    "git_dirty": false,
+    "git_dirty_files": [],
+    "git_branch": "fix/v082-doctor-bounded-snapshots"
+  },
+  "source_snapshot_hashes": {},
+  "derived_db_hashes": {},
+  "dataset_hash": "b20122e902d8dc6dc96d42fc014b544b370b6d5c6598c80d69a442ac432b7ed6",
+  "question_hash": "1aeeb410a4cae040c2b1f3f787c39656c23a8effad23c265be8a1c07ac8e43db",
+  "runtime_fingerprint": "6d8bd06d2eab18e2c34231d385f9b356801f4731c2e3fe21b9c851156e6387f1",
+  "config_hash": "b20c6844bbc24eb9695e7c3be82b4369e06bf46f6ba1a2d877f0aa81c12494de",
+  "lifecycle_mode": "safe",
+  "feature_flags": {
+    "SUBJECT_IDENTITY_READ": "on"
+  },
+  "model": "",
+  "temperature": 0.0,
+  "eval_harness_version": "e1f39a1e47c4ded91da6f48f450beeecb955d2261bafdca72af42b13452c1c32",
+  "families": {
+    "current": {
+      "asked": 40,
+      "correct": 40
+    },
+    "historical": {
+      "asked": 38,
+      "correct": 31
+    },
+    "ever": {
+      "asked": 40,
+      "correct": 40
+    },
+    "forgotten": {
+      "asked": 18,
+      "correct": 16
+    }
+  },
+  "execution_contract": {
+    "history_calls": 136,
+    "predicate_supplied": 96,
+    "structured_only": 93,
+    "by_aspect_calls": 3
+  },
+  "conflict_case_ids": [],
+  "conflict_claim_sets": {}
+}

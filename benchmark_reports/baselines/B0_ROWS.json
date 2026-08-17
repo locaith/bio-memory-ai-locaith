@@ -1,0 +1,1733 @@
+{
+  "10|Phạm Vy đang giữ chức vụ gì?": {
+    "family": "current",
+    "question": "Phạm Vy đang giữ chức vụ gì?",
+    "subject": "Phạm Vy",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy đang giữ chức nhân viên kinh doanh."
+    ],
+    "answer": "Nhân viên kinh doanh.",
+    "correct": true
+  },
+  "10|Vào ngày 2025-01-04, Phạm Vy đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-01-04, Phạm Vy đang giữ chức vụ gì?",
+    "subject": "Phạm Vy",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy đang giữ chức nhân viên kinh doanh."
+    ],
+    "answer": "Nhân viên kinh doanh.",
+    "correct": true
+  },
+  "10|Phạm Vy đã từng có chức vụ là nhân viên kinh doanh đúng không?": {
+    "family": "ever",
+    "question": "Phạm Vy đã từng có chức vụ là nhân viên kinh doanh đúng không?",
+    "subject": "Phạm Vy",
+    "predicate": "job_title",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy đang giữ chức nhân viên kinh doanh."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "10|Lê Sơn sinh ngày nào?": {
+    "family": "current",
+    "question": "Lê Sơn sinh ngày nào?",
+    "subject": "Lê Sơn",
+    "predicate": "birthday",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Sơn sinh ngày 30/01/1992."
+    ],
+    "answer": "Lê Sơn sinh ngày 30/01/1992.",
+    "correct": true
+  },
+  "10|Lê Sơn đã từng có ngày sinh là 12/03/1990 đúng không?": {
+    "family": "ever",
+    "question": "Lê Sơn đã từng có ngày sinh là 12/03/1990 đúng không?",
+    "subject": "Lê Sơn",
+    "predicate": "birthday",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "10|Phạm Vy đang sống ở đâu?": {
+    "family": "current",
+    "question": "Phạm Vy đang sống ở đâu?",
+    "subject": "Phạm Vy",
+    "predicate": "city",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy sống ở Hà Nội."
+    ],
+    "answer": "Hà Nội.",
+    "correct": true
+  },
+  "10|Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?",
+    "subject": "Phạm Vy",
+    "predicate": "city",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy sống ở Hà Nội."
+    ],
+    "answer": "Hà Nội.",
+    "correct": true
+  },
+  "10|Phạm Vy đã từng có nơi sống là Hà Nội đúng không?": {
+    "family": "ever",
+    "question": "Phạm Vy đã từng có nơi sống là Hà Nội đúng không?",
+    "subject": "Phạm Vy",
+    "predicate": "city",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy sống ở Hà Nội."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "10|Số điện thoại của Phạm Vy là gì?": {
+    "family": "current",
+    "question": "Số điện thoại của Phạm Vy là gì?",
+    "subject": "Phạm Vy",
+    "predicate": "phone",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Phạm Vy là 0912345678."
+    ],
+    "answer": "Số điện thoại của Phạm Vy là 0912345678.",
+    "correct": true
+  },
+  "10|Phạm Vy đã từng có số điện thoại là 0987654321 đúng không?": {
+    "family": "ever",
+    "question": "Phạm Vy đã từng có số điện thoại là 0987654321 đúng không?",
+    "subject": "Phạm Vy",
+    "predicate": "phone",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "50|Lê Trang đang phụ trách dự án nào?": {
+    "family": "current",
+    "question": "Lê Trang đang phụ trách dự án nào?",
+    "subject": "Lê Trang",
+    "predicate": "project",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Trang phụ trách dự án trang thương mại."
+    ],
+    "answer": "Dự án trang thương mại.",
+    "correct": true
+  },
+  "50|Vào ngày 2025-05-22, Lê Trang đang phụ trách dự án nào?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-05-22, Lê Trang đang phụ trách dự án nào?",
+    "subject": "Lê Trang",
+    "predicate": "project",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Trang phụ trách dự án trang thương mại."
+    ],
+    "answer": "Dự án trang thương mại.",
+    "correct": true
+  },
+  "50|Lê Trang đã từng có dự án phụ trách là trang thương mại đúng không?": {
+    "family": "ever",
+    "question": "Lê Trang đã từng có dự án phụ trách là trang thương mại đúng không?",
+    "subject": "Lê Trang",
+    "predicate": "project",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Trang phụ trách dự án trang thương mại."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "50|Số điện thoại của Phạm Vy là gì?": {
+    "family": "current",
+    "question": "Số điện thoại của Phạm Vy là gì?",
+    "subject": "Phạm Vy",
+    "predicate": "phone",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Phạm Vy là 0912345678."
+    ],
+    "answer": "Số điện thoại của Phạm Vy là 0912345678.",
+    "correct": true
+  },
+  "50|Phạm Vy đã từng có số điện thoại là 0987654321 đúng không?": {
+    "family": "ever",
+    "question": "Phạm Vy đã từng có số điện thoại là 0987654321 đúng không?",
+    "subject": "Phạm Vy",
+    "predicate": "phone",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "50|Vũ An đang làm ở công ty nào?": {
+    "family": "current",
+    "question": "Vũ An đang làm ở công ty nào?",
+    "subject": "Vũ An",
+    "predicate": "employer",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Vũ An làm việc tại công ty Đại Việt."
+    ],
+    "answer": "Công ty Đại Việt.",
+    "correct": true
+  },
+  "50|Vào ngày 2025-04-04, Vũ An đang làm ở công ty nào?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-04-04, Vũ An đang làm ở công ty nào?",
+    "subject": "Vũ An",
+    "predicate": "employer",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Vũ An làm việc tại công ty Đại Việt."
+    ],
+    "answer": "Công ty Đại Việt.",
+    "correct": true
+  },
+  "50|Vũ An đã từng có nơi làm việc là Đại Việt đúng không?": {
+    "family": "ever",
+    "question": "Vũ An đã từng có nơi làm việc là Đại Việt đúng không?",
+    "subject": "Vũ An",
+    "predicate": "employer",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Vũ An làm việc tại công ty Đại Việt."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "50|Trần Hà sinh ngày nào?": {
+    "family": "current",
+    "question": "Trần Hà sinh ngày nào?",
+    "subject": "Trần Hà",
+    "predicate": "birthday",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, trần Hà sinh ngày 12/03/"
+    ],
+    "answer": "12/03/1990",
+    "correct": true
+  },
+  "50|Trần Hà đã từng có ngày sinh là 05/07/1988 đúng không?": {
+    "family": "ever",
+    "question": "Trần Hà đã từng có ngày sinh là 05/07/1988 đúng không?",
+    "subject": "Trần Hà",
+    "predicate": "birthday",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "50|Bùi Tuấn sinh ngày nào?": {
+    "family": "current",
+    "question": "Bùi Tuấn sinh ngày nào?",
+    "subject": "Bùi Tuấn",
+    "predicate": "birthday",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Bùi Tuấn sinh ngày 12/03/1990."
+    ],
+    "answer": "Bùi Tuấn sinh ngày 12/03/1990.",
+    "correct": true
+  },
+  "50|Trần Hà đang giữ chức vụ gì?": {
+    "family": "current",
+    "question": "Trần Hà đang giữ chức vụ gì?",
+    "subject": "Trần Hà",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Trần Hà đang giữ chức phó giám đốc."
+    ],
+    "answer": "Phó giám đốc.",
+    "correct": true
+  },
+  "50|Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+    "subject": "Trần Hà",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Trần Hà đang giữ chức phó giám đốc."
+    ],
+    "answer": "Phó giám đốc.",
+    "correct": true
+  },
+  "50|Trần Hà đã từng có chức vụ là phó giám đốc đúng không?": {
+    "family": "ever",
+    "question": "Trần Hà đã từng có chức vụ là phó giám đốc đúng không?",
+    "subject": "Trần Hà",
+    "predicate": "job_title",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Trần Hà đang giữ chức phó giám đốc."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "50|Phạm Nam đã từng có chức vụ là nhân viên kinh doanh đúng không?": {
+    "family": "ever",
+    "question": "Phạm Nam đã từng có chức vụ là nhân viên kinh doanh đúng không?",
+    "subject": "Phạm Nam",
+    "predicate": "job_title",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "50|Vào ngày 2024-12-04, Số điện thoại của Vũ Minh là gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-12-04, Số điện thoại của Vũ Minh là gì?",
+    "subject": "Vũ Minh",
+    "predicate": "phone",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Vũ Minh là 0987654321."
+    ],
+    "answer": "0987654321",
+    "correct": true
+  },
+  "50|Vào ngày 2024-10-09, Hoàng Yến đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-10-09, Hoàng Yến đang giữ chức vụ gì?",
+    "subject": "Hoàng Yến",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Hoàng Yến đang giữ chức trưởng phòng."
+    ],
+    "answer": "Trưởng phòng.",
+    "correct": true
+  },
+  "50|Vào ngày 2024-12-13, Số điện thoại của Trần Bình là gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-12-13, Số điện thoại của Trần Bình là gì?",
+    "subject": "Trần Bình",
+    "predicate": "phone",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Trần Bình là 0977123456."
+    ],
+    "answer": "0977123456",
+    "correct": true
+  },
+  "100|Lê Lan đang làm ở công ty nào?": {
+    "family": "current",
+    "question": "Lê Lan đang làm ở công ty nào?",
+    "subject": "Lê Lan",
+    "predicate": "employer",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Lan làm việc tại công ty Locaith."
+    ],
+    "answer": "Locaith.",
+    "correct": true
+  },
+  "100|Vào ngày 2024-10-11, Lê Lan đang làm ở công ty nào?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-10-11, Lê Lan đang làm ở công ty nào?",
+    "subject": "Lê Lan",
+    "predicate": "employer",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Lan làm việc tại công ty Locaith."
+    ],
+    "answer": "Locaith",
+    "correct": true
+  },
+  "100|Lê Lan đã từng có nơi làm việc là Locaith đúng không?": {
+    "family": "ever",
+    "question": "Lê Lan đã từng có nơi làm việc là Locaith đúng không?",
+    "subject": "Lê Lan",
+    "predicate": "employer",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Lan làm việc tại công ty Locaith."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "100|Bùi Cường đang sống ở đâu?": {
+    "family": "current",
+    "question": "Bùi Cường đang sống ở đâu?",
+    "subject": "Bùi Cường",
+    "predicate": "city",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Bùi Cường sống ở Huế."
+    ],
+    "answer": "Bùi Cường sống ở Huế.",
+    "correct": true
+  },
+  "100|Vào ngày 2025-02-11, Bùi Cường đang sống ở đâu?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-02-11, Bùi Cường đang sống ở đâu?",
+    "subject": "Bùi Cường",
+    "predicate": "city",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Bùi Cường sống ở Huế."
+    ],
+    "answer": "Huế",
+    "correct": true
+  },
+  "100|Bùi Cường đã từng có nơi sống là Hà Nội đúng không?": {
+    "family": "ever",
+    "question": "Bùi Cường đã từng có nơi sống là Hà Nội đúng không?",
+    "subject": "Bùi Cường",
+    "predicate": "city",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "100|Số điện thoại của Trần Hà là gì?": {
+    "family": "current",
+    "question": "Số điện thoại của Trần Hà là gì?",
+    "subject": "Trần Hà",
+    "predicate": "phone",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Trần Hà là 0938777666."
+    ],
+    "answer": "0938777666",
+    "correct": true
+  },
+  "100|Phạm Giang đang giữ chức vụ gì?": {
+    "family": "current",
+    "question": "Phạm Giang đang giữ chức vụ gì?",
+    "subject": "Phạm Giang",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Giang đang giữ chức nhân viên kinh doanh."
+    ],
+    "answer": "Nhân viên kinh doanh.",
+    "correct": true
+  },
+  "100|Phạm Vy đang làm ở công ty nào?": {
+    "family": "current",
+    "question": "Phạm Vy đang làm ở công ty nào?",
+    "subject": "Phạm Vy",
+    "predicate": "employer",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy làm việc tại công ty Đại Việt."
+    ],
+    "answer": "Công ty Đại Việt.",
+    "correct": true
+  },
+  "100|Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+    "subject": "Phạm Vy",
+    "predicate": "employer",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy làm việc tại công ty Đại Việt."
+    ],
+    "answer": "Công ty Đại Việt.",
+    "correct": true
+  },
+  "100|Phạm Vy đã từng có nơi làm việc là Đại Việt đúng không?": {
+    "family": "ever",
+    "question": "Phạm Vy đã từng có nơi làm việc là Đại Việt đúng không?",
+    "subject": "Phạm Vy",
+    "predicate": "employer",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy làm việc tại công ty Đại Việt."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "100|Phạm Nam đang phụ trách dự án nào?": {
+    "family": "current",
+    "question": "Phạm Nam đang phụ trách dự án nào?",
+    "subject": "Phạm Nam",
+    "predicate": "project",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Nam phụ trách dự án hệ thống OCR."
+    ],
+    "answer": "Dự án hệ thống OCR.",
+    "correct": true
+  },
+  "100|Phạm Nam đã từng có dự án phụ trách là cổng thanh toán đúng không?": {
+    "family": "ever",
+    "question": "Phạm Nam đã từng có dự án phụ trách là cổng thanh toán đúng không?",
+    "subject": "Phạm Nam",
+    "predicate": "project",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "100|Vào ngày 2024-12-13, Số điện thoại của Trần Bình là gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-12-13, Số điện thoại của Trần Bình là gì?",
+    "subject": "Trần Bình",
+    "predicate": "phone",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Trần Bình là 0977123456."
+    ],
+    "answer": "Số điện thoại của Trần Bình là 0977123456.",
+    "correct": true
+  },
+  "100|Trần Bình đã từng có số điện thoại là 0977123456 đúng không?": {
+    "family": "ever",
+    "question": "Trần Bình đã từng có số điện thoại là 0977123456 đúng không?",
+    "subject": "Trần Bình",
+    "predicate": "phone",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Trần Bình là 0977123456."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "100|Phạm Vy đã từng có số điện thoại là 0987654321 đúng không?": {
+    "family": "ever",
+    "question": "Phạm Vy đã từng có số điện thoại là 0987654321 đúng không?",
+    "subject": "Phạm Vy",
+    "predicate": "phone",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "100|Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-11-20, Trần Hà đang giữ chức vụ gì?",
+    "subject": "Trần Hà",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Trần Hà đang giữ chức phó giám đốc."
+    ],
+    "answer": "Phó giám đốc.",
+    "correct": true
+  },
+  "100|Vào ngày 2024-07-25, Bùi Tuấn đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-07-25, Bùi Tuấn đang giữ chức vụ gì?",
+    "subject": "Bùi Tuấn",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Bùi Tuấn đang giữ chức trưởng nhóm."
+    ],
+    "answer": "Trưởng nhóm.",
+    "correct": true
+  },
+  "250|Phạm Vy đang phụ trách dự án nào?": {
+    "family": "current",
+    "question": "Phạm Vy đang phụ trách dự án nào?",
+    "subject": "Phạm Vy",
+    "predicate": "project",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy phụ trách dự án cổng thanh toán."
+    ],
+    "answer": "Dự án cổng thanh toán.",
+    "correct": true
+  },
+  "250|Vào ngày 2025-01-04, Phạm Vy đang phụ trách dự án nào?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-01-04, Phạm Vy đang phụ trách dự án nào?",
+    "subject": "Phạm Vy",
+    "predicate": "project",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy phụ trách dự án cổng thanh toán."
+    ],
+    "answer": "Dự án cổng thanh toán.",
+    "correct": true
+  },
+  "250|Phạm Vy đã từng có dự án phụ trách là cổng thanh toán đúng không?": {
+    "family": "ever",
+    "question": "Phạm Vy đã từng có dự án phụ trách là cổng thanh toán đúng không?",
+    "subject": "Phạm Vy",
+    "predicate": "project",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy phụ trách dự án cổng thanh toán."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "250|Phạm Vy đang làm ở công ty nào?": {
+    "family": "current",
+    "question": "Phạm Vy đang làm ở công ty nào?",
+    "subject": "Phạm Vy",
+    "predicate": "employer",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy làm việc tại công ty Đại Việt."
+    ],
+    "answer": "Công ty Đại Việt.",
+    "correct": true
+  },
+  "250|Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-01-24, Phạm Vy đang làm ở công ty nào?",
+    "subject": "Phạm Vy",
+    "predicate": "employer",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy làm việc tại công ty Đại Việt."
+    ],
+    "answer": "Công ty Đại Việt.",
+    "correct": true
+  },
+  "250|Phạm Vy đã từng có nơi làm việc là Locaith đúng không?": {
+    "family": "ever",
+    "question": "Phạm Vy đã từng có nơi làm việc là Locaith đúng không?",
+    "subject": "Phạm Vy",
+    "predicate": "employer",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "250|Trần Hà đang phụ trách dự án nào?": {
+    "family": "current",
+    "question": "Trần Hà đang phụ trách dự án nào?",
+    "subject": "Trần Hà",
+    "predicate": "project",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Trần Hà phụ trách dự án hệ thống OCR."
+    ],
+    "answer": "Dự án hệ thống OCR.",
+    "correct": true
+  },
+  "250|Lê Lan đang giữ chức vụ gì?": {
+    "family": "current",
+    "question": "Lê Lan đang giữ chức vụ gì?",
+    "subject": "Lê Lan",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Từ hôm nay, lê Lan đang giữ chức trưởng phòng."
+    ],
+    "answer": "Trưởng phòng.",
+    "correct": true
+  },
+  "250|Vào ngày 2024-12-20, Lê Lan đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-12-20, Lê Lan đang giữ chức vụ gì?",
+    "subject": "Lê Lan",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Từ hôm nay, lê Lan đang giữ chức trưởng phòng."
+    ],
+    "answer": "Trưởng phòng.",
+    "correct": true
+  },
+  "250|Lê Lan đã từng có chức vụ là nhân viên kinh doanh đúng không?": {
+    "family": "ever",
+    "question": "Lê Lan đã từng có chức vụ là nhân viên kinh doanh đúng không?",
+    "subject": "Lê Lan",
+    "predicate": "job_title",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, lê Lan đang giữ chức nhâ"
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "250|Trần Hà sinh ngày nào?": {
+    "family": "current",
+    "question": "Trần Hà sinh ngày nào?",
+    "subject": "Trần Hà",
+    "predicate": "birthday",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, trần Hà sinh ngày 12/03/"
+    ],
+    "answer": "12/03/1990",
+    "correct": true
+  },
+  "250|Trần Hà đã từng có ngày sinh là 05/07/1988 đúng không?": {
+    "family": "ever",
+    "question": "Trần Hà đã từng có ngày sinh là 05/07/1988 đúng không?",
+    "subject": "Trần Hà",
+    "predicate": "birthday",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "250|Lê Sơn đang giữ chức vụ gì?": {
+    "family": "current",
+    "question": "Lê Sơn đang giữ chức vụ gì?",
+    "subject": "Lê Sơn",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Sơn đang giữ chức nhân viên kinh doanh."
+    ],
+    "answer": "Nhân viên kinh doanh.",
+    "correct": true
+  },
+  "250|Vào ngày 2025-02-18, Lê Sơn đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-02-18, Lê Sơn đang giữ chức vụ gì?",
+    "subject": "Lê Sơn",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Sơn đang giữ chức nhân viên kinh doanh."
+    ],
+    "answer": "Nhân viên kinh doanh.",
+    "correct": true
+  },
+  "250|Lê Sơn đã từng có chức vụ là nhân viên kinh doanh đúng không?": {
+    "family": "ever",
+    "question": "Lê Sơn đã từng có chức vụ là nhân viên kinh doanh đúng không?",
+    "subject": "Lê Sơn",
+    "predicate": "job_title",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Sơn đang giữ chức nhân viên kinh doanh."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "250|Vào ngày 2025-01-16, Lương của Đặng Phúc là bao nhiêu?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-01-16, Lương của Đặng Phúc là bao nhiêu?",
+    "subject": "Đặng Phúc",
+    "predicate": "salary",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Lương của Đặng Phúc là 55 triệu."
+    ],
+    "answer": "No information available.",
+    "correct": false
+  },
+  "250|Đặng Phúc đã từng có lương là 25 triệu đúng không?": {
+    "family": "ever",
+    "question": "Đặng Phúc đã từng có lương là 25 triệu đúng không?",
+    "subject": "Đặng Phúc",
+    "predicate": "salary",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "250|Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-11-21, Phạm Vy đang sống ở đâu?",
+    "subject": "Phạm Vy",
+    "predicate": "city",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Vy sống ở Hà Nội."
+    ],
+    "answer": "Hà Nội",
+    "correct": true
+  },
+  "500|Lê Sơn đang giữ chức vụ gì?": {
+    "family": "forgotten",
+    "question": "Lê Sơn đang giữ chức vụ gì?",
+    "subject": "Lê Sơn",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Lê Sơn đang giữ chức trưởng nhóm."
+    ],
+    "answer": "Trưởng nhóm.",
+    "correct": true
+  },
+  "500|Trần Hà đang giữ chức vụ gì?": {
+    "family": "forgotten",
+    "question": "Trần Hà đang giữ chức vụ gì?",
+    "subject": "Trần Hà",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, trần Hà đang giữ chức ph"
+    ],
+    "answer": "Phó giám đốc.",
+    "correct": true
+  },
+  "500|Số điện thoại của Hoàng Yến là gì?": {
+    "family": "forgotten",
+    "question": "Số điện thoại của Hoàng Yến là gì?",
+    "subject": "Hoàng Yến",
+    "predicate": "phone",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Hoàng Yến là 0903111222."
+    ],
+    "answer": "0903111222",
+    "correct": true
+  },
+  "500|Đặng Khanh đang làm ở công ty nào?": {
+    "family": "forgotten",
+    "question": "Đặng Khanh đang làm ở công ty nào?",
+    "subject": "Đặng Khanh",
+    "predicate": "employer",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đặng Khanh làm việc tại công ty Hoà Bình."
+    ],
+    "answer": "Công ty Hoà Bình.",
+    "correct": true
+  },
+  "500|Trần Thảo đang giữ chức vụ gì?": {
+    "family": "forgotten",
+    "question": "Trần Thảo đang giữ chức vụ gì?",
+    "subject": "Trần Thảo",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Trần Thảo làm việc tại công ty Bình Minh."
+    ],
+    "answer": "No information available.",
+    "correct": true
+  },
+  "500|Trần Thảo đang làm ở công ty nào?": {
+    "family": "forgotten",
+    "question": "Trần Thảo đang làm ở công ty nào?",
+    "subject": "Trần Thảo",
+    "predicate": "employer",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Trần Thảo làm việc tại công ty Bình Minh."
+    ],
+    "answer": "Công ty Bình Minh.",
+    "correct": true
+  },
+  "500|Đặng Khanh đang giữ chức vụ gì?": {
+    "family": "current",
+    "question": "Đặng Khanh đang giữ chức vụ gì?",
+    "subject": "Đặng Khanh",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đặng Khanh đang giữ chức trưởng phòng."
+    ],
+    "answer": "Trưởng phòng.",
+    "correct": true
+  },
+  "500|Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+    "subject": "Đặng Khanh",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 2,
+    "selected": [
+      "Đặng Khanh đang giữ chức trưởng phòng.",
+      "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+    ],
+    "answer": "No information available.",
+    "correct": false
+  },
+  "500|Đặng Khanh đã từng có chức vụ là trưởng phòng đúng không?": {
+    "family": "ever",
+    "question": "Đặng Khanh đã từng có chức vụ là trưởng phòng đúng không?",
+    "subject": "Đặng Khanh",
+    "predicate": "job_title",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Đặng Khanh đang giữ chức trưởng phòng."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "500|Đặng Phúc đang giữ chức vụ gì?": {
+    "family": "current",
+    "question": "Đặng Phúc đang giữ chức vụ gì?",
+    "subject": "Đặng Phúc",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đặng Phúc đang giữ chức phó giám đốc."
+    ],
+    "answer": "Phó giám đốc.",
+    "correct": true
+  },
+  "500|Vào ngày 2025-09-07, Đặng Phúc đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-09-07, Đặng Phúc đang giữ chức vụ gì?",
+    "subject": "Đặng Phúc",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Đặng Phúc đang giữ chức phó giám đốc."
+    ],
+    "answer": "Phó giám đốc.",
+    "correct": true
+  },
+  "500|Đặng Phúc đã từng có chức vụ là trưởng nhóm đúng không?": {
+    "family": "ever",
+    "question": "Đặng Phúc đã từng có chức vụ là trưởng nhóm đúng không?",
+    "subject": "Đặng Phúc",
+    "predicate": "job_title",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "500|Vũ Minh đang phụ trách dự án nào?": {
+    "family": "current",
+    "question": "Vũ Minh đang phụ trách dự án nào?",
+    "subject": "Vũ Minh",
+    "predicate": "project",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Vũ Minh phụ trách dự án ứng dụng bán hàng."
+    ],
+    "answer": "Dự án ứng dụng bán hàng.",
+    "correct": true
+  },
+  "500|Vào ngày 2025-03-28, Vũ Minh đang phụ trách dự án nào?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-03-28, Vũ Minh đang phụ trách dự án nào?",
+    "subject": "Vũ Minh",
+    "predicate": "project",
+    "route": "temporal_operator",
+    "candidate_count": 2,
+    "selected": [
+      "Vũ Minh phụ trách dự án ứng dụng bán hàng.",
+      "Theo một nguồn khác, vũ Minh phụ trách dự án hệ thống OCR."
+    ],
+    "answer": "No information available.",
+    "correct": false
+  },
+  "500|Vũ Minh đã từng có dự án phụ trách là ứng dụng bán hàng đúng không?": {
+    "family": "ever",
+    "question": "Vũ Minh đã từng có dự án phụ trách là ứng dụng bán hàng đúng không?",
+    "subject": "Vũ Minh",
+    "predicate": "project",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Vũ Minh phụ trách dự án ứng dụng bán hàng."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "500|Số điện thoại của Phạm Nam là gì?": {
+    "family": "current",
+    "question": "Số điện thoại của Phạm Nam là gì?",
+    "subject": "Phạm Nam",
+    "predicate": "phone",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Phạm Nam là 0903111222."
+    ],
+    "answer": "Số điện thoại của Phạm Nam là 0903111222.",
+    "correct": true
+  },
+  "500|Phạm Nam đã từng có số điện thoại là 0912345678 đúng không?": {
+    "family": "ever",
+    "question": "Phạm Nam đã từng có số điện thoại là 0912345678 đúng không?",
+    "subject": "Phạm Nam",
+    "predicate": "phone",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "500|Bùi Tuấn đang sống ở đâu?": {
+    "family": "current",
+    "question": "Bùi Tuấn đang sống ở đâu?",
+    "subject": "Bùi Tuấn",
+    "predicate": "city",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Bùi Tuấn sống ở Hải Phòng."
+    ],
+    "answer": "Hải Phòng.",
+    "correct": true
+  },
+  "500|Vào ngày 2025-04-08, Bùi Tuấn đang sống ở đâu?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-04-08, Bùi Tuấn đang sống ở đâu?",
+    "subject": "Bùi Tuấn",
+    "predicate": "city",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Bùi Tuấn sống ở Hải Phòng."
+    ],
+    "answer": "Hải Phòng.",
+    "correct": true
+  },
+  "500|Bùi Tuấn đã từng có nơi sống là Hải Phòng đúng không?": {
+    "family": "ever",
+    "question": "Bùi Tuấn đã từng có nơi sống là Hải Phòng đúng không?",
+    "subject": "Bùi Tuấn",
+    "predicate": "city",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Bùi Tuấn sống ở Hải Phòng."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "500|Phạm Nam đang giữ chức vụ gì?": {
+    "family": "current",
+    "question": "Phạm Nam đang giữ chức vụ gì?",
+    "subject": "Phạm Nam",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Nam đang giữ chức phó giám đốc."
+    ],
+    "answer": "Phó giám đốc.",
+    "correct": true
+  },
+  "500|Phạm Nam đã từng có chức vụ là nhân viên kinh doanh đúng không?": {
+    "family": "ever",
+    "question": "Phạm Nam đã từng có chức vụ là nhân viên kinh doanh đúng không?",
+    "subject": "Phạm Nam",
+    "predicate": "job_title",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "500|Vào ngày 2024-12-28, Số điện thoại của Bùi Tuấn là gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-12-28, Số điện thoại của Bùi Tuấn là gì?",
+    "subject": "Bùi Tuấn",
+    "predicate": "phone",
+    "route": "temporal_operator",
+    "candidate_count": 2,
+    "selected": [
+      "Từ hôm nay, số điện thoại của Bùi Tuấn là 0903111222.",
+      "Theo một nguồn khác, số điện thoại của Bùi Tuấn là 097712345"
+    ],
+    "answer": "No information available.",
+    "correct": false
+  },
+  "500|Vào ngày 2024-12-13, Số điện thoại của Trần Bình là gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-12-13, Số điện thoại của Trần Bình là gì?",
+    "subject": "Trần Bình",
+    "predicate": "phone",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Trần Bình là 0977123456."
+    ],
+    "answer": "0977123456",
+    "correct": true
+  },
+  "750|Số điện thoại của Hoàng Yến là gì?": {
+    "family": "forgotten",
+    "question": "Số điện thoại của Hoàng Yến là gì?",
+    "subject": "Hoàng Yến",
+    "predicate": "phone",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Hoàng Yến là 0903111222."
+    ],
+    "answer": "0903111222",
+    "correct": true
+  },
+  "750|Lê Sơn đang giữ chức vụ gì?": {
+    "family": "forgotten",
+    "question": "Lê Sơn đang giữ chức vụ gì?",
+    "subject": "Lê Sơn",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Từ hôm nay, lê Sơn đang giữ chức trưởng phòng."
+    ],
+    "answer": "Trưởng phòng.",
+    "correct": false
+  },
+  "750|Trần Thảo đang giữ chức vụ gì?": {
+    "family": "forgotten",
+    "question": "Trần Thảo đang giữ chức vụ gì?",
+    "subject": "Trần Thảo",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Từ hôm nay, trần Thảo đang giữ chức trưởng nhóm."
+    ],
+    "answer": "Trưởng nhóm.",
+    "correct": true
+  },
+  "750|Nguyễn Dũng đang sống ở đâu?": {
+    "family": "forgotten",
+    "question": "Nguyễn Dũng đang sống ở đâu?",
+    "subject": "Nguyễn Dũng",
+    "predicate": "city",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, nguyễn Dũng đang giữ chứ"
+    ],
+    "answer": "No information available.",
+    "correct": true
+  },
+  "750|Trần Hà đang giữ chức vụ gì?": {
+    "family": "forgotten",
+    "question": "Trần Hà đang giữ chức vụ gì?",
+    "subject": "Trần Hà",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, trần Hà đang giữ chức ph"
+    ],
+    "answer": "Phó giám đốc.",
+    "correct": true
+  },
+  "750|Trần Thảo đang làm ở công ty nào?": {
+    "family": "forgotten",
+    "question": "Trần Thảo đang làm ở công ty nào?",
+    "subject": "Trần Thảo",
+    "predicate": "employer",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Trần Thảo làm việc tại công ty Bình Minh."
+    ],
+    "answer": "Công ty Bình Minh.",
+    "correct": true
+  },
+  "750|Lương của Lê Trang là bao nhiêu?": {
+    "family": "current",
+    "question": "Lương của Lê Trang là bao nhiêu?",
+    "subject": "Lê Trang",
+    "predicate": "salary",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Từ hôm nay, lương của Lê Trang là 32 triệu."
+    ],
+    "answer": "32 triệu.",
+    "correct": true
+  },
+  "750|Vào ngày 2025-01-21, Lương của Lê Trang là bao nhiêu?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-01-21, Lương của Lê Trang là bao nhiêu?",
+    "subject": "Lê Trang",
+    "predicate": "salary",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Lương của Lê Trang là 25 triệu."
+    ],
+    "answer": "No information available.",
+    "correct": false
+  },
+  "750|Lê Trang đã từng có lương là 25 triệu đúng không?": {
+    "family": "ever",
+    "question": "Lê Trang đã từng có lương là 25 triệu đúng không?",
+    "subject": "Lê Trang",
+    "predicate": "salary",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Lương của Lê Trang là 25 triệu."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "750|Hoàng Yến sinh ngày nào?": {
+    "family": "current",
+    "question": "Hoàng Yến sinh ngày nào?",
+    "subject": "Hoàng Yến",
+    "predicate": "birthday",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, hoàng Yến sinh ngày 30/0"
+    ],
+    "answer": "30/01/1992",
+    "correct": true
+  },
+  "750|Hoàng Yến đã từng có ngày sinh là 12/03/1990 đúng không?": {
+    "family": "ever",
+    "question": "Hoàng Yến đã từng có ngày sinh là 12/03/1990 đúng không?",
+    "subject": "Hoàng Yến",
+    "predicate": "birthday",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "750|Trần Thảo đang sống ở đâu?": {
+    "family": "current",
+    "question": "Trần Thảo đang sống ở đâu?",
+    "subject": "Trần Thảo",
+    "predicate": "city",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Trần Thảo sống ở Huế."
+    ],
+    "answer": "Huế",
+    "correct": true
+  },
+  "750|Nguyễn Dũng đang giữ chức vụ gì?": {
+    "family": "current",
+    "question": "Nguyễn Dũng đang giữ chức vụ gì?",
+    "subject": "Nguyễn Dũng",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, nguyễn Dũng đang giữ chứ"
+    ],
+    "answer": "Giám đốc kỹ thuật.",
+    "correct": true
+  },
+  "750|Vào ngày 2025-07-15, Nguyễn Dũng đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-07-15, Nguyễn Dũng đang giữ chức vụ gì?",
+    "subject": "Nguyễn Dũng",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, nguyễn Dũng đang giữ chứ"
+    ],
+    "answer": "Giám đốc kỹ thuật.",
+    "correct": true
+  },
+  "750|Nguyễn Dũng đã từng có chức vụ là giám đốc kỹ thuật đúng không?": {
+    "family": "ever",
+    "question": "Nguyễn Dũng đã từng có chức vụ là giám đốc kỹ thuật đúng không?",
+    "subject": "Nguyễn Dũng",
+    "predicate": "job_title",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, nguyễn Dũng đang giữ chứ"
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "750|Số điện thoại của Nguyễn Quân là gì?": {
+    "family": "current",
+    "question": "Số điện thoại của Nguyễn Quân là gì?",
+    "subject": "Nguyễn Quân",
+    "predicate": "phone",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, số điện thoại của Nguyễn"
+    ],
+    "answer": "0903111222",
+    "correct": true
+  },
+  "750|Vào ngày 2025-06-21, Số điện thoại của Nguyễn Quân là gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-06-21, Số điện thoại của Nguyễn Quân là gì?",
+    "subject": "Nguyễn Quân",
+    "predicate": "phone",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, số điện thoại của Nguyễn"
+    ],
+    "answer": "0903111222",
+    "correct": true
+  },
+  "750|Nguyễn Quân đã từng có số điện thoại là 0987654321 đúng không?": {
+    "family": "ever",
+    "question": "Nguyễn Quân đã từng có số điện thoại là 0987654321 đúng không?",
+    "subject": "Nguyễn Quân",
+    "predicate": "phone",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "750|Phạm Giang sinh ngày nào?": {
+    "family": "current",
+    "question": "Phạm Giang sinh ngày nào?",
+    "subject": "Phạm Giang",
+    "predicate": "birthday",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Giang sinh ngày 21/11/1995."
+    ],
+    "answer": "21/11/1995",
+    "correct": true
+  },
+  "750|Vào ngày 2025-01-26, Hoàng Hùng đang sống ở đâu?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-01-26, Hoàng Hùng đang sống ở đâu?",
+    "subject": "Hoàng Hùng",
+    "predicate": "city",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Hoàng Hùng sống ở Hà Nội."
+    ],
+    "answer": "Hà Nội",
+    "correct": true
+  },
+  "750|Hoàng Hùng đã từng có nơi sống là Hà Nội đúng không?": {
+    "family": "ever",
+    "question": "Hoàng Hùng đã từng có nơi sống là Hà Nội đúng không?",
+    "subject": "Hoàng Hùng",
+    "predicate": "city",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Hoàng Hùng sống ở Hà Nội."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "750|Bùi Cường đã từng có lương là 18 triệu đúng không?": {
+    "family": "ever",
+    "question": "Bùi Cường đã từng có lương là 18 triệu đúng không?",
+    "subject": "Bùi Cường",
+    "predicate": "salary",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "750|Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-03-15, Đặng Khanh đang giữ chức vụ gì?",
+    "subject": "Đặng Khanh",
+    "predicate": "job_title",
+    "route": "temporal_operator",
+    "candidate_count": 2,
+    "selected": [
+      "Đặng Khanh đang giữ chức trưởng phòng.",
+      "Theo một nguồn khác, đặng Khanh đang giữ chức phó giám đốc."
+    ],
+    "answer": "No information available.",
+    "correct": false
+  },
+  "750|Vào ngày 2025-10-18, Phạm Giang đang làm ở công ty nào?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-10-18, Phạm Giang đang làm ở công ty nào?",
+    "subject": "Phạm Giang",
+    "predicate": "employer",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Nhắc lại, phạm Giang làm việc tại công ty An Phát."
+    ],
+    "answer": "Công ty An Phát.",
+    "correct": true
+  },
+  "1000|Lương của Phạm Vy là bao nhiêu?": {
+    "family": "forgotten",
+    "question": "Lương của Phạm Vy là bao nhiêu?",
+    "subject": "Phạm Vy",
+    "predicate": "salary",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Lương của Phạm Vy là 40 triệu."
+    ],
+    "answer": "40 triệu.",
+    "correct": true
+  },
+  "1000|Trần Hà đang giữ chức vụ gì?": {
+    "family": "forgotten",
+    "question": "Trần Hà đang giữ chức vụ gì?",
+    "subject": "Trần Hà",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, trần Hà đang giữ chức ph"
+    ],
+    "answer": "Phó giám đốc.",
+    "correct": true
+  },
+  "1000|Lê Sơn đang giữ chức vụ gì?": {
+    "family": "forgotten",
+    "question": "Lê Sơn đang giữ chức vụ gì?",
+    "subject": "Lê Sơn",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Tôi không có ghi nhận nào về việc này.",
+    "correct": false
+  },
+  "1000|Trần Thảo đang giữ chức vụ gì?": {
+    "family": "forgotten",
+    "question": "Trần Thảo đang giữ chức vụ gì?",
+    "subject": "Trần Thảo",
+    "predicate": "job_title",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Từ hôm nay, trần Thảo đang giữ chức trưởng nhóm."
+    ],
+    "answer": "Trưởng nhóm.",
+    "correct": true
+  },
+  "1000|Nguyễn Oanh đang phụ trách dự án nào?": {
+    "family": "forgotten",
+    "question": "Nguyễn Oanh đang phụ trách dự án nào?",
+    "subject": "Nguyễn Oanh",
+    "predicate": "project",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Nguyễn Oanh phụ trách dự án cổng thanh toán."
+    ],
+    "answer": "Dự án cổng thanh toán.",
+    "correct": true
+  },
+  "1000|Số điện thoại của Nguyễn Oanh là gì?": {
+    "family": "forgotten",
+    "question": "Số điện thoại của Nguyễn Oanh là gì?",
+    "subject": "Nguyễn Oanh",
+    "predicate": "phone",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Nguyễn Oanh phụ trách dự án cổng thanh toán."
+    ],
+    "answer": "No information available.",
+    "correct": true
+  },
+  "1000|Đặng Phúc đang sống ở đâu?": {
+    "family": "current",
+    "question": "Đặng Phúc đang sống ở đâu?",
+    "subject": "Đặng Phúc",
+    "predicate": "city",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Nhắc lại, đặng Phúc sống ở Hà Nội."
+    ],
+    "answer": "Hà Nội.",
+    "correct": true
+  },
+  "1000|Vào ngày 2024-12-24, Đặng Phúc đang sống ở đâu?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-12-24, Đặng Phúc đang sống ở đâu?",
+    "subject": "Đặng Phúc",
+    "predicate": "city",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Đặng Phúc sống ở Huế."
+    ],
+    "answer": "Huế",
+    "correct": true
+  },
+  "1000|Đặng Phúc đã từng có nơi sống là Huế đúng không?": {
+    "family": "ever",
+    "question": "Đặng Phúc đã từng có nơi sống là Huế đúng không?",
+    "subject": "Đặng Phúc",
+    "predicate": "city",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Đặng Phúc sống ở Huế."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "1000|Vũ An đang làm ở công ty nào?": {
+    "family": "current",
+    "question": "Vũ An đang làm ở công ty nào?",
+    "subject": "Vũ An",
+    "predicate": "employer",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Từ hôm nay, vũ An làm việc tại công ty Bình Minh."
+    ],
+    "answer": "Công ty Bình Minh.",
+    "correct": true
+  },
+  "1000|Vào ngày 2026-03-02, Vũ An đang làm ở công ty nào?": {
+    "family": "historical",
+    "question": "Vào ngày 2026-03-02, Vũ An đang làm ở công ty nào?",
+    "subject": "Vũ An",
+    "predicate": "employer",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Từ hôm nay, vũ An làm việc tại công ty Hoà Bình."
+    ],
+    "answer": "Công ty Hoà Bình.",
+    "correct": true
+  },
+  "1000|Vũ An đã từng có nơi làm việc là Locaith đúng không?": {
+    "family": "ever",
+    "question": "Vũ An đã từng có nơi làm việc là Locaith đúng không?",
+    "subject": "Vũ An",
+    "predicate": "employer",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "1000|Nguyễn Quân đang làm ở công ty nào?": {
+    "family": "current",
+    "question": "Nguyễn Quân đang làm ở công ty nào?",
+    "subject": "Nguyễn Quân",
+    "predicate": "employer",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Nguyễn Quân làm việc tại công ty Locaith."
+    ],
+    "answer": "Công ty Locaith.",
+    "correct": true
+  },
+  "1000|Số điện thoại của Lê Lan là gì?": {
+    "family": "current",
+    "question": "Số điện thoại của Lê Lan là gì?",
+    "subject": "Lê Lan",
+    "predicate": "phone",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Từ hôm nay, số điện thoại của Lê Lan là 0912345678."
+    ],
+    "answer": "0912345678",
+    "correct": true
+  },
+  "1000|Vào ngày 2026-04-27, Số điện thoại của Lê Lan là gì?": {
+    "family": "historical",
+    "question": "Vào ngày 2026-04-27, Số điện thoại của Lê Lan là gì?",
+    "subject": "Lê Lan",
+    "predicate": "phone",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Từ hôm nay, số điện thoại của Lê Lan là 0987654321."
+    ],
+    "answer": "0987654321",
+    "correct": true
+  },
+  "1000|Lê Lan đã từng có số điện thoại là 0912345678 đúng không?": {
+    "family": "ever",
+    "question": "Lê Lan đã từng có số điện thoại là 0912345678 đúng không?",
+    "subject": "Lê Lan",
+    "predicate": "phone",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Số điện thoại của Lê Lan là 0912345678."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "1000|Hoàng Hùng sinh ngày nào?": {
+    "family": "current",
+    "question": "Hoàng Hùng sinh ngày nào?",
+    "subject": "Hoàng Hùng",
+    "predicate": "birthday",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Đính chính: thông tin trước là sai, hoàng Hùng sinh ngày 12/"
+    ],
+    "answer": "12/03/1990",
+    "correct": true
+  },
+  "1000|Hoàng Hùng đã từng có ngày sinh là 05/07/1988 đúng không?": {
+    "family": "ever",
+    "question": "Hoàng Hùng đã từng có ngày sinh là 05/07/1988 đúng không?",
+    "subject": "Hoàng Hùng",
+    "predicate": "birthday",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "1000|Lương của Nguyễn Oanh là bao nhiêu?": {
+    "family": "current",
+    "question": "Lương của Nguyễn Oanh là bao nhiêu?",
+    "subject": "Nguyễn Oanh",
+    "predicate": "salary",
+    "route": "state_at",
+    "candidate_count": 1,
+    "selected": [
+      "Lương của Nguyễn Oanh là 32 triệu."
+    ],
+    "answer": "32 triệu.",
+    "correct": true
+  },
+  "1000|Vào ngày 2025-10-18, Phạm Giang đang làm ở công ty nào?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-10-18, Phạm Giang đang làm ở công ty nào?",
+    "subject": "Phạm Giang",
+    "predicate": "employer",
+    "route": "temporal_operator",
+    "candidate_count": 2,
+    "selected": [
+      "Từ hôm nay, phạm Giang làm việc tại công ty An Phát.",
+      "Nhắc lại, phạm Giang làm việc tại công ty An Phát."
+    ],
+    "answer": "Công ty An Phát.",
+    "correct": true
+  },
+  "1000|Phạm Giang đã từng có nơi làm việc là Locaith đúng không?": {
+    "family": "ever",
+    "question": "Phạm Giang đã từng có nơi làm việc là Locaith đúng không?",
+    "subject": "Phạm Giang",
+    "predicate": "employer",
+    "route": "ever_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Phạm Giang làm việc tại công ty Locaith."
+    ],
+    "answer": "Có.",
+    "correct": true
+  },
+  "1000|Vào ngày 2024-11-04, Đặng Khanh đang sống ở đâu?": {
+    "family": "historical",
+    "question": "Vào ngày 2024-11-04, Đặng Khanh đang sống ở đâu?",
+    "subject": "Đặng Khanh",
+    "predicate": "city",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Đặng Khanh sống ở Cần Thơ."
+    ],
+    "answer": "Cần Thơ",
+    "correct": true
+  },
+  "1000|Đặng Khanh đã từng có nơi sống là Hà Nội đúng không?": {
+    "family": "ever",
+    "question": "Đặng Khanh đã từng có nơi sống là Hà Nội đúng không?",
+    "subject": "Đặng Khanh",
+    "predicate": "city",
+    "route": "ever_operator",
+    "candidate_count": 0,
+    "selected": [],
+    "answer": "Không.",
+    "correct": true
+  },
+  "1000|Vào ngày 2025-06-13, Lương của Phạm Nam là bao nhiêu?": {
+    "family": "historical",
+    "question": "Vào ngày 2025-06-13, Lương của Phạm Nam là bao nhiêu?",
+    "subject": "Phạm Nam",
+    "predicate": "salary",
+    "route": "temporal_operator",
+    "candidate_count": 1,
+    "selected": [
+      "Theo một nguồn khác, lương của Phạm Nam là 55 triệu."
+    ],
+    "answer": "No information available.",
+    "correct": false
+  }
+}

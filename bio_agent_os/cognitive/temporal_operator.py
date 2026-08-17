@@ -474,8 +474,28 @@ _TRUSTED = "trusted"
 EXECUTION: Counter = Counter()
 
 
+#: Every conflict this process reached, by identity rather than by count.
+#:
+#: `conflict_detected 5 -> 5` hid a complete change of membership: two runs
+#: with five conflicts each may share none of them, and a count equal at both
+#: ends reads as "nothing moved". The key is built from the claims themselves —
+#: never from the rendered answer, which a later synthesis step can reword
+#: without anything having changed underneath.
+CONFLICT_CASES: dict[str, dict[str, Any]] = {}
+
+
+def conflict_key(subject: str, predicate: str, claim_ids: list[str]) -> str:
+    """Stable across runs, wordings and orderings."""
+    import hashlib
+
+    payload = "|".join([str(subject or ""), str(predicate or "")]
+                       + sorted(str(c) for c in claim_ids))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
 def reset_execution() -> None:
     EXECUTION.clear()
+    CONFLICT_CASES.clear()
 
 
 def execution_report() -> dict[str, Any]:
@@ -1102,6 +1122,18 @@ def answer_temporal(memory_os: Any, question: str, *, context: Any,
         when=intent.when or "hiện tại", mode=intent.mode)
     if conflict is not None:
         EXECUTION["conflict_detected"] += 1
+        # Recorded by identity as well as counted, so a later comparison can
+        # say *which* conflict appeared or vanished rather than only how many
+        # there were. Keyed on the claims, never on the rendered sentence.
+        key = conflict_key(intent.subject or "", conflict.predicate,
+                           [c.memory_id for c in conflict.claims])
+        CONFLICT_CASES[key] = {
+            "subject": intent.subject or "",
+            "predicate": conflict.predicate,
+            "when": conflict.when,
+            "claim_ids": sorted(str(c.memory_id) for c in conflict.claims),
+            "claims": [c.content for c in conflict.claims],
+        }
         result.conflict = conflict
         result.answer_text = _render_conflict(conflict)
         result.provenance = conflict.provenance

@@ -109,20 +109,13 @@ def main() -> int:
         bucket["asked"] += 1
         bucket["correct"] += 1 if row["correct"] else 0
 
-    # Conflict identity, not a count. `conflict_detected 5 -> 5` hid a complete
-    # change of membership; a key built from the claims themselves cannot.
-    conflict_keys, conflict_claims = [], {}
-    for key, row in sorted(rows.items()):
-        answer = str(row.get("answer") or "")
-        if "mâu thuẫn" not in answer:
-            continue
-        claims = sorted(str(s) for s in row.get("selected") or ())
-        conflict_key = _digest([row.get("subject"), row.get("predicate"),
-                                claims])[:16]
-        conflict_keys.append(conflict_key)
-        conflict_claims[conflict_key] = {
-            "subject": row.get("subject"), "predicate": row.get("predicate"),
-            "claims": claims, "question": row.get("question")}
+    # Conflict identity from the EXECUTION layer, never from the rendered
+    # answer. B0 derived it by looking for a Vietnamese word in `answer` and
+    # returned an empty list — which cannot be told apart from "there were no
+    # conflicts", and is therefore worth nothing either way. A synthesis step
+    # is free to reword an answer without anything having changed underneath.
+    conflict_claims = dict(T.CONFLICT_CASES)
+    conflict_keys = sorted(conflict_claims)
 
     who = identity()
     baseline = Baseline(
@@ -147,7 +140,12 @@ def main() -> int:
             _REPO / "bio_agent_os" / "evals" / "lifetime_questions.py",
             _REPO / "bio_agent_os" / "evals" / "lifetime_adapter.py"),
         families=families,
-        execution_contract=dict(execution),
+        # Both sources. `run_now` reports its own routing stats; the operator
+        # reports which paths ran inside it. B0 recorded only the first and so
+        # carried four counters where the gate prints fifteen — a contract that
+        # names fewer paths than exist is a contract several paths can change
+        # underneath.
+        execution_contract={**dict(execution), **T.execution_report()},
         conflict_case_ids=conflict_keys,
         conflict_claim_sets=conflict_claims,
     )
