@@ -128,6 +128,65 @@ def test_the_counter_fires(contested):
 # and the three shapes that are NOT a conflict
 # ---------------------------------------------------------------------------
 
+def test_a_lone_disputed_claim_is_not_a_silently_resolved_conflict(tmp_path):
+    """Cái bẫy mà chính counter này đã rơi vào một lần.
+
+    Bản đầu suy vi phạm từ *span nào được chọn*, nên nó nổ khi chỉ có một claim
+    "theo một nguồn khác" đơn độc — không có gì để mâu thuẫn, không có gì bị
+    quyết ngầm. Integration Gate báo `silent_conflict_resolution = 1` cho một
+    sự kiện chưa từng xảy ra.
+
+    Một metric mục-tiêu-0 mà kêu oan sẽ bị bỏ qua ngay lần đầu, rồi đúng ngày
+    nó nói thật thì không còn ai tin. Nên nó đo thẳng tính chất trên **kết
+    quả**: không khoảng nào được kết thúc đúng chỗ một claim tranh chấp bắt
+    đầu."""
+    memory_os = _store(tmp_path, "lone", [(CONTRADICT, T1)])
+    try:
+        T.reset_execution()
+        result = T.answer_temporal(memory_os, ASK, context=CTX)
+        assert "phó giám đốc" in result.answer_text
+        assert T.execution_report()["silent_conflict_resolution"] == 0
+        assert T.execution_report()["conflict_detected"] == 0
+    finally:
+        memory_os.close()
+
+
+def test_the_audit_fires_when_the_mutant_comes_back(contested, monkeypatch):
+    """UNRESOLVED_CONFLICT_CLOSES_PREVIOUS_INTERVAL, tái sinh.
+
+    Nếu counter không nổ ở đây thì nó là code chết, và một bất biến không có
+    người canh là một bất biến sẽ lặng lẽ mất."""
+    real = T._closers
+    monkeypatch.setattr(T, "_closers", lambda live: list(live))
+    T.reset_execution()
+    T.answer_temporal(contested, ASK, context=CTX)
+    monkeypatch.setattr(T, "_closers", real)
+
+    assert T.execution_report()["silent_conflict_resolution"] >= 1, (
+        "mutant sống lại mà không ai báo — counter là code chết")
+
+
+def test_the_audit_is_blind_if_disputation_detection_breaks(contested,
+                                                           monkeypatch):
+    """Giới hạn của chính bộ canh, ghi lại chứ không giấu.
+
+    Audit hỏi "có khoảng nào kết thúc đúng chỗ một claim tranh chấp bắt đầu
+    không". Nếu `_is_disputed` ngừng nhận ra tranh chấp thì không claim nào
+    tranh chấp, tập rỗng, và audit im lặng — đúng lúc bất biến đã mất.
+
+    Nó được canh bởi thứ khác: `_is_disputed` đọc chính
+    `ALTERNATIVE_SOURCE_MARKERS` mà `classify_relation` đọc, và
+    `test_the_relation_enum_already_knows_what_unresolved_means` giữ đầu kia.
+    Một bộ canh không tự canh được mình; điều phải tránh là tưởng nó có."""
+    monkeypatch.setattr(T, "_is_disputed", lambda content: False)
+    T.reset_execution()
+    T.answer_temporal(contested, ASK, context=CTX)
+
+    assert T.execution_report()["silent_conflict_resolution"] == 0, (
+        "nếu ca này bắt đầu nổ thì audit đã mạnh hơn tài liệu này — sửa lại "
+        "tài liệu, đừng sửa test")
+
+
 def test_a_restatement_is_agreement_not_conflict(tmp_path):
     """`_core` đã biết hai câu này là một claim. Gọi nó là mâu thuẫn thì
     `false_conflict_rate` khác 0 ngay từ ca dễ nhất."""

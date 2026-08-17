@@ -696,6 +696,17 @@ def _by_subject(rows: list, subject: str) -> list[tuple]:
     return kept
 
 
+def _closers(live: list[ClaimSpan]) -> list[ClaimSpan]:
+    """Which claims are allowed to end another claim's interval.
+
+    A named function for a one-line filter, because it is the whole invariant
+    and an invariant that cannot be replaced by a mutant cannot be shown to be
+    doing anything. `UNRESOLVED_CONFLICT_CLOSES_PREVIOUS_INTERVAL` is exactly
+    this returning `live`.
+    """
+    return [s for s in live if not s.disputed]
+
+
 def _is_disputed(content: str) -> bool:
     """Did this claim arrive as a competing account rather than a change?
 
@@ -910,10 +921,31 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
     # This says nothing about who wins. The disputed claim keeps its span, the
     # dispute keeps its own, and how a query is answered inside a contested
     # region is a separate decision that is deliberately not taken here.
-    closers = [s for s in live if not s.disputed]
+    closers = _closers(live)
     for earlier, later in zip(closers, closers[1:]):
         earlier.valid_to = later.valid_from
         earlier.kind = "superseded" if earlier.kind == "asserted" else earlier.kind
+
+    def _audit_invariant() -> None:
+        """Count violations on the **result**, not on the reasoning.
+
+        The first version of this counter inferred a violation from which span
+        got selected, and fired on a lone "theo một nguồn khác" claim that had
+        nothing to disagree with — a target-zero metric reporting one, for an
+        event that never happened. A metric that cries wolf is dismissed the
+        first time, and is then unavailable on the day it is right.
+
+        So it checks the property directly: no interval may end exactly where
+        a disputed claim begins. That holds whoever wrote the window — this
+        function, or the lifecycle override below, which is the path this
+        loop cannot see and the one most likely to reintroduce it.
+        """
+        starts = {s.valid_from for s in spans if s.disputed}
+        if not starts:
+            return
+        for span in spans:
+            if span.valid_to is not None and span.valid_to in starts:
+                EXECUTION["silent_conflict_resolution"] += 1
 
     # A window written by the lifecycle wins over the one derived here.
     #
@@ -945,6 +977,8 @@ def claim_history(memory_os: Any, *, subject: str, aspect: str | None,
             span.retracted_by = span.retracted_by or "lifecycle"
         elif span.kind == "asserted":
             span.kind = "superseded"
+
+    _audit_invariant()
     return spans
 
 
@@ -1104,13 +1138,6 @@ def _conflict_state(chosen: list[ClaimSpan], *, predicate: str | None,
     system held, and it held one thing at a time by construction.
     """
     if mode == "belief" or len(chosen) < 2 or not _single_valued(predicate):
-        if (mode != "belief" and len(chosen) == 1 and _single_valued(predicate)
-                and any(s.disputed for s in chosen)):
-            # One claim survived selection and it is the *disputed* one. That
-            # is a conflict decided in favour of the rumour, arrived at
-            # silently — the exact failure the interval invariant closed, and
-            # the counter that proves it stayed closed. Target: zero.
-            EXECUTION["silent_conflict_resolution"] += 1
         return None
     if len({_core(s.content) for s in chosen}) < 2:
         return None                      # same claim, said twice
