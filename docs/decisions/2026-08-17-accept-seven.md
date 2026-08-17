@@ -16,7 +16,7 @@ C1  1fc3398   = B2 + patch sha256 86F994AF1F38F79254FBB850BA6101077CF972188B96C0
 | 2 | C1 là hậu duệ, đúng phạm vi patch | **PASS** — `merge-base(B2,C1)==B2`, đúng 2 file |
 | 3 | Positive-control Phạm Nam | **PASS** — `False → True` |
 | 4 | Audit nhân quả từng delta | **PASS** — 2/2 |
-| 5 | Replay resurrection qua rebuild | **NOT_EVALUABLE** |
+| 5 | Replay resurrection qua rebuild | **PASS** — đo lại 17/08, xem §Cửa 5 |
 | 6 | Full suite tại C1 | **PASS** — 1184 passed, 3 skipped, 10 xfailed |
 
 ## Dấu chân nhân quả
@@ -46,6 +46,35 @@ t478/t774  CORRECT  cùng proposition_key
 nuốt mất. Nó không mở span; giá trị đúng không có span sống nào; câu trả lời rơi
 xuống chỗ khác. #7 tách hai trục, đính chính tồn tại như một sự kiện, và
 `STATE_AT` chọn được nó.
+
+## Cửa 5 — ĐÍNH CHÍNH 17/08: NOT_EVALUABLE → PASS
+
+Cửa 5 từng là `NOT_EVALUABLE` vì tôi kết luận **không có consumer nào** vật chất
+hoá outbox. **Kết luận đó sai.** `ReconciliationWorker` claim outbox và ghi
+`cognitive_memories`, có trong cây từ `d42cc65` ngày 04/08 — mười hai ngày trước
+khi #7 được chấp nhận trên tiền đề nó không tồn tại. Grep của tôi trượt vì
+consumer **không bao giờ gõ tên bảng** trên đường tiêu thụ; nó đi qua đối tượng
+`self.outbox.claim(...)`.
+
+Đường nguy hiểm giờ chạy được, nên câu hỏi trả lời được.
+
+`tests/test_seven_door_five.py`, hai nhánh khác nhau **duy nhất** ở ngữ nghĩa
+#7, bật tắt trong cùng một tiến trình — vì HEAD đã chứa cả P0-A và bản vá `:335`,
+và so HEAD với commit trước #7 sẽ lẫn ba thay đổi:
+
+| | pre-#7 | #7 |
+|---|---|---|
+| control, không forget | materialize | materialize |
+| bản sạch, sau forget | **chặn** | **chặn** |
+| mutant làm mù chốt `buried` | **hồi sinh** | **hồi sinh** |
+
+Mutant hồi sinh ở **cả hai** nhánh: hai nhánh tương đương về an toàn, và ca sạch
+phía trên có tải. Cộng một ca chứng minh fixture thật sự bật tắt được #7 — nếu
+không, ba ca kia đang so hai bản sao của cùng một thứ.
+
+**Đây là chứng minh KHÔNG-HỒI-QUY, không phải chứng nhận an toàn toàn cục.**
+`#7 Door 5 = PASS` trả lời "#7 có làm yếu tombstone safety không". Nó không trả
+lời "Bio-Memory đã replay-safe chưa" — câu đó vẫn `PARTIALLY VERIFIED`.
 
 ## GIỚI HẠN — bắt buộc đọc kèm mọi phát biểu về replay
 
