@@ -108,6 +108,17 @@ class ProjectionControl:
         ]
 
 
+# Drain kết thúc bằng một KẾT LUẬN, không bằng một lời hứa.
+#
+# "Rút hàng đợi về 0 bằng mọi giá" là một hợp đồng nguy hiểm khi hệ thống không
+# phân biệt được hạ tầng chập chờn với payload độc (xem
+# H1_2_ABANDONMENT_ATTRIBUTION_AUDIT.md): muốn hội tụ thì buộc phải vứt hoặc
+# nhốt thứ mình chưa hiểu. Một job chưa giải quyết được, còn nguyên và được
+# báo rõ, tốt hơn một job lành bị nhốt nhầm để con số về 0.
+DRAIN_COMPLETE = "DRAIN_COMPLETE"
+DRAIN_INCOMPLETE_UNRESOLVED = "DRAIN_INCOMPLETE_UNRESOLVED"
+
+
 def drain(
     memory_os: Any,
     *,
@@ -157,7 +168,11 @@ def drain(
     after = memory_os.events.outbox.counts()
     remaining = after["pending"] + after["in_progress"]
     return {
+        # `drained` giữ nguyên cho phía gọi cũ; `outcome` mới là phát biểu.
         "drained": remaining == 0,
+        "outcome": (DRAIN_COMPLETE if remaining == 0
+                    else DRAIN_INCOMPLETE_UNRESOLVED),
+        "unresolved": remaining,
         "seconds": round(time.time() - started, 3),
         "timed_out": time.time() >= deadline and remaining > 0,
         "queue_before": before,

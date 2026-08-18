@@ -23,6 +23,7 @@ biến là lời khai của lập trình viên; execution trace mới là nhân 
 from __future__ import annotations
 
 import sqlite3
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -166,6 +167,39 @@ def _materialised(memory_os, needle: str) -> bool:
 # what `attempts` actually counts — measured, not inferred
 # ---------------------------------------------------------------------------
 
+def _drain_past_eligibility(memory_os, *, cycles: int = 10) -> dict:
+    """Quay hàng đợi, đẩy đồng hồ tới đúng mốc đủ-điều-kiện ĐÃ ĐỌC ĐƯỢC.
+
+    Từ H1.3, `claim()` cho một lease bị bỏ rơi nhường lượt khi còn việc khác
+    đang đợi, bằng cách đẩy `available_at` tới. Quay vòng bằng đồng hồ thật thì
+    hết trong vài micro giây và không bao giờ chạm mốc đó. Tăng số vòng rồi
+    mong thời gian "đủ" là săn kết quả; đọc mốc rồi đẩy tới đúng nó mới là thi
+    hành hợp đồng.
+    """
+    worker = worker_for(memory_os, lease_seconds=0)
+    conn = memory_os.memories.conn
+    now, waits, delivered = time.time(), [], []
+    for _ in range(cycles):
+        jobs = worker.outbox.claim(worker_id="w", limit=5, now=now,
+                                   lease_seconds=0)
+        if jobs:
+            for job in jobs:
+                delivered.append(job.job_id)
+                worker.process(job)
+            continue
+        row = conn.execute(
+            "SELECT MIN(available_at) FROM projection_outbox "
+            "WHERE status IN ('pending', 'in_progress')").fetchone()
+        if row is None or row[0] is None:
+            break
+        boundary = float(row[0])
+        if boundary <= now:
+            break
+        waits.append(round(boundary - now, 6))
+        now = boundary + 1e-6
+    return {"yield_waits": waits, "delivered": delivered}
+
+
 def test_attempts_counts_deliveries_not_failures(tmp_path):
     """Bộ đếm tăng khi GIAO việc, kể cả khi handler không bao giờ chạy."""
     memory_os = _store(tmp_path, "meaning", [POISON])
@@ -202,23 +236,29 @@ def test_worker_losses_consume_the_processing_failure_budget(tmp_path):
         memory_os.close()
 
 
-# ---------------------------------------------------------------------------
-# P1–P4 — lane Poison Job / Abandoned Lease
-# ---------------------------------------------------------------------------
-
 def test_p1_worker_dies_before_the_handler_runs(tmp_path):
-    """Job có được thu hồi không, và job lành phía sau có chạy tiếp không?"""
+    """Job bị bỏ rơi vẫn thu hồi được — nhưng SAU khi đủ điều kiện, không tức thì.
+
+    Hợp đồng cũ ở ca này là "thu hồi ngay", và nó xanh suốt. H1.3 đổi nó, vì
+    thu hồi ngay CHÍNH LÀ cơ chế làm job lành chết đói: job bị bỏ rơi quay lại
+    đầu hàng ở mỗi vòng và không cần độc hại để chặn cả đoàn.
+
+    Nên "tức thì" không còn là bất biến. "Cuối cùng vẫn thu hồi được" mới là.
+    """
     memory_os = _store(tmp_path, "p1", [POISON, HEALTHY_A])
     try:
         outbox = worker_for(memory_os).outbox
         outbox.claim(worker_id="dead", tenant_id=TENANT)   # chết ngay sau claim
 
-        worker = worker_for(memory_os, lease_seconds=0)
-        for _ in range(4):
-            worker.run_once(batch_size=5)
+        evidence = _drain_past_eligibility(memory_os)
 
-        assert _materialised(memory_os, "0977123456"), "job bị bỏ rơi không được thu hồi"
+        assert evidence["yield_waits"], (
+            f"không quan sát được hàng rào nhường lượt nào — ca này không còn "
+            f"đo cái nó định đo: {evidence}")
         assert _materialised(memory_os, "Hà Nội"), "job lành phía sau không chạy"
+        assert _materialised(memory_os, "0977123456"), (
+            f"job bị bỏ rơi không thu hồi được KỂ CẢ sau mốc đủ điều kiện: "
+            f"{evidence}")
     finally:
         memory_os.close()
 
@@ -254,21 +294,23 @@ def test_p3_retry_after_a_real_failure_is_bounded(tmp_path):
         memory_os.close()
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "DEFECT DA XAC NHAN, chua va. Do tren harness tat dinh (created_at duoc "
-    "ghim, 6/6 lan chay giong het nhau): 12 vong batch_size=1, ca 12 luot "
-    "giao deu ve job doc; hai job lanh dung yen pending attempts=0. Day la "
-    "mot cai chuong: ngay fairness hoac quarantine duoc them vao, ca nay "
-    "XPASS va do len, va do la luc phai viet lai no thanh ca khang dinh tien "
-    "trien — khong phai luc noi long no."))
-def test_p4_a_deterministic_poison_job_never_converges(tmp_path):
-    """**Ca quyết định.**
+def test_p4_every_job_gets_a_turn_even_with_a_poison_job(tmp_path):
+    """**Ca quyết định.** Từng là bằng chứng của defect; giờ là bằng chứng của bản vá.
 
-    Poison quyết định: mỗi lần handler chạm vào job là worker chết — nên
-    `fail()` không bao giờ được gọi, và không gì đọc `attempts`.
+    Lịch sử pháp y, giữ nguyên không sửa. Trước H1.3, đo trên harness tất định
+    (created_at được ghim, 6/6 lần chạy giống hệt nhau):
 
-    Câu hỏi không phải "job độc có sao không" mà là ba câu về HÀNG ĐỢI:
-    job lành có xong không, hàng có cạn không, drain có kết thúc không.
+        12 vòng batch_size=1
+        POISON      in_progress  attempts=12   ← nhận 12/12 lượt giao
+        HEALTHY_A   pending      attempts=0    ← chưa từng được giao
+        HEALTHY_B   pending      attempts=0    ← chưa từng được giao
+
+    Ca này từng là `xfail(strict=True)` mang đúng bảng số đó. Khi fairness vào,
+    nó không XPASS như dự đoán — nó vẫn `xfail`, nhưng vì một TIỀN ĐỀ hỏng
+    (`deliveries >= 3` không còn đạt), chứ không vì kết luận. Sổ giao việc lúc
+    đó cho thấy vì sao: mỗi job đúng 1 lượt. Một cái chuông kêu đúng giờ nhưng
+    sai lý do vẫn là chuông hỏng, nên ca được viết lại thành khẳng định tiến
+    triển.
     """
     memory_os = _store(tmp_path, "p4", [POISON, HEALTHY_A, HEALTHY_B])
     try:
@@ -276,7 +318,6 @@ def test_p4_a_deterministic_poison_job_never_converges(tmp_path):
         assert poison_row, "không định vị được job độc"
         poison_id = poison_row["job_id"]
 
-        ledger = LivenessLedger()
         worker = worker_for(memory_os, lease_seconds=0)
         real_process = worker.process
 
@@ -286,36 +327,30 @@ def test_p4_a_deterministic_poison_job_never_converges(tmp_path):
             return real_process(job)
 
         worker.process = dies_on_poison
-
-        for sequence in range(12):
-            before = {r["job_id"]: r["attempts"] for r in _rows(memory_os)}
+        now, delivered = time.time(), []
+        for _ in range(12):
             try:
-                worker.run_once(batch_size=1)
+                for job in worker.outbox.claim(worker_id="w", limit=1, now=now,
+                                               lease_seconds=0):
+                    delivered.append(job.job_id)
+                    worker.process(job)
             except RuntimeError:
                 pass                       # đúng: tiến trình chết, lease treo
-            for row in _rows(memory_os):
-                if row["attempts"] != before.get(row["job_id"]):
-                    ledger.observations.append(ClaimObservation(
-                        claim_seq=sequence, job_id=row["job_id"],
-                        tenant_id=TENANT,
-                        attempts_before=before.get(row["job_id"], 0),
-                        attempts_after=row["attempts"],
-                        lease_lost=row["job_id"] == poison_id))
+            row = memory_os.memories.conn.execute(
+                "SELECT MIN(available_at) FROM projection_outbox "
+                "WHERE status IN ('pending', 'in_progress')").fetchone()
+            if row and row[0] is not None:
+                now = max(now, float(row[0])) + 1e-6
 
-        poison = _row_for(memory_os, "0977123456")
-        deliveries = ledger.deliveries(poison_id)
         healthy_done = (_materialised(memory_os, "Hà Nội")
                         and _materialised(memory_os, "trưởng nhóm"))
+        poison = _row_for(memory_os, "0977123456")
 
-        # Đo trước, phán sau. Ba sự thật, ghi riêng.
-        assert deliveries >= 3, (
-            f"job độc chưa quay đủ vòng để kết luận: {ledger.as_dict()}")
-        assert poison["status"] != "dead_letter", (
-            "job độc ĐÃ tự cách ly được — cập nhật ca này và mở mutant "
-            "NEVER_TERMINATE_POISON_JOB")
-        assert healthy_done, (
-            f"STARVATION — job lành không xong được vì job độc: "
-            f"{ledger.as_dict()} {_rows(memory_os)}")
+        assert healthy_done, f"job lành vẫn chết đói: {_rows(memory_os)}"
+        assert len(set(delivered)) == 3, (
+            f"không phải job nào cũng tới lượt: {delivered}")
+        # Job chưa giải quyết được vẫn RETRYABLE — không dead-letter, không nhốt.
+        assert poison["status"] in ("pending", "in_progress"), poison
     finally:
         memory_os.close()
 
@@ -378,17 +413,17 @@ def test_mutant_never_reclaim_expired_lease(tmp_path, monkeypatch):
         memory_os.close()
 
 
-def test_starvation_is_observed_and_this_is_the_bug(tmp_path):
-    """**H1 = FAIL, khẳng định bằng chính hành vi đo được.**
+def test_a_poison_job_yields_and_healthy_work_proceeds(tmp_path):
+    """Cái chuông đã kêu, và đây là hình dạng mới của nó.
 
-    Không phải một mutant. Đây là sản phẩm như nó đang chạy:
+    Lịch sử pháp y — hành vi đo được TRƯỚC H1.3, giữ nguyên:
 
         vòng 1: POISON in_progress attempts=1   healthy pending attempts=0
         vòng 2: POISON in_progress attempts=2   healthy pending attempts=0
         vòng 3: POISON in_progress attempts=3   healthy pending attempts=0
         vòng 4: POISON in_progress attempts=4   healthy pending attempts=0
 
-    Với `batch_size=1`, `ORDER BY created_at` trả job độc trước **mỗi vòng**, và
+    Với `batch_size=1`, `ORDER BY created_at` trả job độc trước MỖI vòng, và
     job lành phía sau không bao giờ tới lượt. Nó không chậm — nó đứng yên.
 
     Ghép với P3, khoảng trống hiện ra chính xác:
@@ -397,31 +432,19 @@ def test_starvation_is_observed_and_this_is_the_bug(tmp_path):
         worker chết im lặng    → fail() KHÔNG được gọi → không gì đọc attempts
                                → quay vô hạn VÀ chặn đầu hàng
 
-    Cùng một bộ đếm; một đường có người đọc, một đường không.
-
-    **Đây là một cái chuông.** Ngày nào fairness hoặc quarantine được thêm vào,
-    ca này đỏ lên — và đó là lúc phải viết lại nó thành ca khẳng định tiến
-    triển, chứ không phải nới lỏng nó.
+    Cùng một bộ đếm; một đường có người đọc, một đường không. Ca này giờ khẳng
+    định điều ngược lại, và nó vẫn là một cái chuông: gỡ fairness thì nó đỏ.
     """
     memory_os = _store(tmp_path, "starvation", [POISON, HEALTHY_A])
     try:
-        poison_id = _row_for(memory_os, "0977123456")["job_id"]
-        worker = worker_for(memory_os, lease_seconds=0)
-        real_process = worker.process
-        worker.process = lambda job: (
-            None if job.job_id == poison_id else real_process(job))
+        outbox = worker_for(memory_os).outbox
+        outbox.claim(worker_id="dead", tenant_id=TENANT)
 
-        for _ in range(4):
-            worker.run_once(batch_size=1)
+        evidence = _drain_past_eligibility(memory_os)
 
-        healthy = [r for r in _rows(memory_os) if r["job_id"] != poison_id]
-        assert len(healthy) == 1, _rows(memory_os)
-        assert healthy[0]["status"] == "pending", (
-            f"job lành đã tiến triển — starvation đã được sửa, viết lại ca này: "
-            f"{_rows(memory_os)}")
-        assert healthy[0]["attempts"] == 0, (
-            f"job lành đã được giao — starvation đã được sửa: {_rows(memory_os)}")
-        assert not _materialised(memory_os, "Hà Nội")
+        assert evidence["yield_waits"], f"job độc không hề nhường lượt: {evidence}"
+        assert _materialised(memory_os, "Hà Nội"), (
+            f"job lành vẫn không tiến triển: {_rows(memory_os)}")
     finally:
         memory_os.close()
 
@@ -434,22 +457,17 @@ def test_the_ordering_tie_and_not_the_round_count_was_the_divergence(tmp_path):
     của `time.time()`, làm `ORDER BY created_at` mất tính xác định:
 
         ép TRÙNG created_at  → job lành xong      6/6
-        ép TÁCH created_at   → job lành đứng yên  6/6
+        ép TÁCH  created_at  → job lành đứng yên  6/6
 
     Sau khi `_store` ghim `created_at`, cả file cho kết quả giống hệt nhau qua
-    6 lần chạy. Ca này giờ chỉ khẳng định một điều: ở 6 vòng starvation vẫn y
-    nguyên — nó không phải chuyện chậm rồi sẽ tới lượt.
+    6 lần chạy. Từ H1.3, job lành tiến triển vì fairness, không vì may mắn của
+    đồng hồ — và đó chính là điều ca này khẳng định bây giờ.
     """
     memory_os = _store(tmp_path, "divergence", [POISON, HEALTHY_A])
     try:
-        poison_id = _row_for(memory_os, "0977123456")["job_id"]
-        worker = worker_for(memory_os, lease_seconds=0)
-        real_process = worker.process
-        worker.process = lambda job: (
-            None if job.job_id == poison_id else real_process(job))
-        for _ in range(6):
-            worker.run_once(batch_size=1)
-        # Nếu starvation là thật thì job lành vẫn phải đứng yên ở vòng 6.
-        assert not _materialised(memory_os, "Hà Nội")
+        outbox = worker_for(memory_os).outbox
+        outbox.claim(worker_id="dead", tenant_id=TENANT)
+        _drain_past_eligibility(memory_os)
+        assert _materialised(memory_os, "Hà Nội")
     finally:
         memory_os.close()

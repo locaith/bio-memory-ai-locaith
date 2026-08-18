@@ -19,6 +19,7 @@ state ký biên bản.
 from __future__ import annotations
 
 import sqlite3
+import time
 from pathlib import Path
 
 import pytest
@@ -84,6 +85,51 @@ def _drain(memory_os, cycles: int = 4, *, lease_seconds: float | None = None):
     kwargs = {} if lease_seconds is None else {"lease_seconds": lease_seconds}
     worker = worker_for(memory_os, **kwargs)
     return [worker.run_once() for _ in range(cycles)]
+
+
+def _drain_past_eligibility(memory_os, *, cycles: int = 8) -> dict:
+    """Drain có ý thức về hàng rào đủ-điều-kiện của fairness.
+
+    `outbox._yield_expired_leases` đẩy `available_at` của một lease bị bỏ rơi
+    ra tương lai **khi còn việc khác đang đợi**, để job đó không chiếm mọi lượt
+    giao. `_drain` thường quay vòng hết trong vài micro giây đồng hồ thật, nên
+    nó không bao giờ chạm mốc đó — và ca 03 cùng 09 tụt về INVALID với
+    `MUTANT_TRIGGERED_PROHIBITED_STATE=False`: mutant không tới nổi trạng thái
+    bị cấm.
+
+    Tăng số vòng rồi mong thời gian "đủ" là săn PASS. Cái đúng là **đọc** mốc
+    thật rồi đẩy đồng hồ tới đúng nó, nên test đang thi hành hợp đồng chứ không
+    rình nó. Trả về bằng chứng để ca gọi khẳng định cả hai nửa: fairness có
+    hiệu lực, VÀ đường nguy hiểm vẫn tới được sau mốc.
+    """
+    worker = worker_for(memory_os, lease_seconds=0)
+    conn = memory_os.memories.conn
+    now = time.time()
+    abandoned = {str(r[0]) for r in conn.execute(
+        "SELECT job_id FROM projection_outbox WHERE status='in_progress'")}
+    evidence: dict = {"abandoned": sorted(abandoned), "yield_waits": [],
+                      "reclaimed_after_eligibility": []}
+
+    for _ in range(cycles):
+        jobs = worker.outbox.claim(worker_id="gate-eligibility", limit=10,
+                                   now=now, lease_seconds=0)
+        if jobs:
+            for job in jobs:
+                if job.job_id in abandoned and evidence["yield_waits"]:
+                    evidence["reclaimed_after_eligibility"].append(job.job_id)
+                worker.process(job)
+            continue
+        row = conn.execute(
+            "SELECT MIN(available_at) FROM projection_outbox "
+            "WHERE status IN ('pending', 'in_progress')").fetchone()
+        if row is None or row[0] is None:
+            break
+        boundary = float(row[0])
+        if boundary <= now:
+            break                       # hàng rỗng, không phải hàng rào thời gian
+        evidence["yield_waits"].append(round(boundary - now, 6))
+        now = boundary + 1e-6           # <- đẩy có chủ đích, tới đúng mốc đã đọc
+    return evidence
 
 
 def _blind_burial(monkeypatch) -> None:
@@ -175,6 +221,8 @@ def test_case_02_enqueue_then_forget(tmp_path, monkeypatch):
 
 
 def test_case_03_forget_while_worker_holds_the_lease(tmp_path, monkeypatch):
+    seen: list[dict] = []
+
     def scenario(memory_os, event):
         # Worker thứ nhất giữ job. Lease của NÓ không quan trọng — hàng chỉ ghi
         # `locked_at`, không ghi hạn.
@@ -183,8 +231,10 @@ def test_case_03_forget_while_worker_holds_the_lease(tmp_path, monkeypatch):
             "không claim được job — ca này chưa đo được gì")
         forgetting.forget_derived(memory_os, subject=SUBJECT, needle=NEEDLE)
         # Worker tiếp theo coi job đó là bỏ rơi. `lease_seconds=0` đặt ở ĐÂY,
-        # nơi staleness thực sự được quyết định.
-        _drain(memory_os, cycles=5, lease_seconds=0)
+        # nơi staleness thực sự được quyết định — và đồng hồ phải đi qua hàng
+        # rào nhường-lượt của fairness, nếu không mutant không tới nổi trạng
+        # thái bị cấm.
+        seen.append(_drain_past_eligibility(memory_os))
 
     result = _run_case(
         tmp_path, "03", "worker đang giữ lease thì forget",
@@ -192,6 +242,12 @@ def test_case_03_forget_while_worker_holds_the_lease(tmp_path, monkeypatch):
         "tiếp job nó đã claim trước lệnh quên",
         scenario=scenario, mutant=_blind_burial, monkeypatch=monkeypatch,
         mutant_name="IGNORE_RECONCILIATION_WORKER_BURIED_CHECK")
+    assert seen and any(e["yield_waits"] for e in seen), (
+        f"không quan sát được hàng rào nhường-lượt nào — ca này không còn đo "
+        f"cái nó định đo: {seen}")
+    assert any(e["reclaimed_after_eligibility"] for e in seen), (
+        f"job bị bỏ rơi không thu hồi được KỂ CẢ sau mốc đủ điều kiện — "
+        f"fairness đã đổi ngữ nghĩa crash recovery, không chỉ dời nó: {seen}")
     # INVALID -> PASS, 17/08. Ca này từng INVALID vì fixture truyền
     # `lease_seconds=0` vào lệnh LẤY lease — không tác dụng gì lên hàng — rồi
     # drain bằng worker mặc định 300 giây. `lease_seconds` thuộc về người đọc,
@@ -284,6 +340,8 @@ def test_case_08_worker_retry(tmp_path, monkeypatch):
 
 
 def test_case_09_worker_restart(tmp_path, monkeypatch):
+    seen: list[dict] = []
+
     def scenario(memory_os, event):
         # Một worker chết khi đang giữ job — nó không bao giờ gọi complete()
         # hay fail(), nên hàng nằm lại `in_progress` với `locked_by` của nó.
@@ -292,14 +350,20 @@ def test_case_09_worker_restart(tmp_path, monkeypatch):
         forgetting.forget_derived(memory_os, subject=SUBJECT, needle=NEEDLE)
         del worker
         # Tiến trình mới. Nó là bên quyết định lease cũ đã quá hạn hay chưa —
-        # `claim()` thu hồi ngay trong nó, không cần sweeper riêng.
-        _drain(memory_os, cycles=6, lease_seconds=0)
+        # `claim()` thu hồi ngay trong nó. Từ H1.3, việc thu hồi là ĐẾN SAU KHI
+        # ĐỦ ĐIỀU KIỆN chứ không còn tức thì, nên đồng hồ phải được đẩy tới mốc.
+        seen.append(_drain_past_eligibility(memory_os))
 
     result = _run_case(
         tmp_path, "09", "worker chết khi đang giữ lease rồi khởi động lại",
         "worker mới nhận lại job của worker đã chết và materialize hàng đã quên",
         scenario=scenario, mutant=_blind_burial, monkeypatch=monkeypatch,
         mutant_name="IGNORE_RECONCILIATION_WORKER_BURIED_CHECK")
+    assert seen and any(e["yield_waits"] for e in seen), (
+        f"không quan sát được hàng rào nhường-lượt nào: {seen}")
+    assert any(e["reclaimed_after_eligibility"] for e in seen), (
+        f"worker mới không nhận lại được job của worker đã chết kể cả sau mốc "
+        f"đủ điều kiện: {seen}")
     # INVALID -> PASS cùng lý do với ca 03. Restart recovery vốn HOÀN CHỈNH:
     # một ProjectionOutbox mới trên connection mới thu hồi được hàng của worker
     # đã chết. Thứ hỏng là phép đo, không phải cơ chế.

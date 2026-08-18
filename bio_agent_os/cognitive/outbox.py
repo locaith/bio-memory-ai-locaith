@@ -130,6 +130,20 @@ CREATE INDEX IF NOT EXISTS idx_outbox_key
 """
 
 
+# Fairness: một job bị bỏ rơi liên tục phải NHƯỜNG lượt, không bị trừng phạt.
+#
+# Bake-off (H1_REMEDIATION_BAKEOFF.md) đo được hai điều định hình các con số
+# này. Một: backoff luỹ thừa chữa được starvation của poison nhưng phạt luôn
+# job chỉ gặp trục trặc hạ tầng — ở chân trời 40 vòng nó tụt xuống DƯỚI hành vi
+# hiện tại đúng hai fixture churn. Nên tuyến tính-có-trần, không luỹ thừa.
+# Hai: cách ly tự động dựa trên bộ đếm mù nhốt nhầm 3/8 job lành, và H1.2
+# chứng minh runtime không có tín hiệu nào phân biệt hạ tầng chập chờn với
+# payload độc. Nên nhường là thao tác DUY NHẤT ở đây: không dead-letter, không
+# quarantine, không mất việc.
+FAIRNESS_YIELD_BASE = 1.0
+FAIRNESS_YIELD_CAP = 60.0
+
+
 class ProjectionOutbox:
     """Queue of owed projections, sharing the event store's connection.
 
@@ -188,6 +202,91 @@ class ProjectionOutbox:
 
     # -- claim / complete --------------------------------------------------
 
+    def _yield_expired_leases(
+        self,
+        now: float,
+        stale_before: float,
+        tenant_id: str | None,
+        *,
+        yield_base: float = FAIRNESS_YIELD_BASE,
+        yield_cap: float = FAIRNESS_YIELD_CAP,
+    ) -> list[str]:
+        """Cho một lease đã hết hạn nhường lượt — CHỈ KHI có người để nhường.
+
+        Đo được trên hành vi trước bước này: 12 vòng `batch_size=1`, cả 12 lượt
+        giao đều về một job mà worker chết mỗi lần chạm vào; hai job lành phía
+        sau đứng nguyên `pending attempts=0`, chưa từng được giao một lần nào.
+        Chúng không chậm — chúng không bao giờ tới lượt. Chuyện đó xảy ra cả
+        khi job lành thuộc **tenant khác**.
+
+        Nguyên nhân: `claim()` thu hồi lease hết hạn ngay tại chỗ, nên job bị bỏ
+        rơi quay lại đầu hàng ở **mỗi** vòng. Nó không cần độc hại để chặn cả
+        đoàn; nó chỉ cần luôn đủ điều kiện.
+
+        Nên ở đây job đó được đặt lại `pending` với một `available_at` đẩy tới.
+        Ba điều nó **không** làm, và mỗi điều là một quyết định:
+
+        Không dead-letter, không quarantine. `H1_2_ABANDONMENT_ATTRIBUTION_AUDIT`
+        đo 11 tín hiệu và thấy 2 tín hiệu bền, cả hai chỉ là định danh công
+        việc. Hạ tầng chập chờn và payload độc để lại **cùng một dấu vết**.
+        Kết thúc một job dựa trên bộ đếm không phân biệt được hai thứ đó là mã
+        hoá một sự chắc chắn mà hệ thống không có.
+
+        Không luỹ thừa. Bake-off đo backoff luỹ thừa ở chân trời 40 vòng và
+        thấy nó tụt xuống DƯỚI hành vi cũ đúng hai fixture churn: nó phạt luôn
+        job chỉ gặp trục trặc hạ tầng. Tuyến tính-có-trần nhường đủ để đoàn
+        phía sau đi, mà không biến một sự cố tạm thời thành một hình phạt dài.
+
+        Không nhường khi không có ai đợi. Nhường vào một hàng đợi rỗng chỉ làm
+        queue đứng im — không ai được lợi, và một job đơn độc gặp crash sẽ bị
+        làm chậm không vì lý do gì. Fairness là quan hệ giữa các job, nên nó
+        chỉ có nghĩa khi có nhiều hơn một.
+
+        Trả về job_id đã nhường, để phía gọi quan sát được. Bộ đếm `attempts`
+        được dùng để định cỡ lượt nhường, và **chỉ** để định cỡ: nó không quyết
+        định số phận của job nào.
+        """
+        scoped = tenant_id is not None
+        clause = " AND tenant_id = ?" if scoped else ""
+        args: tuple = (tenant_id,) if scoped else ()
+
+        expired = self.conn.execute(
+            f"""
+            SELECT job_id, attempts FROM projection_outbox
+            WHERE status = ?
+              AND (locked_at IS NULL OR locked_at <= ?)
+              {clause}
+            """,
+            (JobStatus.IN_PROGRESS.value, stale_before, *args),
+        ).fetchall()
+        if not expired:
+            return []
+
+        waiting = self.conn.execute(
+            f"""
+            SELECT COUNT(*) FROM projection_outbox
+            WHERE status = ? AND available_at <= ? {clause}
+            """,
+            (JobStatus.PENDING.value, now, *args),
+        ).fetchone()[0]
+        if not waiting:
+            return []           # không có ai để nhường; thu hồi ngay như cũ
+
+        yielded: list[str] = []
+        for row in expired:
+            wait = min(yield_base * max(1, int(row["attempts"])), yield_cap)
+            self.conn.execute(
+                """
+                UPDATE projection_outbox
+                SET status=?, locked_by=NULL, locked_at=NULL, available_at=?
+                WHERE job_id=?
+                """,
+                (JobStatus.PENDING.value, now + wait, row["job_id"]),
+            )
+            yielded.append(str(row["job_id"]))
+        self.conn.commit()
+        return yielded
+
     def claim(
         self,
         worker_id: str,
@@ -196,6 +295,8 @@ class ProjectionOutbox:
         now: float | None = None,
         lease_seconds: float = DEFAULT_LEASE_SECONDS,
         tenant_id: str | None = None,
+        yield_base: float = FAIRNESS_YIELD_BASE,
+        yield_cap: float = FAIRNESS_YIELD_CAP,
     ) -> list[ProjectionJob]:
         """Take up to `limit` jobs for this worker.
 
@@ -236,6 +337,9 @@ class ProjectionOutbox:
         claimed: list[ProjectionJob] = []
         scoped = tenant_id is not None
         tenant_clause = " AND tenant_id = ?" if scoped else ""
+
+        self._yield_expired_leases(now, stale_before, tenant_id,
+                                   yield_base=yield_base, yield_cap=yield_cap)
 
         rows = self.conn.execute(
             f"""

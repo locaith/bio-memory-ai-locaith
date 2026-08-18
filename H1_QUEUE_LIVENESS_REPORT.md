@@ -98,3 +98,83 @@ data-loss / poison isolation / crash recovery / tenant fairness / drain
 convergence / operator recovery.
 
 `Activation Gate` vẫn **BLOCKED**. Worker trên store thật vẫn **NOT ACTIVATED**.
+
+---
+
+# Entry #4 — H1.3 FAIRNESS CONTRACT (bản vá)
+
+Không sửa entry nào ở trên. Đây là mục mới.
+
+## Cơ chế
+
+`outbox._yield_expired_leases` — một lease hết hạn được đặt lại `pending` với
+`available_at` đẩy tới, **chỉ khi còn việc khác đang đợi**. Ba điều nó không
+làm, mỗi điều là một quyết định có bằng chứng:
+
+- **Không dead-letter, không quarantine.** H1.2 đo 11 tín hiệu, 2 bền, cả hai
+  chỉ là định danh công việc. Hạ tầng chập chờn và payload độc để lại cùng một
+  dấu vết.
+- **Không luỹ thừa, mà tuyến tính có trần.** Bake-off đo backoff luỹ thừa tụt
+  xuống DƯỚI hành vi cũ đúng hai fixture churn.
+- **Không nhường khi không có ai đợi.** Fairness là quan hệ giữa các job. Phụ
+  phẩm: bán kính ảnh hưởng lên reclaim đơn-job bằng không.
+
+`drain()` giữ `drained` cho phía gọi cũ, thêm `outcome` =
+`DRAIN_COMPLETE` | `DRAIN_INCOMPLETE_UNRESOLVED` và `unresolved`.
+
+## Compatibility experiment — Projection Safety Gate 03/09
+
+Bản vá đầu làm gate tụt `PASS → INVALID` ở hai ca. Điều kiện hỏng, đọc ra:
+
+```
+CONTROL_EXECUTED                     True
+DANGEROUS_PATH_EXECUTED              True
+MUTANT_TRIGGERED_PROHIBITED_STATE    False   ← chỉ mình nó
+CLEAN_PREVENTED_PROHIBITED_STATE     True
+```
+
+Không phải fairness xoá đường nguy hiểm — nó **dời** đường đó. `_drain` cũ quay
+hết trong vài micro giây đồng hồ thật nên không chạm mốc.
+
+Sửa **không** bằng cách tăng số vòng. `_drain_past_eligibility` đọc
+`MIN(available_at)` rồi đẩy đồng hồ tới đúng mốc đã đọc. Hai ca giờ khẳng định
+cả hai nửa — thiếu vế nào cũng đỏ:
+
+```
+yield_waits                    không rỗng   → fairness đang có hiệu lực
+reclaimed_after_eligibility    không rỗng   → đường nguy hiểm vẫn tới được
+```
+
+Một sai lầm đã mắc trên đường đi: probe đầu tiên chỉ dựng **một** job nên yield
+không bắn, và kết luận "cơ chế nhường không chạy ở ca này" là sai. Kịch bản
+gate thật có hai job (`clean_outbox: {'pending': 1, 'skipped': 1}`).
+
+## Một cái chuông kêu sai lý do
+
+`test_p4` vẫn `xfail` sau khi fairness vào, nên nó **không** nằm trong danh
+sách đỏ và trông như defect còn nguyên. Truy ra: nó xfail vì một TIỀN ĐỀ hỏng
+(`deliveries >= 3` không còn đạt), không vì kết luận. Sổ giao việc nói vì sao —
+mỗi job đúng **1 lượt**: poison 1, healthy_A 1, healthy_B 1.
+
+> Một cái chuông kêu đúng giờ nhưng sai lý do vẫn là chuông hỏng.
+
+Chỉ đọc danh sách đỏ thì đã kết luận P4 chưa được sửa.
+
+## Kết quả
+
+```
+tests/test_fairness_contract.py   13/13   9 thuộc tính + 4 mutant, cả 4 giết được
+tests/test_projection_safety_gate 13/13   03 và 09 có nhân chứng mutation trở lại
+tests/test_queue_liveness         9/9     bốn ca viết lại theo hợp đồng mới
+full suite                        1254 passed, 3 skipped, 5 deselected, 10 xfailed
+```
+
+Sổ khớp với baseline `1240/3/5/11`: `+13` file mới, `+1/-1` do p4 đổi vai. Không
+ca nào khác dịch chuyển.
+
+## Chưa làm
+
+Chưa đo nhiều worker song song thật (bộ test một tiến trình). `handler_started`,
+heartbeat, attempt-history vẫn nằm trong P1 Attribution/Observability RFC.
+
+`Activation Gate` **BLOCKED**. Store thật **UNTOUCHED**.
