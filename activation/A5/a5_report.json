@@ -1,0 +1,60 @@
+{
+  "phase": "A5.0-A5.3",
+  "stages": {
+    "A5.0": {
+      "result": "PASS",
+      "baseline_events": 296,
+      "baseline_memories": 267
+    },
+    "A5.1": {
+      "requested": 5,
+      "attempted_deliveries": 5,
+      "confirmed_materialized": 5,
+      "lost": 0,
+      "duplicates": 0,
+      "unresolved_jobs": 0,
+      "forget": {
+        "memories_deleted": 1,
+        "tombstoned": 1,
+        "note": ""
+      },
+      "tombstone_rows_total": 7,
+      "pre_existing_rows_changed": 0,
+      "result": "PASS"
+    },
+    "A5.2": {
+      "requested": 20,
+      "attempted_deliveries": 20,
+      "confirmed_materialized": 20,
+      "lost": 0,
+      "duplicates": 0,
+      "unresolved_jobs": 0,
+      "forget": {
+        "memories_deleted": 1,
+        "tombstoned": 1,
+        "note": ""
+      },
+      "tombstone_rows_total": 8,
+      "pre_existing_rows_changed": 0,
+      "result": "PASS"
+    },
+    "A5.3": {
+      "requested": 50,
+      "attempted_deliveries": 50,
+      "confirmed_materialized": 50,
+      "lost": 0,
+      "duplicates": 0,
+      "unresolved_jobs": 0,
+      "forget": {
+        "memories_deleted": 1,
+        "tombstoned": 1,
+        "note": ""
+      },
+      "tombstone_rows_total": 9,
+      "pre_existing_rows_changed": 0,
+      "result": "PASS"
+    }
+  },
+  "pre_a5_sha256": "c831592bac2c174129df5f0533689020e84056670204aae068c4cc8916153c35",
+  "conclusion": "A5.0-A5.3 PASS — sẵn sàng A5.4"
+}

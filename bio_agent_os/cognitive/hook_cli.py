@@ -10,6 +10,7 @@ from .facade import MemoryOS
 from .hooks import ClaudeCodeHookAdapter
 from .models import AccessContext, EpistemicStatus, VerificationStatus
 from .scope import log_scope, resolve_scope
+from .shadow import ProjectionMode
 
 
 def _memory_context(memory_os: MemoryOS, query: str, tenant: str, workspace: str, limit: int = 5) -> str:
@@ -73,6 +74,22 @@ def main() -> None:
     # Recall before capture so a prompt is not immediately echoed back as its own memory.
     context = _memory_context(memory_os, query, tenant, workspace) if hook in context_events else ""
     result = adapter.ingest(hook, payload)
+
+    # A5.4 — NEW-WRITE ACTIVATION. Trong outbox mode, `observe()` chỉ enqueue;
+    # không có scheduler nào chạy nền (chủ ý), nên hook tự drain phần việc nó
+    # vừa tạo — bounded, single host, chỉ job pending mới (không bao giờ là
+    # replay: replay engine là đường DUY NHẤT enqueue lịch sử, và hook không
+    # gọi nó). Worker hỏng không được phép làm hỏng phiên của chủ: ghi log và
+    # đi tiếp, job nằm lại pending và lần hook sau drain nốt.
+    if memory_os.projection_mode is not ProjectionMode.LEGACY:
+        try:
+            from .reconciliation_worker import worker_for
+            worker_for(memory_os, worker_id=f"hook-{os.getpid()}",
+                       lease_seconds=300.0).run_once(batch_size=8)
+        except Exception:                                   # noqa: BLE001
+            import logging
+            logging.getLogger("bio_agent_os.hook").exception(
+                "hook-side bounded drain failed; jobs remain pending")
 
     output: dict[str, Any] = {"suppressOutput": True}
     if result.accepted and context:
