@@ -250,9 +250,12 @@ class ProjectionOutbox:
         clause = " AND tenant_id = ?" if scoped else ""
         args: tuple = (tenant_id,) if scoped else ()
 
+        # `locked_by` và `locked_at` được đọc cùng lúc vì chúng là DANH TÍNH của
+        # lease đang quan sát — bản ghi sẽ chỉ được sửa nếu nó vẫn đúng là bản
+        # đó. Xem `UPDATE` bên dưới.
         expired = self.conn.execute(
             f"""
-            SELECT job_id, attempts FROM projection_outbox
+            SELECT job_id, attempts, locked_by, locked_at FROM projection_outbox
             WHERE status = ?
               AND (locked_at IS NULL OR locked_at <= ?)
               {clause}
@@ -275,15 +278,37 @@ class ProjectionOutbox:
         yielded: list[str] = []
         for row in expired:
             wait = min(yield_base * max(1, int(row["attempts"])), yield_cap)
-            self.conn.execute(
+            # Compare-and-set, cùng khuôn với `claim()`.
+            #
+            # Bản đầu ghi theo mỗi `job_id`, và một ca đua ép được đã cho thấy
+            # hậu quả: A đọc thấy lease của X hết hạn; B giành X và commit; A
+            # chạy tiếp và ghi đè theo quan sát đã cũ. Đo được, ba bước có nhân
+            # chứng đồng bộ, không suy từ dấu thời gian:
+            #
+            #     X sau khi A ghi:  status=pending  locked_by=None
+            #
+            # B vẫn tin X là của mình và đang xử lý, trong khi hàng đợi đã coi
+            # X vô chủ và giao lại được cho worker khác.
+            #
+            # Nên `UPDATE` chỉ được thành công khi hàng VẪN đúng là phiên bản
+            # đã quan sát. `IS` chứ không phải `=`: SQLite so sánh NULL bằng
+            # `=` cho ra NULL, nên một lease chưa từng bị khoá sẽ không bao giờ
+            # khớp. Ai đó đã giành mất thì `rowcount == 0` — đó là THUA CUỘC
+            # ĐUA, không phải lỗi, và lease sống không bị đụng tới.
+            cur = self.conn.execute(
                 """
                 UPDATE projection_outbox
                 SET status=?, locked_by=NULL, locked_at=NULL, available_at=?
                 WHERE job_id=?
+                  AND status=?
+                  AND locked_by IS ?
+                  AND locked_at IS ?
                 """,
-                (JobStatus.PENDING.value, now + wait, row["job_id"]),
+                (JobStatus.PENDING.value, now + wait, row["job_id"],
+                 JobStatus.IN_PROGRESS.value, row["locked_by"], row["locked_at"]),
             )
-            yielded.append(str(row["job_id"]))
+            if cur.rowcount:
+                yielded.append(str(row["job_id"]))
         self.conn.commit()
         return yielded
 
