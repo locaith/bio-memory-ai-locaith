@@ -60,3 +60,6 @@ test_data/
 # not be published. The *report* generated from it is committed; the material
 # it was generated from is not.
 .staging/
+
+# Snapshot cua store that — noi dung ky uc ca nhan, KHONG bao gio push
+activation/**/*.db

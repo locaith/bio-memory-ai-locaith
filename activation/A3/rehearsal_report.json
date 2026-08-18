@@ -1,0 +1,55 @@
+{
+  "steps": [
+    {
+      "step": "bất biến containment store thật TRƯỚC diễn tập",
+      "ok": true,
+      "detail": "{'projection_ledger': 'ABSENT', 'memory_tombstones': 'ABSENT', 'projection_outbox_rows': 0}"
+    },
+    {
+      "step": "clone dựng từ snapshot, hash khớp",
+      "ok": true,
+      "detail": "22d52276865f6e27dff827e1"
+    },
+    {
+      "step": "schema init trên clone: projection runtime tables tồn tại",
+      "ok": true,
+      "detail": "19 bảng"
+    },
+    {
+      "step": "một job có kiểm soát vào hàng đợi",
+      "ok": true,
+      "detail": "pending=1"
+    },
+    {
+      "step": "persistent readback: materialized + ledger + completed",
+      "ok": true,
+      "detail": "built=1 ledger=1 status=completed"
+    },
+    {
+      "step": "bounded batch: drain kết luận COMPLETE",
+      "ok": true,
+      "detail": "DRAIN_COMPLETE"
+    },
+    {
+      "step": "forget giữ nguyên hiệu lực sau activation (0 resurrection)",
+      "ok": true,
+      "detail": "still=0 sau-rerun=0"
+    },
+    {
+      "step": "rollback: clone dựng lại từ snapshot, hash khớp điểm rollback",
+      "ok": true,
+      "detail": "22d52276865f6e27dff827e1"
+    },
+    {
+      "step": "bất biến containment store thật SAU diễn tập",
+      "ok": true,
+      "detail": "{'projection_ledger': 'ABSENT', 'memory_tombstones': 'ABSENT', 'projection_outbox_rows': 0}"
+    }
+  ],
+  "conclusion": "A3 CLONE REHEARSAL: PASS",
+  "rollback_point": {
+    "snapshot": "C:\\locaith\\bio-memory-ai-locaith\\activation\\A1\\preflight_snapshot.db",
+    "sha256": "22d52276865f6e27dff827e1836a144c8ba23af5be79c1dfa6bcaad82300fdcf"
+  },
+  "memories_after_rehearsal_run": 267
+}

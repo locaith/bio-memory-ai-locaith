@@ -1,0 +1,34 @@
+{
+  "taken_at": "2026-08-18",
+  "source": "c:\\locaith\\Final Platform Agent AI OS Intelligent Tuan Anh\\.bio-agent-os\\memory.db",
+  "source_size": 3809280,
+  "snapshot": "C:\\locaith\\bio-memory-ai-locaith\\activation\\A1\\preflight_snapshot.db",
+  "snapshot_sha256": "22d52276865f6e27dff827e1836a144c8ba23af5be79c1dfa6bcaad82300fdcf",
+  "row_counts": {
+    "cognitive_events": 292,
+    "projection_outbox": 0,
+    "cognitive_memories": 264,
+    "memory_source_events": 264,
+    "memory_store_migrations": 2,
+    "cognitive_memory_fts": 264,
+    "cognitive_memory_fts_data": 121,
+    "cognitive_memory_fts_idx": 118,
+    "cognitive_memory_fts_content": 264,
+    "cognitive_memory_fts_docsize": 264,
+    "cognitive_memory_fts_config": 1,
+    "self_capabilities": 0,
+    "prospective_triggers": 0,
+    "context_blocks": 0,
+    "context_shares": 0,
+    "context_cache_entries": 0,
+    "agent_checkpoints": 0,
+    "shadow_memories": 0,
+    "rejected_inputs": 0
+  },
+  "restore_verified_all_tables_match": true,
+  "containment": {
+    "projection_ledger": "ABSENT",
+    "memory_tombstones": "ABSENT",
+    "projection_outbox_rows": 0
+  }
+}
