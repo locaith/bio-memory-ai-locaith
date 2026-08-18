@@ -1,0 +1,66 @@
+{
+  "lane": "RCA-1",
+  "arms": {
+    "TREATMENT": {
+      "trials": 5,
+      "corrupt": 0,
+      "signature_match": 0,
+      "disagreement": 0,
+      "sample": {
+        "integrity_ok": true,
+        "signature_match": false,
+        "findings": 0,
+        "count": 550,
+        "scan": 550,
+        "via_index": 550,
+        "disagreement": false,
+        "witnesses": {
+          "handle_alive_at_copy": true,
+          "wal_bytes_before_copy": 37112,
+          "old_handle_activity": "ok"
+        }
+      }
+    },
+    "CONTROL_C": {
+      "trials": 5,
+      "corrupt": 0,
+      "signature_match": 0,
+      "disagreement": 0,
+      "sample": {
+        "integrity_ok": true,
+        "signature_match": false,
+        "findings": 0,
+        "count": 200,
+        "scan": 200,
+        "via_index": 200,
+        "disagreement": false,
+        "witnesses": {
+          "handle_alive_at_copy": false,
+          "wal_bytes_before_copy": 37112
+        }
+      }
+    },
+    "CONTROL_D": {
+      "trials": 5,
+      "corrupt": 5,
+      "signature_match": 5,
+      "disagreement": 5,
+      "sample": {
+        "integrity_ok": false,
+        "signature_match": true,
+        "findings": -1,
+        "count": null,
+        "scan": null,
+        "via_index": null,
+        "disagreement": true,
+        "fatal": "database disk image is malformed",
+        "witnesses": {
+          "handle_alive_at_copy": true,
+          "wal_bytes_before_copy": 0,
+          "old_handle_activity": "ok"
+        }
+      }
+    }
+  },
+  "root_cause": "FALSIFIED / NOT REPRODUCED"
+}
