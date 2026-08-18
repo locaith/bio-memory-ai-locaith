@@ -79,7 +79,7 @@ def _counts(db_path: str) -> dict[str, int]:
 
 def test_a_healthy_database_passes(os_):
     _observe(os_)
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     run_shadow_comparison(os_, [r["event_id"] for r in
                                 os_.events.conn.execute("SELECT event_id FROM cognitive_events")])
     report = _scan(os_)
@@ -156,7 +156,7 @@ def test_completed_job_without_projection(os_):
 
 def test_ledger_without_projection(os_):
     event = _observe(os_)
-    worker_for(os_, worker_id="w", lease_seconds=0).run_once()
+    worker_for(os_, worker_id="w", lease_seconds=300).run_once()
     os_.memories.conn.execute("DELETE FROM cognitive_memories")
     os_.memories.conn.commit()
     assert "LEDGER_WITHOUT_PROJECTION" in _codes(_scan(os_))
@@ -164,7 +164,7 @@ def test_ledger_without_projection(os_):
 
 def test_ledger_tenant_mismatch_is_critical_and_not_repairable(os_):
     event = _observe(os_)
-    worker_for(os_, worker_id="w", lease_seconds=0).run_once()
+    worker_for(os_, worker_id="w", lease_seconds=300).run_once()
     os_.memories.conn.execute("UPDATE projection_ledger SET tenant_id='other-tenant'")
     os_.memories.conn.commit()
 
@@ -230,7 +230,7 @@ def test_dead_letter_without_reason(os_):
 
 def test_skipped_job_with_a_ledger_row(os_):
     event = _observe(os_)
-    worker_for(os_, worker_id="w", lease_seconds=0).run_once()
+    worker_for(os_, worker_id="w", lease_seconds=300).run_once()
     os_.events.conn.execute("UPDATE projection_outbox SET status=?",
                             (JobStatus.SKIPPED.value,))
     os_.events.conn.commit()
@@ -285,7 +285,7 @@ def test_missing_event_checksum_is_detected(os_):
 
 def test_shadow_mismatch_is_detected(os_):
     event = _observe(os_)
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     os_.memories.conn.execute(
         "UPDATE shadow_memories SET comparison_status='CONTENT_MISMATCH'"
     )
@@ -298,7 +298,7 @@ def test_shadow_mismatch_is_detected(os_):
 
 def test_shadow_comparison_not_yet_run(os_):
     _observe(os_)
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     report = _scan(os_)
     finding = next(f for f in report.findings if f.code == "SHADOW_COMPARISON_MISSING")
     assert finding.repairable
@@ -306,7 +306,7 @@ def test_shadow_comparison_not_yet_run(os_):
 
 def test_shadow_tenant_mismatch_is_critical(os_):
     _observe(os_)
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     os_.memories.conn.execute("UPDATE shadow_memories SET tenant_id='wrong'")
     os_.memories.conn.commit()
     assert "SHADOW_TENANT_MISMATCH" in _codes(_scan(os_))
@@ -427,13 +427,13 @@ def test_repair_rebuilds_a_missing_projection(os_):
                and a.status == ActionStatus.APPLIED.value for a in result.actions)
     assert os_.events.outbox.by_event(event.event_id)[0].status == JobStatus.PENDING.value
 
-    shadow_worker(os_, worker_id="rebuild", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="rebuild", lease_seconds=300).run_once()
     assert os_.shadow_memories.count() == 1
 
 
 def test_forbidden_repairs_are_refused_with_a_reason(os_):
     _observe(os_)
-    worker_for(os_, worker_id="w", lease_seconds=0).run_once()
+    worker_for(os_, worker_id="w", lease_seconds=300).run_once()
     os_.memories.conn.execute("UPDATE projection_ledger SET tenant_id='wrong'")
     os_.memories.conn.commit()
 
@@ -544,7 +544,7 @@ def test_every_repairable_finding_has_a_recipe(os_):
 
     # Plant one of everything the doctor can call repairable.
     event = _observe(os_)
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     os_.events.outbox.claim("dead")
     os_.events.conn.execute("UPDATE projection_outbox SET locked_at=?",
                             (time.time() - 100_000,))
@@ -559,7 +559,7 @@ def test_every_repairable_finding_has_a_recipe(os_):
 
 def test_shadow_comparison_is_re_run_by_repair(os_):
     event = _observe(os_)
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     assert os_.memories.conn.execute(
         "SELECT comparison_status FROM shadow_memories"
     ).fetchone()[0] is None
@@ -576,7 +576,7 @@ def test_shadow_comparison_is_re_run_by_repair(os_):
 
 def test_a_repair_needing_a_runtime_fails_loudly_without_one(os_):
     _observe(os_)
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     result = ReconciliationEngine(os_.events.conn, operator="test").run(repair=True)
     failed = [a for a in result.actions if a.finding_code == "SHADOW_COMPARISON_MISSING"]
     assert failed and failed[0].status == ActionStatus.FAILED.value

@@ -32,6 +32,7 @@ import pytest
 from bio_agent_os.cognitive.facade import MemoryOS
 from bio_agent_os.cognitive.outbox import DEFAULT_MAX_ATTEMPTS
 from bio_agent_os.cognitive.reconciliation_worker import worker_for
+from lease_time import past_expiry
 
 TENANT = "t1"
 POISON = "Số điện thoại của Hoàng Yến là 0977123456."
@@ -70,9 +71,11 @@ class LivenessLedger:
 def _store(tmp_path: Path, name: str, texts: list[str]):
     """Hàng đợi có thứ tự XÁC ĐỊNH, và tự chứng minh điều đó trước khi đo.
 
-    `ProjectionOutbox` đặt `created_at = time.time()`, mà `time.time()` trên
-    Windows có resolution 15.625 ms. Hai lần `observe()` liên tiếp mất ~1 ms,
-    nên 5/8 lần chúng nhận CÙNG một `created_at`. `claim()` sắp bằng
+    `ProjectionOutbox` đặt `created_at = time.time()`, mà `time.time()` trên máy này trả CÙNG một giá trị cho hai lần đọc liên
+    tiếp với tần suất đo được 199986/200000 (độ hạt thật ~0.51ms; con số công
+    bố 15.625ms KHÔNG phải biên nhân quả — correction 18/08).
+    Hai lần `observe()` liên tiếp mất ~1 ms, nên 5/8 lần chúng nhận CÙNG một
+    `created_at` — đo trực tiếp. `claim()` sắp bằng
     `ORDER BY created_at` không có tiebreaker, nên với hai hàng bằng nhau thứ
     tự trả về là không xác định — và ca test đảo chiều giữa các lần chạy mà
     sản phẩm không đổi một dòng nào.
@@ -176,20 +179,27 @@ def _drain_past_eligibility(memory_os, *, cycles: int = 10) -> dict:
     mong thời gian "đủ" là săn kết quả; đọc mốc rồi đẩy tới đúng nó mới là thi
     hành hợp đồng.
     """
-    worker = worker_for(memory_os, lease_seconds=0)
+    LEASE = 300.0
+    worker = worker_for(memory_os, lease_seconds=LEASE)
     conn = memory_os.memories.conn
     now, waits, delivered = time.time(), [], []
     for _ in range(cycles):
         jobs = worker.outbox.claim(worker_id="w", limit=5, now=now,
-                                   lease_seconds=0)
+                                   lease_seconds=LEASE)
         if jobs:
             for job in jobs:
                 delivered.append(job.job_id)
                 worker.process(job)
             continue
+        # Mốc đủ-điều-kiện là MIN trên HAI thứ: `available_at` của hàng đang
+        # đợi, và `locked_at + lease` của lease đang bị giữ. Trước đây vế thứ
+        # hai vô hình vì lease 0 làm mọi lease "hết hạn ngay" — một cấu hình
+        # nay bị từ chối ngay tại claim().
         row = conn.execute(
-            "SELECT MIN(available_at) FROM projection_outbox "
-            "WHERE status IN ('pending', 'in_progress')").fetchone()
+            "SELECT MIN(CASE WHEN status='pending' THEN available_at "
+            "         ELSE MAX(COALESCE(locked_at, 0) + ?, available_at) END) "
+            "FROM projection_outbox "
+            "WHERE status IN ('pending', 'in_progress')", (LEASE,)).fetchone()
         if row is None or row[0] is None:
             break
         boundary = float(row[0])
@@ -205,10 +215,14 @@ def test_attempts_counts_deliveries_not_failures(tmp_path):
     memory_os = _store(tmp_path, "meaning", [POISON])
     try:
         outbox = worker_for(memory_os).outbox
+        now = time.time()
         for expected in (1, 2, 3):
-            outbox.claim(worker_id=f"w{expected}", lease_seconds=0,
-                         tenant_id=TENANT)
+            # Mỗi lượt "giao" là một lần thu hồi lease trước — nên đồng hồ
+            # phải đi qua hạn của lượt trước, tường minh.
+            outbox.claim(worker_id=f"w{expected}", lease_seconds=300,
+                         tenant_id=TENANT, now=now)
             assert _rows(memory_os)[0]["attempts"] == expected
+            now += 301.0
         # Không handler nào chạy, không fail() nào được gọi, mà attempts = 3.
         assert _rows(memory_os)[0]["status"] == "in_progress"
     finally:
@@ -225,9 +239,11 @@ def test_worker_losses_consume_the_processing_failure_budget(tmp_path):
     try:
         outbox = worker_for(memory_os).outbox
         job_id = _rows(memory_os)[0]["job_id"]
+        now = time.time()
         for index in range(DEFAULT_MAX_ATTEMPTS):
-            outbox.claim(worker_id=f"crash{index}", lease_seconds=0,
-                         tenant_id=TENANT)       # worker chết, không fail()
+            outbox.claim(worker_id=f"crash{index}", lease_seconds=300,
+                         tenant_id=TENANT, now=now)  # worker chết, không fail()
+            now += 301.0
 
         status = outbox.fail(job_id, "lần hỏng THẬT đầu tiên")
         assert status == "dead_letter", (
@@ -277,7 +293,7 @@ def test_p3_retry_after_a_real_failure_is_bounded(tmp_path):
         statuses, backoffs = [], []
         for _ in range(DEFAULT_MAX_ATTEMPTS + 2):
             # `now` đẩy tới trước để vượt backoff, thay vì ngồi chờ thật.
-            claimed = outbox.claim(worker_id="w", lease_seconds=0,
+            claimed = outbox.claim(worker_id="w", lease_seconds=300,
                                    tenant_id=TENANT, now=_time_ahead(memory_os))
             assert claimed, f"không claim lại được sau backoff: {_rows(memory_os)}"
             statuses.append(outbox.fail(job_id, "hỏng thật"))
@@ -318,7 +334,8 @@ def test_p4_every_job_gets_a_turn_even_with_a_poison_job(tmp_path):
         assert poison_row, "không định vị được job độc"
         poison_id = poison_row["job_id"]
 
-        worker = worker_for(memory_os, lease_seconds=0)
+        LEASE = 300.0
+        worker = worker_for(memory_os, lease_seconds=LEASE)
         real_process = worker.process
 
         def dies_on_poison(job):
@@ -331,14 +348,18 @@ def test_p4_every_job_gets_a_turn_even_with_a_poison_job(tmp_path):
         for _ in range(12):
             try:
                 for job in worker.outbox.claim(worker_id="w", limit=1, now=now,
-                                               lease_seconds=0):
+                                               lease_seconds=LEASE):
                     delivered.append(job.job_id)
                     worker.process(job)
             except RuntimeError:
                 pass                       # đúng: tiến trình chết, lease treo
+            # Mốc kế tiếp phải tính CẢ hạn lease của job bị bỏ rơi, không chỉ
+            # `available_at` — lease 0 cũ làm vế đó vô hình.
             row = memory_os.memories.conn.execute(
-                "SELECT MIN(available_at) FROM projection_outbox "
-                "WHERE status IN ('pending', 'in_progress')").fetchone()
+                "SELECT MIN(CASE WHEN status='pending' THEN available_at "
+                "         ELSE MAX(COALESCE(locked_at,0) + ?, available_at) END) "
+                "FROM projection_outbox "
+                "WHERE status IN ('pending', 'in_progress')", (LEASE,)).fetchone()
             if row and row[0] is not None:
                 now = max(now, float(row[0])) + 1e-6
 
@@ -407,9 +428,12 @@ def test_mutant_never_reclaim_expired_lease(tmp_path, monkeypatch):
         monkeypatch.setattr(outbox_module.ProjectionOutbox, "claim",
                             pending_only)
 
-        worker = worker_for(memory_os, lease_seconds=0)
+        worker = worker_for(memory_os, lease_seconds=300)
         for _ in range(4):
-            worker.run_once()
+            # Đồng hồ vượt hạn tường minh: dưới đúng lịch này, code SẠCH thu
+            # hồi được — nên nếu job vẫn không chạy thì là do mutant chặn,
+            # không phải do lease chưa hết hạn.
+            worker.run_once(claim_now=past_expiry(memory_os, 300))
 
         assert not _materialised(memory_os, "0977123456"), (
             "mutant chặn thu hồi mà job vẫn chạy — ca P1 chưa chạm tới cơ chế "

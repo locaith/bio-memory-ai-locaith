@@ -112,7 +112,8 @@ def test_the_retired_p4_premise_really_is_gone(tmp_path):
             "SELECT job_id, event_id FROM projection_outbox")
             if str(dict(r)["event_id"]) in events)
 
-        worker = worker_for(memory_os, lease_seconds=0)
+        LEASE = 300.0
+        worker = worker_for(memory_os, lease_seconds=LEASE)
         real = worker.process
         worker.process = lambda job: (
             None if job.job_id == poison_id else real(job))
@@ -120,12 +121,14 @@ def test_the_retired_p4_premise_really_is_gone(tmp_path):
         now, delivered = time.time(), []
         for _ in range(12):
             for job in worker.outbox.claim(worker_id="w", limit=1, now=now,
-                                           lease_seconds=0):
+                                           lease_seconds=LEASE):
                 delivered.append(job.job_id)
                 worker.process(job)
             row = conn.execute(
-                "SELECT MIN(available_at) FROM projection_outbox "
-                "WHERE status IN ('pending', 'in_progress')").fetchone()
+                "SELECT MIN(CASE WHEN status='pending' THEN available_at "
+                "         ELSE MAX(COALESCE(locked_at,0) + ?, available_at) END) "
+                "FROM projection_outbox "
+                "WHERE status IN ('pending', 'in_progress')", (LEASE,)).fetchone()
             if row and row[0] is not None:
                 now = max(now, float(row[0])) + 1e-6
 

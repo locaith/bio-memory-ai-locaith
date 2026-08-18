@@ -20,6 +20,7 @@ from bio_agent_os.cognitive.reconciliation_worker import (
     build_default_builders,
     worker_for,
 )
+from lease_time import past_expiry
 
 MEMORY = ProjectionType.COGNITIVE_MEMORY.value
 CONTEXT = ProjectionType.CONTEXT_BLOCK.value
@@ -112,9 +113,9 @@ def test_retry_after_a_crash_between_projection_and_completion(os_, worker):
     assert _memory_count(os_, "evt-1") == 1
     assert os_.events.outbox.get(job.job_id).status == JobStatus.IN_PROGRESS.value
 
-    # A new worker reclaims the stale lease and retries.
-    survivor = worker_for(os_, worker_id="w2", lease_seconds=0)
-    survivor.run_once()
+    # A new worker reclaims the stale lease and retries — SAU khi hạn trôi qua.
+    survivor = worker_for(os_, worker_id="w2", lease_seconds=300)
+    survivor.run_once(claim_now=past_expiry(os_, 300))
 
     assert _memory_count(os_, "evt-1") == 1, "the retry must not duplicate the projection"
     assert os_.events.outbox.get(job.job_id).status == JobStatus.COMPLETED.value
@@ -166,8 +167,8 @@ def test_two_workers_cannot_process_the_same_job(os_):
 def test_a_stale_lease_is_reclaimed(os_):
     _append(os_)
     os_.events.outbox.claim("dead")
-    survivor = worker_for(os_, worker_id="alive", lease_seconds=0)
-    survivor.run_once()
+    survivor = worker_for(os_, worker_id="alive", lease_seconds=300)
+    survivor.run_once(claim_now=past_expiry(os_, 300))
     assert survivor.metrics.completed == 1
 
 
@@ -244,7 +245,7 @@ def test_backoff_delays_the_next_attempt(os_):
     _append(os_)
     w = ReconciliationWorker(os_.events.conn, projection_conn=os_.memories.conn,
         outbox=os_.events.outbox, builders={MEMORY: _Exploding()}, worker_id="w",
-        max_attempts=5, lease_seconds=0)
+        max_attempts=5, lease_seconds=300)
     w.run_once()
     job = os_.events.outbox.by_event("evt-1")[0]
     assert job.status == JobStatus.PENDING.value
@@ -258,7 +259,7 @@ def test_repeated_failure_reaches_dead_letter(os_):
     _append(os_)
     w = ReconciliationWorker(os_.events.conn, projection_conn=os_.memories.conn,
         outbox=os_.events.outbox, builders={MEMORY: _Exploding()}, worker_id="w",
-        max_attempts=2, lease_seconds=0)
+        max_attempts=2, lease_seconds=300)
     for _ in range(4):
         # Simulate the backoff window elapsing rather than sleeping through it.
         os_.events.conn.execute(

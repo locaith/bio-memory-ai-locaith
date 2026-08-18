@@ -102,7 +102,8 @@ def _drain_past_eligibility(memory_os, *, cycles: int = 8) -> dict:
     rình nó. Trả về bằng chứng để ca gọi khẳng định cả hai nửa: fairness có
     hiệu lực, VÀ đường nguy hiểm vẫn tới được sau mốc.
     """
-    worker = worker_for(memory_os, lease_seconds=0)
+    LEASE = 300.0
+    worker = worker_for(memory_os, lease_seconds=LEASE)
     conn = memory_os.memories.conn
     now = time.time()
     abandoned = {str(r[0]) for r in conn.execute(
@@ -112,7 +113,7 @@ def _drain_past_eligibility(memory_os, *, cycles: int = 8) -> dict:
 
     for _ in range(cycles):
         jobs = worker.outbox.claim(worker_id="gate-eligibility", limit=10,
-                                   now=now, lease_seconds=0)
+                                   now=now, lease_seconds=LEASE)
         if jobs:
             for job in jobs:
                 if job.job_id in abandoned and evidence["yield_waits"]:
@@ -120,8 +121,10 @@ def _drain_past_eligibility(memory_os, *, cycles: int = 8) -> dict:
                 worker.process(job)
             continue
         row = conn.execute(
-            "SELECT MIN(available_at) FROM projection_outbox "
-            "WHERE status IN ('pending', 'in_progress')").fetchone()
+            "SELECT MIN(CASE WHEN status='pending' THEN available_at "
+            "         ELSE MAX(COALESCE(locked_at,0) + ?, available_at) END) "
+            "FROM projection_outbox "
+            "WHERE status IN ('pending', 'in_progress')", (LEASE,)).fetchone()
         if row is None or row[0] is None:
             break
         boundary = float(row[0])

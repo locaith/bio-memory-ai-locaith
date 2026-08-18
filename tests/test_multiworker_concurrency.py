@@ -17,9 +17,12 @@ Nên mỗi ca ở đây trả về một `RaceWitness`. Không chứng minh đư
 thì ca là **INVALID**, không phải PASS. Một ca xanh mà hai worker tình cờ không
 gặp nhau thì chỉ nói rằng chúng không gặp nhau.
 
-**Đồng hồ không được dùng làm nhân chứng.** `time.time()` trên máy này có
-resolution 15.625 ms và đã hai lần làm hỏng kết luận trong lane này. Hai dấu
-thời gian gần nhau không chứng minh gì. Nhân chứng phải là sự kiện đồng bộ
+**Đồng hồ không được dùng làm nhân chứng.** Hai lần đọc `time.time()` liên
+tiếp trên máy này trùng nhau với tần suất đo được 199986/200000, và timestamp
+trùng đã hai lần làm hỏng kết luận trong lane này. (Correction 18/08: bản đầu
+viện dẫn "resolution 15.625ms" — con số công bố; độ hạt thật ~0.51ms. Kết luận
+đứng trên sự trùng đo được, không trên con số.) Hai dấu thời gian gần nhau
+không chứng minh gì. Nhân chứng phải là sự kiện đồng bộ
 thật: A đã qua SELECT, B đã xong claim, A mới chạy tiếp UPDATE.
 """
 from __future__ import annotations
@@ -154,10 +157,15 @@ def test_case_01_double_reclaim_of_the_same_expired_job(tmp_path):
     """
     path = _store(tmp_path, "c01", [POISON])
     setup = _open(path)
-    ProjectionOutbox(setup).claim(worker_id="da-chet", lease_seconds=0,
+    ProjectionOutbox(setup).claim(worker_id="da-chet", lease_seconds=300,
                                   tenant_id=TENANT)
     setup.commit()
+    locked_at = setup.execute(
+        "SELECT locked_at FROM projection_outbox").fetchone()[0]
     setup.close()
+    # Đồng hồ của CẢ HAI worker đặt SAU hạn lease của kẻ đã chết, tường minh —
+    # cuộc đua là về thứ tự UPDATE, không phải về việc lease đã hết hạn chưa.
+    race_now = float(locked_at) + 300.0 + 1.0
 
     witness = RaceWitness(race_point="claim: giữa SELECT ứng viên và UPDATE giành quyền")
     b_done = threading.Event()
@@ -175,8 +183,8 @@ def test_case_01_double_reclaim_of_the_same_expired_job(tmp_path):
         # connection đi qua thread, và một worker thật cũng không làm thế.
         conn_b = _open(path)
         try:
-            got = ProjectionOutbox(conn_b).claim(worker_id="B", lease_seconds=0,
-                                                 tenant_id=TENANT)
+            got = ProjectionOutbox(conn_b).claim(worker_id="B", lease_seconds=300,
+                                                 tenant_id=TENANT, now=race_now)
             witness.worker_b_reached = True
             witness.order.append(f"B claim xong ({len(got)} job)")
             result["b"] = [j.job_id for j in got]
@@ -190,8 +198,8 @@ def test_case_01_double_reclaim_of_the_same_expired_job(tmp_path):
     thread_b = threading.Thread(target=lambda: (threading.Event().wait(0.05),
                                                 run_b()))
     thread_b.start()
-    got_a = ProjectionOutbox(barrier_conn).claim(worker_id="A", lease_seconds=0,
-                                                 tenant_id=TENANT)
+    got_a = ProjectionOutbox(barrier_conn).claim(worker_id="A", lease_seconds=300,
+                                                 tenant_id=TENANT, now=race_now)
     thread_b.join(timeout=15.0)
     result["a"] = [j.job_id for j in got_a]
 
@@ -249,10 +257,14 @@ def _same_job_race(tmp_path, name: str):
     memory_os.close()
 
     setup = _open(path)
-    ProjectionOutbox(setup).claim(worker_id="da-chet", lease_seconds=0,
+    ProjectionOutbox(setup).claim(worker_id="da-chet", lease_seconds=300,
                                   tenant_id="t1")
     setup.commit()
+    locked_at = setup.execute(
+        "SELECT locked_at FROM projection_outbox WHERE locked_by='da-chet'"
+    ).fetchone()[0]
     setup.close()
+    race_now = float(locked_at) + 300.0 + 1.0
 
     witness = RaceWitness(
         race_point="_yield_expired_leases: sau khi quyết định nhường X, trước khi ghi")
@@ -270,7 +282,8 @@ def _same_job_race(tmp_path, name: str):
         conn_b = _open(path)
         try:
             got = ProjectionOutbox(conn_b).claim(worker_id="B-SONG",
-                                                 lease_seconds=0, tenant_id="t1")
+                                                 lease_seconds=300,
+                                                 tenant_id="t1", now=race_now)
             claimed_by_b["ids"] = [j.job_id for j in got]
             witness.worker_b_reached = True
             witness.order.append(f"B claim xong: {claimed_by_b['ids']}")
@@ -283,8 +296,8 @@ def _same_job_race(tmp_path, name: str):
     thread_b = threading.Thread(
         target=lambda: (threading.Event().wait(0.05), run_b()))
     thread_b.start()
-    ProjectionOutbox(barrier).claim(worker_id="A-DRAIN", lease_seconds=0,
-                                    tenant_id=None)
+    ProjectionOutbox(barrier).claim(worker_id="A-DRAIN", lease_seconds=300,
+                                    tenant_id=None, now=race_now)
     thread_b.join(timeout=15.0)
 
     witness.interleaving_confirmed = (

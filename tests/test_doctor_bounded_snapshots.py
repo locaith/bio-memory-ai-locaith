@@ -74,7 +74,7 @@ def _fill(os_: MemoryOS, n: int, start: int = 0) -> None:
 
 
 def _with_shadow(os_: MemoryOS) -> None:
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     run_shadow_comparison(os_, [r["event_id"] for r in
                                 os_.events.conn.execute("SELECT event_id FROM cognitive_events")])
 

@@ -34,7 +34,8 @@ from bio_agent_os.cognitive.reconciliation_worker import (
 )
 
 sys.path.insert(0, str(Path(__file__).parent))
-import fault_children  # noqa: E402
+import fault_children
+from lease_time import past_expiry  # noqa: E402
 
 MEMORY = ProjectionType.COGNITIVE_MEMORY.value
 CONTEXT = ProjectionType.CONTEXT_BLOCK.value
@@ -241,8 +242,11 @@ def test_F05_crash_right_after_claim_holds_then_releases_the_lease(db):
     live = MemoryOS(db)
     assert live.events.outbox.claim("other", lease_seconds=300) == []
 
-    # Once it expires, exactly one worker recovers it.
-    recovered = live.events.outbox.claim("other", lease_seconds=0)
+    # Once it expires, exactly one worker recovers it. Hết hạn là chuyện của
+    # ĐỒNG HỒ, không phải của người đọc: đẩy `now` qua hạn thay vì đọc bằng
+    # lease 0 (nay bị từ chối).
+    recovered = live.events.outbox.claim(
+        "other", lease_seconds=300, now=past_expiry(live.events, 300))
     assert len(recovered) == 1
     assert recovered[0].attempts == 2
 
@@ -284,13 +288,15 @@ def test_F07_restart_with_a_stale_lease_recovers_exactly_once(db):
     _append(os_)
     os_.events.conn.close()
 
-    _crash_child_at(db, FP.AFTER_CLAIM, lease_seconds=0)
+    _crash_child_at(db, FP.AFTER_CLAIM, lease_seconds=300)
 
     live = MemoryOS(db)
-    first = worker_for(live, worker_id="r1", lease_seconds=0)
-    first.run_once()
-    second = worker_for(live, worker_id="r2", lease_seconds=0)
-    second.run_once()
+    first = worker_for(live, worker_id="r1", lease_seconds=300)
+    first.run_once(claim_now=past_expiry(live, 300))
+    second = worker_for(live, worker_id="r2", lease_seconds=300)
+    # r2 cũng nhìn từ SAU hạn: điều ca này khẳng định là một job đã completed
+    # không thể thu hồi lại kể cả khi thời gian trôi qua hạn.
+    second.run_once(claim_now=past_expiry(live, 300))
 
     assert first.metrics.completed == 1
     assert second.metrics.claimed == 0, "a completed job is not reclaimable"
@@ -306,8 +312,13 @@ def test_F08_lease_expiry_at_the_exact_boundary(db):
     zero-length lease never expired."""
     os_ = MemoryOS(db)
     _append(os_)
-    os_.events.outbox.claim("holder")
-    reclaimed = os_.events.outbox.claim("taker", lease_seconds=0)
+    held = os_.events.outbox.claim("holder", lease_seconds=300)
+    locked_at = held[0].locked_at
+    # ĐÚNG biên: elapsed == lease. Trước đây ca này ép biên bằng lease 0 — một
+    # cấu hình nay bị từ chối. Cùng một câu hỏi, hỏi bằng đồng hồ: tại
+    # `now = locked_at + lease`, vị từ `locked_at <= now - lease` phải ĐÚNG.
+    reclaimed = os_.events.outbox.claim(
+        "taker", lease_seconds=300, now=locked_at + 300)
     assert len(reclaimed) == 1, "elapsed >= lease must expire, not elapsed > lease"
 
 
@@ -336,7 +347,7 @@ def test_F09_crash_before_the_projection_write_leaves_nothing_behind(db):
         (time.time() - 1, "evt-1"),
     )
     os_.events.conn.commit()
-    worker2 = worker_for(os_, worker_id="w2", lease_seconds=0)
+    worker2 = worker_for(os_, worker_id="w2", lease_seconds=300)
     worker2.run_once()
     after = _reopened(db)
     assert after.projections == 1
@@ -369,7 +380,8 @@ def test_F10_crash_between_projection_insert_and_commit(db):
     s.close()
 
     live = MemoryOS(db)
-    worker_for(live, worker_id="retry", lease_seconds=0).run_once()
+    worker_for(live, worker_id="retry", lease_seconds=300).run_once(
+        claim_now=past_expiry(live, 300))
 
     after = _reopened(db)
     assert after.projections == 1
@@ -411,8 +423,8 @@ def test_F12_crash_after_projection_commit_before_outbox_complete(db):
     mid.close()
 
     live = MemoryOS(db)
-    survivor = worker_for(live, worker_id="survivor", lease_seconds=0)
-    survivor.run_once()
+    survivor = worker_for(live, worker_id="survivor", lease_seconds=300)
+    survivor.run_once(claim_now=past_expiry(live, 300))
 
     assert survivor.metrics.already_built == 1, "the retry must recognise prior work"
 
@@ -434,7 +446,7 @@ def test_F13_the_same_job_processed_ten_times(db):
             (JobStatus.PENDING.value, time.time() - 1, "evt-1"),
         )
         os_.events.conn.commit()
-        worker_for(os_, worker_id=f"w{i}", lease_seconds=0).run_once()
+        worker_for(os_, worker_id=f"w{i}", lease_seconds=300).run_once()
 
     s = _reopened(db)
     assert s.projections == 1
@@ -567,7 +579,7 @@ def test_F20_repeated_failure_reaches_dead_letter_with_its_history(db):
     _append(os_)
     w = ReconciliationWorker(
         os_.events.conn, projection_conn=os_.memories.conn, outbox=os_.events.outbox,
-        builders={MEMORY: _AlwaysFails()}, worker_id="w", max_attempts=2, lease_seconds=0,
+        builders={MEMORY: _AlwaysFails()}, worker_id="w", max_attempts=2, lease_seconds=300,
     )
     for _ in range(4):
         os_.events.conn.execute(
@@ -631,7 +643,7 @@ def test_F22_a_second_build_of_the_same_key_is_refused(db):
     builder = _NonDeterministic(os_.memories)
     w = ReconciliationWorker(
         os_.events.conn, projection_conn=os_.memories.conn, outbox=os_.events.outbox,
-        builders={MEMORY: builder}, worker_id="w", lease_seconds=0,
+        builders={MEMORY: builder}, worker_id="w", lease_seconds=300,
     )
     w.run_once()
     assert builder.calls == 1
@@ -666,7 +678,8 @@ def test_tenant_isolation_survives_a_crash(db):
     _crash_child_at(db, FP.AFTER_PROJECTION_COMMIT)
 
     live = MemoryOS(db)
-    worker_for(live, worker_id="recover", lease_seconds=0).run_once(batch_size=10)
+    worker_for(live, worker_id="recover", lease_seconds=300).run_once(
+        batch_size=10, claim_now=past_expiry(live, 300))
 
     s = _reopened(db)
     rows = s.conn.execute(

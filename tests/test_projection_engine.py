@@ -153,6 +153,11 @@ def test_a_stale_lease_is_found(store, engine):
     store.outbox.claim("dead-worker")
     fresh = engine.scan(lease_seconds=300)
     assert fresh.candidates == [], "a live lease is not owed work"
+    # `scan(lease_seconds=0)` KHÔNG bị cấm và không được migrate đi: đây là máy
+    # dò chỉ-đọc, tham số là NGƯỠNG của một câu hỏi ("dưới hạn L thì hàng nào
+    # coi như bị bỏ rơi?"), không phải một lease được cấp. Cấm zero ở đây là
+    # một correction áp lên nhầm tập hợp — validate_lease_seconds chỉ gác
+    # claim(), nơi zero thật sự phá quyền sở hữu độc quyền.
     stale = engine.scan(lease_seconds=0)
     assert stale.candidates[0].reason == ReplayReason.STALE_LEASE.value
 

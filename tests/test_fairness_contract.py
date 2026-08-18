@@ -30,8 +30,10 @@ NEEDLES = {POISON: "0977123456", HEALTHY_1: "Hà Nội", HEALTHY_2: "Đà Nẵng
 def _store(tmp_path: Path, name: str, specs: list[tuple[str, str]]):
     """Hàng đợi có thứ tự xác định, tự chứng minh trước khi đo.
 
-    `created_at` được ghim vì `time.time()` có resolution 15.625 ms trên máy
-    này: hai `observe()` liên tiếp trùng dấu thời gian 5/8 lần, và
+    `created_at` được ghim vì hai lần đọc `time.time()` liên tiếp trùng nhau
+    rất thường xuyên trên máy này (đo được 199986/200000; độ hạt thật ~0.51ms,
+    con số công bố 15.625ms không phải biên nhân quả — correction 18/08): hai
+    `observe()` liên tiếp trùng dấu thời gian 5/8 lần, và
     `ORDER BY created_at` không tiebreaker thì thứ tự trả về không xác định.
     Ghim không phải để test dễ hơn — để "job nào vào trước" là sự thật hiển
     ngôn thay vì đúng một cách tình cờ.

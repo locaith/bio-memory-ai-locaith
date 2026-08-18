@@ -27,6 +27,7 @@ import pytest
 
 from bio_agent_os.cognitive.facade import MemoryOS
 from bio_agent_os.cognitive.reconciliation_worker import worker_for
+from lease_time import past_expiry
 
 A, B = "tenant-A", "tenant-B"
 TEXT_A = "Số điện thoại của Bùi Cường là 0911000111."
@@ -127,8 +128,11 @@ def test_5_reclaim_keeps_tenant_ownership(tmp_path):
     try:
         outbox = worker_for(memory_os).outbox
         outbox.claim(worker_id="ghost", tenant_id=B)      # B tự giữ, rồi chết
-        worker = worker_for(memory_os, tenant_id=A, lease_seconds=0)
-        worker.run_once()
+        # Lease của ghost PHẢI đã hết hạn dưới mắt A — nếu không, ca này xanh
+        # rỗng: không có gì đủ điều kiện thu hồi thì cấm-xuyên-tenant chưa hề
+        # bị thử. Đẩy đồng hồ qua hạn rồi mới hỏi.
+        worker = worker_for(memory_os, tenant_id=A, lease_seconds=300)
+        worker.run_once(claim_now=past_expiry(memory_os, 300))
         job = _jobs(memory_os)[0]
         assert job["locked_by"] == "ghost", (
             f"worker của {A} thu hồi được lease của {B}: {job}")

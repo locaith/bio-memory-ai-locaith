@@ -49,6 +49,7 @@ from bio_agent_os.cognitive.shadow_runner import (
     shadow_worker,
     write_report,
 )
+from lease_time import past_expiry
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -192,7 +193,7 @@ def test_shadow_mode_never_enqueues_unsupported_types(db):
 def test_switching_back_to_legacy_leaves_old_data_alone(db):
     shadow_os = MemoryOS(db, projection_mode="shadow")
     event = _observe_and_remember(shadow_os)
-    shadow_worker(shadow_os, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(shadow_os, worker_id="w", lease_seconds=300).run_once()
     before = shadow_os.shadow_memories.count()
 
     legacy_os = MemoryOS(db)
@@ -210,7 +211,7 @@ def test_switching_back_to_legacy_leaves_old_data_alone(db):
 def test_shadow_projection_is_written_and_counted(db):
     os_ = MemoryOS(db, projection_mode="shadow")
     event = _observe_and_remember(os_)
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     assert os_.shadow_memories.count() == 1
     assert shadow_projection(os_, event.event_id) is not None
 
@@ -218,7 +219,7 @@ def test_shadow_projection_is_written_and_counted(db):
 def test_shadow_rows_live_in_their_own_table(db):
     os_ = MemoryOS(db, projection_mode="shadow")
     event = _observe_and_remember(os_)
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
 
     production = os_.memories.conn.execute(
         "SELECT COUNT(*) FROM cognitive_memories"
@@ -230,7 +231,7 @@ def test_shadow_rows_live_in_their_own_table(db):
 def test_production_recall_cannot_see_shadow(db):
     os_ = MemoryOS(db, projection_mode="shadow")
     _observe_and_remember(os_, content="findable content")
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
 
     results = os_.recall("findable content", context=AccessContext(tenant_id="t1"), limit=20)
     for item in results:
@@ -245,7 +246,7 @@ def test_shadow_does_not_bump_the_legacy_memory_version(db):
     before = os_.memories.conn.execute(
         "SELECT MAX(version) FROM cognitive_memories"
     ).fetchone()[0]
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     after = os_.memories.conn.execute(
         "SELECT MAX(version) FROM cognitive_memories"
     ).fetchone()[0]
@@ -256,7 +257,7 @@ def test_tenant_isolation_in_the_shadow_table(db):
     os_ = MemoryOS(db, projection_mode="shadow")
     _observe_and_remember(os_, content="tenant a data", tenant="tenant-a")
     _observe_and_remember(os_, content="tenant b data", tenant="tenant-b")
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once(batch_size=10)
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once(batch_size=10)
 
     assert os_.shadow_memories.count(tenant_id="tenant-a") == 1
     assert os_.shadow_memories.count(tenant_id="tenant-b") == 1
@@ -271,7 +272,7 @@ def test_workspace_isolation_is_carried_through(db):
     os_ = MemoryOS(db, projection_mode="shadow")
     _observe_and_remember(os_, content="ws one", workspace="ws-1")
     _observe_and_remember(os_, content="ws two", workspace="ws-2")
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once(batch_size=10)
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once(batch_size=10)
     spaces = {
         r["workspace_id"]
         for r in os_.memories.conn.execute("SELECT workspace_id FROM shadow_memories")
@@ -399,7 +400,7 @@ def test_replaying_the_same_event_does_not_duplicate_the_shadow(db):
             (JobStatus.PENDING.value, time.time() - 1, event.event_id),
         )
         os_.events.conn.commit()
-        shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+        shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     assert os_.shadow_memories.count() == 1
 
 
@@ -418,7 +419,7 @@ def test_a_shadow_builder_failure_does_not_break_observe(db):
 
     w = ReconciliationWorker(
         os_.events.conn, projection_conn=os_.memories.conn, outbox=os_.events.outbox,
-        builders={COGNITIVE_MEMORY: _Broken()}, worker_id="w", lease_seconds=0,
+        builders={COGNITIVE_MEMORY: _Broken()}, worker_id="w", lease_seconds=300,
     )
     w.run_once()
     assert w.metrics.failed == 1
@@ -446,7 +447,10 @@ def test_shadow_survives_a_worker_crash_and_still_compares(db):
 
     live = MemoryOS(db, projection_mode="shadow")
     assert live.shadow_memories.count() == 1
-    shadow_worker(live, worker_id="recover", lease_seconds=0).run_once()
+    recover = shadow_worker(live, worker_id="recover", lease_seconds=300)
+    recover.run_once(claim_now=past_expiry(live, 300))
+    assert recover.metrics.already_built == 1, (
+        "đường phục hồi chưa chạy — ca này chưa đo cái nó định đo")
 
     assert live.shadow_memories.count() == 1, "recovery must not duplicate the shadow"
     result = compare_event(live, event.event_id)
@@ -494,7 +498,7 @@ def test_report_survives_a_reopen(db, tmp_path):
 def test_shared_memory_runtime_supports_shadow():
     os_ = MemoryOS(":memory:", projection_mode="shadow")
     event = _observe_and_remember(os_)
-    shadow_worker(os_, worker_id="w", lease_seconds=0).run_once()
+    shadow_worker(os_, worker_id="w", lease_seconds=300).run_once()
     assert os_.shadow_memories.count() == 1
     assert compare_event(os_, event.event_id).ok
 
@@ -526,5 +530,6 @@ def _crash_shadow_child(db_path: str, point: str, reached) -> None:
 
     f.install(hook)
     runtime = _OS(db_path, projection_mode="shadow")
-    _sw(runtime, worker_id=f"crash-{os.getpid()}", lease_seconds=0).run_once()
+    # Con claim mot job PENDING — lease duong la du de toi fault point.
+    _sw(runtime, worker_id=f"crash-{os.getpid()}", lease_seconds=300).run_once()
     reached.set()

@@ -101,7 +101,10 @@ def crash_uncommitted_projection(db_path: str, reached: Any) -> None:
         outbox=os_.events.outbox,
         builders={"cognitive_memory": UncommittedProjectionBuilder()},
         worker_id=f"uncommitted-{os.getpid()}",
-        lease_seconds=0,
+        # Job đang PENDING — độ dài lease không tham gia vào việc giành nó.
+        # Zero cũ chỉ là thói quen của lane, nay bị `validate_lease_seconds`
+        # từ chối ngay tại claim().
+        lease_seconds=300.0,
     )
     worker.run_once()
     if reached is not None:
