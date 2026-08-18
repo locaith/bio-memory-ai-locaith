@@ -1,0 +1,110 @@
+{
+  "phase": "A4.1",
+  "sections": {
+    "step1_exact_a4_call": {
+      "api": "forgetting.forget_derived",
+      "arguments": {
+        "subject": "kiểm hoạt hoá",
+        "needle": "0913777555"
+      },
+      "source_event_link_rows_BEFORE_forget": 1,
+      "memories_deleted": 1,
+      "tombstoned": 1,
+      "checks_run": 1,
+      "note": "",
+      "residue": 0,
+      "as_dict": {
+        "verified_clean": true,
+        "survives_rebuild": true,
+        "reversible": true,
+        "reversible_via": [
+          "cognitive_events.payload_json"
+        ]
+      },
+      "post_state": {
+        "memory_rows": 0,
+        "event_rows": 1,
+        "tombstones_table": true,
+        "tombstone_rows": 1,
+        "outbox": [
+          [
+            "completed",
+            1
+          ]
+        ]
+      }
+    },
+    "step2_replay_on_post_a4": {
+      "before": {
+        "memory_rows": 0,
+        "event_rows": 1,
+        "tombstones_table": true,
+        "tombstone_rows": 1,
+        "outbox": [
+          [
+            "completed",
+            1
+          ]
+        ]
+      },
+      "replay": {
+        "scan_candidates": 294,
+        "replayed": 294
+      },
+      "after": {
+        "memory_rows": 0,
+        "event_rows": 1,
+        "tombstones_table": true,
+        "tombstone_rows": 1,
+        "outbox": [
+          [
+            "completed",
+            51
+          ],
+          [
+            "pending",
+            244
+          ]
+        ]
+      },
+      "canary_resurrected": false
+    },
+    "step3_official_forget": {
+      "api_tried": "forget / forget_projection",
+      "tombstoned": 0,
+      "memories_deleted": 0,
+      "note": "không tìm thấy ký ức nào khớp",
+      "state_after_forget": {
+        "memory_rows": 1,
+        "event_rows": 1,
+        "tombstones_table": false,
+        "outbox": [
+          [
+            "completed",
+            1
+          ]
+        ]
+      },
+      "replay": {
+        "scan_candidates": 293,
+        "replayed": 293
+      },
+      "state_after_replay": {
+        "memory_rows": 1,
+        "event_rows": 1,
+        "tombstones_table": false,
+        "outbox": [
+          [
+            "completed",
+            51
+          ],
+          [
+            "pending",
+            243
+          ]
+        ]
+      },
+      "canary_absent_after_replay": false
+    }
+  }
+}
