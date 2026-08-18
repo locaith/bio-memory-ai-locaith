@@ -499,12 +499,33 @@ class ReconciliationWorker:
             self.metrics.paused_cycles += 1
             return self.metrics
         _fault.fire(_fault.ProjectionFaultPoint.BEFORE_CLAIM)
+        # The tenant goes into the claim, not after it.
+        #
+        # This used to claim globally and then drop the wrong-tenant rows:
+        #
+        #     jobs = self.outbox.claim(...)
+        #     if self.tenant_id:
+        #         jobs = [j for j in jobs if j.tenant_id == self.tenant_id]
+        #
+        # By then the lease had been taken on another tenant's row, `attempts`
+        # had been incremented, and the rightful tenant's worker was locked out
+        # for the lease window. `metrics.claimed` counted the list *after* the
+        # filter, so a worker scoped to `tenant-A` reported `claimed=0` while
+        # the store showed `tenant-B`'s job `in_progress, locked_by=<A>`.
+        #
+        # Filtering afterwards cannot fix that, and neither can releasing the
+        # row quickly: the boundary was already crossed.
+        #
+        #     ISOLATION MUST CONSTRAIN ACQUISITION, NOT MERELY PROCESSING.
+        #
+        # The post-claim filter is deleted rather than kept as a belt: a
+        # redundant guard that can never fire is a guard nobody will notice has
+        # stopped being redundant.
         jobs = self.outbox.claim(
-            self.worker_id, limit=batch_size, lease_seconds=self.lease_seconds
+            self.worker_id, limit=batch_size, lease_seconds=self.lease_seconds,
+            tenant_id=self.tenant_id or None,
         )
         _fault.fire(_fault.ProjectionFaultPoint.AFTER_CLAIM)
-        if self.tenant_id:
-            jobs = [j for j in jobs if j.tenant_id == self.tenant_id]
         self.metrics.claimed += len(jobs)
         for job in jobs:
             if self.stopping:

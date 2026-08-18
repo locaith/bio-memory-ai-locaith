@@ -195,6 +195,7 @@ class ProjectionOutbox:
         limit: int = 1,
         now: float | None = None,
         lease_seconds: float = DEFAULT_LEASE_SECONDS,
+        tenant_id: str | None = None,
     ) -> list[ProjectionJob]:
         """Take up to `limit` jobs for this worker.
 
@@ -205,34 +206,64 @@ class ProjectionOutbox:
 
         Expired leases are reclaimed here rather than by a separate sweeper, so
         a worker that died holding a job cannot block it indefinitely.
+
+        **`tenant_id` constrains ACQUISITION, not processing.**
+
+        It used to have no tenant parameter at all, so a tenant-scoped worker
+        could only filter *after* claiming — and `reconciliation_worker.run_once`
+        did exactly that. Measured on a queue holding one job for `tenant-B`,
+        with a worker scoped to `tenant-A`:
+
+            metrics  claimed=0 completed=0        every cycle
+            store    tenant-B job -> in_progress, locked_by=<A's worker>,
+                     attempts=1
+
+        The boundary had already been crossed by the time anyone looked at the
+        tenant, and the metric reported nothing at all — not a wrong number, an
+        absent one. Releasing the row quickly afterwards would not fix it: the
+        lease was taken, another tenant's queue was touched, and a concurrent
+        worker for the rightful tenant was blocked for that window.
+
+            ISOLATION MUST CONSTRAIN ACQUISITION, NOT MERELY PROCESSING.
+
+        So the predicate goes in the SQL, in **both** the SELECT and the UPDATE
+        guard — the guard especially, because that is the statement that
+        actually decides the race. `None` means "every tenant", which is what an
+        unscoped drain or a single-tenant deployment wants.
         """
         now = time.time() if now is None else now
         stale_before = now - lease_seconds
         claimed: list[ProjectionJob] = []
+        scoped = tenant_id is not None
+        tenant_clause = " AND tenant_id = ?" if scoped else ""
 
         rows = self.conn.execute(
-            """
+            f"""
             SELECT * FROM projection_outbox
             WHERE available_at <= ?
               AND (status = ?
                    OR (status = ? AND (locked_at IS NULL OR locked_at <= ?)))
+              {tenant_clause}
             ORDER BY created_at
             LIMIT ?
             """,
-            (now, JobStatus.PENDING.value, JobStatus.IN_PROGRESS.value, stale_before, limit),
+            (now, JobStatus.PENDING.value, JobStatus.IN_PROGRESS.value,
+             stale_before, *((tenant_id,) if scoped else ()), limit),
         ).fetchall()
 
         for row in rows:
             cur = self.conn.execute(
-                """
+                f"""
                 UPDATE projection_outbox
                 SET status=?, locked_by=?, locked_at=?, attempts=attempts+1
                 WHERE job_id=?
                   AND (status=? OR (status=? AND (locked_at IS NULL OR locked_at <= ?)))
+                  {tenant_clause}
                 """,
                 (
                     JobStatus.IN_PROGRESS.value, worker_id, now, row["job_id"],
-                    JobStatus.PENDING.value, JobStatus.IN_PROGRESS.value, stale_before,
+                    JobStatus.PENDING.value, JobStatus.IN_PROGRESS.value,
+                    stale_before, *((tenant_id,) if scoped else ()),
                 ),
             )
             if cur.rowcount:
