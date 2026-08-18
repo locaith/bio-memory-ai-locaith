@@ -492,7 +492,8 @@ class ReconciliationWorker:
         except Exception:  # a checkpoint must never take the worker down
             logger.exception("wal checkpoint failed")
 
-    def run_once(self, *, batch_size: int = 10) -> WorkerMetrics:
+    def run_once(self, *, batch_size: int = 10,
+                 claim_now: float | None = None) -> WorkerMetrics:
         """Claim and process up to `batch_size` jobs, then return."""
         self.metrics.cycles += 1
         if self.paused():
@@ -521,9 +522,15 @@ class ReconciliationWorker:
         # The post-claim filter is deleted rather than kept as a belt: a
         # redundant guard that can never fire is a guard nobody will notice has
         # stopped being redundant.
+        # `claim_now` là ĐẦU VÀO THỰC THI, không phải cửa hậu cho test.
+        # `ProjectionOutbox.claim()` đã coi `now` là input hợp lệ từ đầu; worker
+        # chỉ đang thôi che mất năng lực đó. Nó điều khiển đúng một thứ: thời
+        # điểm GIÀNH/THU HỒI. Trước đây muốn ép thu hồi ngay thì phải dùng
+        # `lease_seconds=0` — một cấu hình vô nghĩa mà `validate_lease_seconds`
+        # nay từ chối. Điều khiển thời gian tường minh là cách đúng.
         jobs = self.outbox.claim(
             self.worker_id, limit=batch_size, lease_seconds=self.lease_seconds,
-            tenant_id=self.tenant_id or None,
+            tenant_id=self.tenant_id or None, now=claim_now,
         )
         _fault.fire(_fault.ProjectionFaultPoint.AFTER_CLAIM)
         self.metrics.claimed += len(jobs)

@@ -26,6 +26,13 @@ from .shadow import (
     output_hash,
 )
 
+# Đường shadow chạy đồng bộ, một worker, trong một vòng lặp — nó chỉ cần một
+# lease đủ dài để bao trọn một lần build, không cần "hết hạn ngay". Chỗ này
+# từng dùng `lease_seconds=0`, và `validate_lease_seconds` giải thích vì sao
+# zero là cấu hình không có nghĩa: nó xoá sạch khoảng cách thời gian mà vị từ
+# hết hạn cần để phân biệt "vừa lấy" với "đã bỏ rơi".
+SHADOW_LEASE_SECONDS = 30.0
+
 
 def shadow_worker(memory_os: Any, **kwargs: Any) -> ReconciliationWorker:
     """A worker that writes shadow projections instead of production ones.
@@ -154,7 +161,8 @@ def run_shadow_comparison(
         t: CAPABILITIES[t].reason or "no builder" for t in unsupported_types()
     }
 
-    worker = worker or shadow_worker(memory_os, worker_id="shadow-1", lease_seconds=0)
+    worker = worker or shadow_worker(memory_os, worker_id="shadow-1",
+                                    lease_seconds=SHADOW_LEASE_SECONDS)
     started = time.perf_counter()
     while True:
         before = worker.metrics.claimed

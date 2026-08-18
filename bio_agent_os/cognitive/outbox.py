@@ -24,6 +24,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import math
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -140,6 +141,43 @@ CREATE INDEX IF NOT EXISTS idx_outbox_key
 # chứng minh runtime không có tín hiệu nào phân biệt hạ tầng chập chờn với
 # payload độc. Nên nhường là thao tác DUY NHẤT ở đây: không dead-letter, không
 # quarantine, không mất việc.
+def validate_lease_seconds(lease_seconds: float) -> float:
+    """Một lease phải có ĐỘ DÀI. Zero không phải "hết hạn ngay" — nó là không có.
+
+    Đo được, 125 run trên hai tiến trình thật, chữ ký nhân quả khớp hai chiều:
+
+        double_ack  <=>  locked_at_B <= stale_before_A
+
+        lease = 0          5/25 double-ack
+        lease = 0.5 tick   0/25
+        lease = 1 tick     0/25
+        lease = 2 ticks    0/25
+        lease = 50ms       0/25
+
+    Cơ chế: `stale_before = now - lease`. Với `lease = 0` thì
+    `stale_before == now`, và vị từ hết hạn dùng `<=`. Hai lần đọc đồng hồ liên
+    tiếp trùng nhau rất thường xuyên (đo được 199986/200000), nên `locked_at`
+    của một lease VỪA được lấy bằng đúng `now` của worker kia — và thoả điều
+    kiện "đã hết hạn". Hai worker cùng được cấp quyền trên một job.
+
+    **Không** phải "lease ngắn hơn lượng tử đồng hồ thì hỏng": 0.5 tick = 0.25ms
+    đã sạch 25/25. Biên đo được là zero đúng bằng zero, nên ràng buộc ở đây là
+    `> 0`, không phải một ngưỡng suy ra từ resolution.
+
+    `<=` không bị đổi thành `<`: nó đúng ngữ nghĩa — một lease hết hạn ĐÚNG lúc
+    expiry thì thu hồi được. Đổi nó để cứu `lease=0` là bóp méo một ngữ nghĩa
+    hợp lệ nhằm đỡ cho một cấu hình vốn không có độ dài.
+    """
+    value = float(lease_seconds)
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(
+            f"lease_seconds phải là số hữu hạn và > 0, nhận {lease_seconds!r}. "
+            f"Một lease không có độ dài thì vị từ hết hạn không giữ nổi quyền "
+            f"sở hữu độc quyền: hai worker cùng thoả `locked_at <= stale_before` "
+            f"và cùng được cấp quyền trên một job.")
+    return value
+
+
 FAIRNESS_YIELD_BASE = 1.0
 FAIRNESS_YIELD_CAP = 60.0
 
@@ -357,6 +395,8 @@ class ProjectionOutbox:
         actually decides the race. `None` means "every tenant", which is what an
         unscoped drain or a single-tenant deployment wants.
         """
+        # Trước MỌI thay đổi trạng thái, kể cả bước nhường lượt.
+        lease_seconds = validate_lease_seconds(lease_seconds)
         now = time.time() if now is None else now
         stale_before = now - lease_seconds
         claimed: list[ProjectionJob] = []
@@ -557,6 +597,7 @@ __all__ = [
     "OUTBOX_SCHEMA",
     "PROJECTION_VERSION",
     "JobStatus",
+    "validate_lease_seconds",
     "ProjectionJob",
     "ProjectionOutbox",
     "projection_key",
