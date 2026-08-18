@@ -360,7 +360,8 @@ def test_p4b_drain_cannot_converge_with_a_poison_job(tmp_path):
 
     `ROLLBACK_RUNBOOK` dùng drain-về-0 làm cổng hoàn tất, nên câu này quyết
     định `bounded drain` là PROVIDED hay NOT PROVIDED."""
-    from bio_agent_os.cognitive.projection_control import drain
+    from bio_agent_os.cognitive.projection_control import (
+        DRAIN_INCOMPLETE_UNRESOLVED, drain)
 
     memory_os = _store(tmp_path, "p4b", [POISON, HEALTHY_A])
     try:
@@ -368,9 +369,13 @@ def test_p4b_drain_cannot_converge_with_a_poison_job(tmp_path):
         outbox.claim(worker_id="dead-forever", tenant_id=TENANT)
 
         report = drain(memory_os, timeout_seconds=4.0)
+        # Từ H1.3, hợp đồng là một KẾT LUẬN hữu hạn, không phải hai boolean.
+        # `bounded outcome` không đòi hàng đợi về 0: một job chưa hiểu, còn
+        # nguyên và được báo rõ, tốt hơn một job lành bị nhốt để con số về 0.
+        assert report["outcome"] == DRAIN_INCOMPLETE_UNRESOLVED, report
+        assert report["unresolved"] >= 1, report
         assert report.get("drained") is False, (
             f"lease bị bỏ rơi mà drain vẫn về 0 — cập nhật ca này: {report}")
-        assert report.get("timed_out") is True, report
     finally:
         memory_os.close()
 
