@@ -1,0 +1,47 @@
+{
+  "phase": "A5-v2",
+  "steps": [
+    {
+      "step": "PRE snapshot CERTIFIED (integrity + hash)",
+      "ok": true,
+      "detail": "9b6fc92e05273515"
+    },
+    {
+      "step": "S5 VALID PASS",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "S20 VALID PASS",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "S50 VALID PASS",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "CLEAN GENERATION RESET — INSTALL_CONFIRMED, hash khớp baseline, integrity ok, FK rỗng",
+      "ok": true,
+      "detail": "9b6fc92e05273515"
+    },
+    {
+      "step": "3 substantive live canaries — exactly once",
+      "ok": true,
+      "detail": "live=3"
+    },
+    {
+      "step": "non-substantive canary — event-only",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "0 unresolved sau live window",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "baseline_real": "9b6fc92e052735151f8ef4d776d841cbcb5acd097738dd5892ce30c6e82bcad6",
+  "conclusion": "A5-v2 REAL: PASS"
+}
