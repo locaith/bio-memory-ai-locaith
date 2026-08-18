@@ -159,6 +159,7 @@ class MemoryOS:
         metadata: dict[str, Any] | None = None,
         modality: Modality = Modality.TEXT,
         epistemic_status: EpistemicStatus = EpistemicStatus.OBSERVED,
+        enqueue_projection: bool = True,
     ) -> EventRecord:
         """Record an observation.
 
@@ -194,7 +195,13 @@ class MemoryOS:
             modality=modality,
             epistemic_status=epistemic_status,
         )
-        return self.events.append(event, projection_types=self._projection_types())
+        # `enqueue_projection=False`: vẫn đi TRỌN đường observe — immune,
+        # EventRecord, provenance, append — nhưng không nợ projection nào.
+        # Sinh ra từ single-writer contract của hook: một event không đáng
+        # thành memory thì không được để outbox worker biến nó thành memory.
+        return self.events.append(
+            event, projection_types=(self._projection_types()
+                                     if enqueue_projection else ()))
 
     #: Bumped when the resolver's answer for the same sentence could change,
     #: so a row can say which version produced its slot.

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .facade import MemoryOS
+from .shadow import ProjectionMode
 from .models import EpistemicStatus, MemoryType, Modality, SecurityLabel, TrustTier
 
 
@@ -63,6 +64,26 @@ class ClaudeCodeHookAdapter:
         self.workspace_id = workspace_id
         self.agent_id = agent_id
 
+    # SINGLE WRITER BY MODE — hợp đồng sau sự cố 18/08 (1 prompt thật thành
+    # 2 memories dưới outbox):
+    #
+    #     LEGACY   observe -> event;            remember -> memory
+    #     SHADOW   observe -> event + shadow;   remember -> memory legacy
+    #     OUTBOX   observe -> event + debt;     worker LÀ writer DUY NHẤT
+    #
+    # Hai quyết định tách thành method để mutant tháo được đúng từng cái.
+
+    def _direct_write_allowed(self) -> bool:
+        """OUTBOX có đúng MỘT materialization authority: worker."""
+        return self.memory_os.projection_mode is not ProjectionMode.OUTBOX
+
+    def _projection_debt_allowed(self, substantive: bool) -> bool:
+        """Sự kiện không đáng thành memory thì không được nợ projection —
+        thiếu chốt này, sửa duplicate sẽ phá filtering contract cũ và
+        `hook=SessionStart` bắt đầu được materialize."""
+        return substantive or (
+            self.memory_os.projection_mode is not ProjectionMode.OUTBOX)
+
     def ingest(self, hook: str, payload: dict[str, Any]) -> HookIngestResult:
         if hook not in SUPPORTED_CLAUDE_HOOKS:
             return HookIngestResult(False, None, hook, "unsupported_hook", None)
@@ -79,6 +100,7 @@ class ClaudeCodeHookAdapter:
             metadata={"hook": hook, "session_id": payload.get("session_id"), "tool": payload.get("tool_name")},
             modality=Modality.CODE if "ToolUse" in hook or "Task" in hook else Modality.TEXT,
             epistemic_status=EpistemicStatus.OBSERVED,
+            enqueue_projection=self._projection_debt_allowed(substantive),
         )
         # An event always happened, so it is always recorded — events are the
         # audit trail and dropping one would be lying about what occurred.
@@ -97,6 +119,12 @@ class ClaudeCodeHookAdapter:
         if not substantive:
             return HookIngestResult(True, event.event_id, hook,
                                     "no_substantive_content", None)
+
+        if not self._direct_write_allowed():
+            # OUTBOX: event đã mang nợ projection; worker sẽ materialize.
+            # KHÔNG remember() — bản ghi thẳng chính là nhánh đã nhân đôi
+            # một prompt thật của chủ ngày 18/08.
+            return HookIngestResult(True, event.event_id, hook, None, None)
 
         projected = self.memory_os.remember(
             event=event,
