@@ -1,0 +1,159 @@
+{
+  "phase": "A4 REAL CANARY",
+  "steps": [
+    {
+      "step": "GUARD 1: snapshot mới restore-verify TRƯỚC mutation",
+      "ok": true,
+      "detail": "19 bảng khớp"
+    },
+    {
+      "step": "schema mutation ghi nhận tường minh",
+      "ok": true,
+      "detail": "bảng mới: ['projection_control', 'projection_ledger']"
+    },
+    {
+      "step": "đúng MỘT job canary vào hàng đợi",
+      "ok": true,
+      "detail": "[{'job_id': 'd022f1a5-30cd-44d4-abea-23a61a8e6d98', 'status': 'pending'}]"
+    },
+    {
+      "step": "persistent readback: 1 materialized + 1 ledger + COMPLETED",
+      "ok": true,
+      "detail": "built=1 ledger=1 status=completed"
+    },
+    {
+      "step": "forget hiệu lực trong persistent state",
+      "ok": true,
+      "detail": "còn=0"
+    },
+    {
+      "step": "0 resurrection sau worker rerun",
+      "ok": true,
+      "detail": "=0"
+    },
+    {
+      "step": "GUARD 2: mọi event có sẵn nguyên vẹn",
+      "ok": true,
+      "detail": "đổi=0"
+    },
+    {
+      "step": "GUARD 2: mọi memory có sẵn nguyên vẹn, không mất hàng nào",
+      "ok": true,
+      "detail": "đổi=0 mất=0"
+    }
+  ],
+  "ownership_telemetry": [
+    {
+      "at": "trước observe",
+      "rows": []
+    },
+    {
+      "at": "trước claim",
+      "rows": [
+        {
+          "job_id": "d022f1a5-30cd-44d4-abea-23a61a8e6d98",
+          "status": "pending",
+          "locked_by": null,
+          "locked_at": null,
+          "attempts": 0
+        }
+      ]
+    },
+    {
+      "at": "sau claim + sau terminal",
+      "rows": [
+        {
+          "job_id": "d022f1a5-30cd-44d4-abea-23a61a8e6d98",
+          "status": "completed",
+          "locked_by": null,
+          "locked_at": null,
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "at": "trước forget",
+      "rows": [
+        {
+          "job_id": "d022f1a5-30cd-44d4-abea-23a61a8e6d98",
+          "status": "completed",
+          "locked_by": null,
+          "locked_at": null,
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "at": "sau worker rerun",
+      "rows": [
+        {
+          "job_id": "d022f1a5-30cd-44d4-abea-23a61a8e6d98",
+          "status": "completed",
+          "locked_by": null,
+          "locked_at": null,
+          "attempts": 1
+        }
+      ]
+    }
+  ],
+  "schema_mutations": [
+    "projection_control",
+    "projection_ledger"
+  ],
+  "pre_a4": {
+    "snapshot": "C:\\locaith\\bio-memory-ai-locaith\\activation\\A4\\pre_a4_snapshot.db",
+    "snapshot_sha256": "22c31b9168e63061d108e8cdc80a8a7ccc9000d20e6cb42a082788c1463c4d87",
+    "row_counts": {
+      "cognitive_events": 293,
+      "projection_outbox": 0,
+      "cognitive_memories": 265,
+      "memory_source_events": 265,
+      "memory_store_migrations": 2,
+      "cognitive_memory_fts": 265,
+      "cognitive_memory_fts_data": 122,
+      "cognitive_memory_fts_idx": 119,
+      "cognitive_memory_fts_content": 265,
+      "cognitive_memory_fts_docsize": 265,
+      "cognitive_memory_fts_config": 1,
+      "self_capabilities": 0,
+      "prospective_triggers": 0,
+      "context_blocks": 0,
+      "context_shares": 0,
+      "context_cache_entries": 0,
+      "agent_checkpoints": 0,
+      "shadow_memories": 0,
+      "rejected_inputs": 0
+    },
+    "events": 293,
+    "memories": 265
+  },
+  "canary_event_id": "e07a0b18-f5fe-4e1f-b696-f315b9385b78",
+  "canary_job_id": "d022f1a5-30cd-44d4-abea-23a61a8e6d98",
+  "projection_readback": {
+    "memory_id": "d489d42a-178a-4cb0-a51b-7f065b48dbc1",
+    "ledger_rows": 1,
+    "job_status": "completed"
+  },
+  "forget_readback": {
+    "after_forget": 0,
+    "after_rerun": 0
+  },
+  "unrelated_delta": {
+    "pre_existing_events_changed": [],
+    "pre_existing_memories_changed": [],
+    "pre_existing_memories_missing": [],
+    "new_events": [
+      "e07a0b18-f5fe-4e1f-b696-f315b9385b78"
+    ],
+    "new_tables": [
+      "projection_control",
+      "projection_ledger"
+    ]
+  },
+  "conclusion": "A4 REAL CANARY: PASS",
+  "rollback": {
+    "executed": false,
+    "point": "C:\\locaith\\bio-memory-ai-locaith\\activation\\A4\\pre_a4_snapshot.db",
+    "sha256": "22c31b9168e63061d108e8cdc80a8a7ccc9000d20e6cb42a082788c1463c4d87"
+  }
+}
