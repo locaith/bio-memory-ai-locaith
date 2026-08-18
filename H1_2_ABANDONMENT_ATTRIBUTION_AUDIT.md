@@ -65,9 +65,13 @@ của job.
 
 ## Phát hiện phụ: `locked_at` cũng thô
 
-Trong probe, A và B có `locked_at` **giống hệt nhau** — cùng một tick 15.625 ms.
-Cùng đúng cái resolution đã làm hỏng ma trận H1. Kể cả nếu dựng attribution dựa
-trên thời điểm, độ phân giải hiện tại không đủ tách hai lần claim liền nhau.
+Trong probe, A và B có `locked_at` **giống hệt nhau** — hai lần đọc đồng hồ
+liên tiếp trả cùng một giá trị, hiện tượng đo được ở tần suất 199986/200000.
+*(Correction 18/08: bản đầu quy chuyện này cho "tick 15.625ms" — con số công
+bố, không phải độ hạt thật ~0.51ms. Phát hiện đứng trên sự TRÙNG timestamp đo
+được, không đứng trên con số đó.)* Kể cả nếu dựng attribution dựa trên thời
+điểm, timestamp trùng nhau thường xuyên tới mức không tách nổi hai lần claim
+liền nhau.
 
 ## Kết luận
 

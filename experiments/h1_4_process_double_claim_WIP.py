@@ -7,8 +7,10 @@ process FAIL thì đó là phát hiện thật về ranh giới runtime, không 
 lệch nhau.
 
 Đồng bộ bằng `multiprocessing.Event`, không bằng `sleep`. Nhân chứng là sự kiện
-đồng bộ đã xảy ra, không phải hai dấu thời gian gần nhau — đồng hồ ở máy này có
-resolution 15.625 ms và đã hai lần làm hỏng kết luận trong lane này.
+đồng bộ đã xảy ra, không phải hai dấu thời gian gần nhau — timestamp trùng nhau
+(đo được 199986/200000 hai lần đọc liên tiếp bằng nhau) đã hai lần làm hỏng kết
+luận trong lane này. (Correction 18/08: bản đầu viện dẫn 15.625ms — con số công
+bố, không phải độ hạt thật ~0.51ms.)
 """
 from __future__ import annotations
 

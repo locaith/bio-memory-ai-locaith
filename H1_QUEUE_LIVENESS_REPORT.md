@@ -21,14 +21,21 @@ là `p4` và `six_round_divergence`.
 
 ## First divergence
 
-`ProjectionOutbox` đặt `created_at = time.time()`. Trên máy này:
+`ProjectionOutbox` đặt `created_at = time.time()`. Trên máy này, ĐO trực tiếp
+(không lấy thông số công bố làm nguồn sự thật):
 
 ```
-time.get_clock_info('time').resolution = 0.015625   # 15.625 ms
+reported_resolution          0.015625      # con số công bố — KHÔNG phải biên nhân quả
+observed_min_positive_delta  ~0.000510     # bước nhảy dương nhỏ nhất quan sát được
+repeated_equal_timestamps    199986/200000 # hai lần đọc liên tiếp trùng nhau
 ```
+
+*(Correction 18/08: đoạn này từng dẫn `15.625ms` như thể nó là độ hạt thật của
+đồng hồ. Con số thật nhỏ hơn ~30 lần. Kết luận của mục này KHÔNG đổi — nó đứng
+trên việc timestamp TRÙNG NHAU, đo trực tiếp, không đứng trên con số ấy.)*
 
 Hai lần `observe()` liên tiếp mất ~1 ms, nên **5/8 lần hai job nhận cùng một
-`created_at`**. `claim()` sắp bằng `ORDER BY created_at`, không tiebreaker. Với
+`created_at`** — đo trực tiếp. `claim()` sắp bằng `ORDER BY created_at`, không tiebreaker. Với
 hai hàng bằng nhau, thứ tự trả về không được định nghĩa.
 
 Thí nghiệm tách đôi, mỗi nhánh 6 lần:
