@@ -70,7 +70,18 @@ def _release_lock() -> None:
         pass
 
 
+def _pin_projection_mode_env() -> None:
+    """Suite đo hành vi MẶC ĐỊNH (legacy) — không đo env rơi rớt của phiên.
+
+    18/08: session env còn mang BIO_AGENT_PROJECTION_MODE=outbox từ một lần
+    A5.4 đã revert trong settings; 5 ca đỏ vì suite chạy dưới default sai.
+    Test nào cần mode khác phải tự set TƯỜNG MINH (monkeypatch/env con).
+    """
+    os.environ.pop("BIO_AGENT_PROJECTION_MODE", None)
+
+
 def pytest_configure(config):                          # noqa: ARG001
+    _pin_projection_mode_env()
     _claim_lock()
 
 

@@ -62,5 +62,10 @@
       }
     }
   },
-  "root_cause": "FALSIFIED / NOT REPRODUCED"
+  "classification": {
+    "original_wal_frames_hypothesis": "FALSIFIED",
+    "refined_live_handle_page_cache": "VERIFIED",
+    "incident_root_cause": "VERIFIED",
+    "old_rollback_protocol": "UNSAFE_BY_DESIGN"
+  }
 }
