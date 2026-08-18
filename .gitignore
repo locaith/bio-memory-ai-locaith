@@ -63,3 +63,5 @@ test_data/
 
 # Snapshot cua store that — noi dung ky uc ca nhan, KHONG bao gio push
 activation/**/*.db
+activation/RECOVERY/*.db*
+activation/RECOVERY/quarantine_incident/

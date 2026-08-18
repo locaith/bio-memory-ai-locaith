@@ -1,0 +1,62 @@
+{
+  "mode": "RECOVERY",
+  "steps": [
+    {
+      "step": "R2: closure row-by-row",
+      "ok": true,
+      "detail": "events=2 mems=3 closure={'cognitive_events': 2, 'projection_outbox': 1, 'cognitive_memories': 3, 'memory_source_events': 3, 'projection_ledger': 1, 'EXCLUDED_duplicate_leg': {'memory': 1, 'source_link': 1, 'ledger': 1, 'outbox': 1}} fts=rebuilt"
+    },
+    {
+      "step": "R3: integrity_check == ok",
+      "ok": true,
+      "detail": "['ok']"
+    },
+    {
+      "step": "R3: foreign_key_check rỗng",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "step": "R3: COUNT == scan == distinct (hết mâu thuẫn thước đo)",
+      "ok": true,
+      "detail": "268/268/268"
+    },
+    {
+      "step": "R3: readback ứng dụng — events cứu được đọc lại, provenance, dupes == 3 nhóm lịch sử của CLEAN (không nhóm mới), tombstone giữ, runtime bất hoạt",
+      "ok": true,
+      "detail": "ev=2 prov_links=2 dupes=3 tomb=1 pending=0"
+    },
+    {
+      "step": "R5: install vào chỗ trống, không stale wal/shm",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "R5: installed mở READ-ONLY — integrity ok, fk rỗng",
+      "ok": true,
+      "detail": "tables=22"
+    },
+    {
+      "step": "R5: hash installed == candidate",
+      "ok": true,
+      "detail": "8590fef6c43bfdec2cd10eb4"
+    },
+    {
+      "step": "R6: legacy hook write #0",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "R6: legacy hook write #1",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "R6: snapshot + restore-verify, integrity ok CẢ HAI",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "candidate_sha256": "8590fef6c43bfdec2cd10eb4f46bc0875f15a8906b0570df2732fd2198f53e88",
+  "conclusion": "REAL STORE RECOVERY = VERIFIED"
+}
