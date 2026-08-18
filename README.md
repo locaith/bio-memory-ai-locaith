@@ -572,6 +572,38 @@ Cả ba đều **cũ hơn** phần việc đã phát hiện ra chúng:
 
 ---
 
+## 🔬 Trạng thái nghiên cứu hiện tại — Projection Runtime
+
+Mục này ghi trạng thái **đã được kiểm chứng bằng thực thi**, không phải ý định.
+
+| Năng lực | Trạng thái |
+|---|---|
+| Replay resurrection safety | **VERIFIED** |
+| Tenant isolation | **VERIFIED** |
+| H1 single-worker liveness / fairness | **VERIFIED** |
+| H1 multi-worker concurrency | **IN PROGRESS — chưa VERIFIED** |
+| Real-store projection activation | **BLOCKED** |
+| Projection worker trên store người dùng | **NOT ACTIVATED** |
+
+Một ca đua *stale-yield* do chính đường fairness đưa vào đã được **tái hiện
+sạch** rồi **vá** bằng một chuyển trạng thái optimistic compare-and-set: một
+quan sát đã cũ không được phép ghi đè một lease đang sống. Bản vá có mutant
+riêng, và mutant tháo đúng phần vừa thêm thì ca sạch đỏ ngay.
+
+**Ngữ nghĩa claim ở mức nhiều tiến trình vẫn đang được kiểm chứng.** Chưa có
+tuyên bố nào về an toàn multi-worker toàn cục được đưa ra ở đây. Một bản vá
+compare-and-set cục bộ tại một transition không phải bằng chứng rằng mọi đường
+`read → later write` khác trong runtime đều an toàn.
+
+Store production/người dùng **chưa** được bật cho projection worker.
+
+Chi tiết phương pháp và số đo: [`H1_QUEUE_LIVENESS_REPORT.md`](H1_QUEUE_LIVENESS_REPORT.md),
+[`H1_REMEDIATION_BAKEOFF.md`](H1_REMEDIATION_BAKEOFF.md),
+[`H1_2_ABANDONMENT_ATTRIBUTION_AUDIT.md`](H1_2_ABANDONMENT_ATTRIBUTION_AUDIT.md),
+[`PROJECTION_SAFETY_GATE_V1_REPORT.md`](PROJECTION_SAFETY_GATE_V1_REPORT.md).
+
+---
+
 ## 🌏 Tầm Nhìn & Cam kết Mã Nguồn Mở
 
 **Bio-Agent OS** không phải là LLM model. Chúng tôi là **"Memory Controller"** — bộ phận quyết định trí thông minh lâu dài của các mô hình.
