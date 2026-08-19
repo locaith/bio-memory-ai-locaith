@@ -1,0 +1,428 @@
+{
+  "phase": "HBF-3",
+  "verdict": "HBF-3 REAL NATURALIZATION VERIFIED",
+  "real_store_migration": "PERFORMED — ONE generation transition",
+  "mode": "GO — install thật",
+  "hbf3_0_closure_law": "15 passed in 0.56s",
+  "quiesce": {
+    "quiesced_hooks": [
+      "PostCompact",
+      "SessionStart",
+      "UserPromptSubmit"
+    ],
+    "backup": "C:\\locaith\\bio-memory-ai-locaith\\activation\\HBF3\\settings.pre-hbf3.json",
+    "residual_hook_cli_refs": 0
+  },
+  "source_snapshot_sha256": "a9d88be60dfd25f42c1607895384978561c82da77f4e03b0ebb58b5fe093a85d",
+  "source_generation_at_snapshot": {
+    "main_sha256": "0327aad8b2149ae3646c9d550e711aa4ce251da37bff74c835a31a3ee3d519f6",
+    "wal_bytes": 0,
+    "wal_sha256": null,
+    "logical": {
+      "cognitive_events": 339,
+      "cognitive_memories": 307,
+      "projection_outbox": 34,
+      "projection_ledger": 34,
+      "memory_tombstones": 2,
+      "memory_source_events": 307,
+      "max_event_observed_at": "2026-08-19T05:51:19.161409+00:00",
+      "max_memory_created_at": "2026-08-19T05:51:19.168488+00:00"
+    }
+  },
+  "fresh_population": {
+    "total_events": 339,
+    "counts": {
+      "ADOPT_FULL_CONTRACT": 204,
+      "ADOPT_HISTORICAL_PARTIAL": 39,
+      "ADOPT_CURATED_PRESERVED": 18,
+      "ADOPT_CURATED_PARTIAL": 9,
+      "EVENT_ONLY_SKIP": 35,
+      "TOMBSTONE_EXCLUDE": 2,
+      "ALREADY_MANAGED": 32
+    }
+  },
+  "structured_content_closure": {
+    "curated_preserved_as_authored": 27,
+    "reconstructed_equal": 243
+  },
+  "proof_class_counts": {
+    "content_plus_curated_provenance_except_observed_at_v1": 9,
+    "content_plus_curated_provenance_v1": 18,
+    "full_contract_except_observed_at_epsilon_v1": 39,
+    "full_projection_contract_v1": 204
+  },
+  "drift_stats": {
+    "n": 48,
+    "min_ms": 0.505,
+    "max_ms": 53.861
+  },
+  "migration_transaction": {
+    "migration_run_id": "hbf3-1787119214",
+    "adopted": 270,
+    "event_only_skipped": 35,
+    "tombstone_excluded": 2,
+    "outbox_inserted": 305,
+    "ledger_inserted": 270,
+    "audit_inserted": 307
+  },
+  "candidate_invariants": {
+    "audit_adopted_without_ledger": 0,
+    "migration_ledger_without_audit": 0,
+    "migration_outbox_completed_without_ledger": 0,
+    "migration_outbox_skipped_without_audit": 0,
+    "terminal_migration_rows_with_lock": 0,
+    "curated_builder_version_checked_nonnull": 0,
+    "tombstone_provenance_claims": 0,
+    "event_only_claim_with_materialized_memory": 0,
+    "event_only_false_builder_claim": 0,
+    "migration_rows_total": 307
+  },
+  "measurement_ladder": {
+    "S5": {
+      "sampled": 5,
+      "problems": []
+    },
+    "S20": {
+      "sampled": 20,
+      "problems": []
+    },
+    "S50": {
+      "sampled": 50,
+      "problems": []
+    }
+  },
+  "whole_population_closure": {
+    "checked": 307,
+    "closed": 307,
+    "not_closed": []
+  },
+  "candidate_replay": {
+    "actionable": 0,
+    "held_tombstoned": 0
+  },
+  "candidate_historical_delta": {
+    "historical_rebuilds": 0,
+    "historical_duplicate_memories": 0,
+    "historical_rows_mutated": 0,
+    "historical_rows_vanished": 0,
+    "witness": {
+      "rebuilds": [],
+      "dups": [],
+      "mutated": [],
+      "vanished": []
+    }
+  },
+  "candidate_sha256": "a43eb161c56bd7d9c60e623240c9b2d3130b85ebd5e22e3d8b54f49afa736483",
+  "rollback_readiness": {
+    "certified_pre_snapshot": "C:\\locaith\\bio-memory-ai-locaith\\activation\\HBF3\\pre_hbf3_source.db",
+    "sha256": "a9d88be60dfd25f42c1607895384978561c82da77f4e03b0ebb58b5fe093a85d",
+    "procedure": "install_generation(REAL, SNAP, quarantine/rollback) — generation replacement, KHÔNG ghi đè file sống",
+    "hash_verified": true,
+    "procedure_rehearsed_on_disposable": {
+      "returned_to_baseline": true,
+      "integrity": [
+        "ok"
+      ],
+      "fk_violations": 0,
+      "adoption_tables_gone": true
+    }
+  },
+  "cas_guard": {
+    "at_snapshot": {
+      "main_sha256": "0327aad8b2149ae3646c9d550e711aa4ce251da37bff74c835a31a3ee3d519f6",
+      "wal_bytes": 0,
+      "wal_sha256": null,
+      "logical": {
+        "cognitive_events": 339,
+        "cognitive_memories": 307,
+        "projection_outbox": 34,
+        "projection_ledger": 34,
+        "memory_tombstones": 2,
+        "memory_source_events": 307,
+        "max_event_observed_at": "2026-08-19T05:51:19.161409+00:00",
+        "max_memory_created_at": "2026-08-19T05:51:19.168488+00:00"
+      }
+    },
+    "at_install": {
+      "main_sha256": "0327aad8b2149ae3646c9d550e711aa4ce251da37bff74c835a31a3ee3d519f6",
+      "wal_bytes": 0,
+      "wal_sha256": null,
+      "logical": {
+        "cognitive_events": 339,
+        "cognitive_memories": 307,
+        "projection_outbox": 34,
+        "projection_ledger": 34,
+        "memory_tombstones": 2,
+        "memory_source_events": 307,
+        "max_event_observed_at": "2026-08-19T05:51:19.161409+00:00",
+        "max_memory_created_at": "2026-08-19T05:51:19.168488+00:00"
+      }
+    },
+    "drift": {},
+    "match": true
+  },
+  "install_attempted": true,
+  "install": {
+    "installed_sha256": "a43eb161c56bd7d9c60e623240c9b2d3130b85ebd5e22e3d8b54f49afa736483",
+    "quarantine_bundle": "C:\\locaith\\bio-memory-ai-locaith\\activation\\HBF3\\quarantine\\gen-a43eb161c56b",
+    "transitions": 1
+  },
+  "fresh_process_certification": {
+    "file_sha256": "807c932c444311557d619534e78ec0692022435fe8347d558a33e6179d00adc8",
+    "integrity": [
+      "ok"
+    ],
+    "fk_violations": 0,
+    "invariants": {
+      "audit_adopted_without_ledger": 0,
+      "migration_ledger_without_audit": 0,
+      "migration_outbox_completed_without_ledger": 0,
+      "migration_outbox_skipped_without_audit": 0,
+      "terminal_migration_rows_with_lock": 0,
+      "curated_builder_version_checked_nonnull": 0,
+      "tombstone_provenance_claims": 0,
+      "event_only_claim_with_materialized_memory": 0,
+      "event_only_false_builder_claim": 0,
+      "migration_rows_total": 307
+    },
+    "audit_rows": {
+      "adopted": 270,
+      "excluded_tombstoned": 2,
+      "skipped_event_only": 35
+    },
+    "remaining_adopt_classes": {},
+    "closure": {
+      "checked": 307,
+      "closed": 307
+    },
+    "closure_violations": [],
+    "actionable_replay_debt": 0,
+    "replay_held_tombstoned": 0,
+    "post_install_debt_from_new_events": 4,
+    "events_written_since_install": 12,
+    "migration_rows_digest": "78acecdca4357edced1c6f56a5a044d1d1308d8043c04e45a0d42aa51c3c0d21",
+    "historical_rebuilds": 0,
+    "historical_duplicate_memories": 0,
+    "historical_rows_mutated": 0,
+    "historical_rows_vanished": 0,
+    "historical_rows_access_bookkeeping_only": 10,
+    "witness": {
+      "rebuilds": [],
+      "dups": [],
+      "mutated": [],
+      "vanished": []
+    }
+  },
+  "canonical_present": true,
+  "canonical_sha_at_abort": "a43eb161c56bd7d9c60e623240c9b2d3130b85ebd5e22e3d8b54f49afa736483",
+  "canonical_state": "nguyên vẹn/đã cài xong",
+  "rollback_needed": true,
+  "resumed_after_install": true,
+  "resume_precondition": {
+    "canonical_sha": "807c932c444311557d619534e78ec0692022435fe8347d558a33e6179d00adc8",
+    "candidate_sha": "a43eb161c56bd7d9c60e623240c9b2d3130b85ebd5e22e3d8b54f49afa736483",
+    "identical_to_candidate": false,
+    "events_written_since_install": 12,
+    "closure": "307/307",
+    "historical_delta": {
+      "historical_rebuilds": 0,
+      "historical_duplicate_memories": 0,
+      "historical_rows_mutated": 0,
+      "historical_rows_vanished": 0,
+      "historical_rows_access_bookkeeping_only": 10,
+      "witness": {
+        "rebuilds": [],
+        "dups": [],
+        "mutated": [],
+        "vanished": []
+      }
+    }
+  },
+  "canary": {
+    "declared_mode_from_settings": "outbox",
+    "pre_canary_reset": {
+      "leftover_memories_forgotten": 0,
+      "remaining": 0
+    },
+    "substantive": {
+      "UserPromptSubmit": {
+        "events": 1,
+        "memories": 1,
+        "jobs": [
+          "completed"
+        ],
+        "ledger": 1,
+        "rows": [
+          {
+            "memory_id": "edfd6e04-5396-40d7-a5b6-fb1d515dc406",
+            "confidence": 0.72,
+            "importance": 0.55,
+            "salience": 0.5,
+            "utility": 0.65,
+            "metadata_json": "{\"hook\": \"UserPromptSubmit\", \"projection\": {\"key\": \"8dccd161585f00b5bdf6992606031885da5d26a29340c2b634ca128e414897fa\", \"source_event_id\": \"ed4ebbf3-9af7-4601-86b1-99e0e4fb6130\", \"type\": \"cognitive_memory\", \"version\": 1}, \"session_id\": \"hbf3\", \"state\": {\"mode\": \"implement\", \"stress_state\": \"normal\"}, \"tool\": null}"
+          }
+        ]
+      },
+      "PostToolUseFailure": {
+        "events": 1,
+        "memories": 1,
+        "jobs": [
+          "completed"
+        ],
+        "ledger": 1,
+        "rows": [
+          {
+            "memory_id": "f51297f7-da03-4f81-a194-670fca503d79",
+            "confidence": 0.72,
+            "importance": 0.55,
+            "salience": 0.75,
+            "utility": 0.65,
+            "metadata_json": "{\"hook\": \"PostToolUseFailure\", \"projection\": {\"key\": \"dd009c7ba3fe27f0145ea7b182e96741e5386d3f1f4a076ccd726ede68f7365b\", \"source_event_id\": \"31957d7e-e465-4d59-bc7f-1a495b83b674\", \"type\": \"cognitive_memory\", \"version\": 1}, \"session_id\": \"hbf3\", \"state\": {\"mode\": \"debug\", \"stress_state\": \"failure\"}, \"tool\": \"Bash\"}"
+          }
+        ]
+      }
+    },
+    "delta": {
+      "events": 3,
+      "memories": 2,
+      "sessionstart_memories": 0
+    },
+    "non_substantive": {
+      "rule": "3 hook → +3 event; chỉ 2 substantive → +2 memory; marker SessionStart → +0 memory (đo DELTA, vì store thật đã có sẵn memory marker từ thời legacy)",
+      "baseline_sessionstart_memories": 3
+    },
+    "contract_parity": {
+      "ups": {
+        "confidence": 0.72,
+        "importance": 0.55,
+        "salience": 0.5,
+        "utility": 0.65
+      },
+      "ptf": {
+        "confidence": 0.72,
+        "importance": 0.55,
+        "salience": 0.75,
+        "utility": 0.65
+      }
+    },
+    "canary_event_ids": [
+      "31957d7e",
+      "d0944769",
+      "ed4ebbf3"
+    ],
+    "own_debt_from_non_substantive": 5
+  },
+  "canary_cleanup": {
+    "forgotten": [
+      {
+        "memory": "edfd6e04",
+        "needle": "HBF3-CANARY-UPS",
+        "verified_clean": true
+      },
+      {
+        "memory": "f51297f7",
+        "needle": "HBF3-CANARY-PTF",
+        "verified_clean": true
+      }
+    ],
+    "memories_left": 0,
+    "tombstones_kept": 2,
+    "actionable_debt_after": 0
+  },
+  "steps": [
+    {
+      "step": "canonical tồn tại",
+      "ok": true,
+      "detail": "807c932c44431155"
+    },
+    {
+      "step": "hiện vật migration còn nguyên · lịch sử chưa bị chạm",
+      "ok": true,
+      "detail": "closure 307/307 · 12 event mới sau install · rebuild=0 mutated=0"
+    },
+    {
+      "step": "writers vẫn đang quiesced",
+      "ok": true,
+      "detail": "settings không còn hook_cli"
+    },
+    {
+      "step": "fresh-process certification",
+      "ok": true,
+      "detail": "audit={'adopted': 270, 'excluded_tombstoned': 2, 'skipped_event_only': 35} · closure=307/307 · debt=0"
+    },
+    {
+      "step": "reset sạch trước canary (dấu vết lần chạy trước, nếu có)",
+      "ok": true,
+      "detail": "quên 0 ký ức canary cũ, còn 0"
+    },
+    {
+      "step": "canary substantive: 1 event · 1 completed job · 1 ledger · 1 memory · 0 duplicate",
+      "ok": true,
+      "detail": "UPS=['completed']/1 PTF=['completed']/1"
+    },
+    {
+      "step": "canary semantic contract parity theo call-site",
+      "ok": true,
+      "detail": "UPS sal=0.5 · PTF sal=0.75"
+    },
+    {
+      "step": "canary non-substantive: +1 event, +0 memory (đo DELTA)",
+      "ok": true,
+      "detail": "Δevents=3 Δmemories=2 Δmarker_memories=0"
+    },
+    {
+      "step": "historical migration rows KHÔNG đổi sau canary",
+      "ok": true,
+      "detail": "78acecdca4357edc"
+    },
+    {
+      "step": "historical actionable replay debt vẫn = 0 (trừ event canary)",
+      "ok": true,
+      "detail": "historical=0 · held=0 · canary sinh 3 event, trong đó 5 không có outbox row (non-substantive — xem FINDING trong report)"
+    },
+    {
+      "step": "forget tự xác minh sạch trên từng ký ức canary",
+      "ok": true,
+      "detail": "[True, True]"
+    },
+    {
+      "step": "canary được QUÊN chính thức, bia mộ + audit giữ lại",
+      "ok": true,
+      "detail": "còn 0 ký ức · 2 bia mộ · nợ lịch sử=0"
+    },
+    {
+      "step": "migration rows vẫn nguyên sau forget",
+      "ok": true,
+      "detail": "78acecdca4357edc"
+    },
+    {
+      "step": "guard ngữ nghĩa CUỐI: lịch sử nguyên vẹn sau canary+forget",
+      "ok": true,
+      "detail": "rebuild=0 mutated=0 closure=307/307"
+    },
+    {
+      "step": "hook restored từ backup byte-exact (bước cuối)",
+      "ok": true,
+      "detail": "settings.json có lại hook_cli"
+    }
+  ],
+  "post_canary_historical_guard": {
+    "historical_rebuilds": 0,
+    "historical_duplicate_memories": 0,
+    "historical_rows_mutated": 0,
+    "historical_rows_vanished": 0,
+    "historical_rows_access_bookkeeping_only": 10,
+    "witness": {
+      "rebuilds": [],
+      "dups": [],
+      "mutated": [],
+      "vanished": []
+    }
+  },
+  "post_canary_closure": {
+    "checked": 307,
+    "closed": 307,
+    "not_closed": []
+  },
+  "elapsed_s": 6.0
+}

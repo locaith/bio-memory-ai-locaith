@@ -6,6 +6,7 @@ handle còn sống rồi để handle checkpoint. RCA lane 1 chứng minh 5/5 n�
 """
 from __future__ import annotations
 
+import hashlib
 import multiprocessing as mp
 import shutil
 import sqlite3
@@ -180,3 +181,41 @@ def test_no_copy_over_canonical_rollback_code_returns(tmp_path):
     assert not hits, (
         f"copy-đè-canonical quay lại ở {hits} — dùng "
         f"store_generation.install_generation, không đè file sống")
+
+
+def test_install_failure_after_move_aside_restores_canonical(tmp_path,
+                                                             monkeypatch):
+    """FAIL CLOSED phải đúng trọn đường, không chỉ nửa move-aside.
+
+    Trước HBF-3, chỉ vòng move-aside có nhánh trả-lại; copy2/replace/verify
+    nằm ngoài. Hỏng ở đó là canonical đã bị dời đi mà chưa có gì thay thế —
+    và người gọi đọc nhầm thành "chưa install", bật lại writer vào một store
+    không tồn tại. Ba lăng kính review độc lập cùng chỉ vào đây."""
+    import shutil as _shutil
+
+    from bio_agent_os.cognitive import store_generation as sg
+
+    canonical = tmp_path / "canonical.db"
+    candidate = tmp_path / "candidate.db"
+    for path, mark in ((canonical, "SONG"), (candidate, "MOI")):
+        conn = sqlite3.connect(str(path))
+        conn.execute("CREATE TABLE t (v TEXT)")
+        conn.execute("INSERT INTO t VALUES (?)", (mark,))
+        conn.commit()
+        conn.close()
+    before = hashlib.sha256(canonical.read_bytes()).hexdigest()
+
+    def boom(src, dst):                       # hỏng ĐÚNG sau move-aside
+        raise OSError("trình quét giữ file .installing")
+
+    monkeypatch.setattr(_shutil, "copy2", boom)
+    with pytest.raises(sg.GenerationError, match="ĐÃ KHÔI PHỤC"):
+        sg.install_generation(canonical, candidate, tmp_path / "q")
+
+    assert canonical.exists(), "canonical biến mất — fail-closed đã vỡ"
+    assert hashlib.sha256(canonical.read_bytes()).hexdigest() == before
+    conn = sqlite3.connect(f"file:{canonical.as_posix()}?mode=ro", uri=True)
+    try:
+        assert conn.execute("SELECT v FROM t").fetchone()[0] == "SONG"
+    finally:
+        conn.close()

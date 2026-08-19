@@ -24,10 +24,12 @@ import pytest
 from bio_agent_os.cognitive.facade import MemoryOS
 from bio_agent_os.cognitive.forgetting import forget_derived
 from bio_agent_os.cognitive.historical_adoption import (
+    verify_closure, verify_closure_from_audit,
     ADOPT_CLASSES, AdmissibilityError, InjectedAbort, adopt, adoption_gate,
     adoption_invariants, classify_store, tables_digest)
 from bio_agent_os.cognitive.hooks import ClaudeCodeHookAdapter
 from bio_agent_os.cognitive.models import MemoryType
+from bio_agent_os.cognitive.outbox import projection_key
 from bio_agent_os.cognitive.projection_engine import ProjectionReplayEngine
 from bio_agent_os.cognitive.reconciliation_worker import worker_for
 from bio_agent_os.cognitive.tombstones import place
@@ -60,6 +62,19 @@ def _build_history(path: Path) -> MemoryOS:
                  content="bài học font chữ HBF2-SYN-CURATED",
                  confidence=0.95, importance=0.9,
                  metadata={"kind": "error_lesson", "provenance": "curated"})
+    # marker-only NHƯNG CÓ ký ức — hình dạng thật từ 07/08, thời legacy còn
+    # materialize cả marker. Nội dung nói "không đáng nhớ", quan hệ nói "đã
+    # có projection". Quan hệ mới là thứ quyết định có nợ hay không.
+    mk = mos.observe(tenant_id="t1", workspace_id="w1", actor="claude-code",
+                     source="claude-code:SessionStart",
+                     content="hook=SessionStart", enqueue_projection=False,
+                     metadata={"hook": "SessionStart", "session_id": "hist",
+                               "tool": None})
+    mos.remember(event=mk, memory_type=MemoryType.EPISODIC,
+                 content="hook=SessionStart", confidence=0.72, importance=0.35,
+                 salience=0.50, utility=0.65,
+                 metadata={"hook": "SessionStart", "session_id": "hist",
+                           "tool": None, "state": {"mode": "implement"}})
     tomb = adapter.ingest("UserPromptSubmit", {
         "hook_event_name": "UserPromptSubmit", "session_id": "hist",
         "prompt": "hàng này sẽ bị chôn HBF2-SYN-TOMB"})
@@ -104,10 +119,83 @@ def history(tmp_path):
     mos.close()
 
 
+def test_marker_only_with_materialized_memory_is_adopted_not_skipped(history):
+    """MARKER-ONLY KHÔNG ĐỦ ĐỂ NÓI "KHÔNG NỢ GÌ".
+
+    Ghi audit `skipped_event_only` cho một event đã CÓ ký ức là khai sai
+    provenance, và bỏ ký ức đó lại không ledger — đúng thứ lễ nhập tịch sinh
+    ra để ngăn. Bắt được nhờ review đối kháng trước HBF-3, trên 3 hàng
+    `hook=SessionStart` thật của store."""
+    conn = history.memories.conn
+    report = _classified(history)
+    marker = conn.execute(
+        "SELECT s.event_id FROM memory_source_events s "
+        "JOIN cognitive_memories m ON m.memory_id = s.memory_id "
+        "WHERE m.content = 'hook=SessionStart'").fetchone()[0]
+    d = next(x for x in report.rows if x.event_id == str(marker))
+    assert d.cls in ADOPT_CLASSES, (
+        f"marker-only CÓ ký ức bị xếp {d.cls} — audit sẽ nói dối và ký ức "
+        f"này ở lại không ledger")
+    adopt(conn, report, migration_run_id=RUN, source_snapshot_sha256=SNAP)
+    assert conn.execute(
+        "SELECT COUNT(*) FROM projection_ledger WHERE event_id=?",
+        (str(marker),)).fetchone()[0] == 1
+    action = conn.execute(
+        "SELECT management_action FROM projection_adoption_audit "
+        "WHERE event_id=?", (str(marker),)).fetchone()[0]
+    assert action == "adopted", action
+    assert adoption_invariants(conn)[
+        "event_only_claim_with_materialized_memory"] == 0
+
+    # mutant: hạ chính hàng này về "không nợ gì" — bất biến phải đỏ
+    conn.execute("UPDATE projection_adoption_audit SET "
+                 "management_action='skipped_event_only' WHERE event_id=?",
+                 (str(marker),))
+    conn.commit()
+    assert adoption_invariants(conn)[
+        "event_only_claim_with_materialized_memory"] == 1, (
+        "khai 'không có projection' về event đang có ký ức mà không bị bắt")
+
+
+def test_tombstoned_event_may_keep_a_live_pipeline_ledger(history):
+    """Bia mộ CÓ ledger cũ là hợp lệ — đó là bằng chứng "đã từng dựng", và
+    chính nó chặn replay hồi sinh. Cấm mọi ledger là cấm nhầm lịch sử.
+
+    Hình dạng thật, bắt được ở HBF-3 sau khi install: hai event bia mộ mang
+    ledger do `canary-a4` và `hook-22344` ghi từ khi chúng còn sống, rồi mới
+    bị quên. Luật đúng: bia mộ không được có ledger DO MIGRATION ghi."""
+    conn = history.memories.conn
+    report = _classified(history)
+    tomb = report.of("TOMBSTONE_EXCLUDE")[0]
+    key = projection_key(tomb.event_id, "cognitive_memory", 1)
+    from bio_agent_os.cognitive.reconciliation_worker import LEDGER_SCHEMA
+    conn.executescript(LEDGER_SCHEMA)      # pipeline song da tao bang tu truoc
+    conn.execute(
+        "INSERT INTO projection_ledger (projection_key, event_id, "
+        "projection_type, projection_version, tenant_id, target_id, "
+        "worker_id, created_at) VALUES (?,?,?,?,?,?,?,?)",
+        (key, tomb.event_id, "cognitive_memory", 1, tomb.tenant_id,
+         "da-bi-quen", "hook-22344", 0.0))
+    conn.commit()
+
+    adopt(conn, report, migration_run_id=RUN, source_snapshot_sha256=SNAP)
+    closure = verify_closure_from_audit(conn)
+    assert not closure["not_closed"], (
+        f"ledger của pipeline sống bị coi là vi phạm: {closure['not_closed']}")
+
+    # mutant: chính MIGRATION cấp ledger cho hàng bia mộ → phải đỏ
+    conn.execute("UPDATE projection_ledger SET worker_id=? "
+                 "WHERE projection_key=?", ("migration:hbf-adopt", key))
+    conn.commit()
+    bad = verify_closure_from_audit(conn)["not_closed"]
+    assert any(c["action"] == "excluded_tombstoned" for c in bad), (
+        "migration cấp hộ chiếu cho hàng đã chôn mà không bị bắt")
+
+
 def test_classification_matches_population_shape(history):
     report = _classified(history)
     c = report.counts
-    assert c["ADOPT_FULL_CONTRACT"] == 3
+    assert c["ADOPT_FULL_CONTRACT"] == 4      # 3 hook + 1 marker-có-ký-ức
     assert c["ADOPT_HISTORICAL_PARTIAL"] == 1
     assert c["ADOPT_CURATED_PRESERVED"] == 1
     assert c["EVENT_ONLY_SKIP"] == 1
@@ -137,13 +225,13 @@ def test_adopt_zero_semantic_delta_and_complete_triples(history):
     result = adopt(conn, report, migration_run_id=RUN,
                    source_snapshot_sha256=SNAP)
     assert result.committed
-    assert result.adopted == 5            # 3 full + 1 partial + 1 curated
+    assert result.adopted == 6      # 4 full (gom marker-co-ky-uc) + 1 partial + 1 curated
     assert result.skipped_event_only == 1
     assert result.excluded_tombstoned == 1
     assert tables_digest(conn) == before, "adoption đã chạm bảng semantic"
     inv = adoption_invariants(conn)
     assert all(v == 0 for k, v in inv.items() if k != "migration_rows_total"), inv
-    assert inv["migration_rows_total"] == 6      # 5 completed + 1 skipped
+    assert inv["migration_rows_total"] == 7      # 6 completed + 1 skipped
     # replay sau adopt: không còn nợ actionable; bia mộ được tách riêng
     replay = ProjectionReplayEngine(conn).replay(dry_run=False)
     assert replay.enqueued == 0 and replay.reset == 0
@@ -165,7 +253,7 @@ def test_admissibility_abort_before_commit_zero_partial(history):
     # và sau abort, lễ thật vẫn chạy được nguyên vẹn
     result = adopt(conn, report, migration_run_id=RUN,
                    source_snapshot_sha256=SNAP)
-    assert result.adopted == 5 and result.committed
+    assert result.adopted == 6 and result.committed
 
 
 def test_k1_replay_no_duplicates_and_ledger_authority(history, tmp_path):
@@ -231,7 +319,7 @@ def test_k3_restart_managed_state_durable(history, tmp_path):
         inv = adoption_invariants(fresh)
         assert all(v == 0 for k, v in inv.items()
                    if k != "migration_rows_total")
-        assert inv["migration_rows_total"] == 6
+        assert inv["migration_rows_total"] == 7
         assert fresh.execute(
             "SELECT COUNT(*) FROM projection_adoption_audit "
             "WHERE management_action='adopted'").fetchone()[0] == result.adopted
@@ -249,7 +337,7 @@ def test_k4_reapply_is_idempotent(history):
                    source_snapshot_sha256=SNAP)
     assert second.adopted == 0 and second.outbox_inserted == 0 \
         and second.ledger_inserted == 0 and second.audit_inserted == 0
-    assert second.noop_reapply == 7       # 5 adopt + 1 event-only + 1 tombstone
+    assert second.noop_reapply == 8       # 6 adopt + 1 event-only + 1 tombstone
     assert tables_digest(conn, ALL_TABLES) == before
     # (b) phân lớp TƯƠI sau adopt — mọi hàng adopt cũ giờ ALREADY_MANAGED
     fresh = classify_store(conn)
@@ -341,7 +429,7 @@ def test_audit_provenance_by_class_and_terminal_shape(history):
     # provenance thật nằm ở ledger, không ở outbox
     assert conn.execute(
         "SELECT COUNT(*) FROM projection_ledger WHERE worker_id=?",
-        ("migration:hbf-adopt",)).fetchone()[0] == 5
+        ("migration:hbf-adopt",)).fetchone()[0] == 6
     rows = conn.execute(
         "SELECT management_action, contract_name, contract_version, "
         "builder_version_checked FROM projection_adoption_audit").fetchall()
@@ -371,7 +459,7 @@ def test_p1_mutant_lease_as_provenance_must_die(history):
         "(SELECT projection_key FROM projection_adoption_audit)")
     conn.commit()
     caught = adoption_invariants(conn)["terminal_migration_rows_with_lock"]
-    assert caught == 6, f"mutant P1 sống sót — chỉ bắt được {caught}/6"
+    assert caught == 7, f"mutant P1 sống sót — chỉ bắt được {caught}/7"
 
 
 def test_p2_mutant_curated_builder_claim_must_die(history):
@@ -389,6 +477,45 @@ def test_p2_mutant_curated_builder_claim_must_die(history):
     inv = adoption_invariants(conn)
     assert inv["curated_builder_version_checked_nonnull"] == 1, (
         "mutant P2 sống sót — curated claim builder mà không bị bắt")
+
+
+def test_hbf3_0_closure_law_present_is_not_closed(history):
+    """HBF3-0: PRESENT ≠ CLOSED. Ba row đủ mặt nhưng sai ruột KHÔNG được
+    tính là reapply no-op — mutant C1 (sai status) và C2 (ledger trỏ sai
+    ký ức) phải làm transaction đỏ, không phải im lặng đi qua."""
+    conn = history.memories.conn
+    report = _classified(history)
+    adopt(conn, report, migration_run_id=RUN, source_snapshot_sha256=SNAP)
+    closure = verify_closure(conn, report)
+    assert not closure["not_closed"] and closure["closed"] == closure["checked"]
+
+    victim = report.of("ADOPT_FULL_CONTRACT")[0]
+    key = projection_key(victim.event_id, "cognitive_memory", 1)
+
+    # C1 — triple đủ ba row, nhưng outbox mang status SAI
+    conn.execute("UPDATE projection_outbox SET status='pending' "
+                 "WHERE event_id=?", (victim.event_id,))
+    conn.commit()
+    assert any(c["event"] == victim.event_id[:8]
+               for c in verify_closure(conn, report)["not_closed"]), \
+        "closure law không thấy status sai"
+    with pytest.raises(AdmissibilityError, match="closure conflict"):
+        adopt(conn, report, migration_run_id=RUN + "-c1",
+              source_snapshot_sha256=SNAP)
+    conn.execute("UPDATE projection_outbox SET status='completed' "
+                 "WHERE event_id=?", (victim.event_id,))
+    conn.commit()
+
+    # C2 — ledger đủ mặt nhưng trỏ SAI ký ức: hộ chiếu cấp nhầm người
+    other = report.of("ADOPT_FULL_CONTRACT")[1].target_id
+    conn.execute("UPDATE projection_ledger SET target_id=? "
+                 "WHERE projection_key=?", (other, key))
+    conn.commit()
+    bad = verify_closure(conn, report)["not_closed"]
+    assert any("target_id" in " ".join(c["why"]) for c in bad), bad
+    with pytest.raises(AdmissibilityError, match="closure conflict"):
+        adopt(conn, report, migration_run_id=RUN + "-c2",
+              source_snapshot_sha256=SNAP)
 
 
 def test_structured_content_closure_downgrades_not_forces(history):

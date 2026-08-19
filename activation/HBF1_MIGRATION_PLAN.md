@@ -214,3 +214,95 @@ operational risk mà KHÔNG mua thêm causal information
 classify + candidate OFFLINE → sampled pre-install audit 5→20→50 trên
 candidate (KHÔNG install) → full certification → MỘT lần quiesced
 install_generation → fresh-process certification → canary production-hook nhỏ.
+
+## HBF-3 — REAL HISTORICAL NATURALIZATION (19/08, VERIFIED)
+
+Một lần thay generation duy nhất trên canonical thật. Đường đi:
+`quiesce → snapshot+certify → classify → candidate offline → adopt →
+S5/S20/S50 → whole-population closure → CAS guard → MỘT install_generation →
+fresh-process cert → canary hook thật → forget canary → guard cuối → bật hook`.
+
+### HBF3-0 — CLOSURE LAW: PRESENT != CLOSED
+
+`_triple_state` cũ trả ba boolean tồn tại, nên một triple đủ mặt mà sai
+`status` hoặc sai `target_id` vẫn được tính là reapply no-op. Thay bằng
+`closure_state()` (kiểm ngữ nghĩa từng liên kết) + `verify_closure_from_audit()`
+(population = sổ audit). Mutant C1 (sai status) và C2 (ledger trỏ sai ký ức)
+đều phải làm transaction đỏ.
+
+### Review đối kháng TRƯỚC khi chạm động mạch — 4 finding sống sót
+
+Bốn lăng kính độc lập (data-destruction · false-green · windows-sqlite ·
+sequencing/CAS), 28 agent, mỗi finding bị một agent khác cố bác bỏ:
+
+1. **`install_generation` chưa fail-closed trọn đường** (3/4 lăng kính cùng
+   chỉ vào). Chỉ vòng move-aside có nhánh trả-lại; `copy2/replace/verify` nằm
+   ngoài. Hỏng ở đó → canonical đã bị dời mà chưa có gì thay thế, và caller
+   đọc thành "chưa install", **bật lại hook vào một store không tồn tại**.
+   Đã vá tại chính primitive (khôi phục bundle) + handler quyết bằng QUAN SÁT
+   (`REAL.exists()` và sha thuộc tập đã biết), không bằng sổ sách.
+2. **3 event marker-only NHƯNG CÓ ký ức** bị xếp `EVENT_ONLY_SKIP` → audit sẽ
+   khai "không có projection nào ở đây" trong khi ký ức đang nằm đó, và 3 ký
+   ức ấy ở lại KHÔNG ledger. Luật sửa: **hình dạng nội dung không quyết định
+   có nợ hay không — quan hệ với ký ức đã materialize mới quyết định.**
+   Bất biến mới `event_only_claim_with_materialized_memory` + mutant.
+3. **Fresh-process cert chỉ đo 2/307 hàng**: sau khi cài, phân loại tươi thấy
+   mọi hàng adopt là ALREADY_MANAGED nên closure chỉ còn 2 hàng bia mộ để soi.
+   Thay population bằng sổ audit → 307/307.
+4. **Sampler bỏ sót proof class** (curated-partial chỉ 9/270 hàng): S5 có thể
+   không chạm lớp nào ngoài FULL. Thay bằng phân tầng theo lớp + bù cho đủ cỡ
+   mẫu (một "S20" đo 19 hàng là đã âm thầm cắt mẫu).
+
+Tự bắt thêm trước khi review về: **CAS guard chỉ hash file chính là không đủ**
+— ở chế độ WAL, một prompt mới commit vào `memory.db-wal` còn file chính không
+đổi một byte. Guard giờ đo BA lớp: main · sidecar `-wal` · số đếm logic đọc
+qua SQLite.
+
+### Số đo
+
+```
+population           339 events
+  ADOPT_FULL_CONTRACT        204   full_projection_contract_v1
+  ADOPT_HISTORICAL_PARTIAL    39   full_contract_except_observed_at_epsilon_v1
+  ADOPT_CURATED_PRESERVED     18   content_plus_curated_provenance_v1
+  ADOPT_CURATED_PARTIAL        9   ..._except_observed_at_v1
+  EVENT_ONLY_SKIP             35 · TOMBSTONE_EXCLUDE 2 · ALREADY_MANAGED 32
+  lớp chặn                   0/0/0/0/0
+structured closure   240/240 reconstructed_equal · 27 curated preserved-as-authored
+S5 · S20 · S50       5 · 20 · 50 hàng, 6 phép/hàng, 0 vi phạm
+whole closure        307/307 (ngữ nghĩa)
+semantic delta       0 (digest bằng)
+CAS guard            main+wal+logic không lệch
+INSTALL              MỘT lần · INSTALL_CONFIRMED · a43eb161c56bd7d9
+fresh-process cert   integrity ok · fk 0 · 9 bất biến = 0 · closure 307/307
+canary (hook thật)   UPS: 1 event/1 job completed/1 ledger/1 memory · sal 0.50
+                     PTF: 1/1/1/1 · sal 0.75 (hợp đồng failure) · conf 0.72
+                     non-substantive: Δevents=3 Δmemories=2 Δmarker=0
+forget canary        verified_clean [True, True] · bia mộ giữ · 0 ký ức sót
+lịch sử              rebuild 0 · duplicate 0 · row bị đổi 0 · row biến mất 0
+                     (10 hàng đổi retrieval_count/last_accessed_at — sổ sách
+                      TẦNG PHỤC VỤ do chính recall của hook, khai riêng)
+HISTORICAL DEBT      305 → 0
+```
+
+### FINDING chưa sửa (STOP condition — cần chữ ký)
+
+Dưới OUTBOX, event **non-substantive** không tạo outbox row nào. Replay scan
+xếp nó `MISSING_OUTBOX` → nợ actionable vĩnh viễn. Nếu ai chạy
+`replay --repair`, job sẽ được enqueue và worker **materialize `hook=SessionStart`
+thành ký ức** — đúng cái đầu mà substantive gate đã cắt. Đây là hành vi CÓ SẴN
+của pipeline sống, không do migration sinh ra (migration còn ghi 35 hàng
+SKIPPED để đóng đúng khe này cho lịch sử). Cách sửa tự nhiên: hook ghi một
+outbox row `SKIPPED` cho event non-substantive — đúng docstring của
+`JobStatus.SKIPPED` ("nothing is owed" là một sự thật được ghi, không phải một
+hàng vắng mặt). **Không tự sửa: đây là thay đổi hành vi sản phẩm.**
+
+### Ghi sổ trung thực
+
+Pha hậu-install phải chạy lại 4 lần vì 4 lỗi ĐO của chính harness (không phải
+lỗi dữ liệu): closure cấm nhầm ledger cũ của bia mộ · debt đo toàn cục mà gán
+nhãn "lịch sử" · needle dùng chung cho hai ký ức · so hash file với candidate
+sau khi canary đã ghi hợp lệ. Mỗi lần sửa đều bằng phép đo, không bằng phỏng
+đoán. Hệ quả: 15 event canary nằm lại trong store (event là append-only — luật),
+10 bia mộ, và **0 ký ức canary còn sống**; tổng memories về đúng 307 như trước
+migration. Canonical chỉ có ĐÚNG MỘT lần thay generation.

@@ -96,19 +96,51 @@ def install_generation(canonical: Path, candidate: Path,
             f"canonical nguyên vẹn, chưa có gì được cài") from exc
 
     # INSTALL vào chỗ TRỐNG — copy sang file tạm cùng thư mục rồi rename.
+    #
+    # Nửa này TỪNG nằm ngoài mọi restore: move-aside có nhánh trả-lại, nhưng
+    # nếu copy2/replace/verify hỏng thì canonical đã bị dời đi mà không có gì
+    # thay thế, và lời hứa "FAIL CLOSED" trong docstring chỉ đúng nửa đường.
+    # Trên Windows đó không phải giả thuyết xa xôi: một trình quét mở file
+    # `.installing` là `replace` trả ACCESS_DENIED. Ba lăng kính review độc
+    # lập trước HBF-3 cùng chỉ vào đây.
     tmp = canonical.parent / (canonical.name + ".installing")
-    shutil.copy2(candidate, tmp)
-    tmp.replace(canonical)
-
-    got = _sha(canonical)
-    conn = sqlite3.connect(f"file:{canonical.as_posix()}?mode=ro", uri=True)
     try:
-        ic = [r[0] for r in conn.execute("PRAGMA integrity_check")]
-    finally:
-        conn.close()
-    if got != want or ic != ["ok"]:
+        shutil.copy2(candidate, tmp)
+        tmp.replace(canonical)
+
+        got = _sha(canonical)
+        conn = sqlite3.connect(f"file:{canonical.as_posix()}?mode=ro", uri=True)
+        try:
+            ic = [r[0] for r in conn.execute("PRAGMA integrity_check")]
+        finally:
+            conn.close()
+        if got != want or ic != ["ok"]:
+            raise GenerationError(
+                f"installed generation không qua verify (hash {got[:8]} vs "
+                f"{want[:8]}, ic={ic[:2]})")
+    except BaseException as exc:
+        # Trả canonical về nguyên trạng: xoá phần đã cài dở, đưa bundle cũ về.
+        restored, restore_error = [], None
+        try:
+            if tmp.exists():
+                tmp.unlink()
+            for name in [canonical.name] + [canonical.name + e for e in SIDECARS]:
+                p = canonical.parent / name
+                if p.exists():
+                    p.unlink()
+            for src, dst in reversed(moved):
+                shutil.move(str(dst), str(src))
+                restored.append(src.name)
+        except OSError as restore_exc:                     # noqa: PERF203
+            restore_error = restore_exc
+        if restore_error is not None:
+            raise GenerationError(
+                f"install hỏng ({exc}) VÀ khôi phục hỏng ({restore_error}) — "
+                f"canonical KHÔNG xác định; bundle cũ nằm ở {bundle}"
+            ) from exc
         raise GenerationError(
-            f"installed generation không qua verify (hash {got[:8]} vs "
-            f"{want[:8]}, ic={ic[:2]}) — bundle cũ còn đủ trong {bundle}")
+            f"install hỏng: {exc} — ĐÃ KHÔI PHỤC canonical từ bundle "
+            f"({', '.join(restored) or 'không có gì để trả'}), "
+            f"generation cũ vẫn đang phục vụ") from exc
     return {"installed_sha256": got, "quarantine_bundle": str(bundle),
             "moved": [d.name for _s, d in moved]}

@@ -588,7 +588,7 @@ Cập nhật 19/08/2026.
 | **Semantic parity giữa hai đường ghi** | **VERIFIED** — hợp đồng ghi lưu bền trong event (`MemoryProjectionIntent`), một constructor cho mọi writer, parity gate + mutant |
 | Historical inventory & contract archaeology | **VERIFIED** — population phân lớp đủ, UNCLASSIFIED = 0; comparator FULL đo ≥20 trường (HBF-1.1: "240 FULL" tự hạ xuống 203 khi comparator có răng — 4 proof class trung thực, 46 hàng observed-at drift mang delta thật trong audit) |
 | Historical adoption rehearsal (HBF-2 → 2.1) | **VERIFIED — OFFLINE** — 267 adopt / 38 skip / 2 bia mộ trên candidate; structured_content đóng 240/240; một transaction + abort = zero partial; K1–K4 (replay·forget·restart·reapply) PASS; mutant M1/M2 chết có witness; **HBF-2.1**: provenance về đúng nhà — terminal outbox mang đúng hình dạng `complete()`/`skip()` (locked_by=NULL, không "worker ma"), audit không điền cột NULL-able khi claim chưa xảy ra (curated: builder=NULL — NOT_APPLICABLE ≠ version 1), hai mutant provenance P1/P2 chết; install rehearsal vào disposable canonical. **Store thật CHƯA migrate.** |
-| Historical adoption thật (HBF-3) | **LOCKED — chờ chữ ký**; đường duy nhất: candidate offline → certify → `install_generation` |
+| **Historical naturalization thật (HBF-3)** | **VERIFIED — ĐÃ CHẠY** — 270 projection lịch sử được nhập tịch bằng **ĐÚNG MỘT** lần thay generation trên store thật; blast radius nằm TRƯỚC install (S5/S20/S50 + closure toàn population trên candidate offline), CAS guard ba lớp (main + WAL + số đếm logic) ngay sát thời điểm replace; semantic delta 0; canary hook thật sau đó cho parity đúng hợp đồng rồi được quên chính thức. **Historical actionable replay debt: 305 → 0.** |
 | Multi-node workers | **NOT CERTIFIED** (chưa có clock-skew contract) |
 
 Ba sự cố đáng kể đã xảy ra và được xử lý đúng kỷ luật, giữ nguyên trong lịch
@@ -600,13 +600,20 @@ ghi (SP-0/SP-1 — sinh ra luật `CONTENT_EQUIVALENT ≠ PROJECTION_EQUIVALENT`
 9 ký ức thật được repair tại chỗ với audit trong chính record).
 
 Store người dùng: đường ghi mới OUTBOX **đang hoạt động** với parity theo hợp
-đồng; lịch sử cũ **chưa migrate** — lễ nhập tịch đã diễn tập xong OFFLINE
-(HBF-2 VERIFIED, `bio_agent_os/cognitive/historical_adoption.py` +
-`tests/test_historical_adoption.py`), migration thật (HBF-3) khoá chờ phê
-duyệt. Luật giữ nguyên: adopt AS-IS — hiểu vì sao quá khứ khác không cho
-quyền rewrite quá khứ; drift policy là số ĐÃ ĐO trên population này, không
-phải định luật; curated giữ `canonical_candidate_hash=NULL` vì chính bàn tay
-tác giả là contract.
+đồng, và lịch sử cũ **đã nhập tịch** (HBF-3, 19/08) — mọi projection lịch sử
+giờ có ledger + audit mang đúng proof class của nó, nợ replay lịch sử về 0.
+Luật giữ nguyên: adopt AS-IS — hiểu vì sao quá khứ khác không cho quyền
+rewrite quá khứ; drift policy là số ĐÃ ĐO trên population này, không phải
+định luật; curated giữ `canonical_candidate_hash=NULL` vì chính bàn tay tác
+giả là contract. Code: `bio_agent_os/cognitive/historical_adoption.py`,
+`tests/test_historical_adoption.py`, `activation/HBF3_naturalization.py`.
+
+Trước khi chạm store thật, kịch bản migration được **bốn lăng kính đối kháng
+độc lập** soi (data-destruction · false-green · Windows/SQLite · sequencing).
+Bốn khiếm khuyết sống sót phản biện và đã được vá — đáng kể nhất:
+`install_generation` chỉ fail-closed nửa đường (hỏng SAU move-aside thì
+canonical đã bị dời mà chưa có gì thay thế, và caller đọc thành "chưa
+install"), nay khôi phục bundle và quyết bằng quan sát trạng thái thật.
 
 Chi tiết: [`H1_QUEUE_LIVENESS_REPORT.md`](H1_QUEUE_LIVENESS_REPORT.md),
 [`H1_4_MULTIWORKER_REPORT.md`](H1_4_MULTIWORKER_REPORT.md),

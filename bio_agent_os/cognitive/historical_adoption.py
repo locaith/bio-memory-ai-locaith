@@ -307,12 +307,6 @@ def classify_store(conn: sqlite3.Connection, *,
             d.cls = "ERASED_EXCLUDE"
             continue
         statuses = outbox_status.get(eid, set())
-        if _marker_only(content):
-            # live pipeline đã ghi quyết định → không phải nợ lịch sử.
-            d.cls = "ALREADY_MANAGED" if statuses else "EVENT_ONLY_SKIP"
-            if d.cls == "EVENT_ONLY_SKIP":
-                d.proof = "substantive_gate_v1"
-            continue
         if eid in ledger_events:
             d.cls = "ALREADY_MANAGED"
             continue
@@ -328,9 +322,23 @@ def classify_store(conn: sqlite3.Connection, *,
             d.cls = "ALREADY_MANAGED"
             continue
 
+        # MARKER-ONLY KHÔNG ĐỦ ĐỂ NÓI "KHÔNG NỢ GÌ".
+        #
+        # Bản đầu xét marker-only TRƯỚC khi nhìn có ký ức hay không, nên 3
+        # event `hook=SessionStart` từ 07/08 — thời legacy còn materialize cả
+        # marker — bị ghi audit là "skipped_event_only", tức là khai "không có
+        # projection nào ở đây" trong khi projection ĐANG NẰM ĐÓ. Sai về
+        # provenance, và tệ hơn: 3 ký ức ấy sẽ không có ledger, đúng thứ mà lễ
+        # nhập tịch sinh ra để ngăn. Review đối kháng trước HBF-3 bắt được.
+        #
+        # Luật: hình dạng NỘI DUNG không quyết định có nợ hay không —
+        # QUAN HỆ với ký ức đã materialize mới quyết định.
         legacy = mem_by_event.get(eid, [])
         if not legacy:
-            d.cls = "TRUE_MISSING"
+            d.cls = "EVENT_ONLY_SKIP" if _marker_only(content) \
+                else "TRUE_MISSING"
+            if d.cls == "EVENT_ONLY_SKIP":
+                d.proof = "substantive_gate_v1"
             continue
         if len(legacy) > 1:
             d.cls = "AMBIGUOUS"
@@ -428,17 +436,95 @@ def adoption_gate(report: ClassificationReport) -> None:
         raise AdmissibilityError("; ".join(problems))
 
 
-def _triple_state(conn: sqlite3.Connection, key: str, eid: str) -> tuple[bool, bool, bool]:
-    ob = conn.execute(
-        "SELECT 1 FROM projection_outbox WHERE event_id=? AND "
-        "projection_type=? AND projection_version=?",
-        (eid, _PTYPE, spec(_PTYPE).version)).fetchone() is not None
-    lg = conn.execute("SELECT 1 FROM projection_ledger WHERE projection_key=?",
-                      (key,)).fetchone() is not None
-    au = conn.execute(
-        "SELECT 1 FROM projection_adoption_audit WHERE projection_key=?",
-        (key,)).fetchone() is not None
-    return ob, lg, au
+@dataclass(slots=True)
+class ClosureState:
+    """HBF3-0 — CLOSURE LAW: ba row phải LIÊN KẾT ĐÚNG NGỮ NGHĨA, không phải
+    chỉ đủ mặt.
+
+        PRESENT != CLOSED.
+
+    Bản HBF-2 trả ba boolean tồn tại, nên một triple đủ ba hàng nhưng sai
+    `status` hoặc sai `target_id` vẫn được coi là reapply no-op — migration
+    sẽ đi qua một hàng hỏng và báo "đã xong". K4 không bắt được vì nó chạy
+    lại trên triple vừa tạo đúng. Khoá trước khi chạm canonical thật."""
+
+    present: int = 0
+    outbox: bool = False
+    ledger: bool = False
+    audit: bool = False
+    conflicts: list = field(default_factory=list)
+
+    @property
+    def empty(self) -> bool:
+        return self.present == 0
+
+    @property
+    def complete(self) -> bool:
+        return self.present == self.expected
+
+    #: Số hàng mà lớp này ĐÁNG RA phải có (adopt=3, event-only=2).
+    expected: int = 3
+
+    @property
+    def closed(self) -> bool:
+        """Đóng = đủ hàng VÀ không mâu thuẫn nào."""
+        return self.complete and not self.conflicts
+
+
+def closure_state(conn: sqlite3.Connection, key: str, d: "EventDecision",
+                  *, want_status: str, want_action: str,
+                  want_ledger: bool) -> ClosureState:
+    version = spec(_PTYPE).version
+    st = ClosureState(expected=3 if want_ledger else 2)
+
+    row = conn.execute(
+        "SELECT status, projection_key, tenant_id FROM projection_outbox "
+        "WHERE event_id=? AND projection_type=? AND projection_version=?",
+        (d.event_id, _PTYPE, version)).fetchone()
+    if row is not None:
+        st.outbox = True
+        st.present += 1
+        if str(row[0]) != want_status:
+            st.conflicts.append(
+                f"outbox.status={row[0]!r} != {want_status!r}")
+        if str(row[1]) != key:
+            st.conflicts.append(
+                f"outbox.projection_key lệch key phái sinh")
+        if str(row[2]) != d.tenant_id:
+            st.conflicts.append(
+                f"outbox.tenant_id={row[2]!r} != {d.tenant_id!r}")
+
+    if want_ledger:
+        row = conn.execute(
+            "SELECT target_id, projection_type, projection_version, tenant_id "
+            "FROM projection_ledger WHERE projection_key=?", (key,)).fetchone()
+        if row is not None:
+            st.ledger = True
+            st.present += 1
+            if str(row[0]) != str(d.target_id):
+                st.conflicts.append(
+                    f"ledger.target_id={str(row[0])[:8]!r} != "
+                    f"{str(d.target_id)[:8]!r} — nhập tịch trỏ SAI ký ức")
+            if str(row[1]) != _PTYPE or int(row[2]) != version:
+                st.conflicts.append("ledger type/version lệch hợp đồng")
+            if str(row[3]) != d.tenant_id:
+                st.conflicts.append(f"ledger.tenant_id={row[3]!r} lệch")
+    elif conn.execute("SELECT 1 FROM projection_ledger WHERE projection_key=?",
+                      (key,)).fetchone() is not None:
+        st.conflicts.append("có ledger cho hàng KHÔNG được materialize")
+
+    row = conn.execute(
+        "SELECT management_action, event_id FROM projection_adoption_audit "
+        "WHERE projection_key=?", (key,)).fetchone()
+    if row is not None:
+        st.audit = True
+        st.present += 1
+        if str(row[0]) != want_action:
+            st.conflicts.append(
+                f"audit.management_action={row[0]!r} != {want_action!r}")
+        if str(row[1]) != d.event_id:
+            st.conflicts.append("audit.event_id lệch hàng đang xét")
+    return st
 
 
 def adopt(conn: sqlite3.Connection, report: ClassificationReport, *,
@@ -489,14 +575,21 @@ def adopt(conn: sqlite3.Connection, report: ClassificationReport, *,
         for d in report.rows:
             key = projection_key(d.event_id, _PTYPE, version)
             if d.cls in ADOPT_CLASSES:
-                ob, lg, au = _triple_state(conn, key, d.event_id)
-                if ob and lg and au:
+                st = closure_state(conn, key, d,
+                                   want_status=JobStatus.COMPLETED.value,
+                                   want_action="adopted", want_ledger=True)
+                if st.closed:
                     result.noop_reapply += 1
                     continue
-                if ob or lg or au:
+                if st.conflicts:
+                    raise AdmissibilityError(
+                        f"closure conflict tại {d.event_id[:8]}: "
+                        f"{'; '.join(st.conflicts)}")
+                if not st.empty:
                     raise AdmissibilityError(
                         f"partial triple tại {d.event_id[:8]}: "
-                        f"outbox={ob} ledger={lg} audit={au}")
+                        f"outbox={st.outbox} ledger={st.ledger} "
+                        f"audit={st.audit}")
                 # Terminal shape ĐÚNG của production complete(): locked_by
                 # và locked_at đều NULL. Provenance nằm ở ledger + audit,
                 # không nằm trong field lease (HBF-2.1).
@@ -525,14 +618,21 @@ def adopt(conn: sqlite3.Connection, report: ClassificationReport, *,
                        builder_version_checked=None if curated else version)
                 result.adopted += 1
             elif d.cls == "EVENT_ONLY_SKIP":
-                ob, _, au = _triple_state(conn, key, d.event_id)
-                if ob and au:
+                st = closure_state(conn, key, d,
+                                   want_status=JobStatus.SKIPPED.value,
+                                   want_action="skipped_event_only",
+                                   want_ledger=False)
+                if st.closed:
                     result.noop_reapply += 1
                     continue
-                if ob or au:
+                if st.conflicts:
+                    raise AdmissibilityError(
+                        f"closure conflict (event-only) tại "
+                        f"{d.event_id[:8]}: {'; '.join(st.conflicts)}")
+                if not st.empty:
                     raise AdmissibilityError(
                         f"partial event-only tại {d.event_id[:8]}: "
-                        f"outbox={ob} audit={au}")
+                        f"outbox={st.outbox} audit={st.audit}")
                 conn.execute(
                     "INSERT INTO projection_outbox (job_id, event_id, "
                     "projection_type, projection_version, projection_key, "
@@ -549,9 +649,14 @@ def adopt(conn: sqlite3.Connection, report: ClassificationReport, *,
                 result.skipped_event_only += 1
             elif d.cls == "TOMBSTONE_EXCLUDE":
                 # KHÔNG outbox row — bia mộ là authority; audit chỉ ghi sổ.
-                if conn.execute(
-                        "SELECT 1 FROM projection_adoption_audit "
-                        "WHERE projection_key=?", (key,)).fetchone():
+                row = conn.execute(
+                    "SELECT management_action FROM projection_adoption_audit "
+                    "WHERE projection_key=?", (key,)).fetchone()
+                if row is not None:
+                    if str(row[0]) != "excluded_tombstoned":
+                        raise AdmissibilityError(
+                            f"closure conflict (tombstone) tại "
+                            f"{d.event_id[:8]}: audit.action={row[0]!r}")
                     result.noop_reapply += 1
                     continue
                 _audit(key, d, "tombstoned", "excluded_tombstoned", None, None,
@@ -574,6 +679,117 @@ def adopt(conn: sqlite3.Connection, report: ClassificationReport, *,
 # ---------------------------------------------------------------------------
 # bất biến sau adopt + digest
 # ---------------------------------------------------------------------------
+
+def verify_closure(conn: sqlite3.Connection,
+                   report: ClassificationReport) -> dict[str, Any]:
+    """HBF3-0 — kiểm closure NGỮ NGHĨA trên TOÀN population sau adopt.
+
+    Không phải "đếm ba row". Mỗi hàng adopt phải: outbox COMPLETED đúng key
+    và tenant · ledger trỏ ĐÚNG target_id đang được nhập tịch · audit đúng
+    management_action. Trả về counts + danh sách vi phạm (phải rỗng)."""
+    version = spec(_PTYPE).version
+    out: dict[str, Any] = {"closed": 0, "not_closed": [], "checked": 0}
+    for d in report.rows:
+        if d.cls in ADOPT_CLASSES:
+            want = (JobStatus.COMPLETED.value, "adopted", True)
+        elif d.cls == "EVENT_ONLY_SKIP":
+            want = (JobStatus.SKIPPED.value, "skipped_event_only", False)
+        elif d.cls == "TOMBSTONE_EXCLUDE":
+            row = conn.execute(
+                "SELECT management_action FROM projection_adoption_audit "
+                "WHERE projection_key=?",
+                (projection_key(d.event_id, _PTYPE, version),)).fetchone()
+            out["checked"] += 1
+            if row is not None and str(row[0]) == "excluded_tombstoned":
+                out["closed"] += 1
+            else:
+                out["not_closed"].append(
+                    {"event": d.event_id[:8], "cls": d.cls,
+                     "why": ["audit bia mộ thiếu/sai action"]})
+            continue
+        else:
+            continue
+        out["checked"] += 1
+        st = closure_state(conn, projection_key(d.event_id, _PTYPE, version),
+                           d, want_status=want[0], want_action=want[1],
+                           want_ledger=want[2])
+        if st.closed:
+            out["closed"] += 1
+        else:
+            out["not_closed"].append(
+                {"event": d.event_id[:8], "cls": d.cls,
+                 "present": st.present, "expected": st.expected,
+                 "why": st.conflicts or ["thiếu hàng"]})
+    return out
+
+
+def verify_closure_from_audit(conn: sqlite3.Connection) -> dict[str, Any]:
+    """Closure đọc từ CHÍNH SỔ AUDIT — dùng SAU khi migration đã cài.
+
+    `verify_closure(report)` cần một ClassificationReport; nhưng sau khi cài,
+    phân loại tươi thấy mọi hàng adopt là ALREADY_MANAGED, nên nó chỉ còn soi
+    được 2 hàng bia mộ và báo "2/2 closed" — một màu xanh đo gần như không gì.
+    Review đối kháng trước HBF-3 bắt đúng chỗ này.
+
+    Ở đây population là 307 hàng audit đã ghi, và mỗi hàng phải tự chứng minh
+    lại: outbox đúng status · ledger đúng target · không lease sót."""
+    out: dict[str, Any] = {"checked": 0, "closed": 0, "not_closed": []}
+    for row in conn.execute(
+            "SELECT projection_key, event_id, target_id, management_action "
+            "FROM projection_adoption_audit"):
+        out["checked"] += 1
+        key, eid = str(row[0]), str(row[1])
+        target, action = row[2], str(row[3])
+        why: list = []
+        ob = conn.execute(
+            "SELECT status, locked_by, locked_at, projection_key FROM "
+            "projection_outbox WHERE event_id=? AND projection_type=?",
+            (eid, _PTYPE)).fetchone()
+        lg = conn.execute(
+            "SELECT target_id, worker_id FROM projection_ledger "
+            "WHERE projection_key=?", (key,)).fetchone()
+
+        if action == "adopted":
+            if ob is None:
+                why.append("thiếu outbox")
+            elif str(ob[0]) != JobStatus.COMPLETED.value:
+                why.append(f"outbox.status={ob[0]!r}")
+            if lg is None:
+                why.append("thiếu ledger")
+            elif str(lg[0]) != str(target):
+                why.append("ledger.target_id trỏ sai ký ức")
+            elif str(lg[1]) != MIGRATION_ACTOR:
+                why.append(f"ledger.worker_id={lg[1]!r}")
+        elif action == "skipped_event_only":
+            if ob is None:
+                why.append("thiếu outbox")
+            elif str(ob[0]) != JobStatus.SKIPPED.value:
+                why.append(f"outbox.status={ob[0]!r} != skipped")
+            if lg is not None:
+                why.append("event-only mà có ledger")
+        elif action == "excluded_tombstoned":
+            # Bia mộ CÓ ledger cũ là hợp lệ: nó nói "projection này đã từng
+            # được dựng" — bằng chứng lịch sử, và chính nó chặn replay hồi
+            # sinh. Cấm mọi ledger là cấm nhầm quá khứ (false-red bắt được
+            # ngay sau install HBF-3: hai hàng bia mộ mang ledger của
+            # `canary-a4` và `hook-22344`). Điều CẤM là migration tự cấp.
+            if lg is not None and str(lg[1]) == MIGRATION_ACTOR:
+                why.append("migration cấp ledger cho hàng đã chôn")
+        else:
+            why.append(f"management_action lạ: {action!r}")
+
+        if ob is not None and (ob[1] is not None or ob[2] is not None):
+            why.append("terminal row còn mang lease")
+        if ob is not None and str(ob[3]) != key:
+            why.append("outbox.projection_key lệch audit")
+
+        if why:
+            out["not_closed"].append({"event": eid[:8], "action": action,
+                                      "why": why})
+        else:
+            out["closed"] += 1
+    return out
+
 
 #: Các bảng mà adoption KHÔNG ĐƯỢC PHÉP chạm — semantic delta phải bằng 0.
 SEMANTIC_TABLES = ("cognitive_memories", "memory_source_events",
@@ -647,6 +863,14 @@ def adoption_invariants(conn: sqlite3.Connection) -> dict[str, int]:
             "management_action='excluded_tombstoned' AND "
             "(contract_name IS NOT NULL OR contract_version IS NOT NULL "
             "OR builder_version_checked IS NOT NULL)").fetchone()[0],
+        # Bất biến cho chính defect review đối kháng bắt được: KHÔNG audit
+        # nào được khai "không có projection nào ở đây" về một event mà ký ức
+        # đang nằm đó.
+        "event_only_claim_with_materialized_memory": q(
+            "SELECT COUNT(*) FROM projection_adoption_audit a WHERE "
+            "a.management_action='skipped_event_only' AND EXISTS ("
+            "SELECT 1 FROM memory_source_events s WHERE s.event_id=a.event_id)"
+        ).fetchone()[0],
         "event_only_false_builder_claim": q(
             "SELECT COUNT(*) FROM projection_adoption_audit WHERE "
             "management_action='skipped_event_only' AND "
