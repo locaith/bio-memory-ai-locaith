@@ -1,0 +1,41 @@
+{
+  "phase": "A5-v2.1",
+  "steps": [
+    {
+      "step": "nguồn settings + lệnh hook + declared mode",
+      "ok": true,
+      "detail": "declared='outbox' cmd=tìm thấy"
+    },
+    {
+      "step": "env của launcher đến TỪ settings, không hard-code",
+      "ok": true,
+      "detail": "env='outbox'"
+    },
+    {
+      "step": "effective mode trong fresh process == declared (nhân chứng dương: 1 job completed + 1 ledger cho đúng event)",
+      "ok": true,
+      "detail": "jobs=[('af074dd9-0791-412b-b612-0d496e4ac070', 'b3d20834-e711-40a9-af9e-cec5d82f73bc', 'completed')] ledger=1"
+    },
+    {
+      "step": "substantive exactly-once, 0 alien, 0 unresolved",
+      "ok": true,
+      "detail": "mems=1 events=1 alien=0/0 unresolved=0"
+    },
+    {
+      "step": "non-substantive: 1 event, 0 projection debt, 0 memory",
+      "ok": true,
+      "detail": "events+1 jobs+0"
+    },
+    {
+      "step": "canary cleanup qua forget chính thức — ForgetReport giữ lại",
+      "ok": true,
+      "detail": "deleted=1 tombstoned=1"
+    }
+  ],
+  "settings_source": "c:\\locaith\\Final Platform Agent AI OS Intelligent Tuan Anh\\.claude\\settings.json",
+  "hook_command": "\"C:\\locaith\\bio-memory-ai-locaith\\.venv\\Scripts\\python.exe\" -m bio_agent_os.cognitive.hook_cli UserPromptSubmit",
+  "declared_mode_from_settings": "outbox",
+  "declared_mode": "outbox",
+  "effective_mode_witness": "outbox job completed + ledger row",
+  "conclusion": "DEPLOYED CONFIG WITNESS: PASS"
+}
