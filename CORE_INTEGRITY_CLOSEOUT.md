@@ -66,7 +66,7 @@ tại, một symbol runtime không có thật, hay một sự cố không khớp
 hiến pháp: nó tạo cảm giác được bảo vệ.
 
 <!-- LAWS:BEGIN — sinh bởi tools/render_core_integrity_laws.py, đừng sửa tay -->
-**91 điều luật** · 53 điều có mutant canh · 228 test được trích dẫn · 45 vùng.
+**91 điều luật** · 55 điều có mutant canh · 234 test được trích dẫn · 45 vùng.
 
 
 ### SQLite generation replacement, rollback safety, store corruption and recovery
@@ -189,7 +189,7 @@ Mode is read from a single environment variable that a typo, a stale shell, or a
 - **runtime** — `bio_agent_os/cognitive/shadow.py:current_mode`
 - **runtime** — `bio_agent_os/cognitive/facade.py:MemoryOS._projection_types`
 
-#### HARNESS-FORCED ENV != DEPLOYED CONFIG AUTHORITY — proving the hook path while the process is forced into OUTBOX does not prove that persistent settings are the party choosing OUTBOX; no mode string may be hard-coded in the witness
+#### HARNESS-FORCED ENV != DEPLOYED CONFIG AUTHORITY — proving the hook path while the process is forced into OUTBOX does not prove that persistent settings are the party choosing OUTBOX; no mode string may be hard-coded in the witness · **mutant**
 
 A5-v2's ladder injected BIO_AGENT_PROJECTION_MODE=outbox inside the harness's own hook(), so its '3+1 canary' proved the execution path but not the configuration authority — the same false-green family as every earlier one: the execution path did not measure what the report claimed.
 
@@ -197,6 +197,9 @@ A5-v2's ladder injected BIO_AGENT_PROJECTION_MODE=outbox inside the harness's ow
 - **test** — `tests/test_shadow_mode.py::test_mode_comes_from_the_environment`
 - **test** — `tests/test_shadow_mode.py::test_default_mode_is_legacy`
 - **test** — `tests/test_shadow_mode.py::test_an_unknown_mode_falls_back_to_legacy`
+- **test** — `tests/test_deployed_config_authority.py::test_the_settings_file_decides_the_write_path`
+- **test** — `tests/test_deployed_config_authority.py::test_session_env_must_not_override_the_settings_file`
+- **test** — `tests/test_deployed_config_authority.py::test_mutant_hard_coded_mode_breaks_settings_authority`
 - **runtime** — `bio_agent_os/cognitive/hook_cli.py:main`
 - **runtime** — `bio_agent_os/cognitive/shadow.py:current_mode`
 
@@ -1338,11 +1341,14 @@ The first version of the equivalence comparator was named FULL while measuring r
 - **runtime** — `bio_agent_os/cognitive/projection_equivalence.py:compare`
 - **runtime** — `bio_agent_os/cognitive/projection_equivalence.py:hook_contract`
 
-#### SP-1B SIDE-EFFECT PARITY — the outbox path must reproduce remember()'s side effects after the ledger+memory commit, in legacy order: put -> world_model.ingest -> context invalidate
+#### SP-1B SIDE-EFFECT PARITY — the outbox path must reproduce remember()'s side effects after the ledger+memory commit, in legacy order: put -> world_model.ingest -> context invalidate · **mutant**
 
 Column-level parity is not the whole write: a memory materialized by the worker that never reaches the world model or never invalidates cached context blocks is a second, invisible divergence between the two writers.
 
 - **sự cố gốc** — commit 0498467 'fix(SP-1/SP-2): persist the write contract' — section 'SP-1B — SIDE-EFFECT PARITY: builder.after_commit() chay SAU commit cua cap ledger+memory, dung thu tu legacy'; re-qualified in commit ba9c9b0 'requalify: ladder + deployed window PASS sau SP-1B'
+- **test** — `tests/test_side_effect_parity.py::test_outbox_path_reproduces_the_same_side_effects_as_remember`
+- **test** — `tests/test_side_effect_parity.py::test_side_effects_run_after_the_row_is_durable`
+- **test** — `tests/test_side_effect_parity.py::test_mutant_dropping_after_commit_must_die`
 - **runtime** — `bio_agent_os/cognitive/reconciliation_worker.py:CognitiveMemoryBuilder.after_commit`
 - **runtime** — `bio_agent_os/cognitive/reconciliation_worker.py:ReconciliationWorker.run_once`
 - **runtime** — `bio_agent_os/cognitive/reconciliation_worker.py:worker_for`
@@ -1441,7 +1447,43 @@ một họ.
 
 ---
 
-## 3b. Lỗ hổng đã khai — thứ baseline này KHÔNG che
+## 3b. Lỗ hổng đã khai — và đã trả (19/08, cổng vào LS-0)
+
+Baseline này từng khai hai món nợ bằng chứng. Cổng vào LS-0 buộc trả trước khi
+đo lifespan, với luật rõ: **test xanh → khoá regression; test đỏ → dừng LS-0,
+mở lại đúng subsystem Core Integrity. Không sửa product chỉ để test xanh.**
+
+Cả hai **xanh ngay lần đầu, và không một dòng product nào bị chạm**
+(`git status bio_agent_os/` rỗng). Nghĩa là hai luật ấy vốn đã đúng trong
+code; thứ thiếu là hàng rào, không phải hành vi.
+
+```
+SP-1B side-effect parity      3 test · mutant bỏ after_commit → chết
+                              đo PARITY thật: cùng input, hai đường ghi,
+                              cùng dấu vết (ingest → invalidate_scope),
+                              và chạy SAU commit — kiểm bằng một
+                              connection ĐỘC LẬP, vì hỏi chính connection
+                              đang ghi thì lúc nào cũng thấy
+DEPLOYED CONFIG AUTHORITY     4 test · mutant hard-code mode → chết
+                              khoá chuỗi settings.json → env → mode →
+                              hành vi ghi, kèm ca "env của phiên KHÔNG
+                              được thắng file"
+```
+
+**Phần vẫn không đo được, ghi thẳng:** việc Claude Code có thực sự đọc
+`.claude/settings.json` hay không nằm ngoài repo này. Chuỗi từ file trở đi đã
+có hàng rào; mắt xích đầu vẫn chỉ có nhân chứng deployment. Không gộp thành
+"VERIFIED" trơn.
+
+Và một ghi chú về chính mutant: bản đầu của nó vá `shadow.current_mode` rồi
+"chết" — nhưng chết vì **nhắm trượt**, không vì sản phẩm an toàn. `facade` làm
+`from .shadow import current_mode` nên tên đã bind lúc import. Bản thứ hai vá
+qua `sitecustomize` cũng im lặng không chạy, vì `site` nạp nó trước khi
+editable-install kịp vào `sys.path`. Chỉ đến wrapper tường minh mutant mới cắn.
+Cùng một họ với chuyện verifier nuốt BOM: **instrument mù là một lớp hỏng
+riêng**, và nó đã xuất hiện lần thứ hai trong đúng một ngày.
+
+## 3c. Ghi chú lịch sử — hai nợ này từng được khai thế nào
 
 Đóng hồ sơ mà giấu một chỗ thiếu thì hồ sơ đó vô giá trị. Bộ kiểm in nó ra mỗi
 lần chạy, và nó được ghi thẳng vào manifest ở trường `gap`.

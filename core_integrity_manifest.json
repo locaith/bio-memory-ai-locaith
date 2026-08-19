@@ -680,15 +680,18 @@
    "enforcing_tests": [
     "tests/test_shadow_mode.py::test_mode_comes_from_the_environment",
     "tests/test_shadow_mode.py::test_default_mode_is_legacy",
-    "tests/test_shadow_mode.py::test_an_unknown_mode_falls_back_to_legacy"
+    "tests/test_shadow_mode.py::test_an_unknown_mode_falls_back_to_legacy",
+    "tests/test_deployed_config_authority.py::test_the_settings_file_decides_the_write_path",
+    "tests/test_deployed_config_authority.py::test_session_env_must_not_override_the_settings_file",
+    "tests/test_deployed_config_authority.py::test_mutant_hard_coded_mode_breaks_settings_authority"
    ],
-   "has_mutant": false,
+   "has_mutant": true,
    "runtime_location": [
     "bio_agent_os/cognitive/hook_cli.py:main",
     "bio_agent_os/cognitive/shadow.py:current_mode"
    ],
    "kind": "runtime",
-   "partial_coverage": "nua env->mode co regression test; nua settings.json->env chi co nhan chung mot lan: activation/A5v2_1_deployed_config_witness.py"
+   "partial_coverage": "chuoi settings.json -> env -> mode -> hanh vi ghi DA co regression test (test_deployed_config_authority.py). Phan KHONG do duoc: viec Claude Code co doc file settings hay khong — phan mem ngoai repo, van chi co nhan chung deployment."
   },
   {
    "law": "Proof names must be weaker-or-equal to what measurement proves — a comparator that calls itself FULL must measure the full field set, and a contract it cannot reconstruct must declare a weaker proof name",
@@ -731,8 +734,12 @@
    "domain": "write semantic parity",
    "why_it_exists": "Column-level parity is not the whole write: a memory materialized by the worker that never reaches the world model or never invalidates cached context blocks is a second, invisible divergence between the two writers.",
    "root_cause_incident": "commit 0498467 'fix(SP-1/SP-2): persist the write contract' — section 'SP-1B — SIDE-EFFECT PARITY: builder.after_commit() chay SAU commit cua cap ledger+memory, dung thu tu legacy'; re-qualified in commit ba9c9b0 'requalify: ladder + deployed window PASS sau SP-1B'",
-   "enforcing_tests": [],
-   "has_mutant": false,
+   "enforcing_tests": [
+    "tests/test_side_effect_parity.py::test_outbox_path_reproduces_the_same_side_effects_as_remember",
+    "tests/test_side_effect_parity.py::test_side_effects_run_after_the_row_is_durable",
+    "tests/test_side_effect_parity.py::test_mutant_dropping_after_commit_must_die"
+   ],
+   "has_mutant": true,
    "runtime_location": [
     "bio_agent_os/cognitive/reconciliation_worker.py:CognitiveMemoryBuilder.after_commit",
     "bio_agent_os/cognitive/reconciliation_worker.py:ReconciliationWorker.run_once",
@@ -740,7 +747,7 @@
     "bio_agent_os/cognitive/facade.py:MemoryOS.remember"
    ],
    "kind": "runtime",
-   "gap": "KHONG co regression test: khong test nao drain worker roi kiem world_model.ingest / context invalidate. Hien chi duoc chung boi mot lan chay activation (requalify ba9c9b0). LO HONG DA GHI SO."
+   "gap_paid": "no LS-0 evidence debt gate 19/08: test xanh ngay lan dau, KHONG sua product de test xanh"
   },
   {
    "law": "A lease must have a LENGTH. `lease_seconds` must be finite and strictly > 0 — zero is not \"expires immediately\", it is absence.",
@@ -1694,8 +1701,6 @@
   "measurement": 3,
   "procedure": 3
  },
- "known_gaps": [
-  "SP-1B SIDE-EFFECT PARITY — the outbox path must reproduce re"
- ],
+ "known_gaps": [],
  "generated_for": "CI-CLOSEOUT — Core Integrity single host / common clock, 19/08/2026"
 }
