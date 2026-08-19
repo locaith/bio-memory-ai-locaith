@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .facade import MemoryOS
+from .projection_intent import MemoryProjectionIntent
 from .shadow import ProjectionMode
 from .models import EpistemicStatus, MemoryType, Modality, SecurityLabel, TrustTier
 
@@ -89,6 +90,30 @@ class ClaudeCodeHookAdapter:
             return HookIngestResult(False, None, hook, "unsupported_hook", None)
         content = self._content(hook, payload)
         substantive = self._is_substantive(hook, payload)
+        # MỘT intent — nguồn sự thật duy nhất cho cả hai đường ghi. Các giá
+        # trị này là call-site contract của hook (SP-0 đo được builder cũ đánh
+        # rơi chúng: 0.72→0.5, metadata.state biến mất, retrieval lệch thật).
+        intent = MemoryProjectionIntent(
+            confidence=0.72,
+            importance=0.55 if hook in {"UserPromptSubmit", "PostToolUse",
+                                        "PostToolUseFailure", "TaskCompleted",
+                                        "StopFailure"} else 0.35,
+            salience=0.75 if hook in {"PostToolUseFailure", "StopFailure",
+                                      "PermissionDenied"} else 0.50,
+            utility=0.65,
+            semantic_metadata={
+                "hook": hook,
+                "session_id": payload.get("session_id"),
+                "tool": payload.get("tool_name"),
+                "state": {
+                    "mode": "debug" if hook in {"PostToolUseFailure",
+                                                "StopFailure"} else "implement",
+                    "stress_state": "failure" if hook in {
+                        "PostToolUseFailure", "StopFailure",
+                        "PermissionDenied"} else "normal",
+                },
+            },
+        ) if substantive else None
         event = self.memory_os.observe(
             tenant_id=self.tenant_id,
             actor=self.agent_id,
@@ -101,6 +126,7 @@ class ClaudeCodeHookAdapter:
             modality=Modality.CODE if "ToolUse" in hook or "Task" in hook else Modality.TEXT,
             epistemic_status=EpistemicStatus.OBSERVED,
             enqueue_projection=self._projection_debt_allowed(substantive),
+            projection_intent=intent,
         )
         # An event always happened, so it is always recorded — events are the
         # audit trail and dropping one would be lying about what occurred.
@@ -130,19 +156,11 @@ class ClaudeCodeHookAdapter:
             event=event,
             memory_type=MemoryType.EPISODIC,
             content=content,
-            confidence=0.72,
-            importance=0.55 if hook in {"UserPromptSubmit", "PostToolUse", "PostToolUseFailure", "TaskCompleted", "StopFailure"} else 0.35,
-            salience=0.75 if hook in {"PostToolUseFailure", "StopFailure", "PermissionDenied"} else 0.50,
-            utility=0.65,
-            metadata={
-                "hook": hook,
-                "session_id": payload.get("session_id"),
-                "tool": payload.get("tool_name"),
-                "state": {
-                    "mode": "debug" if hook in {"PostToolUseFailure", "StopFailure"} else "implement",
-                    "stress_state": "failure" if hook in {"PostToolUseFailure", "StopFailure", "PermissionDenied"} else "normal",
-                },
-            },
+            confidence=intent.confidence,
+            importance=intent.importance,
+            salience=intent.salience,
+            utility=intent.utility,
+            metadata=intent.semantic_metadata,
         )
         memory_id = getattr(projected, "memory_id", None)
         return HookIngestResult(True, event.event_id, hook, None, memory_id)

@@ -15,6 +15,8 @@ from .event_store import SQLiteEventStore
 from .governance import GovernanceEngine
 from .immune import ImmuneDecision, MemoryImmuneSystem
 from .memory_store import SQLiteMemoryStore
+from .projection_intent import (MemoryProjectionIntent,
+                                build_memory_from_event)
 from .models import (
     AccessContext,
     BeliefState,
@@ -160,6 +162,7 @@ class MemoryOS:
         modality: Modality = Modality.TEXT,
         epistemic_status: EpistemicStatus = EpistemicStatus.OBSERVED,
         enqueue_projection: bool = True,
+        projection_intent: "MemoryProjectionIntent | None" = None,
     ) -> EventRecord:
         """Record an observation.
 
@@ -182,7 +185,12 @@ class MemoryOS:
             tenant_id=tenant_id,
             actor=actor,
             source=source,
-            payload={"content": decision.redacted_content or content},
+            # Intent nằm TRONG payload bất biến (dưới checksum) — event.metadata
+            # không đủ mạnh làm nguồn sự thật cho deterministic replay.
+            payload=(
+                {"content": decision.redacted_content or content,
+                 **({"projection_intents": projection_intent.as_payload_fragment()}
+                    if projection_intent is not None else {})}),
             workspace_id=workspace_id,
             trust_tier=trust_tier,
             security_label=security_label,
@@ -440,43 +448,33 @@ class MemoryOS:
         stored_content = decision.redacted_content or content
         structured_content = self._scrub_supplied_slot(
             structured_content, decision=decision, original=content)
-        memory = CognitiveMemory(
-            tenant_id=event.tenant_id,
-            workspace_id=event.workspace_id,
-            memory_type=memory_type,
-            content=stored_content,
-            source_event_ids=[event.event_id],
+        # MỘT constructor cho mọi writer (SP-1). Mọi field semantic dùng
+        # chung đi qua build_memory_from_event; các field GOVERNANCE dưới đây
+        # là overlay riêng của remember() — không phải mapping semantic thứ
+        # hai, và builder outbox không bao giờ tự đặt chúng.
+        intent = MemoryProjectionIntent(
+            memory_type=getattr(memory_type, "value", str(memory_type)),
+            confidence=confidence, importance=importance,
+            salience=salience, utility=utility,
+            lifecycle_state=getattr(lifecycle_state, "value", str(lifecycle_state)),
             structured_content=(structured_content
                                 or self._structured_slot(stored_content,
                                                          event.source)),
-            confidence=max(0.0, min(confidence, 1.0)),
-            importance=max(0.0, min(importance, 1.0)),
-            salience=max(0.0, min(salience, 1.0)),
-            utility=max(0.0, min(utility, 1.0)),
-            trust_tier=event.trust_tier,
-            security_label=event.security_label,
-            valid_from=event.valid_from,
-            valid_to=event.valid_to,
-            # Inherited for the same reason as the two above: the claim was
-            # learned when its event was observed, not when the row was written.
-            # Without this a replayed history has every memory aged zero, and
-            # `staleness.annotate` stamps the run date onto a two-year-old price.
-            observed_at=event.observed_at,
-            lifecycle_state=lifecycle_state,
-            approved_by=approved_by,
-            governed_exception_for=governed_exception_for,
-            approval_expires_at=approval_expires_at,
-            metadata=metadata or {},
-            allowed_agents=allowed_agents or [],
-            allowed_roles=allowed_roles or [],
-            purpose_allowlist=purpose_allowlist or [],
-            epistemic_status=effective_epistemic,
-            verification_status=verification_status,
-            counterevidence_event_ids=counterevidence_event_ids or [],
+            epistemic_status=getattr(effective_epistemic, "value", None),
+            verification_status=getattr(verification_status, "value",
+                                        str(verification_status)),
             applicable_context=applicable_context or {},
-            modality=event.modality,
-            simulation_id=simulation_id,
+            semantic_metadata=metadata or {},
         )
+        memory = build_memory_from_event(event, intent, content=stored_content)
+        memory.approved_by = approved_by
+        memory.governed_exception_for = governed_exception_for
+        memory.approval_expires_at = approval_expires_at
+        memory.allowed_agents = allowed_agents or []
+        memory.allowed_roles = allowed_roles or []
+        memory.purpose_allowlist = purpose_allowlist or []
+        memory.counterevidence_event_ids = counterevidence_event_ids or []
+        memory.simulation_id = simulation_id
         valid, reasons = self.governance.validate_promotion(memory)
         if not valid and lifecycle_state == BeliefState.STABLE:
             memory.lifecycle_state = BeliefState.PROPOSED
@@ -544,6 +542,9 @@ class MemoryOS:
                 continue
             event = EventRecord(
                 tenant_id=tenant_id, actor=actor, source=source,
+                # Bulk ingest KHÔNG mang projection intent — đường này không
+                # phải hook writer; replace ẩu ở SP-1 từng làm nó tham chiếu
+                # một biến không tồn tại. Payload giữ nguyên bản.
                 payload={"content": decision.redacted_content or content},
                 workspace_id=item.get("workspace_id", workspace_id), trust_tier=effective_trust,
                 security_label=item.get("security_label", security_label),

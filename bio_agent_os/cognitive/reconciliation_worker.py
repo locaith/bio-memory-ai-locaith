@@ -107,8 +107,24 @@ class CognitiveMemoryBuilder:
 
     projection_type = ProjectionType.COGNITIVE_MEMORY.value
 
-    def __init__(self, memory_store: Any) -> None:
+    def after_commit(self) -> None:
+        """SP-1B — parity side-effect với remember(): put → world_model.ingest
+        → invalidate context. Chạy SAU commit của cặp ledger+memory, đúng thứ
+        tự legacy (ba thao tác rời, không cùng transaction)."""
+        built, self._built = self._built, []
+        for stored in built:
+            if self.world_model is not None:
+                self.world_model.ingest(stored)
+            if self.context_blocks is not None:
+                self.context_blocks.invalidate_scope(stored.tenant_id,
+                                                     stored.workspace_id)
+
+    def __init__(self, memory_store: Any, *, world_model: Any = None,
+                 context_blocks: Any = None) -> None:
         self.memories = memory_store
+        self.world_model = world_model
+        self.context_blocks = context_blocks
+        self._built: list[Any] = []
 
     def build(self, event: EventRecord, job: ProjectionJob, conn: sqlite3.Connection) -> BuildResult:
         content = (event.payload or {}).get("content", "")
@@ -116,6 +132,28 @@ class CognitiveMemoryBuilder:
             # Nothing to remember. A recorded decision, not a silent gap.
             return BuildResult(BuildOutcome.SKIPPED.value, reason="event carries no content")
 
+        from .projection_intent import (build_memory_from_event,
+                                        intent_from_payload)
+        intent = intent_from_payload(event.payload)
+        if intent is not None:
+            # SP-1: hợp đồng ghi nằm trong payload bất biến; builder không
+            # còn tự map field — nó tái tạo ĐÚNG memory mà remember() sẽ tạo.
+            memory = build_memory_from_event(event, intent,
+                                             content=str(content))
+            # Provenance của hạ tầng nằm trong NAMESPACE riêng — không trộn
+            # vào semantic metadata của người ghi. Parity gate so semantic
+            # keys và cho phép đúng một overlay này, có hồ sơ.
+            memory.metadata = {**memory.metadata,
+                               "projection": {
+                                   "key": job.key,
+                                   "type": job.projection_type,
+                                   "version": job.projection_version,
+                                   "source_event_id": event.event_id}}
+            stored = self.memories.put(memory, commit=False)
+            self._built.append(stored)
+            return BuildResult(BuildOutcome.BUILT.value,
+                               target_id=getattr(stored, "memory_id", None))
+        # Tiền-contract (event lịch sử không mang intent): giữ nguyên shape cũ.
         memory = CognitiveMemory(
             tenant_id=event.tenant_id,
             workspace_id=event.workspace_id,
@@ -136,6 +174,7 @@ class CognitiveMemoryBuilder:
             },
         )
         stored = self.memories.put(memory, commit=False)
+        self._built.append(stored)
         return BuildResult(BuildOutcome.BUILT.value, target_id=getattr(stored, "memory_id", None))
 
 
@@ -538,6 +577,18 @@ class ReconciliationWorker:
             if self.stopping:
                 break
             self.process(job)
+            # SP-1B: side-effect parity với remember() — chạy SAU commit của
+            # cặp ledger+memory, thứ tự đúng legacy: put → ingest → invalidate.
+            builder = self.builders.get(job.projection_type)
+            after = getattr(builder, "after_commit", None)
+            if after is not None:
+                try:
+                    after()
+                except Exception:                          # noqa: BLE001
+                    logger.exception(
+                        "after_commit side-effects failed for %s — memory đã "
+                        "bền, side-effect sẽ được world model đuổi kịp sau",
+                        job.job_id)
 
         # Every job above has committed, so there is no open transaction here
         # and a checkpoint cannot fight the batch for the write lock. This has
@@ -604,12 +655,16 @@ def worker_for(memory_os: Any, *, manage_wal: bool = True, **kwargs: Any) -> Rec
         memory_os.events.conn,
         projection_conn=memory_os.memories.conn,
         outbox=memory_os.events.outbox,
-        builders=build_default_builders(memory_os.memories),
+        builders=build_default_builders(
+            memory_os.memories,
+            world_model=getattr(memory_os, "world_model", None),
+            context_blocks=getattr(memory_os, "context_blocks", None)),
         **kwargs,
     )
 
 
-def build_default_builders(memory_store: Any) -> dict[str, ProjectionBuilder]:
+def build_default_builders(memory_store: Any, *, world_model: Any = None,
+                           context_blocks: Any = None) -> dict[str, ProjectionBuilder]:
     """The builders shipped with the kernel.
 
     `cognitive_memory` and `hippocampus_label`. The other three registry types
@@ -622,7 +677,8 @@ def build_default_builders(memory_store: Any) -> dict[str, ProjectionBuilder]:
     from .hippocampus_label import HippocampusLabelBuilder
 
     return {
-        CognitiveMemoryBuilder.projection_type: CognitiveMemoryBuilder(memory_store),
+        CognitiveMemoryBuilder.projection_type: CognitiveMemoryBuilder(memory_store, world_model=world_model,
+                               context_blocks=context_blocks),
         HippocampusLabelBuilder.projection_type: HippocampusLabelBuilder(),
     }
 

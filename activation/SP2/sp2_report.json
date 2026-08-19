@@ -1,0 +1,100 @@
+{
+  "phase": "SP-2",
+  "repairs": [
+    {
+      "memory_id": "741cf391",
+      "event_id": "7cb0225f",
+      "before": {
+        "confidence": 0.5,
+        "importance": 0.5,
+        "salience": 0.5,
+        "utility": 0.5
+      }
+    },
+    {
+      "memory_id": "7da1b02a",
+      "event_id": "5cd0ee4f",
+      "before": {
+        "confidence": 0.5,
+        "importance": 0.5,
+        "salience": 0.5,
+        "utility": 0.5
+      }
+    },
+    {
+      "memory_id": "ed708f4d",
+      "event_id": "5878d5d8",
+      "before": {
+        "confidence": 0.5,
+        "importance": 0.5,
+        "salience": 0.5,
+        "utility": 0.5
+      }
+    },
+    {
+      "memory_id": "1e4ad607",
+      "event_id": "6e898add",
+      "before": {
+        "confidence": 0.5,
+        "importance": 0.5,
+        "salience": 0.5,
+        "utility": 0.5
+      }
+    },
+    {
+      "memory_id": "723e5cec",
+      "event_id": "c5cc666c",
+      "before": {
+        "confidence": 0.5,
+        "importance": 0.5,
+        "salience": 0.5,
+        "utility": 0.5
+      }
+    },
+    {
+      "memory_id": "17dfc4f7",
+      "event_id": "7540daa8",
+      "before": {
+        "confidence": 0.5,
+        "importance": 0.5,
+        "salience": 0.5,
+        "utility": 0.5
+      }
+    },
+    {
+      "memory_id": "7077d903",
+      "event_id": "d2613668",
+      "before": {
+        "confidence": 0.5,
+        "importance": 0.5,
+        "salience": 0.5,
+        "utility": 0.5
+      }
+    },
+    {
+      "memory_id": "7f15b746",
+      "event_id": "4fa85e26",
+      "before": {
+        "confidence": 0.5,
+        "importance": 0.5,
+        "salience": 0.5,
+        "utility": 0.5
+      }
+    },
+    {
+      "memory_id": "04af8d07",
+      "event_id": "2b55b2d7",
+      "before": {
+        "confidence": 0.5,
+        "importance": 0.5,
+        "salience": 0.5,
+        "utility": 0.5
+      }
+    }
+  ],
+  "rollback_point_sha256": "835c65e86049321cfca9582cc94714389f6cb740f3cb177b34b9494ec0a3be4e",
+  "repaired_count": 9,
+  "integrity_after": [
+    "ok"
+  ]
+}

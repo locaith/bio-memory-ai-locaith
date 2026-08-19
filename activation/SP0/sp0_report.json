@@ -2,29 +2,17 @@
   "phase": "SP-0",
   "sections": {
     "field_diff": {
-      "confidence": {
-        "legacy": "0.72",
-        "outbox": "0.5"
-      },
-      "importance": {
-        "legacy": "0.55",
-        "outbox": "0.5"
-      },
       "metadata_json": {
         "legacy": "{\"hook\": \"UserPromptSubmit\", \"session_id\": \"sp0\", \"state\": {\"mode\": \"implement\", \"stress_s",
-        "outbox": "{\"hook\": \"UserPromptSubmit\", \"immune_reasons\": [], \"projection_key\": \"582f29acfb16008f019e"
+        "outbox": "{\"hook\": \"UserPromptSubmit\", \"projection_key\": \"8ad627ceae50d18fc7d5a62dede6e5de704c3ea390"
       },
       "observed_at": {
-        "legacy": "2026-08-19T01:50:34.133449+00:00",
-        "outbox": "2026-08-19T01:50:34.168433+00:00"
+        "legacy": "2026-08-19T02:01:15.959694+00:00",
+        "outbox": "2026-08-19T02:01:15.985418+00:00"
       },
       "source_event_ids_json": {
-        "legacy": "[\"a79d776c-bbc1-4255-a67b-5c26b7e3fcbf\"]",
-        "outbox": "[\"7cbe4047-bec5-4e55-8027-1d084b3efce9\"]"
-      },
-      "utility": {
-        "legacy": "0.65",
-        "outbox": "0.5"
+        "legacy": "[\"284dfcd4-5fad-4f2a-b8e1-8f29f4d657e7\"]",
+        "outbox": "[\"0427c0f5-9301-4559-8dd2-47de7f5e0e34\"]"
       }
     },
     "retrieval": {
@@ -43,7 +31,7 @@
         "top": [
           {
             "content": "hook=UserPromptSubmit | prompt=SP0 probe",
-            "score": 3.171508,
+            "score": 3.330008,
             "components": null
           }
         ]
@@ -197,13 +185,22 @@
           "metadata.state THIẾU"
         ],
         "memory_alive": true
+      },
+      {
+        "event_id": "2b55b2d7",
+        "kind": "REAL_USER_WRITE",
+        "deltas": [
+          "confidence=0.5 (legacy=0.72)",
+          "metadata.state THIẾU"
+        ],
+        "memory_alive": true
       }
     ],
-    "real_user_writes_affected": 8
+    "real_user_writes_affected": 9
   },
   "conclusion": {
     "semantic_parity": "FAIL",
-    "field_diff_count": 6,
-    "real_user_writes_with_degraded_semantics": 8
+    "field_diff_count": 3,
+    "real_user_writes_with_degraded_semantics": 9
   }
 }
