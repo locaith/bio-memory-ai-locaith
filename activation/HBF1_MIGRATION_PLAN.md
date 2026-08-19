@@ -153,3 +153,64 @@ Code: `bio_agent_os/cognitive/historical_adoption.py` (classify + closure +
 transaction + invariants) · `tests/test_historical_adoption.py` (10 dao/mutant
 trên store synthetic dựng bằng chính đường ghi legacy) ·
 `activation/HBF2_rehearsal.py` + `activation/HBF2/hbf2_report.json`.
+
+## HBF-2.1 — CORRECTION PROVENANCE (19/08, chủ bắt trên commit 7c3ee9f)
+
+Hai vết provenance/schema nằm ngay trong transaction adoption của HBF-2 —
+behavioral VERIFIED nhưng provenance conformance FAIL, không được qua cửa
+store thật:
+
+1. **`locked_by` bị dùng làm provenance.** Bản HBF-2 đầu insert terminal rows
+   với `locked_by='migration:hbf-adopt'` — biến field có nghĩa LEASE OWNERSHIP
+   thành túi đựng migration provenance, trái với terminal shape của production
+   `complete()`/`skip()` (clear cả locked_by lẫn locked_at). 303 "worker ma"
+   sẽ sống vĩnh viễn trong mọi query ownership. Sửa: terminal rows mang
+   locked_by=NULL, locked_at=NULL; provenance ở ĐÚNG NHÀ — `ledger.worker_id`
+   + bảng audit; invariant nhận diện migration rows qua AUDIT JOIN.
+2. **Audit điền cột NULL-able chỉ vì có sẵn số nguyên.** `builder_version_checked=1`
+   được ghi cho CẢ curated/tombstone/event-only — audit tương lai sẽ nói dối
+   "curated này đã kiểm với builder v1" về một comparison chưa từng xảy ra.
+   Sửa: hook adopt giữ claim thật (contract v1, builder=1); curated =
+   contract curated_seed_v1 v1 + builder NULL; tombstone/event-only = cả ba
+   NULL. **NOT_APPLICABLE phải phân biệt được với version 1.**
+
+Hai mutant provenance mới, cả hai regression-locked trong
+`tests/test_historical_adoption.py` (13 dao):
+
+```
+P1  khôi phục locked_by trên terminal rows
+    → terminal_migration_rows_with_lock = 307 > 0        DIES
+      (305 hàng migration đặt + 2 outbox completed có sẵn của event bia mộ
+       — cũng nằm dưới audit governance nên cùng bị soi)
+P2  curated claim builder_version_checked=1
+    → curated_builder_version_checked_nonnull = 27 > 0   DIES
+```
+
+Rerun đúp toàn bộ rehearsal trên snapshot TƯƠI (sha 215432f2…, số mới thắng):
+
+```
+population 335 · adopt 203/37/18/9 = 267 (đóng băng đúng như HBF-1.1)
+EVENT_ONLY 38 (+3) · MANAGED 28 (+4) — event mới của chính các phiên
+closure 240/240 reconstructed_equal · abort ZERO PARTIAL
+K1–K4 PASS · M1/M2/P1/P2 DIES · semantic delta 0
+audit provenance by class:
+  adopted/hook_call_site_v1      240   cv=1  builder=1
+  adopted/curated_seed_v1         27   cv=1  builder=NULL
+  skipped_event_only              38   NULL/NULL/NULL
+  excluded_tombstoned              2   NULL/NULL/NULL
+terminal_migration_rows_with_lock = 0
+install → disposable: INSTALL_CONFIRMED, fresh process sạch toàn phần
+
+REAL STORE MIGRATION          NOT PERFORMED
+HBF-3 REAL ADOPTION           BLOCKED → chờ ký sau HBF-2.1 PASS
+```
+
+Ghi chú thiết kế HBF-3 (chủ đổi ý, 19/08): KHÔNG blast-radius ladder bằng
+bốn lần install_generation vào canonical thật. Migration này không
+materialize memory, không sửa semantic rows — HBF-2 đã chứng minh full
+population trên clone thật, nên mỗi lần replace generation thêm là thêm
+operational risk mà KHÔNG mua thêm causal information
+(`measurement_delta != product_delta`). HBF-3 sẽ là: fresh snapshot →
+classify + candidate OFFLINE → sampled pre-install audit 5→20→50 trên
+candidate (KHÔNG install) → full certification → MỘT lần quiesced
+install_generation → fresh-process certification → canary production-hook nhỏ.

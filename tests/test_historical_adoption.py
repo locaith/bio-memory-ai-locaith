@@ -324,6 +324,73 @@ def test_m2_full_field_altered_content_identical_must_die(history, tmp_path):
         mut.close()
 
 
+def test_audit_provenance_by_class_and_terminal_shape(history):
+    """HBF-2.1: terminal row mang đúng hình dạng complete()/skip() —
+    locked_by=NULL, locked_at=NULL; audit không điền cột NULL-able chỉ vì
+    có sẵn một số nguyên. NOT_APPLICABLE phải phân biệt được với version 1."""
+    conn = history.memories.conn
+    adopt(conn, _classified(history), migration_run_id=RUN,
+          source_snapshot_sha256=SNAP)
+    # terminal shape: KHÔNG worker ma trong field lease
+    ghosts = conn.execute(
+        "SELECT COUNT(*) FROM projection_outbox o JOIN "
+        "projection_adoption_audit a ON a.projection_key=o.projection_key "
+        "WHERE o.locked_by IS NOT NULL OR o.locked_at IS NOT NULL"
+    ).fetchone()[0]
+    assert ghosts == 0, f"{ghosts} worker ma sống trong locked_by/locked_at"
+    # provenance thật nằm ở ledger, không ở outbox
+    assert conn.execute(
+        "SELECT COUNT(*) FROM projection_ledger WHERE worker_id=?",
+        ("migration:hbf-adopt",)).fetchone()[0] == 5
+    rows = conn.execute(
+        "SELECT management_action, contract_name, contract_version, "
+        "builder_version_checked FROM projection_adoption_audit").fetchall()
+    for action, contract, cver, builder in rows:
+        if action == "adopted" and contract == "hook_call_site_v1":
+            assert cver == 1 and builder == 1     # builder comparison ĐÃ xảy ra
+        elif action == "adopted" and contract == "curated_seed_v1":
+            assert cver == 1 and builder is None, (
+                "curated không có builder comparison — NULL, không phải 1")
+        elif action in ("skipped_event_only", "excluded_tombstoned"):
+            assert contract is None and cver is None and builder is None, (
+                f"{action} claim contract/builder chưa từng được áp")
+        else:
+            raise AssertionError(f"hàng audit lạ: {action}/{contract}")
+
+
+def test_p1_mutant_lease_as_provenance_must_die(history):
+    """P1: khôi phục locked_by='migration:hbf-adopt' trên terminal rows —
+    bất biến terminal_migration_rows_with_lock phải đỏ."""
+    conn = history.memories.conn
+    adopt(conn, _classified(history), migration_run_id=RUN,
+          source_snapshot_sha256=SNAP)
+    assert adoption_invariants(conn)["terminal_migration_rows_with_lock"] == 0
+    conn.execute(
+        "UPDATE projection_outbox SET locked_by='migration:hbf-adopt' "
+        "WHERE projection_key IN "
+        "(SELECT projection_key FROM projection_adoption_audit)")
+    conn.commit()
+    caught = adoption_invariants(conn)["terminal_migration_rows_with_lock"]
+    assert caught == 6, f"mutant P1 sống sót — chỉ bắt được {caught}/6"
+
+
+def test_p2_mutant_curated_builder_claim_must_die(history):
+    """P2: điền builder_version_checked=1 cho curated — audit sẽ nói dối
+    'đã kiểm với builder v1' về một comparison chưa từng xảy ra."""
+    conn = history.memories.conn
+    adopt(conn, _classified(history), migration_run_id=RUN,
+          source_snapshot_sha256=SNAP)
+    assert adoption_invariants(conn)[
+        "curated_builder_version_checked_nonnull"] == 0
+    conn.execute(
+        "UPDATE projection_adoption_audit SET builder_version_checked=1 "
+        "WHERE contract_name='curated_seed_v1'")
+    conn.commit()
+    inv = adoption_invariants(conn)
+    assert inv["curated_builder_version_checked_nonnull"] == 1, (
+        "mutant P2 sống sót — curated claim builder mà không bị bắt")
+
+
 def test_structured_content_closure_downgrades_not_forces(history):
     """Không tái tạo được → proof HẠ, count không ép; chưa đo → cổng ĐÓNG."""
     conn = history.memories.conn

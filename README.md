@@ -587,7 +587,7 @@ Cập nhật 19/08/2026.
 | **New-write activation (OUTBOX)** | **VERIFIED — đang sống** |
 | **Semantic parity giữa hai đường ghi** | **VERIFIED** — hợp đồng ghi lưu bền trong event (`MemoryProjectionIntent`), một constructor cho mọi writer, parity gate + mutant |
 | Historical inventory & contract archaeology | **VERIFIED** — population phân lớp đủ, UNCLASSIFIED = 0; comparator FULL đo ≥20 trường (HBF-1.1: "240 FULL" tự hạ xuống 203 khi comparator có răng — 4 proof class trung thực, 46 hàng observed-at drift mang delta thật trong audit) |
-| Historical adoption rehearsal (HBF-2) | **VERIFIED — OFFLINE** — 267 adopt / 36 skip / 2 bia mộ / 26 no-op trên candidate; structured_content đóng 240/240; một transaction + abort = zero partial; K1 replay không duplicate · K2 forget không resurrection · K3 restart bền · K4 reapply idempotent; mutant M1/M2 chết có witness; install rehearsal vào disposable canonical. **Store thật CHƯA migrate.** |
+| Historical adoption rehearsal (HBF-2 → 2.1) | **VERIFIED — OFFLINE** — 267 adopt / 38 skip / 2 bia mộ trên candidate; structured_content đóng 240/240; một transaction + abort = zero partial; K1–K4 (replay·forget·restart·reapply) PASS; mutant M1/M2 chết có witness; **HBF-2.1**: provenance về đúng nhà — terminal outbox mang đúng hình dạng `complete()`/`skip()` (locked_by=NULL, không "worker ma"), audit không điền cột NULL-able khi claim chưa xảy ra (curated: builder=NULL — NOT_APPLICABLE ≠ version 1), hai mutant provenance P1/P2 chết; install rehearsal vào disposable canonical. **Store thật CHƯA migrate.** |
 | Historical adoption thật (HBF-3) | **LOCKED — chờ chữ ký**; đường duy nhất: candidate offline → certify → `install_generation` |
 | Multi-node workers | **NOT CERTIFIED** (chưa có clock-skew contract) |
 

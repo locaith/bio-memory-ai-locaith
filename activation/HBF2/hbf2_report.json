@@ -1,18 +1,18 @@
 {
-  "phase": "HBF-2",
-  "verdict": "HBF-2 OFFLINE REHEARSAL VERIFIED",
+  "phase": "HBF-2.1",
+  "verdict": "HBF-2.1 OFFLINE REHEARSAL VERIFIED",
   "real_store_migration": "NOT PERFORMED",
-  "source_snapshot_sha256": "c46f31293ab91cecd9f5caa556160fcf228694b3ecf88986d12efdccc737803e",
+  "source_snapshot_sha256": "215432f21ac514064e0b1ae3b79dfadf32bc3a7d035b0ec49d07e0af4a70a180",
   "fresh_population": {
-    "total_events": 331,
+    "total_events": 335,
     "counts": {
       "ADOPT_FULL_CONTRACT": 203,
       "ADOPT_HISTORICAL_PARTIAL": 37,
       "ADOPT_CURATED_PRESERVED": 18,
       "ADOPT_CURATED_PARTIAL": 9,
-      "EVENT_ONLY_SKIP": 36,
+      "EVENT_ONLY_SKIP": 38,
       "TOMBSTONE_EXCLUDE": 2,
-      "ALREADY_MANAGED": 26
+      "ALREADY_MANAGED": 28
     }
   },
   "drift_stats": {
@@ -31,22 +31,56 @@
     "full_projection_contract_v1": 203
   },
   "delta_vs_hbf1_1": {
-    "EVENT_ONLY_SKIP": 1,
-    "ALREADY_MANAGED": 2
+    "ALREADY_MANAGED": 4,
+    "EVENT_ONLY_SKIP": 3
   },
   "atomic_abort": "ZERO PARTIAL STATE",
   "migration_transaction": {
-    "migration_run_id": "hbf2-1787110279",
+    "migration_run_id": "hbf2-1787111502",
     "adopted": 267,
-    "event_only_skipped": 36,
+    "event_only_skipped": 38,
     "tombstone_excluded": 2,
-    "managed_noops": 26,
+    "managed_noops": 28,
     "live_queue_untouched": 0,
-    "outbox_inserted": 303,
+    "outbox_inserted": 305,
     "ledger_inserted": 267,
-    "audit_inserted": 305
+    "audit_inserted": 307
   },
   "memory_semantic_delta": "0 (digest bằng)",
+  "terminal_lock_invariant": {
+    "terminal_migration_rows_with_lock": 0,
+    "note": "provenance ở ledger.worker_id + audit; outbox terminal mang đúng hình dạng complete()/skip() — HBF-2.1"
+  },
+  "audit_provenance_by_class": [
+    {
+      "action": "adopted",
+      "contract": "hook_call_site_v1",
+      "contract_version": 1,
+      "builder_version_checked": 1,
+      "n": 240
+    },
+    {
+      "action": "skipped_event_only",
+      "contract": null,
+      "contract_version": null,
+      "builder_version_checked": null,
+      "n": 38
+    },
+    {
+      "action": "adopted",
+      "contract": "curated_seed_v1",
+      "contract_version": 1,
+      "builder_version_checked": null,
+      "n": 27
+    },
+    {
+      "action": "excluded_tombstoned",
+      "contract": null,
+      "contract_version": null,
+      "builder_version_checked": null,
+      "n": 2
+    }
+  ],
   "post_adopt_replay": {
     "enqueued": 0,
     "reset": 0,
@@ -62,18 +96,20 @@
   "mutants": {
     "M1_missing_ledger_is_missing_projection": "DIES — TRUE_MISSING=267 chặn cổng",
     "M1_witness": "BLEEDS AS PREDICTED",
-    "M2_full_field_altered": "DIES — DIVERGENT chặn cổng; witness=['trust_tier: event=3 memory=4']"
+    "M2_full_field_altered": "DIES — DIVERGENT chặn cổng; witness=['trust_tier: event=3 memory=4']",
+    "P1_lease_as_provenance": "DIES — terminal_migration_rows_with_lock=307 > 0",
+    "P2_curated_false_builder_claim": "DIES — curated_builder_version_checked_nonnull=27 > 0"
   },
   "install_rehearsal": {
     "target": "DISPOSABLE (không phải real DB)",
     "manifest": {
-      "installed_sha256": "0286ce3f446e2f44f316a04060f32d12dc08368e4674bedf6577b93a07a6c722",
+      "installed_sha256": "7376ccfbf8e8bf3f9722c91a9bcad98702b1297665efd36587a0092d8dad4c96",
       "quarantine_bundle": "C:\\locaith\\bio-memory-ai-locaith\\activation\\HBF2\\quarantine\\gen-",
       "moved": "['hbf2_disposable_canonical.db']"
     }
   },
   "fresh_process_verify": {
-    "file_sha256_before_open": "0286ce3f446e2f44f316a04060f32d12dc08368e4674bedf6577b93a07a6c722",
+    "file_sha256_before_open": "7376ccfbf8e8bf3f9722c91a9bcad98702b1297665efd36587a0092d8dad4c96",
     "integrity": [
       "ok"
     ],
@@ -83,16 +119,20 @@
       "migration_ledger_without_audit": 0,
       "migration_outbox_completed_without_ledger": 0,
       "migration_outbox_skipped_without_audit": 0,
-      "migration_rows_total": 303
+      "terminal_migration_rows_with_lock": 0,
+      "curated_builder_version_checked_nonnull": 0,
+      "tombstone_provenance_claims": 0,
+      "event_only_false_builder_claim": 0,
+      "migration_rows_total": 307
     },
     "audit_rows": {
       "adopted": 267,
       "excluded_tombstoned": 2,
-      "skipped_event_only": 36
+      "skipped_event_only": 38
     },
     "replay_scan_candidates": 0,
     "replay_candidates_tombstoned": 0,
     "actionable_replay_debt": 0
   },
-  "elapsed_s": 2.7
+  "elapsed_s": 2.8
 }

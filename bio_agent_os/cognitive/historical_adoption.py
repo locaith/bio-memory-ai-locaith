@@ -13,6 +13,16 @@ chữ `except_...`; không có đường promote lên FULL.
 Module này chỉ được chạy trên CANDIDATE offline. Đường về canonical duy nhất
 là `store_generation.install_generation` — không có nhánh nào mở write
 connection vào store thật.
+
+CORRECTION HBF-2.1 (19/08, chủ bắt trên commit 7c3ee9f): bản đầu nhét
+provenance vào `locked_by` của outbox terminal — biến field có nghĩa LEASE
+OWNERSHIP thành túi đựng migration provenance, để lại "worker ma" sống vĩnh
+viễn trong mọi query ownership. Terminal row của migration giờ mang ĐÚNG
+hình dạng terminal của production `complete()`/`skip()`: locked_by=NULL,
+locked_at=NULL. Provenance ở đúng nhà: `ledger.worker_id` + bảng audit.
+Cùng nhát dao đó: audit không được điền cột NULL-able chỉ vì có sẵn một số
+nguyên — curated không có builder comparison thì `builder_version_checked`
+là NULL; NOT_APPLICABLE phải phân biệt được với version 1.
 """
 from __future__ import annotations
 
@@ -457,15 +467,22 @@ def adopt(conn: sqlite3.Connection, report: ClassificationReport, *,
         conn.execute("BEGIN IMMEDIATE")
 
         def _audit(key: str, d: EventDecision, origin: str, action: str,
-                   proof: str | None, contract: str | None) -> None:
+                   proof: str | None, contract: str | None,
+                   contract_version: int | None,
+                   builder_version_checked: int | None) -> None:
+            """Cột NULL-able chỉ được điền khi claim là THẬT: curated không
+            có builder comparison → builder NULL; tombstone/event-only không
+            có contract nào được áp → cả ba NULL. NOT_APPLICABLE phải phân
+            biệt được với version 1 (HBF-2.1)."""
             conn.execute(
                 "INSERT INTO projection_adoption_audit VALUES "
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (key, d.event_id, d.target_id, origin, action, adopted_at,
                  migration_run_id, d.projection_hash,
                  d.canonical_candidate_hash, proof, contract,
-                 1, d.observed_at_delta_ms, d.structured_content_status,
-                 version, source_snapshot_sha256,
+                 contract_version, d.observed_at_delta_ms,
+                 d.structured_content_status, builder_version_checked,
+                 source_snapshot_sha256,
                  json.dumps(d.reasons, ensure_ascii=False)))
             result.audit_inserted += 1
 
@@ -480,16 +497,18 @@ def adopt(conn: sqlite3.Connection, report: ClassificationReport, *,
                     raise AdmissibilityError(
                         f"partial triple tại {d.event_id[:8]}: "
                         f"outbox={ob} ledger={lg} audit={au}")
+                # Terminal shape ĐÚNG của production complete(): locked_by
+                # và locked_at đều NULL. Provenance nằm ở ledger + audit,
+                # không nằm trong field lease (HBF-2.1).
                 conn.execute(
                     "INSERT INTO projection_outbox (job_id, event_id, "
                     "projection_type, projection_version, projection_key, "
                     "tenant_id, status, attempts, available_at, locked_by, "
                     "locked_at, last_error, payload_json, created_at, "
-                    "completed_at) VALUES (?,?,?,?,?,?,?,0,?,?,NULL,NULL,"
+                    "completed_at) VALUES (?,?,?,?,?,?,?,0,?,NULL,NULL,NULL,"
                     "'{}',?,?)",
                     (str(uuid4()), d.event_id, _PTYPE, version, key,
-                     d.tenant_id, JobStatus.COMPLETED.value, now,
-                     MIGRATION_ACTOR, now, now))
+                     d.tenant_id, JobStatus.COMPLETED.value, now, now, now))
                 conn.execute(
                     "INSERT INTO projection_ledger (projection_key, event_id, "
                     "projection_type, projection_version, tenant_id, "
@@ -498,8 +517,12 @@ def adopt(conn: sqlite3.Connection, report: ClassificationReport, *,
                      d.target_id, MIGRATION_ACTOR, now))
                 result.outbox_inserted += 1
                 result.ledger_inserted += 1
+                curated = d.contract_name == "curated_seed_v1"
                 _audit(key, d, "legacy_projection", "adopted", d.proof,
-                       d.contract_name)
+                       d.contract_name, contract_version=1,
+                       # curated: builder KHÔNG được áp — persisted memory
+                       # chính là authored contract; NULL, không phải 1.
+                       builder_version_checked=None if curated else version)
                 result.adopted += 1
             elif d.cls == "EVENT_ONLY_SKIP":
                 ob, _, au = _triple_state(conn, key, d.event_id)
@@ -515,14 +538,14 @@ def adopt(conn: sqlite3.Connection, report: ClassificationReport, *,
                     "projection_type, projection_version, projection_key, "
                     "tenant_id, status, attempts, available_at, locked_by, "
                     "locked_at, last_error, payload_json, created_at, "
-                    "completed_at) VALUES (?,?,?,?,?,?,?,0,?,?,NULL,"
+                    "completed_at) VALUES (?,?,?,?,?,?,?,0,?,NULL,NULL,"
                     "'historical_event_only','{}',?,?)",
                     (str(uuid4()), d.event_id, _PTYPE, version, key,
-                     d.tenant_id, JobStatus.SKIPPED.value, now,
-                     MIGRATION_ACTOR, now, now))
+                     d.tenant_id, JobStatus.SKIPPED.value, now, now, now))
                 result.outbox_inserted += 1
                 _audit(key, d, "historical_event_only", "skipped_event_only",
-                       "substantive_gate_v1", None)
+                       "substantive_gate_v1", None,
+                       contract_version=None, builder_version_checked=None)
                 result.skipped_event_only += 1
             elif d.cls == "TOMBSTONE_EXCLUDE":
                 # KHÔNG outbox row — bia mộ là authority; audit chỉ ghi sổ.
@@ -531,7 +554,8 @@ def adopt(conn: sqlite3.Connection, report: ClassificationReport, *,
                         "WHERE projection_key=?", (key,)).fetchone():
                     result.noop_reapply += 1
                     continue
-                _audit(key, d, "tombstoned", "excluded_tombstoned", None, None)
+                _audit(key, d, "tombstoned", "excluded_tombstoned", None, None,
+                       contract_version=None, builder_version_checked=None)
                 result.excluded_tombstoned += 1
             # ALREADY_MANAGED / LIVE_QUEUE / ERASED_EXCLUDE: không chạm.
 
@@ -572,7 +596,11 @@ def tables_digest(conn: sqlite3.Connection,
 
 
 def adoption_invariants(conn: sqlite3.Connection) -> dict[str, int]:
-    """Không bộ ba nào được lệch — tất cả phải bằng 0."""
+    """Mọi giá trị (trừ migration_rows_total) phải bằng 0.
+
+    HBF-2.1: migration rows được nhận diện qua AUDIT JOIN — sổ provenance
+    thật — chứ không qua locked_by, vì terminal row đúng chuẩn không còn
+    mang lease. Bốn bất biến provenance mới đi kèm hai mutant P1/P2."""
     q = conn.execute
     return {
         "audit_adopted_without_ledger": q(
@@ -586,17 +614,46 @@ def adoption_invariants(conn: sqlite3.Connection) -> dict[str, int]:
             "WHERE a.projection_key=l.projection_key)", (MIGRATION_ACTOR,)
         ).fetchone()[0],
         "migration_outbox_completed_without_ledger": q(
-            "SELECT COUNT(*) FROM projection_outbox o WHERE o.locked_by=? "
-            "AND o.status=? AND NOT EXISTS (SELECT 1 FROM projection_ledger "
-            "l WHERE l.projection_key=o.projection_key)",
-            (MIGRATION_ACTOR, JobStatus.COMPLETED.value)).fetchone()[0],
+            "SELECT COUNT(*) FROM projection_outbox o "
+            "JOIN projection_adoption_audit a "
+            "  ON a.projection_key=o.projection_key "
+            "WHERE a.management_action='adopted' AND o.status=? "
+            "AND NOT EXISTS (SELECT 1 FROM projection_ledger l "
+            "WHERE l.projection_key=o.projection_key)",
+            (JobStatus.COMPLETED.value,)).fetchone()[0],
         "migration_outbox_skipped_without_audit": q(
-            "SELECT COUNT(*) FROM projection_outbox o WHERE o.locked_by=? "
-            "AND o.status=? AND NOT EXISTS (SELECT 1 FROM "
-            "projection_adoption_audit a WHERE "
-            "a.projection_key=o.projection_key)",
-            (MIGRATION_ACTOR, JobStatus.SKIPPED.value)).fetchone()[0],
+            # đối xứng nghĩa cũ: outbox SKIPPED do migration đặt (reason là
+            # historical_event_only) mà không có audit đi kèm
+            "SELECT COUNT(*) FROM projection_outbox o WHERE "
+            "o.last_error='historical_event_only' AND o.status=? "
+            "AND NOT EXISTS (SELECT 1 FROM projection_adoption_audit a "
+            "WHERE a.projection_key=o.projection_key)",
+            (JobStatus.SKIPPED.value,)).fetchone()[0],
+        # ---- bất biến provenance (HBF-2.1) — mutant P1/P2 phải làm đỏ
+        "terminal_migration_rows_with_lock": q(
+            "SELECT COUNT(*) FROM projection_outbox o "
+            "JOIN projection_adoption_audit a "
+            "  ON a.projection_key=o.projection_key "
+            "WHERE o.status IN (?,?) AND "
+            "(o.locked_by IS NOT NULL OR o.locked_at IS NOT NULL)",
+            (JobStatus.COMPLETED.value, JobStatus.SKIPPED.value)
+        ).fetchone()[0],
+        "curated_builder_version_checked_nonnull": q(
+            "SELECT COUNT(*) FROM projection_adoption_audit WHERE "
+            "contract_name='curated_seed_v1' AND "
+            "builder_version_checked IS NOT NULL").fetchone()[0],
+        "tombstone_provenance_claims": q(
+            "SELECT COUNT(*) FROM projection_adoption_audit WHERE "
+            "management_action='excluded_tombstoned' AND "
+            "(contract_name IS NOT NULL OR contract_version IS NOT NULL "
+            "OR builder_version_checked IS NOT NULL)").fetchone()[0],
+        "event_only_false_builder_claim": q(
+            "SELECT COUNT(*) FROM projection_adoption_audit WHERE "
+            "management_action='skipped_event_only' AND "
+            "(contract_version IS NOT NULL "
+            "OR builder_version_checked IS NOT NULL)").fetchone()[0],
         "migration_rows_total": q(
-            "SELECT COUNT(*) FROM projection_outbox WHERE locked_by=?",
-            (MIGRATION_ACTOR,)).fetchone()[0],
+            "SELECT COUNT(*) FROM projection_outbox o "
+            "JOIN projection_adoption_audit a "
+            "  ON a.projection_key=o.projection_key").fetchone()[0],
     }

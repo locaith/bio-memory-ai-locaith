@@ -45,7 +45,7 @@ DISPOSABLE = WORK / "hbf2_disposable_canonical.db"
 QUARANTINE = WORK / "quarantine"
 PLAN_1_1 = Path(__file__).parent / "HBF0" / "hbf1_1_plan.json"
 
-report: dict = {"phase": "HBF-2", "verdict": None,
+report: dict = {"phase": "HBF-2.1", "verdict": None,
                 "real_store_migration": "NOT PERFORMED"}
 
 
@@ -210,6 +210,18 @@ def main() -> None:
     assert sem_before == sem_after
     inv = adoption_invariants(conn)
     assert all(v == 0 for k, v in inv.items() if k != "migration_rows_total")
+    report["terminal_lock_invariant"] = {
+        "terminal_migration_rows_with_lock": inv[
+            "terminal_migration_rows_with_lock"],
+        "note": "provenance ở ledger.worker_id + audit; outbox terminal "
+                "mang đúng hình dạng complete()/skip() — HBF-2.1"}
+    report["audit_provenance_by_class"] = [
+        {"action": r[0], "contract": r[1], "contract_version": r[2],
+         "builder_version_checked": r[3], "n": r[4]}
+        for r in conn.execute(
+            "SELECT management_action, contract_name, contract_version, "
+            "builder_version_checked, COUNT(*) FROM projection_adoption_audit "
+            "GROUP BY 1,2,3,4 ORDER BY 5 DESC")]
     replay = ProjectionReplayEngine(conn).replay(dry_run=False)
     report["post_adopt_replay"] = {
         "enqueued": replay.enqueued, "reset": replay.reset,
@@ -357,6 +369,38 @@ def main() -> None:
         mutants["M2_full_field_altered"] = (
             f"DIES — DIVERGENT chặn cổng; witness={witness[:1]}")
     cm2.close()
+
+    # P1 — provenance mutant: khôi phục locked_by trên terminal rows
+    p1 = _copy(CANDIDATE, WORK / "hbf2_p1.db")
+    cp1 = _open(p1)
+    assert adoption_invariants(cp1)["terminal_migration_rows_with_lock"] == 0
+    cp1.execute(
+        "UPDATE projection_outbox SET locked_by='migration:hbf-adopt' "
+        "WHERE projection_key IN "
+        "(SELECT projection_key FROM projection_adoption_audit)")
+    cp1.commit()
+    p1_caught = adoption_invariants(cp1)["terminal_migration_rows_with_lock"]
+    cp1.close()
+    mutants["P1_lease_as_provenance"] = (
+        f"DIES — terminal_migration_rows_with_lock={p1_caught} > 0"
+        if p1_caught > 0 else "SURVIVED — FAIL")
+
+    # P2 — provenance mutant: curated claim builder comparison chưa từng xảy ra
+    p2 = _copy(CANDIDATE, WORK / "hbf2_p2.db")
+    cp2 = _open(p2)
+    assert adoption_invariants(cp2)[
+        "curated_builder_version_checked_nonnull"] == 0
+    cp2.execute(
+        "UPDATE projection_adoption_audit SET builder_version_checked=1 "
+        "WHERE contract_name='curated_seed_v1'")
+    cp2.commit()
+    p2_caught = adoption_invariants(cp2)[
+        "curated_builder_version_checked_nonnull"]
+    cp2.close()
+    mutants["P2_curated_false_builder_claim"] = (
+        f"DIES — curated_builder_version_checked_nonnull={p2_caught} > 0"
+        if p2_caught > 0 else "SURVIVED — FAIL")
+
     report["mutants"] = mutants
     for k, v in mutants.items():
         print(f"[7] {k:<40} {v}")
@@ -392,12 +436,12 @@ def main() -> None:
           f"tombstoned held {fresh_eyes['replay_candidates_tombstoned']}, "
           f"audit={fresh_eyes['audit_rows']}")
 
-    report["verdict"] = "HBF-2 OFFLINE REHEARSAL VERIFIED"
+    report["verdict"] = "HBF-2.1 OFFLINE REHEARSAL VERIFIED"
     report["elapsed_s"] = round(time.time() - t0, 1)
     (WORK / "hbf2_report.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False, default=str),
         encoding="utf-8")
-    print(f"\nHBF-2 OFFLINE REHEARSAL VERIFIED — {report['elapsed_s']}s. "
+    print(f"\nHBF-2.1 OFFLINE REHEARSAL VERIFIED — {report['elapsed_s']}s. "
           f"REAL STORE MIGRATION: NOT PERFORMED.")
 
 
