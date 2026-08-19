@@ -1,0 +1,39 @@
+{
+  "phase": "HBF-0",
+  "mode": "READ-ONLY",
+  "snapshot_sha256": "9bd6fc2a81baa2f157715e346ae0f6014639012de3aa15d4895600d2f0b24ec5",
+  "integrity": "ok",
+  "effective_store_mode": "outbox (settings) — inventory chạy trên snapshot",
+  "total_events": 316,
+  "classes": {
+    "ALREADY_MANAGED": 14,
+    "TOMBSTONED_EXCLUDED": 2,
+    "ERASED_EXCLUDED": 0,
+    "EVENT_ONLY": 33,
+    "LEGACY_EQUIVALENT": 267,
+    "TRUE_MISSING": 0,
+    "DIVERGENT": 0,
+    "AMBIGUOUS": 0,
+    "UNCLASSIFIED": 0
+  },
+  "event_ids": {
+    "TRUE_MISSING": [],
+    "DIVERGENT": [],
+    "AMBIGUOUS": []
+  },
+  "orphan_memories": [],
+  "memories_multi_source": {},
+  "tombstoned_events": [
+    "b3d20834-e711-40a9-af9e-cec5d82f73bc",
+    "e07a0b18-f5fe-4e1f-b696-f315b9385b78"
+  ],
+  "ledger_coverage": 16,
+  "unsupported_projection_types": [
+    "self_model_update",
+    "prospective_memory",
+    "context_block",
+    "checkpoint_reference"
+  ],
+  "counts_reconcile": true,
+  "UNCLASSIFIED": 0
+}
