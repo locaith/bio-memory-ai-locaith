@@ -1,0 +1,98 @@
+{
+  "phase": "HBF-2",
+  "verdict": "HBF-2 OFFLINE REHEARSAL VERIFIED",
+  "real_store_migration": "NOT PERFORMED",
+  "source_snapshot_sha256": "c46f31293ab91cecd9f5caa556160fcf228694b3ecf88986d12efdccc737803e",
+  "fresh_population": {
+    "total_events": 331,
+    "counts": {
+      "ADOPT_FULL_CONTRACT": 203,
+      "ADOPT_HISTORICAL_PARTIAL": 37,
+      "ADOPT_CURATED_PRESERVED": 18,
+      "ADOPT_CURATED_PARTIAL": 9,
+      "EVENT_ONLY_SKIP": 36,
+      "TOMBSTONE_EXCLUDE": 2,
+      "ALREADY_MANAGED": 26
+    }
+  },
+  "drift_stats": {
+    "n": 46,
+    "min_ms": 0.505,
+    "max_ms": 53.861
+  },
+  "structured_content_closure": {
+    "curated_preserved_as_authored": 27,
+    "reconstructed_equal": 240
+  },
+  "proof_class_counts": {
+    "content_plus_curated_provenance_except_observed_at_v1": 9,
+    "content_plus_curated_provenance_v1": 18,
+    "full_contract_except_observed_at_epsilon_v1": 37,
+    "full_projection_contract_v1": 203
+  },
+  "delta_vs_hbf1_1": {
+    "EVENT_ONLY_SKIP": 1,
+    "ALREADY_MANAGED": 2
+  },
+  "atomic_abort": "ZERO PARTIAL STATE",
+  "migration_transaction": {
+    "migration_run_id": "hbf2-1787110279",
+    "adopted": 267,
+    "event_only_skipped": 36,
+    "tombstone_excluded": 2,
+    "managed_noops": 26,
+    "live_queue_untouched": 0,
+    "outbox_inserted": 303,
+    "ledger_inserted": 267,
+    "audit_inserted": 305
+  },
+  "memory_semantic_delta": "0 (digest bằng)",
+  "post_adopt_replay": {
+    "enqueued": 0,
+    "reset": 0,
+    "skipped_tombstoned": 0
+  },
+  "knives": {
+    "K1_replay_no_duplicate": "PASS",
+    "K2_forget_no_resurrection": "PASS",
+    "K3_restart_durable": "PASS",
+    "K4_reapply_idempotent": "PASS"
+  },
+  "m1_dangerous_path_witness": "invariant bắt tại cửa sổ phát hiện (audit_without_ledger=1); phớt lờ nó → duplicate=2 trên data thật",
+  "mutants": {
+    "M1_missing_ledger_is_missing_projection": "DIES — TRUE_MISSING=267 chặn cổng",
+    "M1_witness": "BLEEDS AS PREDICTED",
+    "M2_full_field_altered": "DIES — DIVERGENT chặn cổng; witness=['trust_tier: event=3 memory=4']"
+  },
+  "install_rehearsal": {
+    "target": "DISPOSABLE (không phải real DB)",
+    "manifest": {
+      "installed_sha256": "0286ce3f446e2f44f316a04060f32d12dc08368e4674bedf6577b93a07a6c722",
+      "quarantine_bundle": "C:\\locaith\\bio-memory-ai-locaith\\activation\\HBF2\\quarantine\\gen-",
+      "moved": "['hbf2_disposable_canonical.db']"
+    }
+  },
+  "fresh_process_verify": {
+    "file_sha256_before_open": "0286ce3f446e2f44f316a04060f32d12dc08368e4674bedf6577b93a07a6c722",
+    "integrity": [
+      "ok"
+    ],
+    "fk_violations": 0,
+    "invariants": {
+      "audit_adopted_without_ledger": 0,
+      "migration_ledger_without_audit": 0,
+      "migration_outbox_completed_without_ledger": 0,
+      "migration_outbox_skipped_without_audit": 0,
+      "migration_rows_total": 303
+    },
+    "audit_rows": {
+      "adopted": 267,
+      "excluded_tombstoned": 2,
+      "skipped_event_only": 36
+    },
+    "replay_scan_candidates": 0,
+    "replay_candidates_tombstoned": 0,
+    "actionable_replay_debt": 0
+  },
+  "elapsed_s": 2.7
+}

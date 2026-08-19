@@ -101,3 +101,55 @@ inheritance được thêm vào `remember()` đóng dấu đồng hồ riêng �
 DƯƠNG, 0.51–53.86ms; epsilon = 100ms đặt theo cơ chế cùng-lời-gọi (thang
 staleness tính bằng ngày), KHÔNG phải số làm đẹp count. "240 FULL" cũ là
 claim mạnh hơn measurement — con số trung thực là 203.
+
+## HBF-2 — KẾT QUẢ DIỄN TẬP (19/08, VERIFIED OFFLINE)
+
+Chữ ký HBF-2 mang hai ràng buộc, cả hai đã khắc vào code:
+
+1. **Epsilon là admissibility policy ĐÃ ĐO trên population này** (0.505–53.861ms,
+   luôn dương), không phải định luật "same call luôn <100ms" — OS scheduling
+   không cho guarantee đó. `DriftPolicy` mang đúng docstring này; audit giữ
+   `observed_at_delta_ms` thật từng hàng; proof giữ chữ `except_observed_at...`;
+   không có đường promote lên FULL.
+2. **structured_content phải đóng TRƯỚC transaction**: đo bằng slot extractor
+   tất định — kết quả thật: **240/240 hook rows `reconstructed_equal`**, không
+   hàng nào phải hạ proof. Không tái tạo được thì proof HẠ
+   (`..._except_structured_content_v1`), không ép count; chưa đo thì CỔNG ĐÓNG.
+
+Nuance đã ký: **adopt AS-IS** — không sửa observed_at của 46 hàng drift
+("chúng ta hiểu vì sao khác" ≠ "chúng ta được phép rewrite quá khứ");
+27 curated giữ `canonical_candidate_hash = NULL` — trung thực hơn một hash
+đẹp nhưng vô nghĩa, vì chính bàn tay tác giả là contract.
+
+```
+population tươi (frozen c46f3129…)   331 events
+  ADOPT 203 + 37 + 18 + 9 = 267  ·  EVENT_ONLY 36  ·  TOMBSTONE 2
+  ALREADY_MANAGED 26  ·  lớp chặn 0/0/0/0/0
+  (delta vs HBF-1.1: +1 event-only, +2 managed — event mới của chính phiên)
+
+transaction    267 adopt (outbox terminal locked_by='migration:hbf-adopt'
+               + ledger + audit), 36 skip, 2 excluded-audit, 303 outbox,
+               267 ledger, 305 audit — semantic delta 0 (digest bằng)
+abort test     inject trước COMMIT → ZERO partial state
+K1 replay      không duplicate; ledger authority giữ khi outbox row mất
+K2 forget      không resurrection sau replay+drain
+K3 restart     managed state bền qua process mới
+K4 reapply     lần hai + classify tươi: 0 thay đổi, digest bằng
+M1             DIES — TRUE_MISSING=267 chặn cổng; witness: xoá ledger 1 hàng
+               → invariant bắt tại cửa sổ phát hiện; phớt lờ → duplicate=2
+M2             DIES — đổi trust_tier, content nguyên → DIVERGENT chặn cổng
+install        candidate → DISPOSABLE canonical (không phải real DB):
+               INSTALL_CONFIRMED, fresh process: integrity ok, fk 0,
+               actionable replay debt 0, sha khớp manifest, không stale -wal
+ghi chú đo     2 event bia mộ đã có outbox completed từ trước khi bị quên
+               → skipped_tombstoned=0 là số đúng; hình dạng bia-mộ-không-
+               outbox được dao synthetic phủ (tests/test_historical_adoption)
+
+REAL STORE MIGRATION          NOT PERFORMED
+HBF-3 REAL ADOPTION           LOCKED — chờ chữ ký
+```
+
+Code: `bio_agent_os/cognitive/historical_adoption.py` (classify + closure +
+transaction + invariants) · `tests/test_historical_adoption.py` (10 dao/mutant
+trên store synthetic dựng bằng chính đường ghi legacy) ·
+`activation/HBF2_rehearsal.py` + `activation/HBF2/hbf2_report.json`.

@@ -586,8 +586,9 @@ Cập nhật 19/08/2026.
 | Production hook single-writer | **VERIFIED** |
 | **New-write activation (OUTBOX)** | **VERIFIED — đang sống** |
 | **Semantic parity giữa hai đường ghi** | **VERIFIED** — hợp đồng ghi lưu bền trong event (`MemoryProjectionIntent`), một constructor cho mọi writer, parity gate + mutant |
-| Historical inventory & contract archaeology | **VERIFIED** — 326 events phân lớp đủ, UNCLASSIFIED = 0, comparator thực thi được |
-| Historical adoption (HBF-2) | **PLANNED — chưa chạy**; mọi mutation lịch sử chỉ trên candidate offline |
+| Historical inventory & contract archaeology | **VERIFIED** — population phân lớp đủ, UNCLASSIFIED = 0; comparator FULL đo ≥20 trường (HBF-1.1: "240 FULL" tự hạ xuống 203 khi comparator có răng — 4 proof class trung thực, 46 hàng observed-at drift mang delta thật trong audit) |
+| Historical adoption rehearsal (HBF-2) | **VERIFIED — OFFLINE** — 267 adopt / 36 skip / 2 bia mộ / 26 no-op trên candidate; structured_content đóng 240/240; một transaction + abort = zero partial; K1 replay không duplicate · K2 forget không resurrection · K3 restart bền · K4 reapply idempotent; mutant M1/M2 chết có witness; install rehearsal vào disposable canonical. **Store thật CHƯA migrate.** |
+| Historical adoption thật (HBF-3) | **LOCKED — chờ chữ ký**; đường duy nhất: candidate offline → certify → `install_generation` |
 | Multi-node workers | **NOT CERTIFIED** (chưa có clock-skew contract) |
 
 Ba sự cố đáng kể đã xảy ra và được xử lý đúng kỷ luật, giữ nguyên trong lịch
@@ -599,7 +600,13 @@ ghi (SP-0/SP-1 — sinh ra luật `CONTENT_EQUIVALENT ≠ PROJECTION_EQUIVALENT`
 9 ký ức thật được repair tại chỗ với audit trong chính record).
 
 Store người dùng: đường ghi mới OUTBOX **đang hoạt động** với parity theo hợp
-đồng; lịch sử cũ **chưa migrate** — kế hoạch adoption đã ký ở mức thiết kế.
+đồng; lịch sử cũ **chưa migrate** — lễ nhập tịch đã diễn tập xong OFFLINE
+(HBF-2 VERIFIED, `bio_agent_os/cognitive/historical_adoption.py` +
+`tests/test_historical_adoption.py`), migration thật (HBF-3) khoá chờ phê
+duyệt. Luật giữ nguyên: adopt AS-IS — hiểu vì sao quá khứ khác không cho
+quyền rewrite quá khứ; drift policy là số ĐÃ ĐO trên population này, không
+phải định luật; curated giữ `canonical_candidate_hash=NULL` vì chính bàn tay
+tác giả là contract.
 
 Chi tiết: [`H1_QUEUE_LIVENESS_REPORT.md`](H1_QUEUE_LIVENESS_REPORT.md),
 [`H1_4_MULTIWORKER_REPORT.md`](H1_4_MULTIWORKER_REPORT.md),
