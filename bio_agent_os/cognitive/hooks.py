@@ -127,6 +127,13 @@ class ClaudeCodeHookAdapter:
             epistemic_status=EpistemicStatus.OBSERVED,
             enqueue_projection=self._projection_debt_allowed(substantive),
             projection_intent=intent,
+            # RC-0: khi gate quyết KHÔNG chiếu, nói RÕ vì sao và để quyết
+            # định đó thành một hàng terminal bền + một mảnh payload bất
+            # biến. Trước đây nó chỉ là sự vắng mặt, và replay đọc sự vắng
+            # mặt thành "chắc ai quên build".
+            no_projection_reason=(
+                None if self._projection_debt_allowed(substantive)
+                else "non_substantive"),
         )
         # An event always happened, so it is always recorded — events are the
         # audit trail and dropping one would be lying about what occurred.

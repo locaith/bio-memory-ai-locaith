@@ -25,6 +25,7 @@ from enum import Enum
 from typing import Any, Callable
 
 from .outbox import JobStatus, ProjectionJob, ProjectionOutbox, projection_key
+from .projection_intent import NO_PROJECTION, recorded_decision
 from .tombstones import buried_among
 from .projection_registry import (
     DependencyState,
@@ -39,12 +40,20 @@ from .projection_registry import (
 class ReplayReason(str, Enum):
     """Why a job was selected for replay."""
 
-    MISSING_OUTBOX = "missing_outbox"        # event exists, nothing owed recorded
+    MISSING_OUTBOX = "missing_outbox"        # intent ĐÃ GHI mà không có hàng nợ
     PENDING = "pending"                      # queued, never processed
     STALE_LEASE = "stale_lease"              # claimed by a worker that went away
     DEAD_LETTER = "dead_letter"              # exhausted retries
     VERSION_DRIFT = "version_drift"          # completed at an older version
     ORPHAN_PROJECTION = "orphan_projection"  # projection with no event
+    #: RC-0 — writer đã quyết KHÔNG chiếu (bằng chứng nằm trong payload bất
+    #: biến) nhưng hàng terminal biến mất. Recovery đúng là DỰNG LẠI QUYẾT
+    #: ĐỊNH, không phải dựng ký ức.
+    SKIP_ROW_LOST = "skip_row_lost"
+    #: Không có hàng nợ, và event KHÔNG ghi lại quyết định nào. Không suy ra
+    #: được gì — báo cáo, không hành động, và tuyệt đối không đoán theo hình
+    #: dạng nội dung.
+    UNKNOWN_INTENT = "unknown_intent"
 
 
 @dataclass(slots=True)
@@ -58,9 +67,15 @@ class ReplayCandidate:
     replayable: bool = True
     detail: str = ""
 
+    #: RC-0: một candidate được BÁO CÁO không có nghĩa là nó được PHÉP dựng.
+    #: `UNKNOWN_INTENT` hiển thị để người vận hành thấy, nhưng không bao giờ
+    #: chảy vào đường materialize.
+    owed: bool = True
+
     @property
     def actionable(self) -> bool:
-        return self.replayable and self.dependency_state == DependencyState.READY.value
+        return (self.owed and self.replayable
+                and self.dependency_state == DependencyState.READY.value)
 
 
 @dataclass(slots=True)
@@ -79,6 +94,14 @@ class ReplayReport:
     #: to restore something is indistinguishable from one that failed, and the
     #: operator running it needs to know which.
     skipped_tombstoned: int = 0
+    #: RC-0 — writer đã quyết KHÔNG chiếu; hàng terminal mất và được DỰNG LẠI
+    #: thành SKIPPED. Không phải một ký ức được cứu — một quyết định được cứu.
+    skips_reconstructed: int = 0
+    #: Không suy ra được ý định. Báo cáo, không hành động, không đoán.
+    unknown_intent: int = 0
+    #: Event mà writer đã quyết KHÔNG chiếu — version bump không làm quyết
+    #: định đó hết hạn.
+    skipped_no_projection: int = 0
     errors: list[str] = field(default_factory=list)
 
     def by_reason(self) -> dict[str, int]:
@@ -100,6 +123,9 @@ class ReplayReport:
             f"  held: dependency      : {self.skipped_dependency:>8,}",
             f"  held: not replayable  : {self.skipped_unreplayable:>8,}",
             f"  held: tombstoned      : {self.skipped_tombstoned:>8,}",
+            f"  skips reconstructed   : {self.skips_reconstructed:>8,}",
+            f"  unknown intent (report only): {self.unknown_intent:>8,}",
+            f"  held: no-projection decision: {self.skipped_no_projection:>8,}",
         ]
         if self.candidates:
             lines.append("")
@@ -150,6 +176,24 @@ class ProjectionReplayEngine:
         if limit:
             sql += f" LIMIT {int(limit)}"
         return self.conn.execute(sql, params).fetchall()
+
+    def _recorded_decision(self, event_id: str) -> str | None:
+        """Quyết định LÚC GHI, đọc từ payload bất biến của chính event.
+
+        Đây là toàn bộ khác biệt giữa recovery và viết lại lịch sử: replay
+        được phép KHÔI PHỤC quyết định của writer, không được phép DIỄN GIẢI
+        LẠI nó — kể cả khi nội dung trông rất giống một cái marker vô nghĩa.
+        """
+        row = self.conn.execute(
+            "SELECT payload_json FROM cognitive_events WHERE event_id=?",
+            (event_id,)).fetchone()
+        if row is None:
+            return None
+        try:
+            payload = json.loads(row["payload_json"] or "{}")
+        except (TypeError, ValueError):
+            return None
+        return recorded_decision(payload)
 
     def _dependency_state(self, event_id: str, projection_type: str) -> str:
         """Whether this job's parents have completed."""
@@ -204,11 +248,25 @@ class ProjectionReplayEngine:
                 ).fetchone()
 
                 reason: str | None = None
+                owed = True
                 if job_row is None:
-                    # Only the default projection is owed by an ordinary event.
-                    # Others are opt-in, so their absence is not an orphan.
+                    # ABSENCE OF OUTBOX != EVIDENCE THAT PROJECTION IS OWED.
+                    #
+                    # Bản trước đọc hàng vắng thành "còn nợ" và enqueue —
+                    # nghĩa là một event mà writer đã CỐ Ý không chiếu sẽ được
+                    # dựng thành ký ức bởi chính đường phục hồi. Con rồng
+                    # không mọc lại đầu bằng đường ghi; nó mọc bằng đường
+                    # recovery. Giờ hỏi bằng chứng, không hỏi sự vắng mặt.
                     if ptype == ProjectionType.COGNITIVE_MEMORY.value:
-                        reason = ReplayReason.MISSING_OUTBOX.value
+                        decision = self._recorded_decision(row["event_id"])
+                        if decision == NO_PROJECTION:
+                            reason = ReplayReason.SKIP_ROW_LOST.value
+                            owed = False
+                        elif decision is None:
+                            reason = ReplayReason.UNKNOWN_INTENT.value
+                            owed = False
+                        else:
+                            reason = ReplayReason.MISSING_OUTBOX.value
                 elif job_row["status"] == JobStatus.PENDING.value:
                     reason = ReplayReason.PENDING.value
                 elif job_row["status"] == JobStatus.DEAD_LETTER.value:
@@ -240,6 +298,7 @@ class ProjectionReplayEngine:
                         reason=reason,
                         dependency_state=self._dependency_state(row["event_id"], ptype),
                         replayable=ptype_spec.replayable,
+                        owed=owed,
                         detail=ptype_spec.target_store,
                     )
                 )
@@ -301,6 +360,15 @@ class ProjectionReplayEngine:
             if candidate.event_id in tombstoned:
                 report.skipped_tombstoned += 1
                 continue
+            # RC-0 — hai lớp KHÔNG BAO GIỜ được chảy vào đường materialize.
+            if candidate.reason == ReplayReason.UNKNOWN_INTENT.value:
+                report.unknown_intent += 1
+                continue
+            if candidate.reason == ReplayReason.SKIP_ROW_LOST.value:
+                if not dry_run:
+                    self._reconstruct_skip(candidate)
+                report.skips_reconstructed += 1
+                continue
             if candidate.dependency_state != DependencyState.READY.value:
                 report.skipped_dependency += 1
                 continue
@@ -324,6 +392,26 @@ class ProjectionReplayEngine:
             except sqlite3.Error as exc:
                 report.errors.append(f"{candidate.event_id}/{candidate.projection_type}: {exc}")
         return report
+
+    def _reconstruct_skip(self, candidate: ReplayCandidate) -> None:
+        """Dựng lại hàng terminal SKIPPED từ quyết định đã ghi trong event.
+
+        LOST SKIP ROW không được phục hồi thành một ký ức. Bằng chứng nói
+        writer đã quyết không chiếu; recovery đúng là làm cho quyết định đó
+        hiện diện trở lại, y như nó lẽ ra vẫn ở đó."""
+        import time as _t
+        self.outbox.enqueue(
+            ProjectionJob(
+                event_id=candidate.event_id,
+                projection_type=candidate.projection_type,
+                tenant_id=candidate.tenant_id,
+                projection_version=candidate.projection_version,
+                status=JobStatus.SKIPPED.value,
+                last_error="reconstructed_from_event_decision",
+                completed_at=_t.time(),
+            ),
+            commit=True,
+        )
 
     def _reset(self, candidate: ReplayCandidate) -> None:
         """Return a job to PENDING so a worker will pick it up again.
@@ -366,6 +454,26 @@ class ProjectionReplayEngine:
         for row in rows:
             if row["event_id"] in tombstoned:
                 report.skipped_tombstoned += 1
+                continue
+            # RC-0 — INGEST-TIME NO-PROJECTION DECISION MUST SURVIVE REPLAY
+            # **AND VERSION REBUILD**.
+            #
+            # Chốt cũ chỉ coi SKIPPED là terminal KHI nó nằm đúng version hiện
+            # tại. Bump v1→v2 là hàng SKIPPED v1 hết khớp, và engine dựng
+            # candidate v2 cho chính cái marker vừa bị từ chối — cái trứng thứ
+            # hai của con rồng, nằm dưới rebuild chứ không nằm ở replay.
+            #
+            # "Không đáng thành ký ức" là mệnh đề về CHÍNH EVENT, không phải
+            # về phiên bản logic chiếu. Nó không hết hạn khi builder lên đời.
+            if self._recorded_decision(row["event_id"]) == NO_PROJECTION:
+                report.skipped_no_projection += 1
+                continue
+            skipped_any_version = self.conn.execute(
+                "SELECT 1 FROM projection_outbox WHERE event_id=? AND "
+                "projection_type=? AND status=?",
+                (row["event_id"], projection_type,
+                 JobStatus.SKIPPED.value)).fetchone()
+            if skipped_any_version:
                 continue
             existing = self.conn.execute(
                 "SELECT 1 FROM projection_outbox WHERE event_id=? AND projection_type=? "

@@ -9,6 +9,7 @@ import pytest
 from bio_agent_os.cognitive.event_store import SQLiteEventStore
 from bio_agent_os.cognitive.models import EventRecord
 from bio_agent_os.cognitive.outbox import JobStatus, ProjectionJob
+from bio_agent_os.cognitive.projection_intent import MemoryProjectionIntent
 from bio_agent_os.cognitive.projection_engine import (
     ProjectionReplayEngine,
     ReplayReason,
@@ -31,9 +32,27 @@ CHECKPOINT = ProjectionType.CHECKPOINT_REFERENCE.value
 
 
 def _event(event_id: str = "evt-1", tenant: str = "t1") -> EventRecord:
+    """Event KHÔNG ghi lại quyết định nào — hình dạng tiền-contract."""
     return EventRecord(
         tenant_id=tenant, actor="tester", source="unit",
         payload={"content": "hello"}, event_id=event_id,
+    )
+
+
+def _owed_event(event_id: str = "evt-1", tenant: str = "t1") -> EventRecord:
+    """Event CÓ ghi ý định chiếu — RC-0: đây mới là thứ thực sự còn nợ.
+
+    Trước RC-0 mọi event không có outbox row đều bị coi là còn nợ, nên các
+    test dưới đây dùng `_event()` và vẫn xanh. Luật mới đọc BẰNG CHỨNG chứ
+    không đọc sự vắng mặt, nên ý định của chúng — scoping, idempotency,
+    enqueue — cần một event thật sự nợ để đo. Migrate theo ý định, không
+    search-replace."""
+    return EventRecord(
+        tenant_id=tenant, actor="tester", source="unit",
+        payload={"content": "hello",
+                 "projection_intents": MemoryProjectionIntent(
+                 ).as_payload_fragment()},
+        event_id=event_id,
     )
 
 
@@ -115,12 +134,23 @@ def test_versions_are_per_type():
 # -- discovery --------------------------------------------------------------
 
 
-def test_an_event_with_no_outbox_row_is_reported_as_owed(store, engine):
+def test_an_event_with_no_recorded_intent_is_reported_but_never_owed(store,
+                                                                     engine):
+    """RC-0 — ABSENCE OF OUTBOX != EVIDENCE THAT PROJECTION IS OWED.
+
+    Tên cũ của ca này là `..._is_reported_as_owed`, và nó mã hoá đúng chỗ
+    engine tự cho phép suy diễn: hàng vắng → "chắc còn nợ" → enqueue → dựng
+    ký ức từ một event chưa ai nói gì về nó. Docstring của chính module này
+    đã viết "never guessed" từ đầu; RC-0 làm code khớp với câu đó.
+
+    Nửa ý định còn nguyên giá trị: event như vậy vẫn phải được BÁO CÁO, không
+    được im lặng bỏ qua. Chỉ nhãn là đổi — và nhãn đúng là UNKNOWN."""
     store.append(_event())  # legacy path: no projection recorded
     report = engine.scan()
     memory_candidates = [c for c in report.candidates if c.projection_type == MEMORY]
-    assert len(memory_candidates) == 1
-    assert memory_candidates[0].reason == ReplayReason.MISSING_OUTBOX.value
+    assert len(memory_candidates) == 1, "im lặng bỏ qua cũng là một lỗi"
+    assert memory_candidates[0].reason == ReplayReason.UNKNOWN_INTENT.value
+    assert not memory_candidates[0].actionable
 
 
 def test_an_optional_projection_is_not_treated_as_an_orphan(store, engine):
@@ -229,7 +259,7 @@ def test_replay_defaults_to_dry_run_and_changes_nothing(store, engine):
 
 
 def test_replay_enqueues_a_missing_projection(store, engine):
-    store.append(_event())
+    store.append(_owed_event())
     report = engine.replay(dry_run=False)
     assert report.enqueued == 1
     jobs = store.outbox.by_event("evt-1")
@@ -237,7 +267,7 @@ def test_replay_enqueues_a_missing_projection(store, engine):
 
 
 def test_replay_twice_does_not_duplicate(store, engine):
-    store.append(_event())
+    store.append(_owed_event())
     engine.replay(dry_run=False)
     engine.replay(dry_run=False)
     assert len(store.outbox.by_event("evt-1")) == 1
@@ -256,16 +286,16 @@ def test_replay_resets_a_dead_letter_and_clears_its_attempts(store, engine):
 
 
 def test_replay_scopes_to_one_event(store, engine):
-    store.append(_event("a"))
-    store.append(_event("b"))
+    store.append(_owed_event("a"))
+    store.append(_owed_event("b"))
     engine.replay(event_id="a", dry_run=False)
     assert len(store.outbox.by_event("a")) == 1
     assert store.outbox.by_event("b") == []
 
 
 def test_replay_scopes_to_one_tenant(store, engine):
-    store.append(_event("a", "t1"))
-    store.append(_event("b", "t2"))
+    store.append(_owed_event("a", "t1"))
+    store.append(_owed_event("b", "t2"))
     engine.replay(tenant_id="t1", dry_run=False)
     assert len(store.outbox.by_event("a")) == 1
     assert store.outbox.by_event("b") == []
@@ -343,8 +373,8 @@ def test_an_outbox_row_without_an_event_is_reported(store, engine):
 
 
 def test_status_summarises_the_queue(store, engine):
-    store.append(_event("a"), projection_types=(MEMORY,))
-    store.append(_event("b"))
+    store.append(_owed_event("a"), projection_types=(MEMORY,))
+    store.append(_owed_event("b"))
     status = engine.status()
     assert status["events"] == 2
     assert status["outbox"][JobStatus.PENDING.value] == 1

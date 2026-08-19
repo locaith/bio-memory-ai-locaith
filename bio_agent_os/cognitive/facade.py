@@ -16,7 +16,8 @@ from .governance import GovernanceEngine
 from .immune import ImmuneDecision, MemoryImmuneSystem
 from .memory_store import SQLiteMemoryStore
 from .projection_intent import (MemoryProjectionIntent,
-                                build_memory_from_event)
+                                build_memory_from_event,
+                                no_projection_fragment)
 from .models import (
     AccessContext,
     BeliefState,
@@ -163,6 +164,7 @@ class MemoryOS:
         epistemic_status: EpistemicStatus = EpistemicStatus.OBSERVED,
         enqueue_projection: bool = True,
         projection_intent: "MemoryProjectionIntent | None" = None,
+        no_projection_reason: str | None = None,
     ) -> EventRecord:
         """Record an observation.
 
@@ -190,7 +192,13 @@ class MemoryOS:
             payload=(
                 {"content": decision.redacted_content or content,
                  **({"projection_intents": projection_intent.as_payload_fragment()}
-                    if projection_intent is not None else {})}),
+                    if projection_intent is not None
+                    # RC-0: quyết định KHÔNG chiếu cũng đi vào payload bất
+                    # biến. Nó là thứ replay được phép KHÔI PHỤC, và bị cấm
+                    # DIỄN GIẢI LẠI.
+                    else {"projection_intents":
+                          no_projection_fragment(no_projection_reason)}
+                    if no_projection_reason else {})}),
             workspace_id=workspace_id,
             trust_tier=trust_tier,
             security_label=security_label,
@@ -207,9 +215,18 @@ class MemoryOS:
         # EventRecord, provenance, append — nhưng không nợ projection nào.
         # Sinh ra từ single-writer contract của hook: một event không đáng
         # thành memory thì không được để outbox worker biến nó thành memory.
+        #
+        # RC-0: và nếu writer nói RÕ vì sao không chiếu, quyết định đó được
+        # ghi thành một hàng terminal SKIPPED trong CÙNG transaction với
+        # event. "Không nợ gì" trở thành một sự thật được ghi, chứ không phải
+        # một hàng vắng mặt để người sau tự suy diễn.
         return self.events.append(
-            event, projection_types=(self._projection_types()
-                                     if enqueue_projection else ()))
+            event,
+            projection_types=(self._projection_types()
+                              if enqueue_projection else ()),
+            skip_types=(self._projection_types()
+                        if (no_projection_reason and not enqueue_projection)
+                        else ()))
 
     #: Bumped when the resolver's answer for the same sentence could change,
     #: so a row can say which version produced its slot.

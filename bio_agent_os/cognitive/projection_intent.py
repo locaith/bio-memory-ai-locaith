@@ -60,10 +60,58 @@ class MemoryProjectionIntent:
         return {"cognitive_memory": asdict(self)}
 
 
-def intent_from_payload(payload: dict[str, Any] | None) -> MemoryProjectionIntent | None:
-    """Đọc intent từ payload bất biến. Không có → None (event tiền-contract)."""
-    raw = ((payload or {}).get(INTENT_KEY) or {}).get("cognitive_memory")
+#: RC-0 — QUYẾT ĐỊNH KHÔNG-CHIẾU cũng là một quyết định, và nó phải bền.
+#:
+#:     WRITE-TIME DECISION → durable evidence
+#:     REPLAY MAY RECOVER IT — REPLAY MAY NOT REINTERPRET IT
+#:
+#: Trước RC-0, "không đáng thành memory" chỉ được thể hiện bằng SỰ VẮNG MẶT
+#: của một outbox row. Nhưng vắng mặt không phải bằng chứng:
+#:
+#:     ABSENCE OF OUTBOX != EVIDENCE THAT PROJECTION IS OWED
+#:
+#: replay nhìn hàng vắng rồi tự phán "chắc ai quên build" — và materialize
+#: đúng cái marker mà substantive gate đã cắt. Nên quyết định được ghi vào
+#: CHÍNH PAYLOAD (dưới checksum, bất biến), sống sót qua cả mất outbox row
+#: lẫn version rebuild.
+NO_PROJECTION = "no_projection"
+DECISION_KEY = "decision"
+
+
+def no_projection_fragment(reason: str,
+                           projection_type: str = "cognitive_memory") -> dict:
+    """Mảnh payload khai: writer đã QUYẾT không chiếu, và vì sao."""
+    return {projection_type: {DECISION_KEY: NO_PROJECTION,
+                              "reason": reason,
+                              "contract_version": CONTRACT_VERSION}}
+
+
+def recorded_decision(payload: dict[str, Any] | None,
+                      projection_type: str = "cognitive_memory") -> str | None:
+    """Quyết định lúc ghi, đọc từ payload bất biến.
+
+    `"projection"` — writer muốn chiếu (có intent đầy đủ).
+    `"no_projection"` — writer đã quyết KHÔNG chiếu, kèm lý do.
+    `None` — event không ghi lại quyết định nào. Đây là UNKNOWN, và UNKNOWN
+    KHÔNG được đoán theo hình dạng nội dung: một event trông như marker vẫn
+    có thể đã có ký ức thật (đo được: 3 hàng `hook=SessionStart` của 07/08).
+    """
+    raw = ((payload or {}).get(INTENT_KEY) or {}).get(projection_type)
     if not isinstance(raw, dict):
+        return None
+    if raw.get(DECISION_KEY) == NO_PROJECTION:
+        return NO_PROJECTION
+    return "projection"
+
+
+def intent_from_payload(payload: dict[str, Any] | None) -> MemoryProjectionIntent | None:
+    """Đọc intent từ payload bất biến. Không có → None (event tiền-contract).
+
+    Một mảnh `no_projection` KHÔNG phải intent — nó là quyết định ngược lại,
+    và trả về một intent mặc định ở đây sẽ dựng ký ức từ chính thứ vừa từ
+    chối dựng."""
+    raw = ((payload or {}).get(INTENT_KEY) or {}).get("cognitive_memory")
+    if not isinstance(raw, dict) or raw.get(DECISION_KEY) == NO_PROJECTION:
         return None
     known = {f for f in MemoryProjectionIntent.__dataclass_fields__}
     return MemoryProjectionIntent(**{k: v for k, v in raw.items() if k in known})

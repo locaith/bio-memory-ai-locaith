@@ -1,4 +1,11 @@
-# FINDING (chưa sửa) — event non-substantive để lại nợ replay vĩnh viễn
+# FINDING — event non-substantive để lại nợ replay vĩnh viễn
+
+> **TRẠNG THÁI: ĐÃ ĐÓNG bởi RC-0 (19/08/2026).** Chủ ký mở lane
+> *Replay Intent Closure* sau khi bắt thêm một tầng nữa mà finding này chưa
+> thấy: `rebuild_version` cũng nở được cùng quả trứng khi projection version
+> tăng. Xem `docs/RC0_REPLAY_INTENT_CLOSURE.md` và
+> `tests/test_replay_intent_closure.py`. Giữ nguyên văn bản gốc bên dưới làm
+> hồ sơ: nó là hình dạng của lỗ hổng trước khi được vá.
 
 Phát hiện trong canary của HBF-3, 19/08/2026. **Không phải do migration sinh
 ra** — đây là hành vi có sẵn của pipeline sống. Cần chữ ký trước khi sửa vì

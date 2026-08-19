@@ -3,13 +3,15 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import time
 from pathlib import Path
 
 from .sqlite_utils import connect_sqlite
 
 from . import fault_points as _fault
 from .models import EpistemicStatus, EventRecord, Modality, SecurityLabel, TrustTier
-from .outbox import PROJECTION_VERSION, ProjectionJob, ProjectionOutbox
+from .outbox import (PROJECTION_VERSION, JobStatus, ProjectionJob,
+                     ProjectionOutbox)
 
 #: Projection requested when a caller does not say. `remember()` is what
 #: actually creates a memory, so an event with no stated intent owes nothing
@@ -100,6 +102,7 @@ class SQLiteEventStore:
         record: EventRecord,
         *,
         projection_types: tuple[str, ...] | list[str] | None = None,
+        skip_types: tuple[str, ...] | list[str] = (),
     ) -> EventRecord:
         """Append an event, and optionally the projections it owes.
 
@@ -133,6 +136,24 @@ class SQLiteEventStore:
             ),
         )
         _fault.fire(_fault.ProjectionFaultPoint.AFTER_EVENT_INSERT)
+        # RC-0 — "KHÔNG nợ gì ở đây" là một QUYẾT ĐỊNH, và nó commit CÙNG
+        # event. Một hàng vắng mặt không nói được điều đó: replay sẽ đọc sự
+        # vắng mặt thành "chắc ai quên build". Ghi thẳng trạng thái terminal
+        # SKIPPED trong cùng transaction — hoặc cả event lẫn quyết định cùng
+        # bền, hoặc không cái nào.
+        now = time.time()
+        for projection_type in skip_types:
+            self.outbox.enqueue(
+                ProjectionJob(
+                    event_id=record.event_id,
+                    projection_type=projection_type,
+                    tenant_id=record.tenant_id,
+                    projection_version=PROJECTION_VERSION,
+                    status=JobStatus.SKIPPED.value,
+                    last_error="non_substantive",
+                    completed_at=now,
+                ),
+            )
         # Same connection, same open transaction — no commit between these.
         for projection_type in (projection_types or DEFAULT_PROJECTION_TYPES):
             self.outbox.enqueue(
