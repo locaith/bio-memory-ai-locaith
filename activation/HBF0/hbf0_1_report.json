@@ -1,0 +1,51 @@
+{
+  "snapshot_sha256": "bd6f63a308127ebb65b486e6eaba1d30e7a595929d7b1da7436e873b08418120",
+  "total": 326,
+  "classes": {
+    "ALREADY_MANAGED": 22,
+    "TOMBSTONED_EXCLUDED": 2,
+    "EVENT_ONLY": 35,
+    "LEGACY_PROJECTION_EQUIVALENT": 240,
+    "LEGACY_CONTENT_EQUIVALENT_ONLY": 0,
+    "CONTRACT_UNKNOWN": 27,
+    "TRUE_MISSING": 0,
+    "DIVERGENT": 0,
+    "AMBIGUOUS": 0,
+    "UNCLASSIFIED": 0
+  },
+  "ids": {
+    "LEGACY_CONTENT_EQUIVALENT_ONLY": [],
+    "CONTRACT_UNKNOWN": [
+      "81bffcb6-3982-4407-9d77-23fd9e6b7348",
+      "a14ebc73-b467-45da-8335-c1fc89742021",
+      "f1396e55-7192-4339-b7a6-3a22221976cf",
+      "cd732c84-6539-4ce4-8bf9-b944facb1d36",
+      "53efe462-c22d-4a46-8ba4-2a927331bc42",
+      "d82ec557-f296-4f64-8682-73c008c5ba15",
+      "f4ccc963-abfd-4848-9415-629275277fcc",
+      "14d0eab6-cec0-43a7-b93a-b0ff6a886b1a",
+      "98cc3154-9bdd-4e09-9fcb-9a9214d0c024",
+      "b361abd0-3549-490d-ab72-696e29bb0212",
+      "507d31fa-ab94-4582-90f5-d19faf86c59e",
+      "d275d98c-5d4a-48fe-be93-a8e28e792a3c",
+      "af9ebe29-0c8a-4192-b52d-e3240e52e630",
+      "c1b2438e-d6e0-42e8-ba3f-e7ba0129b700",
+      "93436a0e-92c6-42e3-8d44-ac8fd95e6414",
+      "a2a2df65-a2da-4412-acc0-9b8831961562",
+      "4f64c090-f9bb-4216-9a8d-a0ccb8d13375",
+      "67f1b9f8-0014-4455-a990-dc0fb4918a79",
+      "bb2ef771-0faa-435f-8530-70e995dfe8fc",
+      "8829634b-164d-4d27-9774-c5d11101b5ec",
+      "726bfcc8-ef99-4876-817b-af0e7ec71e16",
+      "8d41f8be-5d41-45dd-8ece-859cf2fecd67",
+      "f17c6d0d-dd73-4728-9e27-9801ee74e257",
+      "32983945-2783-45ce-ae9d-92eab629c9d1",
+      "40a18ddc-765b-4dcd-9d71-32bf5acb033e",
+      "879bc298-34bb-4690-acb7-8666d002d263",
+      "533d0fdd-5918-49a6-b0c4-00ca98a39fde"
+    ],
+    "TRUE_MISSING": [],
+    "DIVERGENT": [],
+    "AMBIGUOUS": []
+  }
+}

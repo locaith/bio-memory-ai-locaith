@@ -4,7 +4,7 @@
     {
       "step": "PRE snapshot CERTIFIED (integrity + hash)",
       "ok": true,
-      "detail": "9b6fc92e05273515"
+      "detail": "e3bd005ad194db40"
     },
     {
       "step": "S5 VALID PASS",
@@ -24,7 +24,7 @@
     {
       "step": "CLEAN GENERATION RESET — INSTALL_CONFIRMED, hash khớp baseline, integrity ok, FK rỗng",
       "ok": true,
-      "detail": "9b6fc92e05273515"
+      "detail": "e3bd005ad194db40"
     },
     {
       "step": "3 substantive live canaries — exactly once",
@@ -42,11 +42,6 @@
       "detail": ""
     }
   ],
-  "baseline_clone": "9b6fc92e052735151f8ef4d776d841cbcb5acd097738dd5892ce30c6e82bcad6",
-  "conclusion": "A5-v2 CLONE: PASS",
-  "mode_provenance_correction_19_08": {
-    "ladder_mode_source": "explicit experimental env (harness hook())",
-    "deployed_mode_source": "persistent settings — CHƯA được đo ở A5-v2",
-    "deployed_mode_effective": "đo tại A5-v2.1 bằng fresh process, env dựng từ settings, không override"
-  }
+  "baseline_clone": "e3bd005ad194db4089e66e44901da8713052d29f7238fa2f62c2b6baaa5e00a5",
+  "conclusion": "A5-v2 CLONE: PASS"
 }

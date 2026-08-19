@@ -192,13 +192,18 @@ def main() -> None:
          "integrity ok, FK rỗng",
          ok and ic == [("ok",)] and not fk, manifest["installed_sha256"][:16])
 
-    # ---- deployed-mode acceptance: 3 substantive + 1 non-substantive
+    # ---- deployed-mode acceptance: 3 substantive + 1 non-substantive.
+    # Đếm DELTA, không đếm tổng: store thật còn giữ canary sống của lần
+    # acceptance trước, và clone thừa kế chúng — đếm tổng cho live=6 giả.
+    pre_live = sum(rows(store,
+                   "SELECT COUNT(*) FROM cognitive_memories WHERE content LIKE ?",
+                   (f"%070099{i}88%",))[0][0] for i in range(3))
     for i in range(3):
-        hook(store, f"A5v2 live canary cuối #{i} mã 0700990{i}88.", "a5v2-live")
+        hook(store, f"A5v2 live canary cuối #{i} mã 070099{i}88.", "a5v2-live")
     hook(store, None, "a5v2-live")               # non-substantive: event-only
     live = sum(rows(store,
                     "SELECT COUNT(*) FROM cognitive_memories WHERE content LIKE ?",
-                    (f"%0700990{i}88%",))[0][0] for i in range(3))
+                    (f"%070099{i}88%",))[0][0] for i in range(3)) - pre_live
     marker_mems = rows(store, "SELECT COUNT(*) FROM cognitive_memories "
                               "WHERE content LIKE '%hook=UserPromptSubmit%' "
                               "AND content NOT LIKE '%prompt=%'")[0][0]
