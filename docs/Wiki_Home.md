@@ -223,7 +223,7 @@ Chúng tôi mong muốn hỗ trợ toàn diện các nền tảng Agent hiện t
 
 ## 📬 Liên hệ & Triển khai doanh nghiệp
 
-Hệ thống **Bio-Agent OS** được nghiên cứu và phát triển bởi **Dev Tuan Anh Ha** (Top 4 Google for Startups Accelerator) cùng đội ngũ **Locaith Solution Tech**. Nếu bạn cần triển khai kiến trúc Bio-Memory tinh chỉnh cho dữ liệu khép kín của tổ chức, hãy liên hệ:
+Hệ thống **Bio-Agent OS** được nghiên cứu và phát triển bởi **Dev Tuan Anh Ha** (Spotlight Showcase — Google for Startups AI Solutions Lab Vietnam 2025) cùng đội ngũ **Locaith Solution Tech**. Nếu bạn cần triển khai kiến trúc Bio-Memory tinh chỉnh cho dữ liệu khép kín của tổ chức, hãy liên hệ:
 
 - 🏢 **Công ty**: Locaith Solution Tech
 - 📍 **Địa chỉ**: Số 6 Ngõ 7 Phố Tôn Thất Thuyết, Thành phố Hà Nội
@@ -444,7 +444,7 @@ We aim to comprehensively support current Agent platforms (such as OpenClaw, SWE
 
 ## 📬 Contact & Enterprise Deployment
 
-The **Bio-Agent OS** system is researched and developed by **Dev Tuan Anh Ha** (Top 4 Google for Startups Accelerator) and the **Locaith Solution Tech** team. If you need to deploy customized Bio-Memory structures internally for isolated corporate data, please get in touch:
+The **Bio-Agent OS** system is researched and developed by **Dev Tuan Anh Ha** (Spotlight Showcase — Google for Startups AI Solutions Lab Vietnam 2025) and the **Locaith Solution Tech** team. If you need to deploy customized Bio-Memory structures internally for isolated corporate data, please get in touch:
 
 - 🏢 **Company**: Locaith Solution Tech
 - 📍 **Address**: No 6, Alley 7, Ton That Thuyet Street, Hanoi, Vietnam
