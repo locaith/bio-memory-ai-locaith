@@ -3,7 +3,8 @@
 **Trí nhớ cho AI của bạn, nằm trên máy của bạn.** · *A memory for your AI, kept on your own computer.* ([English below](#english))
 
 Bio-Memory giữ trí nhớ cho AI bạn đang dùng. Hôm nay bạn kể, hôm sau AI vẫn nhớ. Điều đã cũ được đánh dấu là cũ, không bị trộn với điều mới.
-Khi bạn bảo quên, nó xoá hẳn khỏi tệp dữ liệu và cho bạn xem bằng chứng. Trí nhớ nằm trong một tệp trên máy bạn. Bio-Memory không gửi nó đi đâu.
+Khi bạn bấm Quên trong cửa sổ Bio-Memory, điều đó bị xoá hẳn khỏi tệp dữ liệu và bạn được xem kết quả kiểm tra. Khi bạn bảo AI quên, điều đó chỉ được ẩn đi; muốn xoá hẳn, bạn bấm Quên trong cửa sổ.
+Trí nhớ nằm trên máy bạn. Bio-Memory không tự gửi nó đi đâu.
 
 ## Bạn dùng theo cách nào?
 
@@ -26,8 +27,9 @@ Nối Claude Code nghĩa là Bio-Memory thành trí nhớ của **mọi dự án
 
 ## Riêng tư
 
-- Bio-Memory chạy trên máy bạn và không gửi dữ liệu đi đâu.
-- Có một điều cần biết: AI bạn nối (Claude, chẳng hạn) đọc những gì nó tìm thấy trong trí nhớ. Phần đó đi cùng cuộc trò chuyện tới công ty làm ra AI ấy, như mọi điều bạn gõ cho nó.
+- Bio-Memory chạy trên máy bạn và không tự gửi dữ liệu đi đâu. Dữ liệu chỉ rời máy ở nơi bạn nối nó với thứ bên ngoài.
+- AI bạn nối đọc những gì nó tìm thấy trong trí nhớ, và phần đó đi cùng cuộc trò chuyện tới công ty làm ra AI ấy. Nếu bạn bật cổng web, hoặc nối một model chạy trên mạng trong cửa sổ nâng cao, trí nhớ được gửi tới đúng nơi bạn đã chọn.
+- Quên trong Bio-Memory không xoá lịch sử trò chuyện mà ứng dụng AI tự giữ. Nếu bạn mở lại một phiên cũ, AI vẫn có thể thấy điều đã nói trong phiên đó.
 - Bio-Memory không giữ những gì trông như mật khẩu hay khoá bí mật.
 
 ## Chưa có
@@ -49,8 +51,9 @@ Liên hệ: contact@locaith.com · Locaith Solution Tech, Việt Nam.
 ## English
 
 Bio-Memory keeps the memory of the AI you use. Tell it something today and your AI still knows it tomorrow. What is out of date is marked as
-out of date, not mixed in with what is current. When you say forget, it is erased from the data file, and you are shown the proof. The memory is
-one file on your computer, and Bio-Memory sends it nowhere.
+out of date, not mixed in with what is current. When you choose Forget in the Bio-Memory window, it is erased from the data file and you are
+shown what the check found. When you tell your AI to forget, it is only hidden; to erase it for good, choose Forget in the window. The memory
+stays on your computer, and Bio-Memory sends it nowhere by itself.
 
 | You are | Use | Get it |
 |---|---|---|
@@ -73,9 +76,11 @@ puts everything back as it was.
 **Uninstall:** open Bio-Memory and choose **Remove Bio-Memory from this computer**. The program, its icons and its connections go. Your memory in
 `%USERPROFILE%\Bio-Memory` stays where it is: it is yours.
 
-**Privacy:** Bio-Memory runs on your computer and sends nothing anywhere. One thing to know: the AI you connect reads what it finds in the memory,
-and that part travels with your conversation to the company that makes that AI, like anything you type to it. Bio-Memory does not keep what
-looks like a password or a secret key.
+**Privacy:** Bio-Memory runs on your computer and sends nothing anywhere by itself. Data leaves the computer only where you connect it to
+something outside. The AI you connect reads what it finds in the memory, and that part travels with your conversation to the company that makes
+that AI. If you turn on the web door, or connect an online model in the advanced window, memory goes to the place you chose.
+Forgetting in Bio-Memory does not erase the chat history your AI app keeps for itself. If you reopen an old session, the AI may still
+see what was said in it. Bio-Memory does not keep what looks like a password or a secret key.
 
 **Not yet:** macOS and Linux builds; a signed program (a Microsoft Store edition is waiting for approval).
 
