@@ -29,7 +29,7 @@ Nối Claude Code nghĩa là Bio-Memory thành trí nhớ của **mọi dự án
 
 - Bio-Memory chạy trên máy bạn và không tự gửi dữ liệu đi đâu. Dữ liệu chỉ rời máy ở nơi bạn nối nó với thứ bên ngoài.
 - AI bạn nối đọc những gì nó tìm thấy trong trí nhớ, và phần đó đi cùng cuộc trò chuyện tới công ty làm ra AI ấy. Nếu bạn bật cổng web, hoặc nối một model chạy trên mạng trong cửa sổ nâng cao, trí nhớ được gửi tới đúng nơi bạn đã chọn.
-- Quên trong Bio-Memory không xoá lịch sử trò chuyện mà ứng dụng AI tự giữ. Nếu bạn mở lại một phiên cũ, AI vẫn có thể thấy điều đã nói trong phiên đó.
+- Quên trong Bio-Memory không xoá lịch sử trò chuyện mà ứng dụng AI tự giữ. Nếu bạn mở lại một phiên cũ, AI vẫn có thể thấy điều đã nói trong phiên đó. Bản sao lưu bạn tạo trước khi xoá vẫn giữ điều đã xoá.
 - Bio-Memory không giữ những gì trông như mật khẩu hay khoá bí mật.
 
 ## Chưa có
@@ -80,7 +80,7 @@ puts everything back as it was.
 something outside. The AI you connect reads what it finds in the memory, and that part travels with your conversation to the company that makes
 that AI. If you turn on the web door, or connect an online model in the advanced window, memory goes to the place you chose.
 Forgetting in Bio-Memory does not erase the chat history your AI app keeps for itself. If you reopen an old session, the AI may still
-see what was said in it. Bio-Memory does not keep what looks like a password or a secret key.
+see what was said in it. A backup you made before erasing still holds what you erased. Bio-Memory does not keep what looks like a password or a secret key.
 
 **Not yet:** macOS and Linux builds; a signed program (a Microsoft Store edition is waiting for approval).
 
