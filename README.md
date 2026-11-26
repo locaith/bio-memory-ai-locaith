@@ -11,7 +11,7 @@ Trí nhớ nằm trên máy bạn. Bio-Memory không tự gửi nó đi đâu.
 | Bạn là | Dùng | Lấy ở đâu |
 |---|---|---|
 | Người dùng bình thường | **Locaith Orb**, ứng dụng trợ lý có sẵn trí nhớ bên trong | <https://orb.locaith.ai> |
-| Người dùng Claude Code, Claude Desktop, Codex, Gemini CLI hoặc Cursor | **Bio-Memory** (Windows, macOS, Linux) | Một dòng lệnh bên dưới, hoặc [tải bản mới nhất](https://github.com/locaith/bio-memory-ai-locaith/releases/latest) |
+| Người dùng Claude Code, Claude Desktop, Codex, Gemini CLI hoặc Cursor | **Bio-Memory** (Windows; macOS và Linux sắp có) | Một dòng lệnh bên dưới, hoặc [tải bản mới nhất](https://github.com/locaith/bio-memory-ai-locaith/releases/latest) |
 
 ## Cài bằng một dòng lệnh
 
@@ -19,9 +19,8 @@ Trí nhớ nằm trên máy bạn. Bio-Memory không tự gửi nó đi đâu.
 |---|---|
 | Windows, PowerShell | `irm https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.ps1 \| iex` |
 | Windows, cmd | `curl -fsSL https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.cmd -o "%TEMP%\bio-memory-install.cmd" && "%TEMP%\bio-memory-install.cmd"` |
-| macOS, Linux | `curl -fsSL https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.sh \| sh` |
 
-Dòng lệnh tải chương trình từ bản phát hành mới nhất trên GitHub, kiểm tra tệp tải về khớp mã SHA-256 của bản phát hành, rồi cài vào thư mục của riêng bạn. Không cần quyền quản trị, không cần sudo. Sau đó bạn có lệnh `bio-memory`, và lệnh này dẫn bạn qua các bước đầu:
+Dòng lệnh tải chương trình từ bản phát hành mới nhất trên GitHub và cho bạn thấy tiến trình tải. Nó kiểm tra tệp tải về khớp mã SHA-256 của bản phát hành, rồi cài vào thư mục của riêng bạn. Không cần quyền quản trị. Sau đó bạn có lệnh `bio-memory`, và lệnh này dẫn bạn qua các bước đầu:
 
 1. chọn Tiếng Việt hoặc English;
 2. chọn chỗ cất trí nhớ (mặc định là thư mục `Bio-Memory` trong thư mục người dùng);
@@ -64,7 +63,7 @@ Nối Claude Code nghĩa là Bio-Memory thành trí nhớ của **mọi dự án
 
 ## Chưa có
 
-- Bản Linux cho máy ARM (bản Linux hiện có cho máy x86-64, cần glibc 2.28 trở lên).
+- Bản cho macOS và Linux (đang hoàn thiện).
 - Chữ ký số của chương trình. Bản trên Microsoft Store đang chờ duyệt.
 
 ## Giấy phép
@@ -88,7 +87,7 @@ stays on your computer, and Bio-Memory sends it nowhere by itself.
 | You are | Use | Get it |
 |---|---|---|
 | Anyone | **Locaith Orb**, an assistant app with the memory built in | <https://orb.locaith.ai> |
-| A Claude Code, Claude Desktop, Codex, Gemini CLI or Cursor user | **Bio-Memory** (Windows, macOS, Linux) | One line below, or the [latest release](https://github.com/locaith/bio-memory-ai-locaith/releases/latest) |
+| A Claude Code, Claude Desktop, Codex, Gemini CLI or Cursor user | **Bio-Memory** (Windows; macOS and Linux soon) | One line below, or the [latest release](https://github.com/locaith/bio-memory-ai-locaith/releases/latest) |
 
 **Install with one line:**
 
@@ -96,10 +95,9 @@ stays on your computer, and Bio-Memory sends it nowhere by itself.
 |---|---|
 | Windows, PowerShell | `irm https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.ps1 \| iex` |
 | Windows, cmd | `curl -fsSL https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.cmd -o "%TEMP%\bio-memory-install.cmd" && "%TEMP%\bio-memory-install.cmd"` |
-| macOS, Linux | `curl -fsSL https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.sh \| sh` |
 
-It downloads the program from the newest release on GitHub, checks the download against the release's SHA-256, and installs it in your
-own user folder: no administrator rights, no sudo. Then you have the `bio-memory` command, which walks you through the first steps: Tiếng
+It downloads the program from the newest release on GitHub, showing the download as it goes, checks the download against the release's
+SHA-256, and installs it in your own user folder: no administrator rights. Then you have the `bio-memory` command, which walks you through the first steps: Tiếng
 Việt or English; where to keep the memory (by default the `Bio-Memory` folder in your user folder); which AI apps on the computer should use
 it -- Claude Code, Claude Desktop, Codex, Gemini CLI, Cursor -- shown before anything is written, each file backed up first; and the window.
 After that: `bio-memory open` (the window), `bio-memory status`, `bio-memory doctor` (check and say how to fix), `bio-memory update`,
@@ -132,8 +130,7 @@ window, or type `bio-memory update`, it asks its releases page on GitHub whether
 checks the download and installs it. That request holds nothing of your memory; updating by itself when the window opens can be turned off
 in the window's Privacy tab. Bio-Memory does not keep what looks like a password or a secret key.
 
-**Not yet:** Linux on ARM machines (the Linux build is for x86-64, glibc 2.28 or newer); a signed program (a Microsoft Store edition is
-waiting for approval).
+**Not yet:** macOS and Linux builds (in progress); a signed program (a Microsoft Store edition is waiting for approval).
 
 **License:** Bio-Memory.exe is free to use, personally and at work, under the [Bio-Memory License](LICENSE.md). From 0.11 on, Bio-Memory is
 released as a compiled program and its source is not published. Releases up to 0.8.2rc1 were published as source under the MIT License, and
