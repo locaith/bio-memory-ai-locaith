@@ -41,6 +41,7 @@ Các lệnh dùng sau:
 | `bio-memory update` | cài bản mới (cửa sổ cũng tự cập nhật mỗi lần mở) |
 | `bio-memory uninstall` | gỡ chương trình; trí nhớ giữ nguyên |
 | `bio-memory profile` | hồ sơ doanh nghiệp đọc từ tài liệu của bạn |
+| `bio-memory background on` | tuỳ chọn: chạy nhẹ cùng phiên đăng nhập, tự nạp hội thoại AI mới, đọc lại tài liệu và tự cập nhật; `off` để tắt |
 | `bio-memory help` | mọi lệnh |
 
 `BIO_MEMORY_LANG=vi` hoặc `en` chọn ngôn ngữ mà không hỏi. `NO_COLOR=1` tắt màu.
@@ -108,7 +109,7 @@ it -- Claude Code, Claude Desktop, Codex, Gemini CLI, Cursor, Windsurf, Antigrav
 the documents in the folders you choose, read on the computer, for a business profile (the window's **Business** tab); and the window.
 After that: `bio-memory open` (the window), `bio-memory status`, `bio-memory connect` (connect an AI app; `--print <name>` gives the text to paste into any other, Trae for one),
 `bio-memory doctor` (check and say how to fix), `bio-memory update`,
-`bio-memory uninstall` (the memory stays), `bio-memory profile` (the business profile), `bio-memory help`. `BIO_MEMORY_LANG=vi` or `en` picks the language without asking; `NO_COLOR=1`
+`bio-memory uninstall` (the memory stays), `bio-memory profile` (the business profile), `bio-memory background on` (if you want it: runs lightly with your session, takes in new AI conversations, reads documents again, updates itself; `off` turns it off), `bio-memory help`. `BIO_MEMORY_LANG=vi` or `en` picks the language without asking; `NO_COLOR=1`
 turns colour off.
 
 **Or download Bio-Memory.exe (Windows 10 or 11, 64-bit):**
