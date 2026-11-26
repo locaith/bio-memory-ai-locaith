@@ -11,9 +11,38 @@ Trí nhớ nằm trên máy bạn. Bio-Memory không tự gửi nó đi đâu.
 | Bạn là | Dùng | Lấy ở đâu |
 |---|---|---|
 | Người dùng bình thường | **Locaith Orb**, ứng dụng trợ lý có sẵn trí nhớ bên trong | <https://orb.locaith.ai> |
-| Người dùng Claude Code, Claude Desktop hoặc Cursor | **Bio-Memory.exe** | [Tải bản mới nhất](https://github.com/locaith/bio-memory-ai-locaith/releases/latest) |
+| Người dùng Claude Code, Claude Desktop, Codex, Gemini CLI hoặc Cursor | **Bio-Memory** (Windows, macOS, Linux) | Một dòng lệnh bên dưới, hoặc [tải bản mới nhất](https://github.com/locaith/bio-memory-ai-locaith/releases/latest) |
 
-## Cài Bio-Memory.exe (Windows 10 hoặc 11, 64-bit)
+## Cài bằng một dòng lệnh
+
+| Máy | Dán dòng này vào |
+|---|---|
+| Windows, PowerShell | `irm https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.ps1 \| iex` |
+| Windows, cmd | `curl -fsSL https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.cmd -o "%TEMP%\bio-memory-install.cmd" && "%TEMP%\bio-memory-install.cmd"` |
+| macOS, Linux | `curl -fsSL https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.sh \| sh` |
+
+Dòng lệnh tải chương trình từ bản phát hành mới nhất trên GitHub, kiểm tra tệp tải về khớp mã SHA-256 của bản phát hành, rồi cài vào thư mục của riêng bạn. Không cần quyền quản trị, không cần sudo. Sau đó bạn có lệnh `bio-memory`, và lệnh này dẫn bạn qua các bước đầu:
+
+1. chọn Tiếng Việt hoặc English;
+2. chọn chỗ cất trí nhớ (mặc định là thư mục `Bio-Memory` trong thư mục người dùng);
+3. nối với các ứng dụng AI có trên máy: Claude Code, Claude Desktop, Codex, Gemini CLI, Cursor. Trước khi ghi, lệnh cho bạn xem sẽ đổi gì, và tệp nào cũng được sao lưu trước;
+4. mở cửa sổ Bio-Memory.
+
+Các lệnh dùng sau:
+
+| Lệnh | Làm gì |
+|---|---|
+| `bio-memory` | lần đầu: các bước trên; sau đó: trí nhớ ở đâu, ứng dụng nào đã nối |
+| `bio-memory open` | mở cửa sổ: xem AI đã nhớ gì, xoá hẳn một điều |
+| `bio-memory status` | bản đang chạy, trí nhớ, các ứng dụng AI đã nối |
+| `bio-memory doctor` | kiểm máy và chỉ cách sửa |
+| `bio-memory update` | cài bản mới (cửa sổ cũng tự cập nhật mỗi lần mở) |
+| `bio-memory uninstall` | gỡ chương trình; trí nhớ giữ nguyên |
+| `bio-memory help` | mọi lệnh |
+
+`BIO_MEMORY_LANG=vi` hoặc `en` chọn ngôn ngữ mà không hỏi. `NO_COLOR=1` tắt màu.
+
+## Hoặc tải Bio-Memory.exe (Windows 10 hoặc 11, 64-bit)
 
 1. Tải `Bio-Memory.exe` ở trang [Releases](https://github.com/locaith/bio-memory-ai-locaith/releases/latest).
 2. Mở tệp vừa tải. Chương trình chưa có chữ ký số, nên Windows có thể báo "Windows protected your PC". Bấm **More info**, rồi **Run anyway**.
@@ -23,19 +52,19 @@ Trí nhớ nằm trên máy bạn. Bio-Memory không tự gửi nó đi đâu.
 
 Nối Claude Code nghĩa là Bio-Memory thành trí nhớ của **mọi dự án** Claude Code trên máy. Ghi chú Claude Code đã có được chép vào trước. Sau đó trí nhớ riêng của Claude Code tắt đi, để mỗi phiên chỉ có một trí nhớ. Các tệp ghi chú cũ giữ nguyên, và bấm **Ngắt kết nối** là mọi thứ trở lại như trước.
 
-**Gỡ:** mở Bio-Memory, chọn **Gỡ Bio-Memory khỏi máy**. Chương trình, biểu tượng và các kết nối được gỡ. Trí nhớ của bạn trong `%USERPROFILE%\Bio-Memory` vẫn giữ nguyên. Đó là của bạn.
+**Gỡ:** gõ `bio-memory uninstall`, hoặc mở Bio-Memory và chọn **Gỡ Bio-Memory khỏi máy**. Chương trình, biểu tượng, lệnh `bio-memory` và các kết nối được gỡ. Trí nhớ của bạn trong thư mục `Bio-Memory` (trên Windows là `%USERPROFILE%\Bio-Memory`) vẫn giữ nguyên. Đó là của bạn.
 
 ## Riêng tư
 
 - Bio-Memory chạy trên máy bạn và không tự gửi dữ liệu đi đâu. Dữ liệu chỉ rời máy ở nơi bạn nối nó với thứ bên ngoài.
 - AI bạn nối đọc những gì nó tìm thấy trong trí nhớ, và phần đó đi cùng cuộc trò chuyện tới công ty làm ra AI ấy. Nếu bạn bật cổng web, hoặc nối một model chạy trên mạng trong cửa sổ nâng cao, trí nhớ được gửi tới đúng nơi bạn đã chọn.
 - Quên trong Bio-Memory không xoá lịch sử trò chuyện mà ứng dụng AI tự giữ. Nếu bạn mở lại một phiên cũ, AI vẫn có thể thấy điều đã nói trong phiên đó. Bản sao lưu bạn tạo trước khi xoá vẫn giữ điều đã xoá.
-- Khi bạn mở cửa sổ Bio-Memory, nó hỏi trang phát hành của nó trên GitHub xem có bản mới không. Nếu có, nó tự tải bản mới về, kiểm tra tệp tải về, rồi tự cài. Yêu cầu đó không chứa gì từ trí nhớ của bạn. Tắt được trong mục Riêng tư của cửa sổ.
+- Khi bạn mở cửa sổ Bio-Memory, hoặc gõ `bio-memory update`, nó hỏi trang phát hành của nó trên GitHub xem có bản mới không. Nếu có, nó tải bản mới về, kiểm tra tệp tải về, rồi cài. Yêu cầu đó không chứa gì từ trí nhớ của bạn. Việc tự cập nhật khi mở cửa sổ tắt được trong mục Riêng tư của cửa sổ.
 - Bio-Memory không giữ những gì trông như mật khẩu hay khoá bí mật.
 
 ## Chưa có
 
-- Bản cho macOS và Linux.
+- Bản Linux cho máy ARM (bản Linux hiện có cho máy x86-64, cần glibc 2.28 trở lên).
 - Chữ ký số của chương trình. Bản trên Microsoft Store đang chờ duyệt.
 
 ## Giấy phép
@@ -59,9 +88,25 @@ stays on your computer, and Bio-Memory sends it nowhere by itself.
 | You are | Use | Get it |
 |---|---|---|
 | Anyone | **Locaith Orb**, an assistant app with the memory built in | <https://orb.locaith.ai> |
-| A Claude Code, Claude Desktop or Cursor user | **Bio-Memory.exe** | [Latest release](https://github.com/locaith/bio-memory-ai-locaith/releases/latest) |
+| A Claude Code, Claude Desktop, Codex, Gemini CLI or Cursor user | **Bio-Memory** (Windows, macOS, Linux) | One line below, or the [latest release](https://github.com/locaith/bio-memory-ai-locaith/releases/latest) |
 
-**Install (Windows 10 or 11, 64-bit):**
+**Install with one line:**
+
+| Computer | Paste this |
+|---|---|
+| Windows, PowerShell | `irm https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.ps1 \| iex` |
+| Windows, cmd | `curl -fsSL https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.cmd -o "%TEMP%\bio-memory-install.cmd" && "%TEMP%\bio-memory-install.cmd"` |
+| macOS, Linux | `curl -fsSL https://github.com/locaith/bio-memory-ai-locaith/releases/latest/download/install.sh \| sh` |
+
+It downloads the program from the newest release on GitHub, checks the download against the release's SHA-256, and installs it in your
+own user folder: no administrator rights, no sudo. Then you have the `bio-memory` command, which walks you through the first steps: Tiếng
+Việt or English; where to keep the memory (by default the `Bio-Memory` folder in your user folder); which AI apps on the computer should use
+it -- Claude Code, Claude Desktop, Codex, Gemini CLI, Cursor -- shown before anything is written, each file backed up first; and the window.
+After that: `bio-memory open` (the window), `bio-memory status`, `bio-memory doctor` (check and say how to fix), `bio-memory update`,
+`bio-memory uninstall` (the memory stays), `bio-memory help`. `BIO_MEMORY_LANG=vi` or `en` picks the language without asking; `NO_COLOR=1`
+turns colour off.
+
+**Or download Bio-Memory.exe (Windows 10 or 11, 64-bit):**
 
 1. Download `Bio-Memory.exe` from [Releases](https://github.com/locaith/bio-memory-ai-locaith/releases/latest).
 2. Open it. The program is not signed yet, so Windows may say "Windows protected your PC". Choose **More info**, then **Run anyway**.
@@ -74,19 +119,21 @@ Connecting Claude Code makes Bio-Memory the memory of **every** Claude Code proj
 first. Then Claude Code's own memory is turned off, so that a session has one memory. The old note files stay as they are, and **Disconnect**
 puts everything back as it was.
 
-**Uninstall:** open Bio-Memory and choose **Remove Bio-Memory from this computer**. The program, its icons and its connections go. Your memory in
-`%USERPROFILE%\Bio-Memory` stays where it is: it is yours.
+**Uninstall:** type `bio-memory uninstall`, or open Bio-Memory and choose **Remove Bio-Memory from this computer**. The program, its icons, the
+`bio-memory` command and its connections go. Your memory in the `Bio-Memory` folder (`%USERPROFILE%\Bio-Memory` on Windows) stays where it is:
+it is yours.
 
 **Privacy:** Bio-Memory runs on your computer and sends nothing anywhere by itself. Data leaves the computer only where you connect it to
 something outside. The AI you connect reads what it finds in the memory, and that part travels with your conversation to the company that makes
 that AI. If you turn on the web door, or connect an online model in the advanced window, memory goes to the place you chose.
 Forgetting in Bio-Memory does not erase the chat history your AI app keeps for itself. If you reopen an old session, the AI may still
 see what was said in it. A backup you made before erasing still holds what you erased. When you open the Bio-Memory
-window, it asks its releases page on GitHub whether there is a new version; if there is, it downloads it, checks the download and
-installs it. That request holds nothing of your memory; you can turn it off in the window's Privacy tab. Bio-Memory does not keep what looks
-like a password or a secret key.
+window, or type `bio-memory update`, it asks its releases page on GitHub whether there is a new version; if there is, it downloads it,
+checks the download and installs it. That request holds nothing of your memory; updating by itself when the window opens can be turned off
+in the window's Privacy tab. Bio-Memory does not keep what looks like a password or a secret key.
 
-**Not yet:** macOS and Linux builds; a signed program (a Microsoft Store edition is waiting for approval).
+**Not yet:** Linux on ARM machines (the Linux build is for x86-64, glibc 2.28 or newer); a signed program (a Microsoft Store edition is
+waiting for approval).
 
 **License:** Bio-Memory.exe is free to use, personally and at work, under the [Bio-Memory License](LICENSE.md). From 0.11 on, Bio-Memory is
 released as a compiled program and its source is not published. Releases up to 0.8.2rc1 were published as source under the MIT License, and
