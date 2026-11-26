@@ -25,7 +25,8 @@ Dòng lệnh tải chương trình từ bản phát hành mới nhất trên Git
 1. chọn Tiếng Việt hoặc English;
 2. chọn chỗ cất trí nhớ (mặc định là thư mục `Bio-Memory` trong thư mục người dùng);
 3. nối với các ứng dụng AI có trên máy: Claude Code, Claude Desktop, Codex, Gemini CLI, Cursor. Trước khi ghi, lệnh cho bạn xem sẽ đổi gì, và tệp nào cũng được sao lưu trước;
-4. mở cửa sổ Bio-Memory.
+4. tuỳ chọn: đọc tài liệu trong các thư mục bạn chọn để lập hồ sơ doanh nghiệp (đơn vị của bạn, con người, hợp đồng và việc tới hạn). Việc đọc làm ngay trên máy; hồ sơ hiện trong thẻ **Doanh nghiệp** của cửa sổ;
+5. mở cửa sổ Bio-Memory.
 
 Các lệnh dùng sau:
 
@@ -37,6 +38,7 @@ Các lệnh dùng sau:
 | `bio-memory doctor` | kiểm máy và chỉ cách sửa |
 | `bio-memory update` | cài bản mới (cửa sổ cũng tự cập nhật mỗi lần mở) |
 | `bio-memory uninstall` | gỡ chương trình; trí nhớ giữ nguyên |
+| `bio-memory profile` | hồ sơ doanh nghiệp đọc từ tài liệu của bạn |
 | `bio-memory help` | mọi lệnh |
 
 `BIO_MEMORY_LANG=vi` hoặc `en` chọn ngôn ngữ mà không hỏi. `NO_COLOR=1` tắt màu.
@@ -99,9 +101,10 @@ stays on your computer, and Bio-Memory sends it nowhere by itself.
 It downloads the program from the newest release on GitHub, showing the download as it goes, checks the download against the release's
 SHA-256, and installs it in your own user folder: no administrator rights. Then you have the `bio-memory` command, which walks you through the first steps: Tiếng
 Việt or English; where to keep the memory (by default the `Bio-Memory` folder in your user folder); which AI apps on the computer should use
-it -- Claude Code, Claude Desktop, Codex, Gemini CLI, Cursor -- shown before anything is written, each file backed up first; and the window.
+it -- Claude Code, Claude Desktop, Codex, Gemini CLI, Cursor -- shown before anything is written, each file backed up first; if you like,
+the documents in the folders you choose, read on the computer, for a business profile (the window's **Business** tab); and the window.
 After that: `bio-memory open` (the window), `bio-memory status`, `bio-memory doctor` (check and say how to fix), `bio-memory update`,
-`bio-memory uninstall` (the memory stays), `bio-memory help`. `BIO_MEMORY_LANG=vi` or `en` picks the language without asking; `NO_COLOR=1`
+`bio-memory uninstall` (the memory stays), `bio-memory profile` (the business profile), `bio-memory help`. `BIO_MEMORY_LANG=vi` or `en` picks the language without asking; `NO_COLOR=1`
 turns colour off.
 
 **Or download Bio-Memory.exe (Windows 10 or 11, 64-bit):**
